@@ -1,0 +1,91 @@
+[versions]
+agp = "8.13.1"
+agv = "0.4.14"
+androidx-activityCompose = "1.12.0"
+androidx-uiTest = "1.9.5"
+animation = "1.10.0-beta02"
+buildConfig = "6.0.1"
+compose = "1.10.0-beta02"
+igdbclientKtor = "0.8"
+kermit = "2.0.8"
+kotlin = "2.2.21"
+kotlinResult = "2.1.0"
+kotlinx-coroutines = "1.10.2"
+kotlinx-datetime = "0.7.1"
+kotlinx-serialization = "1.9.0"
+koin = "4.1.1"
+koin-annotations = "2.3.1"
+kotlinx_datetime_ext = "1.3.2"
+ksp = "2.3.0"
+ktor = "3.3.2"
+lifecycleViewmodelNav3 = "2.10.0-alpha05"
+material3 = "1.10.0-alpha05"
+material3AdaptiveNav3 = "1.3.0-alpha02"
+materialKolor = "5.0.0-alpha02" # Wait https://github.com/jordond/MaterialKolor/issues/440
+mp_stools = "1.6.2"
+multiplatformSettings = "1.3.0"
+nav3Core = "1.0.0"
+nav3Ui = "1.0.0-alpha05"
+sketch = "4.3.1"
+symbolCraft = "0.3.3"
+systemUIBarsTweaker = "1.2.4"
+desugarJdkLibs = "2.1.5"
+zoomimageCompose = "1.4.0"
+
+[libraries]
+androidx-activityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+androidx-material3-adaptive-navigation3 = { group = "org.jetbrains.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "material3AdaptiveNav3" }
+androidx-lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
+androidx-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "nav3Ui" }
+androidx-uitest-testManifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-uiTest" }
+androidx-uitest-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-uiTest" }
+animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "animation" }
+components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose" }
+foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose" }
+igdbclient-ktor = { module = "at.released.igdbclient:igdbclient-ktor", version.ref = "igdbclientKtor" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-annotations" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annotations" }
+koin-compose-viewmodel = {group = "io.insert-koin", name = "koin-compose-viewmodel", version.ref = "koin"}
+kotlin-result = { module = "com.michael-bull.kotlin-result:kotlin-result", version.ref = "kotlinResult" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+kotlinx_datetime_ext = { module = "com.raedghazal:kotlinx_datetime_ext", version.ref = "kotlinx_datetime_ext" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-serialization = { module = "io.ktor:ktor-client-serialization", version.ref = "ktor" }
+ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
+mp_stools = { module = "net.sergeych:mp_stools", version.ref = "mp_stools" }
+multiplatformSettings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
+runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
+sketch = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }
+sketchHttp = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch" }
+systemUIBarsTweaker = { group = "com.github.stoyan-vuchev", name = "system-ui-bars-tweaker", version.ref = "systemUIBarsTweaker" }
+desugarJdkLibs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
+ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose" }
+ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose" }
+ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "compose" }
+ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose" }
+zoomimage-compose = { module = "io.github.panpf.zoomimage:zoomimage-compose", version.ref = "zoomimageCompose" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+androidGitVersion = { id = "com.gladed.androidgitversion", version.ref = "agv" }
+buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+symbolCraft = { id = "io.github.kingsword09.symbolcraft", version.ref ="symbolCraft" }

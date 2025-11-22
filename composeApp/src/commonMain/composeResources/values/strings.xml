@@ -1,0 +1,98 @@
+<resources>
+    <string name="nav__discover">Discover</string>
+    <string name="exception__title">Something went wrong</string>
+
+    <!-- Error bottom sheet -->
+    <string name="exception__type_label">%1$s</string>
+    <string name="exception__hint_network">Tip: check your Internet connection and try again.</string>
+    <string name="exception__action_close">Close</string>
+    <string name="exception__details_show">Show technical details</string>
+    <string name="exception__details_hide">Hide technical details</string>
+    <string name="exception__details_copy">Copy details</string>
+    <string name="exception__fallback_message">An unexpected error occurred.</string>
+    <string name="exception__generic_error">Error</string>
+    <string name="nav__library">Library</string>
+    <string name="nav__calendar">Calendar</string>
+    <string name="nav__profile">Profile</string>
+
+    <!-- Home sections -->
+    <string name="home__popular_games">Popular Games</string>
+    <string name="home__most_loved_games">Most Loved Games</string>
+    <string name="home__recently_released_games">Recently Released Games</string>
+    <string name="home__upcoming_games">Upcoming Games</string>
+    <string name="home__see_all">See all</string>
+
+    <!-- Game details -->
+    <string name="game__release_dates_title">Release dates by platform</string>
+    <string name="game__ratings_igdb_user">IGDB Users</string>
+    <string name="game__ratings_igdb_critics">IGDB Critics</string>
+    <string name="game__genres_title">Genres</string>
+    <string name="game__themes_title">Themes</string>
+    <string name="game__details_release_date">Release Date</string>
+    <string name="game__details_developers">Developers</string>
+    <string name="game__details_publishers">Publishers</string>
+
+    <!-- Regions -->
+    <string name="region__europe">Europe</string>
+    <string name="region__north_america">North America</string>
+    <string name="region__australia">Australia</string>
+    <string name="region__new_zealand">New Zealand</string>
+    <string name="region__japan">Japan</string>
+    <string name="region__china">China</string>
+    <string name="region__asia">Asia</string>
+    <string name="region__worldwide">Worldwide</string>
+    <string name="region__korea">Korea</string>
+    <string name="region__brazil">Brazil</string>
+    <string name="region__unknown">Unknown</string>
+
+    <!-- Genres -->
+    <string name="genre__point_and_click">Point-and-click</string>
+    <string name="genre__fighting">Fighting</string>
+    <string name="genre__shooter">Shooter</string>
+    <string name="genre__music">Music</string>
+    <string name="genre__platform">Platform</string>
+    <string name="genre__puzzle">Puzzle</string>
+    <string name="genre__racing">Racing</string>
+    <string name="genre__rts">Real Time Strategy (RTS)</string>
+    <string name="genre__rpg">Role Playing Game (RPG)</string>
+    <string name="genre__simulation">Simulation</string>
+    <string name="genre__sport">Sport</string>
+    <string name="genre__strategy">Strategy</string>
+    <string name="genre__tbs">Turn Based Strategy (TBS)</string>
+    <string name="genre__tactical">Tactical</string>
+    <string name="genre__hack_and_slash">Hack and slash/Beat \'em up</string>
+    <string name="genre__quiz">Quiz/Trivia</string>
+    <string name="genre__pinball">Pinball</string>
+    <string name="genre__adventure">Adventure</string>
+    <string name="genre__indie">Indie</string>
+    <string name="genre__arcade">Arcade</string>
+    <string name="genre__visual_novel">Visual Novel</string>
+    <string name="genre__card_board">Card &amp; Board Game</string>
+    <string name="genre__moba">MOBA</string>
+    <string name="genre__unknown">Unknown</string>
+
+    <!-- Themes -->
+    <string name="theme__action">Action</string>
+    <string name="theme__fantasy">Fantasy</string>
+    <string name="theme__science_fiction">Science fiction</string>
+    <string name="theme__horror">Horror</string>
+    <string name="theme__thriller">Thriller</string>
+    <string name="theme__survival">Survival</string>
+    <string name="theme__historical">Historical</string>
+    <string name="theme__stealth">Stealth</string>
+    <string name="theme__comedy">Comedy</string>
+    <string name="theme__business">Business</string>
+    <string name="theme__drama">Drama</string>
+    <string name="theme__non_fiction">Non-fiction</string>
+    <string name="theme__sandbox">Sandbox</string>
+    <string name="theme__educational">Educational</string>
+    <string name="theme__kids">Kids</string>
+    <string name="theme__open_world">Open world</string>
+    <string name="theme__warfare">Warfare</string>
+    <string name="theme__party">Party</string>
+    <string name="theme__4x">4X</string>
+    <string name="theme__erotic">Erotic</string>
+    <string name="theme__mystery">Mystery</string>
+    <string name="theme__romance">Romance</string>
+    <string name="theme__unknown">Unknown</string>
+</resources>
