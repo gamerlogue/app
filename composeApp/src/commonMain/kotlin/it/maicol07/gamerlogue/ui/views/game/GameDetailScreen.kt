@@ -127,6 +127,7 @@ private fun LazyListScope.GameDetailContent(game: Game) {
     item { GameMedia(game) }
     item { GameDescription(game) }
     item { GameDetailsList(game) }
+    item { Spacer(Modifier.height(12.dp)) }
 }
 
 @Composable
