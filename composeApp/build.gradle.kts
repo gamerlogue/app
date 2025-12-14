@@ -85,6 +85,7 @@ kotlin {
         }
 
         androidMain.dependencies {
+            implementation(libs.androidx.browser)
             implementation(libs.ui.tooling)
             implementation(libs.androidx.activityCompose)
             implementation(libs.kotlinx.coroutines.android)

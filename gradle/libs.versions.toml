@@ -2,6 +2,7 @@
 agp = "8.13.2"
 androidx-activityCompose = "1.12.1"
 androidx-uiTest = "1.10.0"
+browser = "1.9.0"
 buildConfig = "6.0.6"
 compose = "1.10.0-rc02"
 git-semantic-versioning = "5.0.5"
@@ -33,6 +34,7 @@ zoomimageCompose = "1.4.0"
 
 [libraries]
 androidx-activityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 androidx-material3-adaptive-navigation3 = { group = "org.jetbrains.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "material3AdaptiveNav3" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
