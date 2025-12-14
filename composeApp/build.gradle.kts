@@ -2,6 +2,7 @@
 
 import com.google.devtools.ksp.gradle.KspAATask
 import io.github.kingsword09.symbolcraft.model.SymbolVariant
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
@@ -23,6 +24,7 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.symbolCraft)
+    alias(libs.plugins.composeHotReload)
 }
 
 kotlin {
@@ -30,6 +32,8 @@ kotlin {
         // https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-test.html
         instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
     }
+
+    jvm()
 
     js {
         browser()
@@ -76,6 +80,8 @@ kotlin {
             implementation(libs.mp.stools)
             implementation(libs.kotlinx.datetime.ext)
             implementation(libs.zoomimage.compose)
+            implementation(libs.platformtools.core)
+            implementation(libs.platformtools.darkmodedetector)
         }
 
         commonTest.dependencies {
@@ -91,6 +97,13 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.systemUIBarsTweaker)
+        }
+
+        jvmMain.dependencies {
+            implementation(libs.ui)
+            implementation(compose.desktop.currentOs)
+            implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.ktor.client.okhttp)
         }
     }
 
@@ -253,4 +266,27 @@ symbolCraft {
 //    externalIcons(*brandIcons.toTypedArray(), libraryName = "simple-icons") {
 //        urlTemplate = "https://simpleicons.org/icons/{name}.svg"
 //    }
+}
+
+compose.desktop {
+    application {
+        mainClass = "it.maicol07.gamerlogue.MainKt"
+
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName = "it.maicol07.gamerlogue"
+            packageVersion = "1.0.0"
+
+            linux {
+                iconFile.set(project.file("src/jvmMain/resources/AppIcon.png"))
+            }
+            windows {
+                iconFile.set(project.file("src/jvmMain/resources/AppIcon.ico"))
+            }
+            macOS {
+                iconFile.set(project.file("src/jvmMain/resources/AppIcon.icns"))
+                bundleID = "it.maicol07.gamerlogue"
+            }
+        }
+    }
 }
