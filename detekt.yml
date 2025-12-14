@@ -24,3 +24,7 @@ style:
   UnusedPrivateMember:
     ignoreAnnotated:
       - 'Preview'
+
+formatting:
+  MaximumLineLength:
+    maxLineLength: 150
