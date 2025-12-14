@@ -16,7 +16,7 @@ val localProperties = Properties().apply {
 plugins {
     alias(libs.plugins.multiplatform) // Must be first
     alias(libs.plugins.android.application)
-    alias(libs.plugins.androidGitVersion)
+    alias(libs.plugins.git.semantic.versioning)
     alias(libs.plugins.buildConfig)
     alias(libs.plugins.compose)
     alias(libs.plugins.compose.compiler)
@@ -110,8 +110,8 @@ android {
         targetSdk = 36
 
         applicationId = appPackageName
-        versionCode = if (androidGitVersion.code() == 0) 1 else androidGitVersion.code()
-        versionName = androidGitVersion.name()
+        versionCode = androidGitSemVer.computeVersionCode()
+        versionName = androidGitSemVer.computeVersion()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

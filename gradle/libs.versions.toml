@@ -1,10 +1,10 @@
 [versions]
-agv = "0.4.14"
 agp = "8.13.2"
 androidx-activityCompose = "1.12.1"
 androidx-uiTest = "1.10.0"
 buildConfig = "6.0.6"
 compose = "1.10.0-rc02"
+git-semantic-versioning = "5.0.5"
 igdbclientKtor = "0.8"
 kermit = "2.0.8"
 kotlin = "2.2.21"
@@ -80,10 +80,10 @@ zoomimage-compose = { module = "io.github.panpf.zoomimage:zoomimage-compose", ve
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-androidGitVersion = { id = "com.gladed.androidgitversion", version.ref = "agv" }
 buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+git-semantic-versioning = { id = "io.github.andreabrighi.android-git-sensitive-semantic-versioning-gradle-plugin", version.ref = "git-semantic-versioning" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
