@@ -181,8 +181,7 @@ private fun GameGenresAndThemes(game: Game) {
             ) {
                 Text(
                     text = stringResource(title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                    style = MaterialTheme.typography.titleMedium
                 )
 
                 FlowRow(
