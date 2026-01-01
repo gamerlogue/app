@@ -17,7 +17,7 @@ fun Platform.Image(
             platform_logo!!.image_id,
             at.released.igdbclient.model.IgdbImageSize.LOGO_MEDIUM
         )
-    } ?: "https://placehold.net/64x64.png",
+    } ?: "https://placehold.net/default.png",
     contentDescription = name,
     contentScale = ContentScale.FillBounds,
     modifier = modifier,
