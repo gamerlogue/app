@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue
 
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
 import gamerlogue.composeapp.generated.resources.Res
@@ -12,35 +13,38 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import org.jetbrains.compose.resources.StringResource
 
-typealias NavBackStack = androidx.navigation3.runtime.NavBackStack<NavKey>
+typealias NavBackStack = NavBackStack<NavKey>
 
 object NavKeys {
-    interface NavKeyWithMeta : NavKey {
-        val title: StringResource?
+    abstract class NavKeyWithMeta : NavKey {
+        open val title: StringResource? = null
+        open val showBottomBar: Boolean = true
     }
 
     @Serializable
-    data object Discover : NavKeyWithMeta {
+    data object Discover : NavKeyWithMeta() {
         override val title = Res.string.nav__discover
     }
 
     @Serializable
-    data object Library : NavKeyWithMeta {
+    data object Library : NavKeyWithMeta() {
         override val title = Res.string.nav__library
     }
 
     @Serializable
-    data object Calendar : NavKeyWithMeta {
+    data object Calendar : NavKeyWithMeta() {
         override val title = Res.string.nav__calendar
     }
 
     @Serializable
-    data object Profile : NavKeyWithMeta {
+    data object Profile : NavKeyWithMeta() {
         override val title = Res.string.nav__profile
     }
 
     @Serializable
-    data class GameDetail(val gameId: Int) : NavKey
+    data class GameDetail(val gameId: Int) : NavKeyWithMeta() {
+        override val showBottomBar: Boolean = false
+    }
 
     @Serializable
     data class GameList(val title: String) : NavKey

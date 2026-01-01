@@ -1,5 +1,8 @@
 package it.maicol07.gamerlogue.ui.components.layout
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,31 +36,37 @@ fun AppNavigationBar(
     currentNavKey: NavKey,
     backStack: NavBackStack = koinInject()
 ) {
-    NavigationBar {
-        for (item in NavBarItems.entries) {
-            val selected = remember(currentNavKey) { currentNavKey == item.navKey }
-            NavigationBarItem(
-                icon = {
-                    Icon(if (selected) item.iconSelected else item.icon, null)
-               },
-                label = { item.title?.let { Text(stringResource(item.title)) } ?: "" },
-                selected = selected,
-                onClick = {
-                    if (!selected) {
-                        backStack.clear()
-                        backStack.add(item.navKey)
-                    } else {
-                        // When we click again on a bottom bar item and it was already selected
-                        // we want to pop the back stack until the initial destination of this bottom bar item
+    AnimatedVisibility(
+        (currentNavKey as? NavKeys.NavKeyWithMeta)?.showBottomBar ?: true,
+        enter = slideInVertically(),
+        exit = slideOutVertically()
+    ) {
+        NavigationBar {
+            for (item in NavBarItems.entries) {
+                val selected = remember(currentNavKey) { currentNavKey == item.navKey }
+                NavigationBarItem(
+                    icon = {
+                        Icon(if (selected) item.iconSelected else item.icon, null)
+                    },
+                    label = { item.title?.let { Text(stringResource(item.title)) } ?: "" },
+                    selected = selected,
+                    onClick = {
+                        if (!selected) {
+                            backStack.clear()
+                            backStack.add(item.navKey)
+                        } else {
+                            // When we click again on a bottom bar item and it was already selected
+                            // we want to pop the back stack until the initial destination of this bottom bar item
 
-                        // Find the last occurrence of the selected navKey in the back stack and remove all entries after it
-                        val lastIndex = backStack.indexOfLast { it == item.navKey }
-                        if (lastIndex != -1 && lastIndex < backStack.size - 1) {
-                            backStack.subList(lastIndex + 1, backStack.size).clear()
+                            // Find the last occurrence of the selected navKey in the back stack and remove all entries after it
+                            val lastIndex = backStack.indexOfLast { it == item.navKey }
+                            if (lastIndex != -1 && lastIndex < backStack.size - 1) {
+                                backStack.subList(lastIndex + 1, backStack.size).clear()
+                            }
                         }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
