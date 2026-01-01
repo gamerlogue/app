@@ -22,7 +22,8 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import it.maicol07.gamerlogue.di.KoinApp
+import it.maicol07.gamerlogue.di.appModule
+import it.maicol07.gamerlogue.di.httpModule
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
 import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.components.layout.LocalAppUiState
