@@ -1,4 +1,4 @@
-package it.maicol07.gamerlogue.ui.components.game
+package it.maicol07.gamerlogue.ui.views.game.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,7 +32,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Pub
 import it.maicol07.gamerlogue.extensions.expressiveColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
-import it.maicol07.gamerlogue.ui.views.game.components.ReleaseDatesBottomSheet
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
