@@ -187,6 +187,7 @@ android {
 dependencies {
     androidTestImplementation(libs.androidx.uitest.junit4)
     debugImplementation(libs.androidx.uitest.testManifest)
+    add("kspCommonMainMetadata", libs.spraypaintkt.processor)
     coreLibraryDesugaring(libs.desugarJdkLibs)
 }
 
