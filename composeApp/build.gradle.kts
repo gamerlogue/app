@@ -67,7 +67,6 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
-            api(libs.koin.annotations)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
@@ -184,18 +183,10 @@ android {
     }
 }
 
-ksp {
-    arg("KOIN_USE_COMPOSE_VIEWMODEL", "true")
-    arg("KOIN_CONFIG_CHECK", "true")
-}
-
 // https://developer.android.com/develop/ui/compose/testing#setup
 dependencies {
     androidTestImplementation(libs.androidx.uitest.junit4)
     debugImplementation(libs.androidx.uitest.testManifest)
-    add("kspCommonMainMetadata", libs.koin.ksp.compiler)
-    add("kspAndroid", libs.koin.ksp.compiler)
-    add("kspJs", libs.koin.ksp.compiler)
     coreLibraryDesugaring(libs.desugarJdkLibs)
 }
 

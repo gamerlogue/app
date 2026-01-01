@@ -34,14 +34,13 @@ import it.maicol07.gamerlogue.ui.views.library.Library
 import it.maicol07.gamerlogue.ui.views.profile.Profile
 import org.koin.compose.KoinApplication
 import org.koin.dsl.module
-import org.koin.ksp.generated.configurationModules
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun App() {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
     KoinApplication({
-        modules(KoinApp.configurationModules)
+        modules(appModule, httpModule)
         modules(
             // Compose specific module to provide the NavBackStack
             module {
