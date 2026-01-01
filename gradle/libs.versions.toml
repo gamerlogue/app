@@ -18,6 +18,7 @@ koin = "4.1.1"
 kotlinx_datetime_ext = "1.3.2"
 ksp = "2.3.4"
 ktor = "3.3.3"
+ktorClientAuth = "3.3.3"
 lifecycleViewmodelNav3 = "2.10.0-alpha07"
 logbackClassic = "1.5.23"
 material3 = "1.10.0-alpha05"
@@ -29,6 +30,7 @@ nav3Core = "1.0.0"
 nav3Ui = "1.0.0-alpha06"
 platformtools = "0.7.4"
 sketch = "4.3.1"
+spraypaintkt = "2.3.0"
 symbolCraft = "0.3.4"
 systemUIBarsTweaker = "1.2.4"
 desugarJdkLibs = "2.1.5"
@@ -57,6 +59,7 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx_datetime_ext = { module = "com.raedghazal:kotlinx_datetime_ext", version.ref = "kotlinx_datetime_ext" }
+ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktorClientAuth" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-serialization = { module = "io.ktor:ktor-client-serialization", version.ref = "ktor" }
@@ -76,6 +79,10 @@ platformtools-darkmodedetector = { module = "io.github.kdroidfilter:platformtool
 runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 sketch = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }
 sketchHttp = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch" }
+spraypaintkt-annotation = { module = "it.maicol07.spraypaintkt:annotation", version.ref = "spraypaintkt" }
+spraypaintkt-core = { module = "it.maicol07.spraypaintkt:core", version.ref = "spraypaintkt" }
+spraypaintkt-ktor = { module = "it.maicol07.spraypaintkt:ktor-integration", version.ref = "spraypaintkt" }
+spraypaintkt-processor = { module = "it.maicol07.spraypaintkt:processor", version.ref = "spraypaintkt" }
 systemUIBarsTweaker = { group = "com.github.stoyan-vuchev", name = "system-ui-bars-tweaker", version.ref = "systemUIBarsTweaker" }
 desugarJdkLibs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose" }

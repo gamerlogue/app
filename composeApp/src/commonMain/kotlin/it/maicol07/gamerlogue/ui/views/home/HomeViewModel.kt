@@ -188,7 +188,7 @@ class HomeViewModel : ViewModel(), KoinComponent {
     }
 
     fun navigateToList(sectionType: HomeSectionType) {
-//        navBackStack.add(NavKeys.GameList())
+//        navBackStack.add(NavKeys.GameList(sectionType.name))
     }
 
     fun navigateToGame(game: Game) {

@@ -28,3 +28,7 @@ style:
 formatting:
   MaximumLineLength:
     maxLineLength: 150
+  SpacingBetweenDeclarationsWithAnnotations:
+    ignoreAnnotated:
+      - Attr
+      - Relation

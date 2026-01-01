@@ -65,6 +65,7 @@ kotlin {
             implementation(libs.ktor.client.serialization)
             implementation(libs.ktor.serialization.json)
             implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.client.auth)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
@@ -79,6 +80,9 @@ kotlin {
             implementation(libs.mp.stools)
             implementation(libs.kotlinx.datetime.ext)
             implementation(libs.zoomimage.compose)
+            implementation(libs.spraypaintkt.core)
+            implementation(libs.spraypaintkt.ktor)
+            implementation(libs.spraypaintkt.annotation)
             implementation(libs.platformtools.core)
             implementation(libs.platformtools.darkmodedetector)
         }
@@ -201,6 +205,7 @@ tasks.withType<KspAATask>().configureEach {
 buildConfig {
     buildConfigField("APP_ENV", localProperties.getOrDefault("APP_ENV", "local") as String)
     buildConfigField("IGDB_API_URL", localProperties.getOrDefault("IGDB_API_URL", "https://api.igdb.com/v4/") as String)
+    buildConfigField("GAMERLOGUE_URL", localProperties.getOrDefault("GAMERLOGUE_URL", "") as String)
 }
 
 symbolCraft {
@@ -209,26 +214,26 @@ symbolCraft {
     generatePreview = false
 
     val icons = listOf(
-        "android_wifi_3_bar_alert",
-        "arrow_back", "arrow_forward",
-        "book_4", "business_center",
-        "calendar_month", "celebration", "close", "code", "comedy_mask", "content_copy", "conversion_path",
-        "error", "explosion", "explore",
+        "add", "android_wifi_3_bar_alert", "arrow_back", "arrow_forward",
+        "book_4", "bookmark", "business_center",
+        "calendar_month", "celebration", "check", "check_circle", "close", "code", "comedy_mask", "content_copy", "conversion_path",
+        "date_range", "delete",
+        "edit", "error", "explosion", "explore",
         "family_star", "flutter_dash",
         "grid_4x4",
         "history", "home",
         "joystick",
         "keyboard_arrow_right",
         "info",
-        "layers", "lips", "lightbulb", "local_fire_department",
+        "layers", "lips", "lightbulb", "local_fire_department", "login",
         "music_note", "mystery",
         "newsstand",
         "quiz",
         "rocket",
-        "partner_heart", "person", "person_heart", "playground", "playing_cards", "publish",
+        "partner_heart", "pause_circle", "person", "person_heart", "playground", "play_circle", "playing_cards", "publish",
         "school", "search", "settings", "skeleton", "simulation", "sports_and_outdoors",
-        "sports_martial_arts", "sports_baseball", "sports_motorsports", "stadium", "star_shine",
-        "strategy", "swords", "sword_rose",
+        "sports_martial_arts", "sports_baseball", "sports_motorsports", "stadium", "star",
+        "star_shine", "strategy", "swords", "sword_rose",
         "tactic", "theater_comedy", "toys_and_games",
         "upcoming",
         "wand_stars", "web_traffic"

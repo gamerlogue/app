@@ -10,7 +10,10 @@ import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
 import com.github.michaelbull.result.unwrap
+import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.safeRequest
+import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import it.maicol07.gamerlogue.ui.views.library.LibraryViewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.component.KoinComponent
@@ -18,9 +21,17 @@ import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
 class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
-    val igdb by inject<IgdbClient>()
+    private val igdb by inject<IgdbClient>()
+    private val libraryViewModel by inject<LibraryViewModel>()
+
     var game by mutableStateOf<Game?>(null)
+    var libraryEntry by mutableStateOf<LibraryEntry?>(null)
+    var errorMessage by mutableStateOf<String?>(null)
+
+    // Loading states
     var isLoading by mutableStateOf(true)
+    var isPlayingButtonLoading by mutableStateOf(false)
+    var isBacklogButtonLoading by mutableStateOf(false)
 
     companion object {
         @Composable
@@ -31,9 +42,8 @@ class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
     }
 
     init {
-        viewModelScope.launch {
-            loadGameDetails()
-        }
+        viewModelScope.launch { loadGameDetails() }
+        loadLibraryEntry()
     }
 
     suspend fun loadGameDetails() {
@@ -71,5 +81,48 @@ class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
             game = response.games.firstOrNull()
         }
         isLoading = false
+    }
+
+    fun loadLibraryEntry() = viewModelScope.launch {
+        libraryEntry = libraryViewModel.getLibraryEntryForGame(gameId)
+    }
+
+    fun toggleGamePlaying() = viewModelScope.launch {
+        isPlayingButtonLoading = true
+
+        try {
+            if (libraryEntry?.status == GameLibraryStatus.PLAYING) {
+                removeGameLibraryEntry()
+            } else {
+                libraryViewModel.quickToggleGameLibraryEntry(game!!, GameLibraryStatus.PLAYING, libraryEntry)
+                loadLibraryEntry().join()
+            }
+        } catch (e: Exception) {
+            errorMessage = e.message
+        }
+
+        isPlayingButtonLoading = false
+    }
+
+    fun toggleGameBacklog() = viewModelScope.launch {
+        isBacklogButtonLoading = true
+        try {
+            if (libraryEntry?.status == GameLibraryStatus.BACKLOG) {
+                removeGameLibraryEntry()
+            } else {
+                libraryViewModel.quickToggleGameLibraryEntry(game!!, GameLibraryStatus.BACKLOG, libraryEntry)
+                loadLibraryEntry().join()
+            }
+        } catch (e: Exception) {
+            errorMessage = e.message
+        }
+        isBacklogButtonLoading = false
+    }
+
+    suspend fun removeGameLibraryEntry() {
+        if (libraryEntry != null) {
+            libraryViewModel.quickToggleGameLibraryEntry(game!!, GameLibraryStatus.BACKLOG, libraryEntry)
+            loadLibraryEntry().join()
+        }
     }
 }

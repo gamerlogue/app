@@ -1,4 +1,5 @@
 <resources>
+    <string name="app_name" translatable="false">Gamerlogue</string>
     <string name="nav__discover">Discover</string>
     <string name="exception__title">Something went wrong</string>
 
@@ -95,4 +96,66 @@
     <string name="theme__mystery">Mystery</string>
     <string name="theme__romance">Romance</string>
     <string name="theme__unknown">Unknown</string>
+
+    <!-- Library -->
+    <string name="library__section_all">All</string>
+    <string name="library__section_playing">Playing</string>
+    <string name="library__section_completed">Completed</string>
+    <string name="library__section_paused">Paused</string>
+    <string name="library__section_abandoned">Abandoned</string>
+    <string name="library__section_backlog">Backlog</string>
+
+    <string name="library__empty_all">Your library is empty. Add games to get started!</string>
+    <string name="library__empty_playing">No games currently playing.</string>
+    <string name="library__empty_completed">No completed games yet.</string>
+    <string name="library__empty_paused">No paused games.</string>
+    <string name="library__empty_abandoned">No abandoned games.</string>
+    <string name="library__empty_backlog">Your backlog is empty.</string>
+
+    <string name="library__add_to_library">Add %1$s to Library</string>
+    <string name="library__edit_entry">Edit %1$s</string>
+    <string name="library__add_to_backlog">Add to Backlog</string>
+    <string name="library__remove_from_backlog">Remove from Backlog</string>
+    <string name="library__add_to_playing">Add to Playing</string>
+    <string name="library__remove_from_playing">Remove from Playing</string>
+    <string name="library__edit_in_library">Edit Library Entry</string>
+    <string name="library__section">Section</string>
+    <string name="library__completion_status">Completion Status</string>
+    <string name="library__completion_main_story">Main Story</string>
+    <string name="library__completion_main_plus_sides">Main + Sides</string>
+    <string name="library__completion_100">100%</string>
+    <string name="library__owned">Owned</string>
+    <string name="library__edition">Edition</string>
+    <string name="library__select_edition">Select edition</string>
+    <string name="library__no_edition">No specific edition</string>
+    <string name="library__platforms">Platforms</string>
+    <string name="library__dates">Dates</string>
+    <string name="library__start_date">Start Date</string>
+    <string name="library__end_date">End Date</string>
+    <string name="library__played_time">Played Time</string>
+    <string name="library__hours">hours</string>
+    <string name="library__hours_played">%1$d hrs</string>
+    <string name="library__rating">Rating: %1$d/10</string>
+    <string name="library__review">Review</string>
+    <string name="library__cancel">Cancel</string>
+    <string name="library__save">Save</string>
+    <string name="library__delete">Delete</string>
+    <string name="library__disabled_fields_message">Some fields are disabled due to %1$s status.</string>
+
+    <!-- Authentication -->
+    <string name="auth__login_required_title">Login required</string>
+    <string name="auth__login_required_message">You need to log in to access this section.</string>
+    <string name="auth__login">Log in</string>
+    <string name="auth__logging_in">Opening login page…</string>
+    <string name="auth__login_success">Login successful</string>
+    <string name="auth__login_failed">Login failed</string>
+    <string name="auth__cancel">Cancel</string>
+    <string name="auth__continue">Continue</string>
+    <string name="auth__logout">Log out</string>
+    <string name="auth__deep_link_scheme">gamerlogue</string>
+    <string name="auth__deep_link_host">auth</string>
+    <string name="auth__deep_link_path">callback</string>
+
+    <!-- Game Card -->
+    <string name="game_card__hours_played">%1$d hrs</string>
 </resources>

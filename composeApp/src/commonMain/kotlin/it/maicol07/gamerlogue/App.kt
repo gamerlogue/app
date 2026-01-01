@@ -10,6 +10,7 @@ import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,12 +23,16 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import it.maicol07.gamerlogue.auth.AuthState
+import it.maicol07.gamerlogue.data.User
+import it.maicol07.gamerlogue.data.UserStore
 import it.maicol07.gamerlogue.di.appModule
 import it.maicol07.gamerlogue.di.httpModule
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
 import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.components.layout.LocalAppUiState
 import it.maicol07.gamerlogue.ui.theme.AppTheme
+import it.maicol07.gamerlogue.ui.views.auth.LoginView
 import it.maicol07.gamerlogue.ui.views.calendar.Calendar
 import it.maicol07.gamerlogue.ui.views.game.GameDetailScreen
 import it.maicol07.gamerlogue.ui.views.home.Home
@@ -40,6 +45,33 @@ import org.koin.dsl.module
 @Composable
 internal fun App() {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
+    val userStore = remember { UserStore() }
+
+    LaunchedEffect(Unit) {
+        val savedUser = userStore.getUser()
+        if (savedUser != null) {
+            AuthState.currentUser = savedUser
+        }
+    }
+
+    LaunchedEffect(AuthState.token, AuthState.userId) {
+        if (AuthState.token != null) {
+            if (AuthState.currentUser == null && AuthState.userId != null) {
+                try {
+                    val user = User.find(AuthState.userId!!).data
+                    AuthState.currentUser = user
+                    userStore.saveUser(user)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        } else {
+            AuthState.currentUser = null
+            AuthState.userId = null
+            userStore.clear()
+        }
+    }
+
     KoinApplication({
         modules(appModule, httpModule)
         modules(
@@ -86,13 +118,35 @@ internal fun App() {
                                 ) { Home() }
                                 entry<NavKeys.Library>(
                                     metadata = ListDetailSceneStrategy.listPane()
-                                ) { Library() }
+                                ) {
+                                    if (AuthState.token == null) {
+                                        LoginView()
+                                    } else {
+                                        Library(
+                                            onGameClick = { game ->
+                                                backStack.add(NavKeys.GameDetail(game.id.toInt()))
+                                            }
+                                        )
+                                    }
+                                }
                                 entry<NavKeys.Calendar>(
                                     metadata = ListDetailSceneStrategy.detailPane()
-                                ) { Calendar() }
+                                ) {
+                                    if (AuthState.token == null) {
+                                        LoginView()
+                                    } else {
+                                        Calendar()
+                                    }
+                                }
                                 entry<NavKeys.Profile>(
                                     metadata = ListDetailSceneStrategy.detailPane()
-                                ) { Profile() }
+                                ) {
+                                    if (AuthState.token == null) {
+                                        LoginView()
+                                    } else {
+                                        Profile()
+                                    }
+                                }
                                 entry<NavKeys.GameDetail>(
                                     metadata = ListDetailSceneStrategy.detailPane()
                                 ) { navKey ->

@@ -42,6 +42,11 @@ object NavKeys {
     }
 
     @Serializable
+    data object Login : NavKeyWithMeta() {
+        override val title: StringResource? = null
+    }
+
+    @Serializable
     data class GameDetail(val gameId: Int) : NavKeyWithMeta() {
         override val showBottomBar: Boolean = false
     }
@@ -56,6 +61,7 @@ object NavKeys {
                 subclass(Library::class, Library.serializer())
                 subclass(Calendar::class, Calendar.serializer())
                 subclass(Profile::class, Profile.serializer())
+                subclass(Login::class, Login.serializer())
                 subclass(GameDetail::class, GameDetail.serializer())
                 subclass(GameList::class, GameList.serializer())
             }

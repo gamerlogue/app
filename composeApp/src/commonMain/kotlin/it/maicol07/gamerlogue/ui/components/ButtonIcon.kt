@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 
 @Composable
 fun ButtonIcon(
@@ -18,12 +19,12 @@ fun ButtonIcon(
     contentDescription: String? = null,
     modifier: Modifier = Modifier,
     spacerModifier: Modifier = Modifier,
+    size: Dp = ButtonDefaults.IconSize,
+    spacing: Dp = ButtonDefaults.IconSpacing,
     tint: Color = LocalContentColor.current,
     end: Boolean = false
-) {
-    if (end) Spacer(modifier = spacerModifier.size(ButtonDefaults.IconSpacing))
-    Icon(bitmap = bitmap, contentDescription = contentDescription, modifier.size(ButtonDefaults.IconSize), tint)
-    if (!end) Spacer(modifier = spacerModifier.size(ButtonDefaults.IconSpacing))
+) = ButtonIcon(spacerModifier, spacing, end) {
+    Icon(bitmap = bitmap, contentDescription = contentDescription, modifier = modifier.size(size), tint = tint)
 }
 
 @Composable
@@ -32,12 +33,12 @@ fun ButtonIcon(
     contentDescription: String? = null,
     modifier: Modifier = Modifier,
     spacerModifier: Modifier = Modifier,
+    size: Dp = ButtonDefaults.IconSize,
+    spacing: Dp = ButtonDefaults.IconSpacing,
     tint: Color = LocalContentColor.current,
     end: Boolean = false
-) {
-    if (end) Spacer(modifier = spacerModifier.size(ButtonDefaults.IconSpacing))
-    Icon(painter = painter, contentDescription = contentDescription, modifier.size(ButtonDefaults.IconSize), tint)
-    if (!end) Spacer(modifier = spacerModifier.size(ButtonDefaults.IconSpacing))
+) = ButtonIcon(spacerModifier, spacing, end) {
+    Icon(painter, contentDescription, modifier.size(size), tint)
 }
 
 @Composable
@@ -46,11 +47,23 @@ fun ButtonIcon(
     contentDescription: String? = null,
     modifier: Modifier = Modifier,
     spacerModifier: Modifier = Modifier,
+    size: Dp = ButtonDefaults.IconSize,
+    spacing: Dp = ButtonDefaults.IconSpacing,
     tint: Color = LocalContentColor.current,
     end: Boolean = false
+) = ButtonIcon(spacerModifier, spacing, end) {
+    Icon(imageVector, contentDescription, modifier.size(size), tint)
+}
+
+@Composable
+fun ButtonIcon(
+    spacerModifier: Modifier = Modifier,
+    spacing: Dp = ButtonDefaults.IconSpacing,
+    end: Boolean = false,
+    icon: @Composable () -> Unit
 ) {
-    if (end) Spacer(modifier = spacerModifier.size(ButtonDefaults.IconSpacing))
-    Icon(imageVector = imageVector, contentDescription = contentDescription, modifier.size(ButtonDefaults.IconSize), tint)
-    if (!end) Spacer(modifier = spacerModifier.size(ButtonDefaults.IconSpacing))
+    if (end) Spacer(spacerModifier.size(spacing))
+    icon()
+    if (!end) Spacer(spacerModifier.size(spacing))
 }
 

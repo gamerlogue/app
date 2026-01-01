@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +22,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -49,13 +52,15 @@ import gamerlogue.composeapp.generated.resources.game__ratings_igdb_user
 import gamerlogue.composeapp.generated.resources.game__themes_title
 import it.maicol07.gamerlogue.extensions.igdb.icon
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
-import it.maicol07.gamerlogue.ui.components.game.GameDetailsList
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
 import it.maicol07.gamerlogue.ui.components.imageviewer.FullscreenImageViewer
 import it.maicol07.gamerlogue.ui.components.layout.LocalTopBarState
+import it.maicol07.gamerlogue.ui.views.game.components.GameDetailsList
 import it.maicol07.gamerlogue.ui.views.game.components.GameHeader
+import it.maicol07.gamerlogue.ui.views.game.components.GameToolbar
+import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibrarySheet
 import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.stringResource
 
@@ -67,7 +72,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun GameDetailScreen(
     gameId: Int,
-    viewModel: GameDetailViewModel = GameDetailViewModel.inject(gameId),
+    viewModel: GameDetailViewModel = GameDetailViewModel.inject(gameId)
 ) {
     val topBarState = LocalTopBarState.current
 
@@ -83,12 +88,20 @@ fun GameDetailScreen(
         }
     }
 
-    Box(contentAlignment = Alignment.TopStart, modifier = Modifier.fillMaxSize().padding(bottom = 16.dp)) {
+    var addToLibraryBottomSheetOpen by remember { mutableStateOf(false) }
+
+    Box(contentAlignment = Alignment.TopStart) {
+        var expanded by remember { mutableStateOf(true) }
         CompositionLocalProvider(LocalGameTopBarOverlayMode provides mutableStateOf(true)) {
             GameTopBar(viewModel)
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxSize()
+                    .floatingToolbarVerticalNestedScroll(
+                        expanded = expanded,
+                        onExpand = { expanded = true },
+                        onCollapse = { expanded = false },
+                    ),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (viewModel.isLoading) {
                     item {
@@ -112,6 +125,26 @@ fun GameDetailScreen(
                 }
             }
         }
+
+        if (viewModel.game != null) {
+            GameToolbar(
+                expanded,
+                viewModel.libraryEntry?.status,
+                viewModel.isBacklogButtonLoading,
+                viewModel.isPlayingButtonLoading,
+                { viewModel.toggleGameBacklog() },
+                { viewModel.toggleGamePlaying() }
+            ) { addToLibraryBottomSheetOpen = true }
+        }
+    }
+
+    if (addToLibraryBottomSheetOpen && viewModel.game != null) {
+        GameAddEditLibrarySheet(
+            onDismiss = { addToLibraryBottomSheetOpen = false },
+            existingData = viewModel.libraryEntry,
+            game = viewModel.game!!,
+            onDelete = { viewModel.loadLibraryEntry() }
+        ) { viewModel.loadLibraryEntry() }
     }
 }
 
