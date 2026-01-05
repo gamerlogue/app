@@ -13,6 +13,9 @@ import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
 import it.maicol07.gamerlogue.auth.AuthState
 import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import it.maicol07.gamerlogue.BuildConfig
 
 @DefaultInstance
@@ -26,6 +29,14 @@ data object AppJsonApiConfig : JsonApiConfig {
                 contentType(VndApiJson)
             }
 
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        co.touchlab.kermit.Logger.v("HTTP Client") { message }
+                    }
+                }
+                level = LogLevel.HEADERS
+            }
             install(Auth) {
                 bearer {
                     loadTokens {

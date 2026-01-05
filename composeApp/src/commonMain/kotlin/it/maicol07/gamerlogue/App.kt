@@ -23,6 +23,8 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import it.maicol07.gamerlogue.auth.AuthState
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.data.UserStore
@@ -48,6 +50,10 @@ internal fun App() {
     val userStore = remember { UserStore() }
 
     LaunchedEffect(Unit) {
+        if (BuildConfig.APP_ENV === AppEnvironment.LOCAL) {
+            Logger.setMinSeverity(Severity.Verbose)
+            Logger.i("Running in LOCAL environment")
+        }
         val savedUser = userStore.getUser()
         if (savedUser != null) {
             AuthState.currentUser = savedUser
@@ -55,6 +61,7 @@ internal fun App() {
     }
 
     LaunchedEffect(AuthState.token, AuthState.userId) {
+        Logger.d("AuthState changed: token=${AuthState.token}, userId=${AuthState.userId}")
         if (AuthState.token != null) {
             if (AuthState.currentUser == null && AuthState.userId != null) {
                 try {
