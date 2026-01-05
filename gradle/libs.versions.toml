@@ -4,8 +4,8 @@ androidx-activityCompose = "1.12.2"
 androidx-uiTest = "1.10.0"
 browser = "1.9.0"
 buildConfig = "6.0.7"
-compose = "1.10.0-rc02"
-composeHotReload = "1.1.0-alpha03"
+compose-multiplatform = "1.10.0-rc02"
+compose-hot-reload = "1.1.0-alpha03"
 git-semantic-versioning = "5.0.5"
 igdbclientKtor = "0.8"
 kermit = "2.0.8"
@@ -47,9 +47,15 @@ androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runt
 androidx-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "nav3Ui" }
 androidx-uitest-testManifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-uiTest" }
 androidx-uitest-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-uiTest" }
-animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "compose" }
-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose" }
-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose" }
+compose-animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "compose-multiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+compose-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
+compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-multiplatform" }
+compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "compose-multiplatform" }
+compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose-multiplatform" }
 igdbclient-ktor = { module = "at.released.igdbclient:igdbclient-ktor", version.ref = "igdbclientKtor" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -72,13 +78,11 @@ ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 mp_stools = { module = "net.sergeych:mp_stools", version.ref = "mp_stools" }
 multiplatformSettings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
 platformtools-core = { module = "io.github.kdroidfilter:platformtools.core", version.ref = "platformtools" }
 platformtools-darkmodedetector = { module = "io.github.kdroidfilter:platformtools.darkmodedetector", version.ref = "platformtools" }
-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 sketch = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }
 sketchHttp = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch" }
 slf4j-android = { module = "uk.uuid.slf4j:slf4j-android", version.ref = "slf4jAndroid" }
@@ -89,20 +93,19 @@ spraypaintkt-ktor = { module = "it.maicol07.spraypaintkt:ktor-integration", vers
 spraypaintkt-processor = { module = "it.maicol07.spraypaintkt:processor", version.ref = "spraypaintkt" }
 systemUIBarsTweaker = { group = "com.github.stoyan-vuchev", name = "system-ui-bars-tweaker", version.ref = "systemUIBarsTweaker" }
 desugarJdkLibs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose" }
-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose" }
-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "compose" }
-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose" }
 zoomimage-compose = { module = "io.github.panpf.zoomimage:zoomimage-compose", version.ref = "zoomimageCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-compose = { id = "org.jetbrains.compose", version.ref = "compose" }
-composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload"}
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+compose-hot-reload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
 git-semantic-versioning = { id = "io.github.andreabrighi.android-git-sensitive-semantic-versioning-gradle-plugin", version.ref = "git-semantic-versioning" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 symbolCraft = { id = "io.github.kingsword09.symbolcraft", version.ref ="symbolCraft" }
