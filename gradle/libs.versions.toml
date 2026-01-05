@@ -31,6 +31,8 @@ nav3Ui = "1.0.0-alpha06"
 platformtools = "0.7.4"
 sketch = "4.3.1"
 spraypaintkt = "2.3.0"
+slf4jAndroid = "2.0.17-0"
+slf4jApi = "2.0.17"
 symbolCraft = "0.3.4"
 systemUIBarsTweaker = "1.2.4"
 desugarJdkLibs = "2.1.5"
@@ -79,6 +81,8 @@ platformtools-darkmodedetector = { module = "io.github.kdroidfilter:platformtool
 runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 sketch = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }
 sketchHttp = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch" }
+slf4j-android = { module = "uk.uuid.slf4j:slf4j-android", version.ref = "slf4jAndroid" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4jApi" }
 spraypaintkt-annotation = { module = "it.maicol07.spraypaintkt:annotation", version.ref = "spraypaintkt" }
 spraypaintkt-core = { module = "it.maicol07.spraypaintkt:core", version.ref = "spraypaintkt" }
 spraypaintkt-ktor = { module = "it.maicol07.spraypaintkt:ktor-integration", version.ref = "spraypaintkt" }

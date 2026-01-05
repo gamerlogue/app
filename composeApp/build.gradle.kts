@@ -100,6 +100,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.systemUIBarsTweaker)
+            implementation(libs.slf4j.api)
+            implementation(libs.slf4j.android)
         }
 
         jvmMain.dependencies {
