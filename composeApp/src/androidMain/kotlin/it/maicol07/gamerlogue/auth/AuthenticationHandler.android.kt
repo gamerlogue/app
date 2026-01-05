@@ -10,8 +10,11 @@ import it.maicol07.gamerlogue.BuildConfig
 
 class AndroidAuthenticationHandler(private val context: Context) : AuthenticationHandler {
     override fun login() {
-        val intent =
-            Intent(Intent.ACTION_VIEW, "${BuildConfig.GAMERLOGUE_URL}/sanctum/token?token_name=Gamerlogue".toUri())
+        val redirectUri = "gamerlogue://auth/callback"
+        val intent = Intent(
+            Intent.ACTION_VIEW,
+            "${BuildConfig.GAMERLOGUE_URL}/sanctum/token?token_name=Gamerlogue&redirect_uri=$redirectUri".toUri()
+        )
         context.startActivity(intent)
     }
 }

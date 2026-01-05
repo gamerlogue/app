@@ -4,24 +4,38 @@ import java.util.prefs.Preferences
 
 class JvmAuthTokenProvider : AuthTokenProvider {
     private val prefs = Preferences.userNodeForPackage(JvmAuthTokenProvider::class.java)
-    private val TOKEN_KEY = "auth_token"
+    private val tokenKey = "auth_token"
+    private val userIdKey = "auth_user_id"
 
     init {
         // Load token on init
         AuthState.token = getToken()
+        AuthState.userId = getUserId()
     }
 
     override fun getToken(): String? {
-        return prefs.get(TOKEN_KEY, null)
+        return prefs.get(tokenKey, null)
     }
 
     override fun setToken(token: String?) {
         if (token == null) {
-            prefs.remove(TOKEN_KEY)
+            prefs.remove(tokenKey)
         } else {
-            prefs.put(TOKEN_KEY, token)
+            prefs.put(tokenKey, token)
         }
         AuthState.token = token
     }
-}
 
+    override fun getUserId(): String? {
+        return prefs.get(userIdKey, null)
+    }
+
+    override fun setUserId(userId: String?) {
+        if (userId == null) {
+            prefs.remove(userIdKey)
+        } else {
+            prefs.put(userIdKey, userId)
+        }
+        AuthState.userId = userId
+    }
+}

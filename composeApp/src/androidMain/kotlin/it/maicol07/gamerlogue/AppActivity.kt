@@ -7,9 +7,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
+import co.touchlab.kermit.Logger
 import it.maicol07.gamerlogue.auth.AndroidAuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthState
 import it.maicol07.gamerlogue.auth.LocalAuthTokenProvider
+import java.io.UnsupportedEncodingException
+import java.net.URLDecoder
 
 class AppActivity : ComponentActivity() {
     private val authProvider by lazy { AndroidAuthTokenProvider(this) }
@@ -20,6 +23,7 @@ class AppActivity : ComponentActivity() {
 
         // Set saved token
         AuthState.token = authProvider.getToken()
+        AuthState.userId = authProvider.getUserId()
 
         handleLoginDeepLink(intent)
         setContent {
@@ -39,11 +43,18 @@ class AppActivity : ComponentActivity() {
         if (data != null && data.toString().startsWith("gamerlogue://auth/callback")) {
             val token = data.getQueryParameter("token")
             if (!token.isNullOrBlank()) {
-                authProvider.setToken(token)
+                try {
+                    // Decode token if needed
+                    val decodedToken = URLDecoder.decode(token, "UTF-8")
+                    authProvider.setToken(decodedToken)
+                } catch (e: UnsupportedEncodingException) {
+                    Logger.e(e) { "Failed to decode token" }
+                    authProvider.setToken(token)
+                }
             }
             val userId = data.getQueryParameter("user_id")
             if (!userId.isNullOrBlank()) {
-                AuthState.userId = userId
+                authProvider.setUserId(userId)
             }
         }
     }

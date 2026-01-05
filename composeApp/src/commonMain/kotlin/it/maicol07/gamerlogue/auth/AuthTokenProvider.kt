@@ -10,6 +10,8 @@ import it.maicol07.gamerlogue.data.User
 interface AuthTokenProvider {
     fun getToken(): String?
     fun setToken(token: String?)
+    fun getUserId(): String?
+    fun setUserId(userId: String?)
 }
 
 val LocalAuthTokenProvider = staticCompositionLocalOf<AuthTokenProvider> {

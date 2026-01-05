@@ -9,6 +9,7 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider {
     private val accountType = "it.maicol07.gamerlogue"
     private val authTokenType = "Bearer"
     private val accountName = "Gamerlogue"
+    private val userIdKey = "user_id"
 
     private fun getOrCreateAccount(): Account {
         val existing = accountManager.accounts.find { it.type == accountType }
@@ -35,5 +36,15 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider {
         }
         AuthState.token = token
     }
-}
 
+    override fun getUserId(): String? {
+        val account = accountManager.accounts.find { it.type == accountType } ?: return null
+        return accountManager.getUserData(account, userIdKey)
+    }
+
+    override fun setUserId(userId: String?) {
+        val account = getOrCreateAccount()
+        accountManager.setUserData(account, userIdKey, userId)
+        AuthState.userId = userId
+    }
+}

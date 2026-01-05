@@ -35,9 +35,9 @@ class JvmAuthenticationHandler : AuthenticationHandler {
                         val decodedToken = URLDecoder.decode(token, "UTF-8")
 
                         // Save token
-                        JvmAuthTokenProvider().setToken(decodedToken)
-                        AuthState.userId = userId
-
+                        val provider = JvmAuthTokenProvider()
+                        provider.setToken(decodedToken)
+                        provider.setUserId(userId)
                     } else {
                         val response = "Login failed! Token not found."
                         exchange.sendResponseHeaders(400, response.length.toLong())
@@ -79,4 +79,3 @@ class JvmAuthenticationHandler : AuthenticationHandler {
 actual fun rememberAuthenticationHandler(): AuthenticationHandler {
     return remember { JvmAuthenticationHandler() }
 }
-
