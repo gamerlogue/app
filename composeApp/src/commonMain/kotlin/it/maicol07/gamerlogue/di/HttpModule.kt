@@ -1,12 +1,12 @@
 package it.maicol07.gamerlogue.di
 
-import Gamerlogue.composeApp.BuildConfig
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.ktor.IgdbKtorEngine
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.logging.Logging
+import it.maicol07.gamerlogue.BuildConfig
 import org.koin.dsl.module
 
 val httpModule = module {

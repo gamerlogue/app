@@ -1,12 +1,12 @@
 package it.maicol07.gamerlogue.auth
 
-import Gamerlogue.composeApp.BuildConfig
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
+import it.maicol07.gamerlogue.BuildConfig
 
 class AndroidAuthenticationHandler(private val context: Context) : AuthenticationHandler {
     override fun login() {

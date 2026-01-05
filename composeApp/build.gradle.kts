@@ -205,7 +205,18 @@ tasks.withType<KspAATask>().configureEach {
 }
 
 buildConfig {
-    buildConfigField("APP_ENV", localProperties.getOrDefault("APP_ENV", "local") as String)
+    packageName = appPackageName
+
+    buildConfigField(
+        "it.maicol07.gamerlogue.AppEnvironment",
+        "APP_ENV",
+        "AppEnvironment.${(
+            localProperties.getOrDefault(
+                "APP_ENV",
+                "local"
+            ) as String
+            ).uppercase()}"
+    )
     buildConfigField("IGDB_API_URL", localProperties.getOrDefault("IGDB_API_URL", "https://api.igdb.com/v4/") as String)
     buildConfigField("GAMERLOGUE_URL", localProperties.getOrDefault("GAMERLOGUE_URL", "") as String)
 }

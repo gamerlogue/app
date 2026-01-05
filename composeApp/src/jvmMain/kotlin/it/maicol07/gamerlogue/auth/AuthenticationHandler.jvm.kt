@@ -1,9 +1,9 @@
 package it.maicol07.gamerlogue.auth
 
-import Gamerlogue.composeApp.BuildConfig
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.sun.net.httpserver.HttpServer
+import it.maicol07.gamerlogue.BuildConfig
 import java.awt.Desktop
 import java.net.InetSocketAddress
 import java.net.URI

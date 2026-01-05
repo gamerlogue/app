@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.data
 
-import Gamerlogue.composeApp.BuildConfig
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.defaultRequest
@@ -14,6 +13,7 @@ import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
 import it.maicol07.gamerlogue.auth.AuthState
 import io.ktor.client.plugins.auth.providers.BearerTokens
+import it.maicol07.gamerlogue.BuildConfig
 
 @DefaultInstance
 data object AppJsonApiConfig : JsonApiConfig {
