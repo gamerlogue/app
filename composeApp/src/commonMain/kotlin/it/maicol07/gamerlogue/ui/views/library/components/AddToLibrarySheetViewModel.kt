@@ -78,13 +78,8 @@ class AddToLibrarySheetViewModel(
         }
 
         val entry = getEntryToSave()
-
-        try {
-            libraryViewModel.updateLibraryEntry(entry)
-            onSave(entry)
-        } catch (e: JsonApiException) {
-            error = e.errors.joinToString("\n") { it.detail ?: it.title ?: "Unknown error" }
-        }
+        libraryViewModel.updateLibraryEntry(entry)
+        onSave(entry)
 
         saveLoading = false
     }

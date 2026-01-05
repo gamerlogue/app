@@ -84,7 +84,8 @@ class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
     }
 
     fun loadLibraryEntry() = viewModelScope.launch {
-        libraryEntry = libraryViewModel.getLibraryEntryForGame(gameId)
+        val result = libraryViewModel.getLibraryEntryForGame(gameId)
+        libraryEntry = if (result.isOk) result.unwrap() else null
     }
 
     fun toggleGamePlaying() = viewModelScope.launch {

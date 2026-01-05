@@ -11,11 +11,10 @@ import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
-import com.github.michaelbull.result.annotation.UnsafeResultErrorAccess
-import com.github.michaelbull.result.annotation.UnsafeResultValueAccess
+import com.github.michaelbull.result.unwrap
+import com.github.michaelbull.result.unwrapError
 import it.maicol07.gamerlogue.auth.AuthState
 import it.maicol07.gamerlogue.data.LibraryEntry
-import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
 import it.maicol07.spraypaintkt.JsonApiException
@@ -37,7 +36,6 @@ class LibraryViewModel : ViewModel(), KoinComponent {
         GameLibraryStatus.BACKLOG to mutableStateMapOf()
     )
 
-    @OptIn(UnsafeResultValueAccess::class, UnsafeResultErrorAccess::class)
     fun loadLibraryEntries(section: GameLibraryStatus? = null) = viewModelScope.launch {
         libraryLoading = true
 
@@ -49,17 +47,20 @@ class LibraryViewModel : ViewModel(), KoinComponent {
             }
         }
 
-        val entries = LibraryEntry
-            .scope {
-                if (section != null) {
-                    where("status", section.name)
+        val result = safeRequest {
+            LibraryEntry
+                .scope {
+                    if (section != null) {
+                        where("status", section.name)
+                    }
+                    where("current_user", "true")
                 }
-                where("current_user", "true")
-            }
-            .all()
-            .data
+                .all()
+                .data
+        }
 
-        if (entries.isNotEmpty()) {
+        if (result.isOk && result.unwrap().isNotEmpty()) {
+            val entries = result.unwrap()
             val allGameIds = entries.map { it.gameId }.toSet()
             val allGamesResult = safeRequest {
                 igdb.getGames {
@@ -71,13 +72,13 @@ class LibraryViewModel : ViewModel(), KoinComponent {
             }
 
             if (allGamesResult.isOk) {
-                val allGames = allGamesResult.value.games.associateBy { it.id }
+                val allGames = allGamesResult.unwrap().games.associateBy { it.id }
                 for (entry in entries) {
                     val game = allGames[entry.gameId.toLong()] ?: continue
                     libraryGames[entry.status]?.put(game, entry)
                 }
             } else {
-                println("Error loading games for library: ${allGamesResult.error}")
+                println("Error loading games for library: ${allGamesResult.unwrapError()}")
             }
         }
 
@@ -98,25 +99,16 @@ class LibraryViewModel : ViewModel(), KoinComponent {
         updateLibraryEntry(entry)
     }
 
-    suspend fun updateLibraryEntry(entry: LibraryEntry) = try {
-        entry.save()
-    } catch (e: JsonApiException) {
-        println("Error updating game in library: ${e.body}")
-        throw e
-    }
-
-    suspend fun removeLibraryEntry(entry: LibraryEntry) = try {
-        entry.destroy()
-    } catch (e: JsonApiException) {
-        println("Error removing game from library: ${e.body}")
-        throw e
-    }
+    suspend fun updateLibraryEntry(entry: LibraryEntry) = safeRequest { entry.save() }
+    suspend fun removeLibraryEntry(entry: LibraryEntry) = safeRequest { entry.destroy() }
 
     suspend fun getLibraryEntryForGame(game: Game) = getLibraryEntryForGame(game.id)
-    suspend fun getLibraryEntryForGame(gameId: Number) = LibraryEntry
-        .where("game_id", gameId)
-        .extraParam("current_user", "true")
-        .firstOrNull()
-        .data
+    suspend fun getLibraryEntryForGame(gameId: Number) = safeRequest {
+        LibraryEntry
+            .where("game_id", gameId)
+            .extraParam("current_user", "true")
+            .firstOrNull()
+            .data
+    }
 }
 

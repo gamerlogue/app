@@ -25,6 +25,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
+import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.auth.AuthState
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.data.UserStore
@@ -64,12 +65,11 @@ internal fun App() {
         Logger.d("AuthState changed: token=${AuthState.token}, userId=${AuthState.userId}")
         if (AuthState.token != null) {
             if (AuthState.currentUser == null && AuthState.userId != null) {
-                try {
-                    val user = User.find(AuthState.userId!!).data
+                val result = safeRequest { User.find(AuthState.userId!!).data }
+                if (result.isOk) {
+                    val user = result.unwrap()
                     AuthState.currentUser = user
                     userStore.saveUser(user)
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
             }
         } else {
