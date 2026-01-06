@@ -11,11 +11,15 @@ plugins {
 
 android {
     namespace = appPackageName
-    compileSdk = 36
+    compileSdk {
+        version = release(project.findProperty("androidCompileSdk")!!.toString().toInt()) {
+            minorApiLevel = project.findProperty("androidCompileSdkMinor")?.toString()?.toInt()
+        }
+    }
 
     defaultConfig {
-        minSdk = 26
-        targetSdk = 36
+        minSdk = project.findProperty("androidMinSdk")!!.toString().toInt()
+        targetSdk = project.findProperty("androidTargetSdk")!!.toString().toInt()
 
         applicationId = appPackageName
         versionCode = androidGitSemVer.computeVersionCode()

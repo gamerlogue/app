@@ -28,8 +28,14 @@ plugins {
 kotlin {
     android {
         namespace = appPackageName
-        compileSdk = 36
-        minSdk = 23
+
+        compileSdk {
+            version = release(project.findProperty("androidCompileSdk")!!.toString().toInt()) {
+                minorApiLevel = project.findProperty("androidCompileSdkMinor")?.toString()?.toInt()
+            }
+        }
+        minSdk = project.findProperty("androidMinSdk")!!.toString().toInt()
+
         androidResources.enable = true
         compilerOptions { jvmTarget.set(JvmTarget.JVM_21) }
     }
