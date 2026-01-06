@@ -1,3 +1,5 @@
+.idea/copilot*.xml
+.idea/artifacts
 .kotlin
 **/build/
 xcuserdata
