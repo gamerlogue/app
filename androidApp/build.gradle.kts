@@ -52,8 +52,22 @@ android {
             merges += "values**"
         }
     }
+
+    signingConfigs {
+        create("release") {
+            val keyStoreFile = File(System.getenv("ANDROID_KEYSTORE_PATH") ?: "release.keystore")
+            if (keyStoreFile.exists()) {
+                storeFile = keyStoreFile
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
             // Enables code shrinking, obfuscation, and optimization for only
             // your project's release build type. Make sure to use a build
             // variant with `isDebuggable=false`.

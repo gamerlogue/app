@@ -15,10 +15,10 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "${appPackageName}.MainKt"
+        mainClass = "$appPackageName.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
             packageName = appPackageName
             packageVersion = "1.0.0"
 
@@ -35,4 +35,3 @@ compose.desktop {
         }
     }
 }
-
