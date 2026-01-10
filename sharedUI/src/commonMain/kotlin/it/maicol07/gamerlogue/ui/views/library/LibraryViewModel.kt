@@ -13,17 +13,18 @@ import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
 import com.github.michaelbull.result.unwrap
 import com.github.michaelbull.result.unwrapError
-import it.maicol07.gamerlogue.auth.AuthState
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
-import it.maicol07.spraypaintkt.JsonApiException
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class LibraryViewModel : ViewModel(), KoinComponent {
     val igdb by inject<IgdbClient>()
+    val authTokenProvider by inject<AuthTokenProvider>()
+
     var libraryLoading by mutableStateOf(false)
     var selectedSection by mutableStateOf<GameLibraryStatus?>(null)
         private set
@@ -94,7 +95,7 @@ class LibraryViewModel : ViewModel(), KoinComponent {
         val entry = existingEntry ?: LibraryEntry()
         entry.gameId = game.id.toInt()
         entry.owned = false
-        entry.user = AuthState.currentUser
+        entry.user = authTokenProvider.currentUser
         entry.status = status
         updateLibraryEntry(entry)
     }

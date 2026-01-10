@@ -26,11 +26,12 @@ import androidx.navigation3.ui.NavDisplay
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.github.michaelbull.result.unwrap
-import it.maicol07.gamerlogue.auth.AuthState
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.data.UserStore
 import it.maicol07.gamerlogue.di.appModule
 import it.maicol07.gamerlogue.di.httpModule
+import it.maicol07.gamerlogue.di.platformModule
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
 import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.components.layout.LocalAppUiState
@@ -42,45 +43,19 @@ import it.maicol07.gamerlogue.ui.views.home.Home
 import it.maicol07.gamerlogue.ui.views.library.Library
 import it.maicol07.gamerlogue.ui.views.profile.Profile
 import org.koin.compose.KoinApplication
+import org.koin.compose.koinInject
+import org.koin.core.module.Module
 import org.koin.dsl.module
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun App() {
+fun App(additionalModules: List<Module> = emptyList()) {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
     val userStore = remember { UserStore() }
 
-    LaunchedEffect(Unit) {
-        if (BuildConfig.APP_ENV === AppEnvironment.LOCAL) {
-            Logger.setMinSeverity(Severity.Verbose)
-            Logger.i("Running in LOCAL environment")
-        }
-        val savedUser = userStore.getUser()
-        if (savedUser != null) {
-            AuthState.currentUser = savedUser
-        }
-    }
-
-    LaunchedEffect(AuthState.token, AuthState.userId) {
-        Logger.d("AuthState changed: token=${AuthState.token}, userId=${AuthState.userId}")
-        if (AuthState.token != null) {
-            if (AuthState.currentUser == null && AuthState.userId != null) {
-                val result = safeRequest { User.find(AuthState.userId!!).data }
-                if (result.isOk) {
-                    val user = result.unwrap()
-                    AuthState.currentUser = user
-                    userStore.saveUser(user)
-                }
-            }
-        } else {
-            AuthState.currentUser = null
-            AuthState.userId = null
-            userStore.clear()
-        }
-    }
-
     KoinApplication({
-        modules(appModule, httpModule)
+        modules(appModule, httpModule, platformModule)
+        modules(additionalModules)
         modules(
             // Compose specific module to provide the NavBackStack
             module {
@@ -88,6 +63,37 @@ fun App() {
             }
         )
     }) {
+        val authProvider = koinInject<AuthTokenProvider>()
+
+        LaunchedEffect(Unit) {
+            if (BuildConfig.APP_ENV === AppEnvironment.LOCAL) {
+                Logger.setMinSeverity(Severity.Verbose)
+                Logger.i("Running in LOCAL environment")
+            }
+            val savedUser = userStore.getUser()
+            if (savedUser != null) {
+                authProvider.currentUser = savedUser
+            }
+        }
+
+        LaunchedEffect(authProvider.accessToken, authProvider.currentUserId) {
+            Logger.d("AuthState changed: token=${authProvider.accessToken}, userId=${authProvider.currentUserId}")
+            if (authProvider.accessToken != null) {
+                if (authProvider.currentUser == null && authProvider.currentUserId != null) {
+                    val result = safeRequest { User.find(authProvider.currentUserId!!).data }
+                    if (result.isOk) {
+                        val user = result.unwrap()
+                        authProvider.currentUser = user
+                        userStore.saveUser(user)
+                    }
+                }
+            } else {
+                authProvider.currentUser = null
+                authProvider.updateUserId(null)
+                userStore.clear()
+            }
+        }
+
         AppTheme {
             AppScaffold(
                 currentNavKey = backStack.last(),
@@ -126,7 +132,7 @@ fun App() {
                                 entry<NavKeys.Library>(
                                     metadata = ListDetailSceneStrategy.listPane()
                                 ) {
-                                    if (AuthState.token == null) {
+                                    if (authProvider.accessToken == null) {
                                         LoginView()
                                     } else {
                                         Library(
@@ -139,7 +145,7 @@ fun App() {
                                 entry<NavKeys.Calendar>(
                                     metadata = ListDetailSceneStrategy.detailPane()
                                 ) {
-                                    if (AuthState.token == null) {
+                                    if (authProvider.accessToken == null) {
                                         LoginView()
                                     } else {
                                         Calendar()
@@ -148,7 +154,7 @@ fun App() {
                                 entry<NavKeys.Profile>(
                                     metadata = ListDetailSceneStrategy.detailPane()
                                 ) {
-                                    if (AuthState.token == null) {
+                                    if (authProvider.accessToken == null) {
                                         LoginView()
                                     } else {
                                         Profile()
@@ -182,3 +188,4 @@ fun App() {
         }
     }
 }
+

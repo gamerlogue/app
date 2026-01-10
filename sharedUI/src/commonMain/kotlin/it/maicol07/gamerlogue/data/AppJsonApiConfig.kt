@@ -1,25 +1,27 @@
 package it.maicol07.gamerlogue.data
 
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.accept
 import io.ktor.http.contentType
+import it.maicol07.gamerlogue.BuildConfig
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.spraypaintkt.PaginationStrategy
 import it.maicol07.spraypaintkt.interfaces.HttpClient
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt_annotation.DefaultInstance
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
-import it.maicol07.gamerlogue.auth.AuthState
-import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
-import it.maicol07.gamerlogue.BuildConfig
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 
 @DefaultInstance
-data object AppJsonApiConfig : JsonApiConfig {
+data object AppJsonApiConfig : JsonApiConfig, KoinComponent {
     override val baseUrl: String = "${BuildConfig.GAMERLOGUE_URL}/api"
     override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
     override val httpClient: HttpClient = KtorHttpClient(
@@ -40,7 +42,7 @@ data object AppJsonApiConfig : JsonApiConfig {
             install(Auth) {
                 bearer {
                     loadTokens {
-                        val token = AuthState.token
+                        val token = get<AuthTokenProvider>().accessToken
                         token?.let { BearerTokens(it, "") }
                     }
                     refreshTokens {

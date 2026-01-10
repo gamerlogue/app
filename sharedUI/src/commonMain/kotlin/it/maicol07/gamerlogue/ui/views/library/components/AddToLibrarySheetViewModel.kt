@@ -9,13 +9,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.Platform
-import it.maicol07.gamerlogue.auth.AuthState
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.gamerlogue.ui.views.library.LibraryViewModel
-import it.maicol07.spraypaintkt.JsonApiException
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
 import org.koin.core.component.KoinComponent
@@ -26,6 +24,7 @@ class AddToLibrarySheetViewModel(
     private val existingEntry: LibraryEntry?
 ) : ViewModel(), KoinComponent {
     val libraryViewModel by inject<LibraryViewModel>()
+    val authTokenProvider by inject<AuthTokenProvider>()
 
     // States
     var selectedStatus by mutableStateOf(existingEntry?.status)
@@ -91,7 +90,7 @@ class AddToLibrarySheetViewModel(
         val entry = existingEntry ?: LibraryEntry()
 
         entry.gameId = game.id.toInt()
-        entry.user = AuthState.currentUser
+        entry.user = authTokenProvider.currentUser
         entry.status = selectedStatus!!
         entry.completionStatus = completionStatus
         entry.owned = owned

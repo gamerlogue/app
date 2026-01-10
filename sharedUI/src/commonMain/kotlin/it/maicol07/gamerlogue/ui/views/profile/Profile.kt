@@ -11,12 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.nav__profile
-import it.maicol07.gamerlogue.auth.LocalAuthTokenProvider
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 
 @Composable
 fun Profile() {
-    val authTokenProvider = LocalAuthTokenProvider.current
+    val authTokenProvider = koinInject<AuthTokenProvider>()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -33,7 +34,7 @@ fun Profile() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Button(onClick = {
-            authTokenProvider.setToken(null)
+            authTokenProvider.updateToken(null)
         }) {
             Text("Logout")
         }

@@ -2,15 +2,19 @@ package it.maicol07.gamerlogue.auth
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import co.touchlab.kermit.Logger
 import com.sun.net.httpserver.HttpServer
-import it.maicol07.gamerlogue.BuildConfig
+import io.ktor.http.HttpStatusCode
+import org.koin.compose.koinInject
 import java.awt.Desktop
+import java.io.IOException
+import java.io.UnsupportedEncodingException
 import java.net.InetSocketAddress
 import java.net.URI
 import java.net.URLDecoder
 import java.util.concurrent.Executors
 
-class JvmAuthenticationHandler : AuthenticationHandler {
+class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : AuthenticationHandler(authProvider) {
     override fun login() {
         try {
             val server = HttpServer.create(InetSocketAddress("localhost", 0), 0)
@@ -18,33 +22,29 @@ class JvmAuthenticationHandler : AuthenticationHandler {
 
             server.createContext("/callback") { exchange ->
                 try {
+                    var response: String
+                    var responseCode: HttpStatusCode
                     val query = exchange.requestURI.query
-                    val token = query?.split("&")
-                        ?.find { it.startsWith("token=") }
-                        ?.substringAfter("token=")
-                    val userId = query?.split("&")
-                        ?.find { it.startsWith("user_id=") }
-                        ?.substringAfter("user_id=")
+                    if (query != null) {
+                        val success = handleCallback(query) {
+                            try {
+                                URLDecoder.decode(it, "UTF-8")
+                            } catch (e: UnsupportedEncodingException) {
+                                Logger.e(e) { "Error decoding callback query parameter" }
+                                null
+                            }
+                        }
 
-                    if (token != null && userId != null) {
-                        val response = "Login successful! You can close this window."
-                        exchange.sendResponseHeaders(200, response.length.toLong())
-                        exchange.responseBody.use { it.write(response.toByteArray()) }
-
-                        // Decode token if needed
-                        val decodedToken = URLDecoder.decode(token, "UTF-8")
-
-                        // Save token
-                        val provider = JvmAuthTokenProvider()
-                        provider.setToken(decodedToken)
-                        provider.setUserId(userId)
+                        response = if (success) "Login successful! You can close this window." else "Login failed! Token not found."
+                        responseCode = if (success) HttpStatusCode.OK else HttpStatusCode.BadRequest
                     } else {
-                        val response = "Login failed! Token not found."
-                        exchange.sendResponseHeaders(400, response.length.toLong())
-                        exchange.responseBody.use { it.write(response.toByteArray()) }
+                        response = "Login failed! Token not found."
+                        responseCode = HttpStatusCode.BadRequest
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                    exchange.sendResponseHeaders(responseCode.value, response.length.toLong())
+                    exchange.responseBody.use { it.write(response.toByteArray()) }
+                } catch (e: IOException) {
+                    Logger.e(e) { "Error handling authentication callback" }
                 } finally {
                     // Stop server after a short delay
                     Thread {
@@ -64,7 +64,7 @@ class JvmAuthenticationHandler : AuthenticationHandler {
             val redirectUri = "http://localhost:$port/callback"
             // Assuming the auth server accepts redirect_uri parameter.
             // If not, and it forces deep link, this won't work without OS registration.
-            val authUrl = "${BuildConfig.GAMERLOGUE_URL}/sanctum/token?token_name=Gamerlogue&redirect_uri=$redirectUri"
+            val authUrl = AuthenticationHandler.getAuthUrl(redirectUri)
 
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(URI(authUrl))
@@ -77,5 +77,6 @@ class JvmAuthenticationHandler : AuthenticationHandler {
 
 @Composable
 actual fun rememberAuthenticationHandler(): AuthenticationHandler {
-    return remember { JvmAuthenticationHandler() }
+    val authProvider = koinInject<AuthTokenProvider>()
+    return remember { JvmAuthenticationHandler(authProvider) }
 }
