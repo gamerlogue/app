@@ -11,6 +11,7 @@ import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
+import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.unwrap
 import com.github.michaelbull.result.unwrapError
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
@@ -79,7 +80,7 @@ class LibraryViewModel : ViewModel(), KoinComponent {
                     libraryGames[entry.status]?.put(game, entry)
                 }
             } else {
-                println("Error loading games for library: ${allGamesResult.unwrapError()}")
+                Logger.e(result.unwrapError()) { "Error loading games for library" }
             }
         }
 
@@ -103,7 +104,6 @@ class LibraryViewModel : ViewModel(), KoinComponent {
     suspend fun updateLibraryEntry(entry: LibraryEntry) = safeRequest { entry.save() }
     suspend fun removeLibraryEntry(entry: LibraryEntry) = safeRequest { entry.destroy() }
 
-    suspend fun getLibraryEntryForGame(game: Game) = getLibraryEntryForGame(game.id)
     suspend fun getLibraryEntryForGame(gameId: Number) = safeRequest {
         LibraryEntry
             .where("game_id", gameId)

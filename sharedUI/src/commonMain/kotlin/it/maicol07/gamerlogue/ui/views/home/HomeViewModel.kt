@@ -56,7 +56,7 @@ class HomeViewModel : ViewModel(), KoinComponent {
             {
                 sort(PopularityPrimitive.field.value, SortOrder.DESC)
                 where {
-                    PopularityPrimitive.field.popularity_type equals "1"
+                    PopularityPrimitive.field.popularity_type equalTo "1"
                 }
             }
         ),

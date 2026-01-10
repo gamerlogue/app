@@ -51,7 +51,6 @@ import org.koin.dsl.module
 @Composable
 fun App(additionalModules: List<Module> = emptyList()) {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
-    val userStore = remember { UserStore() }
 
     KoinApplication({
         modules(appModule, httpModule, platformModule)
@@ -63,36 +62,7 @@ fun App(additionalModules: List<Module> = emptyList()) {
             }
         )
     }) {
-        val authProvider = koinInject<AuthTokenProvider>()
-
-        LaunchedEffect(Unit) {
-            if (BuildConfig.APP_ENV === AppEnvironment.LOCAL) {
-                Logger.setMinSeverity(Severity.Verbose)
-                Logger.i("Running in LOCAL environment")
-            }
-            val savedUser = userStore.getUser()
-            if (savedUser != null) {
-                authProvider.currentUser = savedUser
-            }
-        }
-
-        LaunchedEffect(authProvider.accessToken, authProvider.currentUserId) {
-            Logger.d("AuthState changed: token=${authProvider.accessToken}, userId=${authProvider.currentUserId}")
-            if (authProvider.accessToken != null) {
-                if (authProvider.currentUser == null && authProvider.currentUserId != null) {
-                    val result = safeRequest { User.find(authProvider.currentUserId!!).data }
-                    if (result.isOk) {
-                        val user = result.unwrap()
-                        authProvider.currentUser = user
-                        userStore.saveUser(user)
-                    }
-                }
-            } else {
-                authProvider.currentUser = null
-                authProvider.updateUserId(null)
-                userStore.clear()
-            }
-        }
+        AuthHandler()
 
         AppTheme {
             AppScaffold(
@@ -122,6 +92,8 @@ fun App(additionalModules: List<Module> = emptyList()) {
                                 rememberViewModelStoreNavEntryDecorator()
                             ),
                             entryProvider = entryProvider {
+                                val authProvider = koinInject<AuthTokenProvider>()
+
                                 entry<NavKeys.Discover>(
                                     metadata = ListDetailSceneStrategy.listPane(
                                         detailPlaceholder = {
@@ -177,7 +149,7 @@ fun App(additionalModules: List<Module> = emptyList()) {
                     val appUiState = LocalAppUiState.current
                     val showExceptionBottomSheet by remember {
                         derivedStateOf {
-                            appUiState.networkException.value != null && appUiState.showExceptionBottomSheet.value
+                            appUiState.networkException != null && appUiState.showExceptionBottomSheet
                         }
                     }
                     if (showExceptionBottomSheet) {
@@ -189,3 +161,37 @@ fun App(additionalModules: List<Module> = emptyList()) {
     }
 }
 
+@Composable
+private fun AuthHandler() {
+    val authProvider = koinInject<AuthTokenProvider>()
+    val userStore = remember { UserStore() }
+
+    LaunchedEffect(Unit) {
+        if (BuildConfig.APP_ENV === AppEnvironment.LOCAL) {
+            Logger.setMinSeverity(Severity.Verbose)
+            Logger.i("Running in LOCAL environment")
+        }
+        val savedUser = userStore.getUser()
+        if (savedUser != null) {
+            authProvider.currentUser = savedUser
+        }
+    }
+
+    LaunchedEffect(authProvider.accessToken, authProvider.currentUserId) {
+        Logger.d("AuthState changed: token=${authProvider.accessToken}, userId=${authProvider.currentUserId}")
+        if (authProvider.accessToken != null) {
+            if (authProvider.currentUser == null && authProvider.currentUserId != null) {
+                val result = safeRequest { User.find(authProvider.currentUserId!!).data }
+                if (result.isOk) {
+                    val user = result.unwrap()
+                    authProvider.currentUser = user
+                    userStore.saveUser(user)
+                }
+            }
+        } else {
+            authProvider.currentUser = null
+            authProvider.updateUserId(null)
+            userStore.clear()
+        }
+    }
+}

@@ -28,46 +28,31 @@ import gamerlogue.sharedui.generated.resources.theme__thriller
 import gamerlogue.sharedui.generated.resources.theme__unknown
 import gamerlogue.sharedui.generated.resources.theme__warfare
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Book4W500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.BusinessCenterW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CalendarMonthW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CelebrationW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ComedyMaskW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ExploreW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HomeW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LightbulbW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LocalFireDepartmentW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonHeartW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SettingsW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarShineW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.UpcomingW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ExplosionW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FamilyStarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Grid4x4W500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HistoryW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LipsW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MysteryW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PartnerHeartW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonHeartW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlaygroundW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RocketW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SchoolW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SkeletonW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SwordsW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TheaterComedyW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WandStarsW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.mdi.icons.KnifeMdi
 import io.github.kingsword09.symbolcraft.symbols.icons.mdi.icons.NinjaMdi
 import io.github.kingsword09.symbolcraft.symbols.icons.mdi.icons.TankMdi
 import io.github.kingsword09.symbolcraft.symbols.icons.mdi.icons.UnicornVariantMdi
-import io.github.kingsword09.symbolcraft.symbols.icons.mdi.Icons as IconsMdi
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import io.github.kingsword09.symbolcraft.symbols.icons.mdi.Icons as IconsMdi
 
 val Theme.localizedName: String
     @Composable

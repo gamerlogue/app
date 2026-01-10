@@ -21,7 +21,8 @@ fun ApicalypseQueryBuilder.where(whereBuilder: ApicalypseQueryBuilderWhereBuilde
     )
 }
 
-class ApicalypseQueryBuilderWhereBuilder() {
+@Suppress("TooManyFunctions", "unused")
+class ApicalypseQueryBuilderWhereBuilder {
     private val wheres = mutableListOf<String>()
 
     fun build(): String = wheres.joinToString(" & ")
@@ -38,10 +39,10 @@ class ApicalypseQueryBuilderWhereBuilder() {
     }
 
     /** Exact match equal. */
-    infix fun String.equals(value: String) = wheres.add("$this = $value")
+    infix fun String.equalTo(value: String) = wheres.add("$this = $value")
 
     /** Exact match not equal. */
-    infix fun String.notEquals(value: String) = wheres.add("$this != $value")
+    infix fun String.notEqualTo(value: String) = wheres.add("$this != $value")
 
     /** Greater than. */
     infix fun String.greaterThan(value: Number) = wheres.add("$this > $value")
@@ -94,11 +95,11 @@ class ApicalypseQueryBuilderWhereBuilder() {
     /** Exact match on arrays. (Does not work on ids, strings, etc). */
     infix fun String.matchesAll(values: Collection<String>) = wheres.add("$this = {${values.joinToString(",")}}")
 
-    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.equals */
-    infix fun IgdbRequestField<*>.equals(value: String) = this.igdbFullName equals value
+    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.equalTo */
+    infix fun IgdbRequestField<*>.equalTo(value: String) = this.igdbFullName equalTo value
 
-    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.notEquals */
-    infix fun IgdbRequestField<*>.notEquals(value: String) = this.igdbFullName notEquals value
+    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.notEqualTo */
+    infix fun IgdbRequestField<*>.notEqualTo(value: String) = this.igdbFullName notEqualTo value
 
     /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.greaterThan */
     infix fun IgdbRequestField<*>.greaterThan(value: Number) = this.igdbFullName greaterThan value
@@ -153,11 +154,11 @@ class ApicalypseQueryBuilderWhereBuilder() {
     /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.matchesAll */
     infix fun IgdbRequestField<*>.matchesAll(values: Collection<String>) = this.igdbFullName matchesAll values
 
-    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.equals */
-    infix fun IgdbRequestFieldDsl<*, *>.equals(value: String) = (this.all.parent ?: this.all) equals value
+    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.equalTo */
+    infix fun IgdbRequestFieldDsl<*, *>.equalTo(value: String) = (this.all.parent ?: this.all) equalTo value
 
-    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.notEquals */
-    infix fun IgdbRequestFieldDsl<*, *>.notEquals(value: String) = (this.all.parent ?: this.all) notEquals value
+    /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.notEqualTo */
+    infix fun IgdbRequestFieldDsl<*, *>.notEqualTo(value: String) = (this.all.parent ?: this.all) notEqualTo value
 
     /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.greaterThan */
     infix fun IgdbRequestFieldDsl<*, *>.greaterThan(value: Number) = (this.all.parent ?: this.all) greaterThan value

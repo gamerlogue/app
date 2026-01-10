@@ -2,7 +2,6 @@ package it.maicol07.gamerlogue.data
 
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
-import it.maicol07.spraypaintkt.JsonApiResource
 import it.maicol07.spraypaintkt.JsonApiSingleResponse
 
 class UserStore(private val settings: Settings = Settings()) {

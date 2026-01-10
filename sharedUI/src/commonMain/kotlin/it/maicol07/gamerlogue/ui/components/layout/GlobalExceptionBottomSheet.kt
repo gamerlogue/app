@@ -34,13 +34,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,7 +62,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun GlobalExceptionBottomSheet() {
     val appUi = LocalAppUiState.current
-    val exception = appUi.networkException.value ?: return
+    val exception = appUi.networkException ?: return
 
     val fallbackMessage = stringResource(Res.string.exception__fallback_message)
     val message = exception.message ?: fallbackMessage
@@ -83,14 +81,13 @@ fun GlobalExceptionBottomSheet() {
     var showDetails by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    ModalBottomSheet({ appUi.showExceptionBottomSheet.value = false }, sheetState = sheetState) {
+    ModalBottomSheet({ appUi.showExceptionBottomSheet = false }, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val scope = rememberCoroutineScope()
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -199,12 +196,12 @@ fun GlobalExceptionBottomSheet() {
                             },
                             rememberTooltipState()
                         ) {
-                            val clipboard = LocalClipboard.current
+//                            val clipboard = LocalClipboard.current
 
                             FilledIconButton(
                                 shapes = IconButtonDefaults.shapes(),
                                 onClick = {
-                                    // TODO: Add multiplatform clipboard support
+                                    // TODO: Add multiplatform clipboard support (wait https://youtrack.jetbrains.com/issue/CMP-7624)
                                 }
                             ) {
                                 Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))

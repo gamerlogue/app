@@ -11,8 +11,11 @@ import java.io.IOException
 import java.io.UnsupportedEncodingException
 import java.net.InetSocketAddress
 import java.net.URI
+import java.net.URISyntaxException
 import java.net.URLDecoder
 import java.util.concurrent.Executors
+
+private const val ServerStopDelay = 1000L
 
 class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : AuthenticationHandler(authProvider) {
     override fun login() {
@@ -49,9 +52,9 @@ class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : Authentication
                     // Stop server after a short delay
                     Thread {
                         try {
-                            Thread.sleep(1000)
+                            Thread.sleep(ServerStopDelay)
                             server.stop(0)
-                        } catch (e: InterruptedException) {
+                        } catch (_: InterruptedException) {
                             // Ignore
                         }
                     }.start()
@@ -64,13 +67,15 @@ class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : Authentication
             val redirectUri = "http://localhost:$port/callback"
             // Assuming the auth server accepts redirect_uri parameter.
             // If not, and it forces deep link, this won't work without OS registration.
-            val authUrl = AuthenticationHandler.getAuthUrl(redirectUri)
+            val authUrl = getAuthUrl(redirectUri)
 
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(URI(authUrl))
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: IOException) {
+            Logger.e(e) { "Error starting authentication server" }
+        } catch (e: URISyntaxException) {
+            Logger.e(e) { "Invalid authentication URL" }
         }
     }
 }

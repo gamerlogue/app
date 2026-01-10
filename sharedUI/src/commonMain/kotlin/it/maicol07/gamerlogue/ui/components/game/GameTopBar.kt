@@ -76,9 +76,9 @@ fun GameTopBar(
         },
         actions = {
             val appUiState = LocalAppUiState.current
-            AnimatedVisibility(appUiState.networkException.value != null) {
+            AnimatedVisibility(appUiState.networkException != null) {
                 IconButton(
-                    onClick = { appUiState.showExceptionBottomSheet.value = true }
+                    onClick = { appUiState.showExceptionBottomSheet = true }
                 ) {
                     Icon(
                         Icons.AndroidWifi3BarAlertW500Rounded,

@@ -37,6 +37,7 @@ class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
         @Composable
         fun inject(gameId: Int): GameDetailViewModel = koinViewModel(parameters = { parametersOf(gameId) })
 
+        @Suppress("unused")
         @Composable
         fun inject(game: Game): GameDetailViewModel = inject(game.id.toInt())
     }

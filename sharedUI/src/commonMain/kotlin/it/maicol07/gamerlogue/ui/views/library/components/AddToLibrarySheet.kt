@@ -1,3 +1,4 @@
+@file:Suppress("TooManyFunctions")
 package it.maicol07.gamerlogue.ui.views.library.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -76,9 +77,6 @@ import it.maicol07.gamerlogue.ui.components.NumericField
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf

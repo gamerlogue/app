@@ -110,7 +110,7 @@ fun GameDetailScreen(
                         }
                     }
                 } else if (viewModel.game != null) {
-                    GameDetailContent(viewModel.game!!)
+                    gameDetailContent(viewModel.game!!)
                 } else {
                     item {
                         Box(Modifier.fillMaxSize().animateItem(), contentAlignment = Alignment.Center) {
@@ -153,7 +153,7 @@ fun GameDetailScreen(
     ExperimentalMaterial3ExpressiveApi::class,
     ExperimentalSharedTransitionApi::class
 )
-private fun LazyListScope.GameDetailContent(game: Game) {
+private fun LazyListScope.gameDetailContent(game: Game) {
     item { GameHeader(game) }
     item { GameRatings(game) }
     item { GameGenresAndThemes(game) }

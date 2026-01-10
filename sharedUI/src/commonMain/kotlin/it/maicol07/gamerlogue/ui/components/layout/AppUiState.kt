@@ -1,14 +1,16 @@
 package it.maicol07.gamerlogue.ui.components.layout
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlin.concurrent.Volatile
 
 class AppUiState {
-    var networkException = mutableStateOf<Throwable?>(null)
-    var showExceptionBottomSheet = mutableStateOf(true)
+    var networkException by mutableStateOf<Throwable?>(null)
+    var showExceptionBottomSheet by mutableStateOf(true)
 }
 
 val LocalAppUiState = staticCompositionLocalOf<AppUiState> {
@@ -27,13 +29,9 @@ object AppUi {
 
     fun reportNetworkException(t: Throwable) {
         holder?.let { s ->
-            s.networkException.value = t
-            s.showExceptionBottomSheet.value = true
+            s.networkException = t
+            s.showExceptionBottomSheet = true
         }
-    }
-
-    fun setShowExceptionBottomSheet(show: Boolean) {
-        holder?.showExceptionBottomSheet?.value = show
     }
 
     val current: AppUiState? get() = holder

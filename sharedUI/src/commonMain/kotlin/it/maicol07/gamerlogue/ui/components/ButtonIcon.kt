@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package it.maicol07.gamerlogue.ui.components
 
 import androidx.compose.foundation.layout.Spacer

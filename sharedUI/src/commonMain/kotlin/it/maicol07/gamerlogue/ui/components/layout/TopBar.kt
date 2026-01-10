@@ -1,8 +1,6 @@
 package it.maicol07.gamerlogue.ui.components.layout
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -13,7 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -54,9 +51,9 @@ fun AppTopBar(
             },
             actions = {
                 val appUiState = LocalAppUiState.current
-                AnimatedVisibility(appUiState.networkException.value != null) {
+                AnimatedVisibility(appUiState.networkException != null) {
                     IconButton(
-                        onClick = { appUiState.showExceptionBottomSheet.value = true }
+                        onClick = { appUiState.showExceptionBottomSheet = true }
                     ) {
                         Icon(
                             Icons.AndroidWifi3BarAlertW500Rounded,
