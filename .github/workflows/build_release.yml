@@ -208,7 +208,10 @@ jobs:
   release_assets:
     name: Upload Release Assets
     needs: [android_build, desktop_build, web_build]
-    if: github.event_name == 'release'
+    if: >-
+      always() &&
+      github.event_name == 'release' &&
+      (needs.android_build.result == 'success' || needs.desktop_build.result == 'success' || needs.web_build.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
