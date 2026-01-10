@@ -85,7 +85,7 @@ kotlin {
             implementation(libs.igdbclient.ktor)
             implementation(libs.kotlin.result)
             implementation(libs.mp.stools)
-            api(libs.kotlinx.datetime.ext)
+            implementation(libs.kotlinx.datetime.ext)
             implementation(libs.zoomimage.compose)
             implementation(libs.spraypaintkt.core)
             implementation(libs.spraypaintkt.ktor)
