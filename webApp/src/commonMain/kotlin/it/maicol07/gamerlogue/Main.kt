@@ -5,6 +5,6 @@ import androidx.compose.ui.window.ComposeViewport
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() = ComposeViewport {
-    WebAppInit()
+    webAppInit()
     App()
 }

@@ -15,6 +15,6 @@ external object DateFnsLocaleEn
 @JsModule("date-fns/locale/it")
 external object DateFnsLocaleIt
 
-fun WebAppInit() {
+fun webAppInit() {
     Locale.initPlatformLocales(DateFnsLocaleEn, DateFnsLocaleIt)
 }
