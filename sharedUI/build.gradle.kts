@@ -2,9 +2,9 @@
 
 import com.google.devtools.ksp.gradle.KspAATask
 import io.github.kingsword09.symbolcraft.model.SymbolVariant
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import java.util.Properties
 
@@ -118,7 +118,6 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.logback.classic)
         }
-
     }
 
     targets
@@ -133,7 +132,6 @@ kotlin {
             }
         }
 
-
     sourceSets.named("commonMain").configure {
         kotlin.srcDirs(
             "build/generated/ksp/metadata",
@@ -146,7 +144,6 @@ dependencies {
     androidRuntimeClasspath(libs.compose.ui.tooling)
     add("kspCommonMainMetadata", libs.spraypaintkt.processor)
 }
-
 
 tasks.withType<KspAATask>().configureEach {
     dependsOn(tasks.named("generateSymbolCraftIcons"))
