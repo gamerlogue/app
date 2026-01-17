@@ -8,8 +8,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import com.materialkolor.DynamicMaterialExpressiveTheme
-import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicMaterialThemeState
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
