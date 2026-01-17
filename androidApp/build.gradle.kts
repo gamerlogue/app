@@ -4,7 +4,6 @@ val appPackageName = project.findProperty("appPackageName").toString()
 
 plugins {
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.android.application)
     alias(libs.plugins.git.semantic.versioning)
 }
@@ -46,9 +45,7 @@ android {
         }
     }
 
-    sourceSets.getByName("main").res.setSrcDirs(
-        setOf("../sharedUI/src/commonMain/composeResources") + sourceSets.getByName("main").res.srcDirs
-    )
+    sourceSets.getByName("main").res.directories.add("../sharedUI/src/commonMain/composeResources")
 
     packaging {
         resources {

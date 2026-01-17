@@ -27,7 +27,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = appPackageName
+        namespace = "$appPackageName.shared"
 
         compileSdk {
             version = release(project.findProperty("androidCompileSdk")!!.toString().toInt()) {

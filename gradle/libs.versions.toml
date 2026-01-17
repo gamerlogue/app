@@ -1,11 +1,11 @@
 [versions]
-agp = "8.13.2"
+agp = "9.0.0"
 androidx-activityCompose = "1.12.2"
-androidx-uiTest = "1.10.0"
+androidx-uiTest = "1.10.1"
 browser = "1.9.0"
 buildConfig = "6.0.7"
-compose-multiplatform = "1.10.0-rc02"
-compose-hot-reload = "1.1.0-alpha03"
+compose-multiplatform = "1.11.0-alpha01"
+compose-hot-reload = "1.1.0-alpha04"
 git-semantic-versioning = "5.0.6"
 igdbclientKtor = "0.8"
 kermit = "2.0.8"
@@ -102,7 +102,6 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 compose-hot-reload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
 git-semantic-versioning = { id = "io.github.andreabrighi.android-git-sensitive-semantic-versioning-gradle-plugin", version.ref = "git-semantic-versioning" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
