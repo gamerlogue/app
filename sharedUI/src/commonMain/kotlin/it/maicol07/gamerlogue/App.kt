@@ -42,26 +42,30 @@ import it.maicol07.gamerlogue.ui.views.game.GameDetailScreen
 import it.maicol07.gamerlogue.ui.views.home.Home
 import it.maicol07.gamerlogue.ui.views.library.Library
 import it.maicol07.gamerlogue.ui.views.profile.Profile
-import org.koin.compose.KoinApplication
+import org.koin.compose.KoinMultiplatformApplication
 import org.koin.compose.koinInject
-import org.koin.core.module.Module
+import org.koin.core.annotation.KoinExperimentalAPI
+import org.koin.dsl.KoinConfiguration
 import org.koin.dsl.module
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@OptIn(ExperimentalMaterial3AdaptiveApi::class, KoinExperimentalAPI::class)
 @Composable
-fun App(additionalModules: List<Module> = emptyList()) {
+fun App() {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
 
-    KoinApplication({
-        modules(appModule, httpModule, platformModule)
-        modules(additionalModules)
-        modules(
-            // Compose specific module to provide the NavBackStack
-            module {
-                single<NavBackStack> { backStack }
-            }
-        )
-    }) {
+    KoinMultiplatformApplication(
+        KoinConfiguration {
+            modules(
+                appModule,
+                httpModule,
+                platformModule,
+                // Compose specific module to provide the NavBackStack
+                module {
+                    single<NavBackStack> { backStack }
+                }
+            )
+        }
+    ) {
         AuthHandler()
 
         AppTheme {
