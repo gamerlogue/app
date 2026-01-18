@@ -39,7 +39,7 @@ import it.maicol07.gamerlogue.ui.theme.AppTheme
 import it.maicol07.gamerlogue.ui.views.auth.LoginView
 import it.maicol07.gamerlogue.ui.views.calendar.Calendar
 import it.maicol07.gamerlogue.ui.views.game.GameDetailScreen
-import it.maicol07.gamerlogue.ui.views.home.Home
+import it.maicol07.gamerlogue.ui.views.discover.DiscoverScreen
 import it.maicol07.gamerlogue.ui.views.library.Library
 import it.maicol07.gamerlogue.ui.views.profile.Profile
 import org.koin.compose.KoinMultiplatformApplication
@@ -104,7 +104,7 @@ fun App() {
                                             Text("Choose a conversation from the list")
                                         }
                                     )
-                                ) { Home() }
+                                ) { DiscoverScreen() }
                                 entry<NavKeys.Library>(
                                     metadata = ListDetailSceneStrategy.listPane()
                                 ) {

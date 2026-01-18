@@ -1,4 +1,4 @@
-package it.maicol07.gamerlogue.ui.views.home
+package it.maicol07.gamerlogue.ui.views.discover
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf

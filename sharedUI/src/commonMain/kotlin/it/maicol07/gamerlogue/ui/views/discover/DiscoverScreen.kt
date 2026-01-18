@@ -1,4 +1,4 @@
-package it.maicol07.gamerlogue.ui.views.home
+package it.maicol07.gamerlogue.ui.views.discover
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -52,14 +52,14 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun Home(viewModel: HomeViewModel = koinViewModel()) {
+fun DiscoverScreen(viewModel: HomeViewModel = koinViewModel()) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(16.dp)
     ) {
         for (section in HomeViewModel.HomeSectionType.entries) {
             val games by derivedStateOf { viewModel.games[section] ?: emptyList() }
-            homeSection(
+            discoverSection(
                 title = section.sectionTitle,
                 icon = section.icon,
                 list = games,
@@ -67,7 +67,7 @@ fun Home(viewModel: HomeViewModel = koinViewModel()) {
                 navigateTo = {
                     if (it is Game) {
                         viewModel.navigateToGame(it)
-                        return@homeSection
+                        return@discoverSection
                     }
                     viewModel.navigateToList(section)
                 }
@@ -77,7 +77,7 @@ fun Home(viewModel: HomeViewModel = koinViewModel()) {
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-private fun LazyListScope.homeSection(
+private fun LazyListScope.discoverSection(
     title: StringResource,
     icon: ImageVector,
     list: List<Game>,
@@ -124,7 +124,7 @@ private fun LazyListScope.homeSection(
             ) { i ->
                 val showTitle = carouselItemDrawInfo.size > 200
                 val game = list[i]
-                HomeSectionCarouselItem(
+                DiscoverSectionCarouselItem(
                     game = game,
                     showTitle = showTitle,
                     onItemClick = navigateTo
@@ -167,7 +167,7 @@ private fun HomeSectionHeader(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CarouselItemScope.HomeSectionCarouselItem(
+private fun CarouselItemScope.DiscoverSectionCarouselItem(
     game: Game,
     showTitle: Boolean,
     onItemClick: (Game) -> Unit

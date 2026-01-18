@@ -3,7 +3,7 @@ package it.maicol07.gamerlogue.di
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.ui.views.game.GameDetailViewModel
-import it.maicol07.gamerlogue.ui.views.home.HomeViewModel
+import it.maicol07.gamerlogue.ui.views.discover.HomeViewModel
 import it.maicol07.gamerlogue.ui.views.library.LibraryViewModel
 import it.maicol07.gamerlogue.ui.views.library.components.AddToLibrarySheetViewModel
 import it.maicol07.gamerlogue.ui.views.list.GameListType
