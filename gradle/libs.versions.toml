@@ -1,37 +1,39 @@
 [versions]
-agp = "9.0.0"
-androidx-activityCompose = "1.12.2"
-androidx-uiTest = "1.10.1"
+agp = "9.0.1"
+androidx-activityCompose = "1.12.4"
+androidx-uiTest = "1.10.3"
 browser = "1.9.0"
 buildConfig = "6.0.7"
-compose-multiplatform = "1.11.0-alpha01"
-compose-hot-reload = "1.1.0-alpha04"
-git-semantic-versioning = "5.0.7"
+compose-multiplatform = "1.11.0-alpha02"
+compose-hot-reload = "1.1.0-alpha05"
+compose-settings = "2.26.0"
+composeWebview = "1.7.1"
+git-semantic-versioning = "5.0.9"
 igdbclientKtor = "0.8"
 kermit = "2.0.8"
-kotlin = "2.3.0"
+kotlin = "2.3.10"
 kotlinResult = "2.1.0"
 kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
 kotlinx-serialization = "1.10.0"
 koin = "4.1.1"
-kotlinx_datetime_ext = "1.3.2"
-ksp = "2.3.4"
+kotlinx_datetime_ext = "1.4.0"
+ksp = "2.3.6"
 ktor = "3.4.0"
-lifecycleViewmodelNav3 = "2.10.0-alpha07"
-logbackClassic = "1.5.25"
-material3 = "1.10.0-alpha05"
-material3AdaptiveNav3 = "1.3.0-alpha03"
-materialKolor = "5.0.0-alpha04"
+lifecycleViewmodelNav3 = "2.10.0-alpha08"
+logbackClassic = "1.5.32"
+material3 = "1.11.0-alpha02"
+material3AdaptiveNav3 = "1.3.0-alpha04"
+materialKolor = "5.0.0-alpha06"
 mp_stools = "1.6.3"
 multiplatformSettings = "1.3.0"
-nav3Core = "1.0.0"
-nav3Ui = "1.0.0-alpha06"
-platformtools = "0.7.4"
+nav3Core = "1.0.1"
+nav3Ui = "1.1.0-alpha02"
+platformtools = "0.7.5"
 sketch = "4.3.1"
 slf4jAndroid = "2.0.17-0"
 slf4jApi = "2.0.17"
-spraypaintkt = "247280e-SNAPSHOT"
+spraypaintkt = "2.4.0"
 symbolCraft = "0.3.4"
 systemUIBarsTweaker = "1.2.4"
 desugarJdkLibs = "2.1.5"
@@ -55,7 +57,11 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-mu
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-multiplatform" }
 compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "compose-multiplatform" }
 compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose-multiplatform" }
+compose-webview = { module = "io.github.parkwoocheol:compose-webview", version.ref = "composeWebview" }
 igdbclient-ktor = { module = "at.released.igdbclient:igdbclient-ktor", version.ref = "igdbclientKtor" }
+composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-tiles", version.ref = "compose-settings" }
+composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
+composeSettings-ui-expressive = { group = "com.github.alorma.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
@@ -78,7 +84,9 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
 materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 mp_stools = { module = "net.sergeych:mp_stools", version.ref = "mp_stools" }
-multiplatformSettings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
+multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatformSettings" }
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
+multiplatform-settings-make-observable = { module = "com.russhwolf:multiplatform-settings-make-observable", version.ref = "multiplatformSettings" }
 platformtools-core = { module = "io.github.kdroidfilter:platformtools.core", version.ref = "platformtools" }
 platformtools-darkmodedetector = { module = "io.github.kdroidfilter:platformtools.darkmodedetector", version.ref = "platformtools" }
 sketch = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }
