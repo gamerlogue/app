@@ -28,6 +28,10 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xcollection-literals")
+    }
+
     android {
         namespace = "$appPackageName.shared"
 
