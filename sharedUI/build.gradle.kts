@@ -79,7 +79,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.materialKolor)
-            implementation(libs.multiplatformSettings)
+            implementation(libs.multiplatform.settings)
             implementation(libs.sketch)
             implementation(libs.sketchHttp)
             implementation(libs.igdbclient.ktor)
