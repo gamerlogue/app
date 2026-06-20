@@ -15,6 +15,7 @@ iosApp/Pods
 iosApp/Podfile.lock
 kotlin-js-store
 *.gpg
+.idea/claudeCodeEditorTabs.xml
 
 # Created by https://www.toptal.com/developers/gitignore/api/xcode,kotlin,androidstudio,git,windows,macos,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=xcode,kotlin,androidstudio,git,windows,macos,linux
