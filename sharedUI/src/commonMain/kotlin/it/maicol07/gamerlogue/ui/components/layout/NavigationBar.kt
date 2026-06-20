@@ -18,13 +18,13 @@ import gamerlogue.sharedui.generated.resources.nav__library
 import gamerlogue.sharedui.generated.resources.nav__profile
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CalendarMonthW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CalendarMonthW500Roundedfill1
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CalendarMonthW500RoundedFill
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ExploreW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ExploreW500Roundedfill1
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ExploreW500RoundedFill
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500Roundedfill1
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500RoundedFill
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500Roundedfill1
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500RoundedFill
 import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import org.jetbrains.compose.resources.StringResource
@@ -80,25 +80,25 @@ enum class NavBarItems(
     Discover(
         NavKeys.Discover,
         Icons.ExploreW500Rounded,
-        Icons.ExploreW500Roundedfill1,
+        Icons.ExploreW500RoundedFill,
         Res.string.nav__discover
     ),
     Library(
         NavKeys.Library,
         Icons.NewsstandW500Rounded,
-        Icons.NewsstandW500Roundedfill1,
+        Icons.NewsstandW500RoundedFill,
         Res.string.nav__library
     ),
     Calendar(
         NavKeys.Calendar,
         Icons.CalendarMonthW500Rounded,
-        Icons.CalendarMonthW500Roundedfill1,
+        Icons.CalendarMonthW500RoundedFill,
         Res.string.nav__calendar
     ),
     Profile(
         NavKeys.Profile,
         Icons.PersonW500Rounded,
-        Icons.PersonW500Roundedfill1,
+        Icons.PersonW500RoundedFill,
         Res.string.nav__profile
     ),
 //    Settings(NavKeys.Settings, { Icon(Icons.Outlined.Settings, null) }, { Icon(Icons.Rounded.Settings, null) })
