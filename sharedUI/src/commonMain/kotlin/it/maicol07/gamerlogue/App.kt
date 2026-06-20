@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue
 
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -42,6 +44,10 @@ import it.maicol07.gamerlogue.ui.views.game.GameDetailScreen
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverScreen
 import it.maicol07.gamerlogue.ui.views.library.Library
 import it.maicol07.gamerlogue.ui.views.profile.Profile
+import it.maicol07.gamerlogue.ui.views.profile.ProfileScreen
+import it.maicol07.gamerlogue.ui.views.settings.categories.AppearanceScreen
+import it.maicol07.gamerlogue.ui.views.settings.categories.LinkedServicesScreen
+import it.maicol07.gamerlogue.ui.views.settings.SettingsScreen
 import org.koin.compose.KoinMultiplatformApplication
 import org.koin.compose.koinInject
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -88,9 +94,8 @@ fun App() {
                     val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(directive = directive)
 
                     SharedTransitionLayout {
-                        NavDisplay(
+                        val entries = rememberDecoratedNavEntries(
                             backStack = backStack,
-                            sceneStrategy = listDetailStrategy,
                             entryDecorators = listOf(
                                 rememberSaveableStateHolderNavEntryDecorator(),
                                 rememberViewModelStoreNavEntryDecorator()
@@ -129,12 +134,21 @@ fun App() {
                                 }
                                 entry<NavKeys.Profile>(
                                     metadata = ListDetailSceneStrategy.detailPane()
+                                ) { ProfileScreen { backStack.add(it) } }
+                                entry<NavKeys.Settings>(
+                                    metadata = ListDetailSceneStrategy.detailPane()
                                 ) {
-                                    if (authProvider.accessToken == null) {
-                                        LoginView()
-                                    } else {
-                                        Profile()
-                                    }
+                                    SettingsScreen(navigateTo = { backStack.add(it) })
+                                }
+                                entry<NavKeys.LinkedServices>(
+                                    metadata = ListDetailSceneStrategy.detailPane()
+                                ) {
+                                    LinkedServicesScreen()
+                                }
+                                entry<NavKeys.Appearance>(
+                                    metadata = ListDetailSceneStrategy.detailPane()
+                                ) {
+                                    AppearanceScreen()
                                 }
                                 entry<NavKeys.GameDetail>(
                                     metadata = ListDetailSceneStrategy.detailPane()
@@ -147,6 +161,15 @@ fun App() {
 //                                GameListScreen(title = it.title, navigateTo = { backStack.add(it) })
                                 }
                             }
+                        )
+
+                        NavDisplay(
+                            entries = entries,
+                            sceneStrategies = listOf(listDetailStrategy),
+                            sharedTransitionScope = this,
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            onBack = { backStack.removeLastOrNull() }
                         )
                     }
 

@@ -18,3 +18,8 @@ external object DateFnsLocaleIt
 fun webAppInit() {
     Locale.initPlatformLocales(DateFnsLocaleEn, DateFnsLocaleIt)
 }
+
+@Composable
+actual fun appLanguageSettingsOpener(): () -> Unit = {
+    // No-op on web, as the language is determined by the browser settings
+}

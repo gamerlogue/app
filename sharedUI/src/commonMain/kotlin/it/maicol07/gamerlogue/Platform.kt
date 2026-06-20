@@ -4,3 +4,6 @@ import androidx.compose.runtime.Composable
 
 @Composable
 expect fun SystemBarsVisible(visible: Boolean)
+
+@Composable
+expect fun appLanguageSettingsOpener(): () -> Unit

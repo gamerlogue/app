@@ -5,6 +5,8 @@ import io.github.kingsword09.symbolcraft.model.SymbolVariant
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import java.util.Properties
 
@@ -92,6 +94,14 @@ kotlin {
             implementation(libs.spraypaintkt.annotation)
             implementation(libs.platformtools.core)
             api(libs.platformtools.darkmodedetector)
+            implementation(libs.composeSettings.ui)
+            implementation(libs.composeSettings.ui.extended)
+            implementation(libs.composeSettings.ui.expressive)
+            implementation(libs.multiplatform.settings.coroutines)
+            implementation(libs.multiplatform.settings.make.observable)
+            implementation(libs.flagpack.compose)
+            implementation(libs.countries.core)
+            implementation(libs.compose.webview)
         }
 
         commonTest.dependencies {
@@ -117,6 +127,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.logback.classic)
+        }
+
+        webMain.dependencies {
+            implementation(libs.ktor.client.js)
         }
     }
 
@@ -167,6 +181,19 @@ buildConfig {
     )
     buildConfigField("IGDB_API_URL", localProperties.getOrDefault("IGDB_API_URL", "https://api.igdb.com/v4/") as String)
     buildConfigField("GAMERLOGUE_URL", localProperties.getOrDefault("GAMERLOGUE_URL", "") as String)
+
+    val composeResourcesDir = file("src/commonMain/composeResources")
+    val availableLanguages = listOf("en") + (
+        composeResourcesDir.listFiles()
+            ?.filter { it.isDirectory && it.name.startsWith("values-") }
+            ?.map { it.name.removePrefix("values-") }
+            ?: emptyList()
+        )
+    buildConfigField(
+        "kotlin.collections.Map<String, androidx.compose.ui.text.intl.Locale>",
+        "AVAILABLE_LANGUAGES",
+        "mapOf(${availableLanguages.joinToString(", ") { "\"$it\" to Locale(\"$it\")" }})"
+    )
 }
 
 symbolCraft {
@@ -177,8 +204,8 @@ symbolCraft {
     val icons = listOf(
         "add", "android_wifi_3_bar_alert", "arrow_back", "arrow_forward",
         "book_4", "bookmark", "business_center",
-        "calendar_month", "celebration", "check", "check_circle", "close", "code", "comedy_mask", "content_copy", "conversion_path",
-        "date_range", "delete",
+        "calendar_month", "celebration", "check", "check_circle", "close", "code", "comedy_mask", "content_copy", "contrast",
+        "conversion_path", "date_range", "delete",
         "edit", "error", "explosion", "explore",
         "family_star", "flutter_dash",
         "grid_4x4",
@@ -186,12 +213,14 @@ symbolCraft {
         "joystick",
         "keyboard_arrow_right",
         "info",
-        "layers", "lips", "lightbulb", "local_fire_department", "login",
+        "layers", "language", "linked_services", "lips", "lightbulb", "local_fire_department", "login", "logout",
         "music_note", "mystery",
         "newsstand",
+        "open_in_new",
         "quiz",
         "rocket",
-        "partner_heart", "pause_circle", "person", "person_heart", "playground", "play_circle", "playing_cards", "publish",
+        "palette", "partner_heart", "pause_circle", "person", "person_heart", "playground", "play_circle", "playing_cards",
+        "publish",
         "school", "search", "settings", "skeleton", "simulation", "sports_and_outdoors",
         "sports_martial_arts", "sports_baseball", "sports_motorsports", "stadium", "star",
         "star_shine", "strategy", "swords", "sword_rose",
@@ -218,11 +247,68 @@ symbolCraft {
         urlTemplate = "https://esm.sh/@mdi/svg@latest/svg/{name}.svg"
     }
 
-//    val brandIcons = listOf(
-//        "github"
-//    )
-//    @Suppress("SpreadOperator")
-//    externalIcons(*brandIcons.toTypedArray(), libraryName = "simple-icons") {
-//        urlTemplate = "https://simpleicons.org/icons/{name}.svg"
-//    }
+    val brandIcons = listOf(
+        "epicgames",
+        "github",
+        "gogdotcom",
+        "playstation",
+        "steam"
+    )
+    @Suppress("SpreadOperator")
+    externalIcons(*brandIcons.toTypedArray(), libraryName = "simple-icons") {
+        urlTemplate = "https://simpleicons.org/icons/{name}.svg"
+    }
+
+    val brandLogos = listOf(
+        "xbox"
+    )
+    @Suppress("SpreadOperator")
+    externalIcons(*brandLogos.toTypedArray(), libraryName = "svgl") {
+        urlTemplate = "https://api.svgl.app/svg/{name}.svg"
+    }
+
+    applyOkioJsTestWorkaround()
+}
+
+// https://github.com/square/okio/issues/1163
+fun Project.applyOkioJsTestWorkaround() {
+    plugins.withId("org.jetbrains.kotlin.multiplatform") {
+        val applyNodePolyfillPlugin by lazy {
+            tasks.register("applyNodePolyfillPlugin") {
+                val applyPluginFile = projectDir
+                    .resolve("webpack.config.d/applyNodePolyfillPlugin.js")
+                onlyIf {
+                    !applyPluginFile.exists()
+                }
+                doLast {
+                    applyPluginFile.parentFile.mkdirs()
+                    applyPluginFile.writeText(
+                        """
+                        const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
+                        config.plugins.push(new NodePolyfillPlugin());
+                        """.trimIndent(),
+                    )
+                }
+            }
+        }
+
+        extensions.configure<KotlinMultiplatformExtension> {
+            sourceSets {
+                targets.configureEach {
+                    compilations.configureEach {
+                        if (platformType == KotlinPlatformType.js && name == "test") {
+                            tasks
+                                .getByName(compileKotlinTaskName)
+                                .dependsOn(applyNodePolyfillPlugin)
+                        }
+                    }
+                }
+                jsTest {
+                    dependencies {
+                        implementation(devNpm("node-polyfill-webpack-plugin", "^2.0.1"))
+                    }
+                }
+            }
+        }
+    }
 }

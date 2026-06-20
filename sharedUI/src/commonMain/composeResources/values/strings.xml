@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name" translatable="false">Gamerlogue</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_clear">Clear</string>
+    <string name="common_select">Select</string>
     <string name="nav__discover">Discover</string>
     <string name="exception__title">Something went wrong</string>
 
@@ -158,4 +161,21 @@
 
     <!-- Game Card -->
     <string name="game_card__hours_played">%1$d hrs</string>
+
+    <!-- Settings -->
+    <string name="nav__settings">Settings</string>
+    <string name="settings__linked_services">Linked Services</string>
+    <string name="settings__appearance">Appearance</string>
+    <string name="settings__linked_services_disclaimer">Links and credentials are saved locally and are never transmitted elsewhere.</string>
+    <string name="settings__theme">Theme</string>
+    <string name="settings__language">Language</string>
+    <string name="settings__dynamic_colors">Use device colors</string>
+    <string name="settings__theme_light">Light</string>
+    <string name="settings__theme_dark">Dark</string>
+    <string name="settings__theme_system">System</string>
+    <string name="settings__service_steam">Steam</string>
+    <string name="settings__service_playstation">Playstation</string>
+    <string name="settings__service_xbox">Xbox</string>
+    <string name="settings__service_gog">GOG</string>
+    <string name="settings__service_epic">Epic Games</string>
 </resources>

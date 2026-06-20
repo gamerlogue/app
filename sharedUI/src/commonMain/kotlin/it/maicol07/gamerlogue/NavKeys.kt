@@ -7,7 +7,10 @@ import gamerlogue.sharedui.generated.resources.nav__calendar
 import gamerlogue.sharedui.generated.resources.nav__discover
 import gamerlogue.sharedui.generated.resources.nav__library
 import gamerlogue.sharedui.generated.resources.nav__profile
+import gamerlogue.sharedui.generated.resources.nav__settings
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.settings__appearance
+import gamerlogue.sharedui.generated.resources.settings__linked_services
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -42,6 +45,23 @@ object NavKeys {
     }
 
     @Serializable
+    data object Settings : NavKeyWithMeta() {
+        override val title = Res.string.nav__settings
+    }
+
+    @Serializable
+    data object LinkedServices : NavKeyWithMeta() {
+        override val title = Res.string.settings__linked_services
+        override val showBottomBar: Boolean = false
+    }
+
+    @Serializable
+    data object Appearance : NavKeyWithMeta() {
+        override val title = Res.string.settings__appearance
+        override val showBottomBar: Boolean = false
+    }
+
+    @Serializable
     data object Login : NavKeyWithMeta() {
         override val title: StringResource? = null
     }
@@ -61,6 +81,9 @@ object NavKeys {
                 subclass(Library::class, Library.serializer())
                 subclass(Calendar::class, Calendar.serializer())
                 subclass(Profile::class, Profile.serializer())
+                subclass(Settings::class, Settings.serializer())
+                subclass(LinkedServices::class, LinkedServices.serializer())
+                subclass(Appearance::class, Appearance.serializer())
                 subclass(Login::class, Login.serializer())
                 subclass(GameDetail::class, GameDetail.serializer())
                 subclass(GameList::class, GameList.serializer())

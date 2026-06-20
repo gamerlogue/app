@@ -3,4 +3,10 @@ package it.maicol07.gamerlogue
 import androidx.compose.runtime.Composable
 
 @Composable
-actual fun SystemBarsVisible(visible: Boolean) {}
+actual fun SystemBarsVisible(visible: Boolean) {
+    // No-op on JVM
+}
+
+@Composable
+actual fun appLanguageSettingsOpener(): () -> Unit = {}
+

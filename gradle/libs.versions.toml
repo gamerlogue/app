@@ -8,6 +8,8 @@ compose-multiplatform = "1.11.1"
 compose-hot-reload = "1.2.0-alpha02"
 compose-settings = "3.1.0"
 composeWebview = "1.9.0"
+countriesCore = "0.2.0"
+flagpackCompose = "1.0.0"
 git-semantic-versioning = "5.0.16"
 igdbclientKtor = "0.8"
 kermit = "2.1.0"
@@ -58,6 +60,8 @@ compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-pre
 compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "compose-multiplatform" }
 compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose-multiplatform" }
 compose-webview = { module = "io.github.parkwoocheol:compose-webview", version.ref = "composeWebview" }
+countries-core = { module = "org.kimplify:countries-core", version.ref = "countriesCore" }
+flagpack-compose = { module = "io.github.niyajali:flagpack-compose", version.ref = "flagpackCompose" }
 igdbclient-ktor = { module = "at.released.igdbclient:igdbclient-ktor", version.ref = "igdbclientKtor" }
 composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-tiles", version.ref = "compose-settings" }
 composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
