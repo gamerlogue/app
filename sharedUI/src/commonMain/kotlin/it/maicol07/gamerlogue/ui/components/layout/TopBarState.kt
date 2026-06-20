@@ -13,6 +13,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 class TopBarState {
     var visible by mutableStateOf(true)
     var customTitle by mutableStateOf<(@Composable () -> Unit)?>(null)
+    var customActions by mutableStateOf<(@Composable () -> Unit)?>(null)
     var customColors by mutableStateOf<TopAppBarColors?>(null)
 }
 
@@ -22,4 +23,3 @@ val LocalTopBarState = staticCompositionLocalOf<TopBarState> {
 
 @Composable
 fun rememberTopBarState(): TopBarState = remember { TopBarState() }
-

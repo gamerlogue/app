@@ -50,6 +50,8 @@ fun AppTopBar(
                 }
             },
             actions = {
+                topBarState.customActions?.invoke()
+
                 val appUiState = LocalAppUiState.current
                 AnimatedVisibility(appUiState.networkException != null) {
                     IconButton(
