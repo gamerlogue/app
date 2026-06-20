@@ -29,7 +29,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Cal
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CodeW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
-import it.maicol07.gamerlogue.extensions.expressiveColors
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import org.jetbrains.compose.resources.StringResource
@@ -86,7 +86,7 @@ fun GameDetailsList(game: Game) = Column(verticalArrangement = Arrangement.space
                     )
                 }
             },
-            colors = ListItemDefaults.expressiveColors(
+            colors = ListItemDefaults.expressiveSegmentedColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         )

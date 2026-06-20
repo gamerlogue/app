@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__release_dates_title
-import it.maicol07.gamerlogue.extensions.expressiveColors
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
@@ -70,7 +70,7 @@ fun ReleaseDatesBottomSheet(
                         }
                     }
                 },
-                colors = ListItemDefaults.expressiveColors(),
+                colors = ListItemDefaults.expressiveSegmentedColors(),
                 modifier = Modifier.clip(
                     ListItemDefaults.expressiveShape(index == 0, index == game.platforms.lastIndex)
                 )
