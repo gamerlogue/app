@@ -1,0 +1,176 @@
+<resources>
+    <string name="common_cancel">Annulla</string>
+    <string name="common_clear">Cancella</string>
+    <string name="common_select">Seleziona</string>
+    <string name="nav__discover">Scopri</string>
+    <string name="exception__title">Qualcosa è andato storto</string>
+
+    <!-- Error bottom sheet -->
+    <string name="exception__hint_network">Suggerimento: controlla la tua connessione Internet e riprova.</string>
+    <string name="exception__action_close">Chiudi</string>
+    <string name="exception__details_show">Mostra dettagli tecnici</string>
+    <string name="exception__details_hide">Nascondi dettagli tecnici</string>
+    <string name="exception__details_copy">Copia dettagli</string>
+    <string name="exception__fallback_message">Si è verificato un errore imprevisto.</string>
+    <string name="exception__generic_error">Errore</string>
+    <string name="nav__library">Libreria</string>
+    <string name="nav__calendar">Calendario</string>
+    <string name="nav__profile">Profilo</string>
+
+    <!-- Home sections -->
+    <string name="home__popular_games">Giochi popolari</string>
+    <string name="home__most_loved_games">I più amati</string>
+    <string name="home__recently_released_games">Rilasciati di recente</string>
+    <string name="home__upcoming_games">In arrivo</string>
+    <string name="home__see_all">Vedi tutti</string>
+
+    <!-- Game details -->
+    <string name="game__release_dates_title">Date di rilascio per piattaforma</string>
+    <string name="game__ratings_igdb_user">Utenti IGDB</string>
+    <string name="game__ratings_igdb_critics">Critica IGDB</string>
+    <string name="game__genres_title">Generi</string>
+    <string name="game__themes_title">Temi</string>
+    <string name="game__details_release_date">Data di rilascio</string>
+    <string name="game__details_developers">Sviluppatori</string>
+    <string name="game__details_publishers">Editori</string>
+
+    <!-- Regions -->
+    <string name="region__europe">Europa</string>
+    <string name="region__north_america">Nord America</string>
+    <string name="region__australia">Australia</string>
+    <string name="region__new_zealand">Nuova Zelanda</string>
+    <string name="region__japan">Giappone</string>
+    <string name="region__china">Cina</string>
+    <string name="region__asia">Asia</string>
+    <string name="region__worldwide">Tutto il mondo</string>
+    <string name="region__korea">Corea</string>
+    <string name="region__brazil">Brasile</string>
+    <string name="region__unknown">Sconosciuta</string>
+
+    <!-- Genres -->
+    <string name="genre__point_and_click">Punta e clicca</string>
+    <string name="genre__fighting">Picchiaduro</string>
+    <string name="genre__shooter">Sparatutto</string>
+    <string name="genre__music">Musica</string>
+    <string name="genre__platform">Platform</string>
+    <string name="genre__puzzle">Rompicapo</string>
+    <string name="genre__racing">Corse</string>
+    <string name="genre__rts">Strategia in tempo reale (RTS)</string>
+    <string name="genre__rpg">Gioco di ruolo (RPG)</string>
+    <string name="genre__simulation">Simulazione</string>
+    <string name="genre__sport">Sport</string>
+    <string name="genre__strategy">Strategia</string>
+    <string name="genre__tbs">Strategia a turni (TBS)</string>
+    <string name="genre__tactical">Tattico</string>
+    <string name="genre__hack_and_slash">Hack and slash/Picchiaduro a scorrimento</string>
+    <string name="genre__quiz">Quiz/Curiosità</string>
+    <string name="genre__pinball">Flipper</string>
+    <string name="genre__adventure">Avventura</string>
+    <string name="genre__indie">Indie</string>
+    <string name="genre__arcade">Arcade</string>
+    <string name="genre__visual_novel">Visual Novel</string>
+    <string name="genre__card_board">Carte e giochi da tavolo</string>
+    <string name="genre__moba">MOBA</string>
+    <string name="genre__unknown">Sconosciuto</string>
+
+    <!-- Themes -->
+    <string name="theme__action">Azione</string>
+    <string name="theme__fantasy">Fantasy</string>
+    <string name="theme__science_fiction">Fantascienza</string>
+    <string name="theme__horror">Horror</string>
+    <string name="theme__thriller">Thriller</string>
+    <string name="theme__survival">Survival</string>
+    <string name="theme__historical">Storico</string>
+    <string name="theme__stealth">Stealth</string>
+    <string name="theme__comedy">Commedia</string>
+    <string name="theme__business">Business</string>
+    <string name="theme__drama">Dramma</string>
+    <string name="theme__non_fiction">Non-fiction</string>
+    <string name="theme__sandbox">Sandbox</string>
+    <string name="theme__educational">Educativo</string>
+    <string name="theme__kids">Bambini</string>
+    <string name="theme__open_world">Open world</string>
+    <string name="theme__warfare">Guerra</string>
+    <string name="theme__party">Party</string>
+    <string name="theme__4x">4X</string>
+    <string name="theme__erotic">Erotico</string>
+    <string name="theme__mystery">Mistero</string>
+    <string name="theme__romance">Romance</string>
+    <string name="theme__unknown">Sconosciuto</string>
+
+    <!-- Library -->
+    <string name="library__section_all">Tutti</string>
+    <string name="library__section_playing">In gioco</string>
+    <string name="library__section_completed">Completati</string>
+    <string name="library__section_paused">In pausa</string>
+    <string name="library__section_abandoned">Abbandonati</string>
+    <string name="library__section_backlog">Backlog</string>
+
+    <string name="library__empty_all">La tua libreria è vuota. Aggiungi dei giochi per iniziare!</string>
+    <string name="library__empty_playing">Nessun gioco in corso.</string>
+    <string name="library__empty_completed">Ancora nessun gioco completato.</string>
+    <string name="library__empty_paused">Nessun gioco in pausa.</string>
+    <string name="library__empty_abandoned">Nessun gioco abbandonato.</string>
+    <string name="library__empty_backlog">Il tuo backlog è vuoto.</string>
+
+    <string name="library__add_to_library">Aggiungi %1$s alla libreria</string>
+    <string name="library__edit_entry">Modifica %1$s</string>
+    <string name="library__add_to_backlog">Aggiungi al Backlog</string>
+    <string name="library__remove_from_backlog">Rimuovi dal Backlog</string>
+    <string name="library__add_to_playing">Aggiungi a \"In gioco\"</string>
+    <string name="library__remove_from_playing">Rimuovi da \"In gioco\"</string>
+    <string name="library__edit_in_library">Modifica voce libreria</string>
+    <string name="library__section">Sezione</string>
+    <string name="library__completion_status">Stato di completamento</string>
+    <string name="library__completion_main_story">Storia principale</string>
+    <string name="library__completion_main_plus_sides">Storia + Secondarie</string>
+    <string name="library__completion_100">100%</string>
+    <string name="library__owned">Posseduto</string>
+    <string name="library__edition">Edizione</string>
+    <string name="library__select_edition">Seleziona edizione</string>
+    <string name="library__no_edition">Nessuna edizione specifica</string>
+    <string name="library__platforms">Piattaforme</string>
+    <string name="library__dates">Date</string>
+    <string name="library__start_date">Data d\'inizio</string>
+    <string name="library__end_date">Data di fine</string>
+    <string name="library__played_time">Tempo di gioco</string>
+    <string name="library__hours">ore</string>
+    <string name="library__hours_played">%1$d ore</string>
+    <string name="library__rating">Voto: %1$d/10</string>
+    <string name="library__review">Recensione</string>
+    <string name="library__cancel">Annulla</string>
+    <string name="library__save">Salva</string>
+    <string name="library__delete">Elimina</string>
+    <string name="library__disabled_fields_message">Alcuni campi sono disabilitati a causa dello stato %1$s.</string>
+
+    <!-- Authentication -->
+    <string name="auth__login_required_title">Accesso richiesto</string>
+    <string name="auth__login_required_message">Devi effettuare l\'accesso per accedere a questa sezione.</string>
+    <string name="auth__login">Accedi</string>
+    <string name="auth__logging_in">Apertura pagina di accesso…</string>
+    <string name="auth__login_success">Accesso effettuato con successo</string>
+    <string name="auth__login_failed">Accesso fallito</string>
+    <string name="auth__cancel">Annulla</string>
+    <string name="auth__continue">Continua</string>
+    <string name="auth__logout">Esci</string>
+
+    <!-- Game Card -->
+    <string name="game_card__hours_played">%1$d ore</string>
+
+    <!-- Settings -->
+    <string name="nav__settings">Impostazioni</string>
+    <string name="settings__linked_services">Servizi collegati</string>
+    <string name="settings__appearance">Aspetto</string>
+    <string name="settings__linked_services_disclaimer">I collegamenti e le credenziali sono salvati localmente e non vengono mai trasmessi altrove.</string>
+    <string name="settings__theme">Tema</string>
+    <string name="settings__language">Lingua</string>
+    <string name="settings__dynamic_colors">Usa i colori del dispositivo</string>
+    <string name="settings__theme_light">Chiaro</string>
+    <string name="settings__theme_dark">Scuro</string>
+    <string name="settings__theme_system">Sistema</string>
+    <string name="settings__service_steam">Steam</string>
+    <string name="settings__service_playstation">Playstation</string>
+    <string name="settings__service_xbox">Xbox</string>
+    <string name="settings__service_gog">GOG</string>
+    <string name="settings__service_epic">Epic Games</string>
+</resources>
