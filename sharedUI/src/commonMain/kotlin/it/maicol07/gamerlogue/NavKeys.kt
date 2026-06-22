@@ -11,6 +11,7 @@ import gamerlogue.sharedui.generated.resources.nav__settings
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__appearance
 import gamerlogue.sharedui.generated.resources.settings__linked_services
+import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -72,7 +73,11 @@ object NavKeys {
     }
 
     @Serializable
-    data class GameList(val title: String) : NavKey
+    data class GameList(val section: DiscoverSection) : NavKeyWithMeta() {
+        // Custom getters (no backing field) so only `section` is serialized.
+        override val title: StringResource? get() = section.sectionTitle
+        override val showBottomBar: Boolean get() = false
+    }
 
     val savedStateConfiguration = SavedStateConfiguration {
         serializersModule = SerializersModule {

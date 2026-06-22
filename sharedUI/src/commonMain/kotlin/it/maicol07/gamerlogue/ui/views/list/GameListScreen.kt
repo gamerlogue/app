@@ -1,120 +1,67 @@
 package it.maicol07.gamerlogue.ui.views.list
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
-import org.koin.compose.viewmodel.koinViewModel
-import androidx.navigation3.runtime.NavKey
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
+import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-enum class GameListType { Popular, Upcoming }
-
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GameListScreen(
-    type: GameListType,
-    navigateTo: (NavKey) -> Unit = {}
+    section: DiscoverSection,
+    onGameClick: (Game) -> Unit = {},
+    viewModel: GameListViewModel = koinViewModel(parameters = { parametersOf(section) })
 ) {
-    val viewModel: GameListViewModel = koinViewModel(parameters = { parametersOf(type) })
+    val uiState by viewModel.uiState.collectAsState()
 
-    val listState = rememberLazyListState()
-    LaunchedEffect(listState.firstVisibleItemIndex, viewModel.games.size) {
-        val lastVisible = listState.firstVisibleItemIndex + listState.layoutInfo.visibleItemsInfo.size
+    val gridState = rememberLazyGridState()
+    LaunchedEffect(gridState.firstVisibleItemIndex, uiState.games.size) {
+        val lastVisible = gridState.firstVisibleItemIndex + gridState.layoutInfo.visibleItemsInfo.size
         viewModel.onEndReached(lastVisible)
     }
 
-    LazyColumn(
-        state = listState,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            FiltersRow(type, viewModel)
-        }
-        item {
-            GameGrid(viewModel.games)
-        }
-        if (viewModel.isLoading.value) {
-            item { Text("Caricamento...", style = MaterialTheme.typography.bodySmall) }
-        }
-        if (viewModel.endReached.value && viewModel.games.isEmpty()) {
-            item { Text("Nessun risultato", style = MaterialTheme.typography.bodySmall) }
-        }
-    }
-}
-
-@Composable
-private fun FiltersRow(type: GameListType, vm: GameListViewModel) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        AssistChip(
-            onClick = { vm.setSort(GameListViewModel.GameSort.RatingDesc) },
-            label = { Text("Rating") },
-            colors = AssistChipDefaults.assistChipColors(
-                labelColor = if (vm.sort.value == GameListViewModel.GameSort.RatingDesc) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-        )
-        AssistChip(
-            onClick = { vm.setSort(GameListViewModel.GameSort.ReleaseDateAsc) },
-            label = { Text("Data") },
-            colors = AssistChipDefaults.assistChipColors(
-                labelColor = if (vm.sort.value == GameListViewModel.GameSort.ReleaseDateAsc) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-        )
-        AssistChip(
-            onClick = { vm.setSort(GameListViewModel.GameSort.NameAsc) },
-            label = { Text("Nome") },
-            colors = AssistChipDefaults.assistChipColors(
-                labelColor = if (vm.sort.value == GameListViewModel.GameSort.NameAsc) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-        )
-
-        if (type == GameListType.Upcoming) {
-            val selected = vm.timeframeDays.value
-            AssistChip(
-                onClick = { vm.setTimeframe(null) },
-                label = { Text("Tutti") },
-                colors = AssistChipDefaults.assistChipColors(
-                    labelColor = if (selected == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                )
-            )
-            listOf(7, 30, 90).forEach { days ->
-                AssistChip(
-                    onClick = { vm.setTimeframe(days) },
-                    label = { Text("<= ${days}g") },
-                    colors = AssistChipDefaults.assistChipColors(
-                        labelColor = if (selected == days) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun GameGrid(games: List<Game>) {
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Adaptive(150.dp),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(games) { game ->
-            game.CoverImage(Modifier)
+        items(uiState.games) { game ->
+            game.CoverImage(Modifier.clickable { onGameClick(game) })
+        }
+        if (uiState.loading) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
+            }
         }
     }
 }

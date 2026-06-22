@@ -1,71 +1,54 @@
 package it.maicol07.gamerlogue.ui.views.list
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.IgdbEndpoint
-import at.released.igdbclient.apicalypse.SortOrder
+import at.released.igdbclient.apicalypse.ApicalypseQueryBuilder
+import at.released.igdbclient.dsl.field.field
+import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
+import at.released.igdbclient.model.PopularityPrimitive
+import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
+import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
+import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import kotlinx.coroutines.launch
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import kotlin.getValue
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
+/**
+ * Paginates the full list of games for a [DiscoverSection], reusing the same query that powers
+ * the Discover carousel. Sections backed by a popularity-score query paginate through the
+ * primitive endpoint; the others paginate the games endpoint directly.
+ */
 class GameListViewModel(
-    private val type: GameListType,
-) : ViewModel(), KoinComponent {
-    companion object {
-        private const val YEAR_SECONDS = 31_556_926
-        private const val LIMIT = 50
-        private const val MILLIS_IN_SECOND = 1000
-        private const val PREFETCH_THRESHOLD = 6
-        private const val SECONDS_IN_DAY = 86_400
-    }
-    private val igdb: IgdbClient by inject()
-
-    enum class GameSort { RatingDesc, ReleaseDateAsc, NameAsc }
-
-    // Stato pubblico
-    val games = mutableStateListOf<Game>()
-    val isLoading = mutableStateOf(false)
-    val endReached = mutableStateOf(false)
-    val sort = mutableStateOf(
-        when (type) {
-            GameListType.Popular -> GameSort.RatingDesc
-            GameListType.Upcoming -> GameSort.ReleaseDateAsc
-        }
+    private val section: DiscoverSection,
+) : StateViewModel<GameListViewModel.UiState>(UiState()) {
+    /** Immutable state of the paginated GameList screen. */
+    data class UiState(
+        val games: List<Game> = emptyList(),
+        val loading: Boolean = false,
+        val endReached: Boolean = false,
     )
 
-    // Per Upcoming: null = tutti i futuri, oppure finestre comode
-    val timeframeDays = mutableStateOf<Int?>(null)
-
-    // Stato interno
-    private var offset = 0
-
-    init { load(reset = true) }
-
-    fun setSort(newSort: GameSort) {
-        if (sort.value == newSort) return
-        sort.value = newSort
-        load(reset = true)
+    private companion object {
+        const val PageSize = 50
+        const val PrefetchThreshold = 6
     }
 
-    fun setTimeframe(days: Int?) {
-        if (timeframeDays.value == days) return
-        timeframeDays.value = days
+    private val igdb: IgdbClient by inject()
+
+    private var offset = 0
+
+    init {
         load(reset = true)
     }
 
     fun onEndReached(lastVisibleIndex: Int) {
-        if (isLoading.value || endReached.value) return
-        if (lastVisibleIndex >= games.lastIndex - PREFETCH_THRESHOLD) {
+        if (state.loading || state.endReached) return
+        if (lastVisibleIndex >= state.games.lastIndex - PrefetchThreshold) {
             load(reset = false)
         }
     }
@@ -73,77 +56,63 @@ class GameListViewModel(
     private fun load(reset: Boolean) = viewModelScope.launch {
         if (reset) {
             offset = 0
-            endReached.value = false
-            games.clear()
+            update { copy(games = emptyList(), endReached = false) }
         }
-        if (endReached.value) return@launch
+        if (state.endReached) return@launch
 
-        isLoading.value = true
-        val result = safeRequest {
-            when (type) {
-                GameListType.Popular -> queryPopular(offset, LIMIT, sort.value)
-                GameListType.Upcoming -> queryUpcoming(offset, LIMIT, sort.value, timeframeDays.value)
-            }
-        }
-        if (result.isOk) {
-            val response = result.unwrap()
-
-            @Suppress("UNCHECKED_CAST")
-            val list = response.firstOrNull()?.results as? List<Game>
-            val added = list.orEmpty()
-            games.addAll(added)
-            if (added.size < LIMIT) endReached.value = true else offset += LIMIT
-        }
-        isLoading.value = false
-    }
-
-    @OptIn(ExperimentalTime::class)
-    @Suppress("NewApi")
-    private fun nowSeconds(): Long = Clock.System.now().toEpochMilliseconds() / MILLIS_IN_SECOND
-
-    private suspend fun queryPopular(
-        offset: Int,
-        limit: Int,
-        sort: GameSort
-    ) = igdb.multiquery {
-        val now = nowSeconds()
-        query(IgdbEndpoint.GAME, "Popular list") {
-            fields("name", "cover.image_id", "first_release_date")
-            // finestra: ultimo anno
-            where(
-                "parent_game = null & follows > 5 & first_release_date < " + now +
-                    " & first_release_date > " + (now - YEAR_SECONDS)
+        update { copy(loading = true) }
+        val added = fetchPage(offset)
+        update {
+            copy(
+                games = games + added,
+                loading = false,
+                endReached = added.size < PageSize,
             )
-            when (sort) {
-                GameSort.RatingDesc -> sort("rating", SortOrder.DESC)
-                GameSort.ReleaseDateAsc -> sort("first_release_date", SortOrder.ASC)
-                GameSort.NameAsc -> sort("name", SortOrder.ASC)
-            }
-            limit(limit)
-            offset(offset)
         }
+        if (added.size >= PageSize) offset += PageSize
     }
 
-    private suspend fun queryUpcoming(
-        offset: Int,
-        limit: Int,
-        sort: GameSort,
-        timeframeDays: Int?
-    ) = igdb.multiquery {
-        val now = nowSeconds()
-        val upperBound = timeframeDays?.let { now + it * SECONDS_IN_DAY }
-        query(IgdbEndpoint.GAME, "Upcoming list") {
-            fields("name", "cover.image_id", "first_release_date")
-            val whereBase = StringBuilder("parent_game = null & first_release_date > ").append(now)
-            if (upperBound != null) whereBase.append(" & first_release_date < ").append(upperBound)
-            where(whereBase.toString())
-            when (sort) {
-                GameSort.RatingDesc -> sort("rating", SortOrder.DESC)
-                GameSort.ReleaseDateAsc -> sort("first_release_date", SortOrder.ASC)
-                GameSort.NameAsc -> sort("name", SortOrder.ASC)
-            }
-            limit(limit)
-            offset(offset)
+    private suspend fun fetchPage(offset: Int): List<Game> {
+        val popscoreQuery = section.popscoreQuery
+        val gameIds = if (popscoreQuery != null) {
+            fetchPopScoreGameIds(popscoreQuery, offset).ifEmpty { return emptyList() }
+        } else {
+            null
         }
+
+        val result = safeRequest {
+            igdb.getGames {
+                fields(Game.field.name, Game.field.cover.image_id, Game.field.first_release_date)
+                if (gameIds != null) {
+                    where { Game.field.id inAny gameIds.map(Int::toString) }
+                } else {
+                    section.baseQuery(this)
+                    offset(offset)
+                }
+                limit(PageSize)
+            }
+        }
+        return if (result.isOk) result.unwrap().games else emptyList()
+    }
+
+    private suspend fun fetchPopScoreGameIds(
+        popscoreQuery: ApicalypseQueryBuilder.() -> Unit,
+        offset: Int,
+    ): List<Int> {
+        val result = safeRequest {
+            igdb.multiquery {
+                query(IgdbEndpoint.POPULARITY_PRIMITIVE, section.name) {
+                    fields(PopularityPrimitive.field.game_id)
+                    popscoreQuery(this)
+                    limit(PageSize)
+                    offset(offset)
+                }
+            }
+        }
+        if (result.isErr) return emptyList()
+
+        @Suppress("UNCHECKED_CAST")
+        val responseList = result.unwrap() as? List<UnpackedMultiQueryResult<PopularityPrimitive>>
+        return responseList?.firstOrNull()?.results?.map { it.game_id } ?: emptyList()
     }
 }
