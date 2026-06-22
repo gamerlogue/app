@@ -1,11 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.library
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateMap
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.dsl.field.field
@@ -14,102 +8,75 @@ import at.released.igdbclient.model.Game
 import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.unwrap
 import com.github.michaelbull.result.unwrapError
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.extensions.currentUserEntries
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.launch
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-class LibraryViewModel : ViewModel(), KoinComponent {
-    val igdb by inject<IgdbClient>()
-    val authTokenProvider by inject<AuthTokenProvider>()
-
-    var libraryLoading by mutableStateOf(false)
-    var selectedSection by mutableStateOf<GameLibraryStatus?>(null)
-        private set
-
-    var libraryGames = mapOf<GameLibraryStatus, SnapshotStateMap<Game, LibraryEntry>>(
-        GameLibraryStatus.PLAYING to mutableStateMapOf(),
-        GameLibraryStatus.COMPLETED to mutableStateMapOf(),
-        GameLibraryStatus.PAUSED to mutableStateMapOf(),
-        GameLibraryStatus.ABANDONED to mutableStateMapOf(),
-        GameLibraryStatus.BACKLOG to mutableStateMapOf()
+class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
+    /** Immutable state of the Library screen. */
+    data class UiState(
+        val loading: Boolean = false,
+        val selectedSection: GameLibraryStatus? = null,
+        val games: Map<GameLibraryStatus, Map<Game, LibraryEntry>> =
+            GameLibraryStatus.entries.associateWith { emptyMap() },
     )
 
-    fun loadLibraryEntries(section: GameLibraryStatus? = null) = viewModelScope.launch {
-        libraryLoading = true
+    private val igdb by inject<IgdbClient>()
 
-        if (section != null) {
-            libraryGames[section]?.clear()
-        } else {
-            for (sec in GameLibraryStatus.entries) {
-                libraryGames[sec]?.clear()
-            }
-        }
+    fun loadLibraryEntries(section: GameLibraryStatus? = state.selectedSection) = viewModelScope.launch {
+        update { copy(loading = true) }
 
-        val result = safeRequest {
-            LibraryEntry
-                .scope {
-                    if (section != null) {
-                        where("status", section.name)
-                    }
-                    where("current_user", "true")
-                }
-                .all()
-                .data
-        }
+        val result = safeRequest { LibraryEntry.currentUserEntries(section).all().data }
+        val entries = if (result.isOk) result.unwrap() else emptyList()
 
-        if (result.isOk && result.unwrap().isNotEmpty()) {
-            val entries = result.unwrap()
-            val allGameIds = entries.map { it.gameId }.toSet()
-            val allGamesResult = safeRequest {
-                igdb.getGames {
-                    fields(Game.field.name, Game.field.cover.image_id)
-                    where {
-                        "id" inAny allGameIds.map { it.toString() }
-                    }
-                }
-            }
+        val grouped = groupEntriesByStatus(entries)
 
-            if (allGamesResult.isOk) {
-                val allGames = allGamesResult.unwrap().games.associateBy { it.id }
-                for (entry in entries) {
-                    val game = allGames[entry.gameId.toLong()] ?: continue
-                    libraryGames[entry.status]?.put(game, entry)
-                }
+        update {
+            val merged = if (section == null) {
+                GameLibraryStatus.entries.associateWith { grouped[it] ?: emptyMap() }
             } else {
-                Logger.e(result.unwrapError()) { "Error loading games for library" }
+                games + (section to (grouped[section] ?: emptyMap()))
+            }
+            copy(games = merged, loading = false)
+        }
+    }
+
+    private suspend fun groupEntriesByStatus(
+        entries: List<LibraryEntry>
+    ): Map<GameLibraryStatus, Map<Game, LibraryEntry>> {
+        if (entries.isEmpty()) return emptyMap()
+
+        val allGameIds = entries.map { it.gameId }.toSet()
+        val gamesResult = safeRequest {
+            igdb.getGames {
+                fields(Game.field.name, Game.field.cover.image_id)
+                where {
+                    "id" inAny allGameIds.map { it.toString() }
+                }
             }
         }
 
-        libraryLoading = false
+        if (gamesResult.isErr) {
+            Logger.e(gamesResult.unwrapError()) { "Error loading games for library" }
+            return emptyMap()
+        }
+
+        val gamesById = gamesResult.unwrap().games.associateBy { it.id }
+        return entries
+            .mapNotNull { entry ->
+                val game = gamesById[entry.gameId.toLong()] ?: return@mapNotNull null
+                Triple(entry.status, game, entry)
+            }
+            .groupBy({ it.first }) { it.second to it.third }
+            .mapValues { (_, pairs) -> pairs.toMap() }
     }
 
     fun selectSection(section: GameLibraryStatus?) {
-        selectedSection = section
+        update { copy(selectedSection = section) }
         loadLibraryEntries(section)
     }
-
-    suspend fun quickToggleGameLibraryEntry(game: Game, status: GameLibraryStatus, existingEntry: LibraryEntry? = null) {
-        val entry = existingEntry ?: LibraryEntry()
-        entry.gameId = game.id.toInt()
-        entry.owned = false
-        entry.user = authTokenProvider.currentUser
-        entry.status = status
-        updateLibraryEntry(entry)
-    }
-
-    suspend fun updateLibraryEntry(entry: LibraryEntry) = safeRequest { entry.save() }
-    suspend fun removeLibraryEntry(entry: LibraryEntry) = safeRequest { entry.destroy() }
-
-    suspend fun getLibraryEntryForGame(gameId: Number) = safeRequest {
-        LibraryEntry
-            .where("game_id", gameId)
-            .extraParam("current_user", "true")
-            .firstOrNull()
-            .data
-    }
 }
-

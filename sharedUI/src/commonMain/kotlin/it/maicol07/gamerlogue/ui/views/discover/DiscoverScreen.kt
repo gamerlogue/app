@@ -28,7 +28,7 @@ import androidx.compose.material3.carousel.CarouselItemScope
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,25 +52,25 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun DiscoverScreen(viewModel: HomeViewModel = koinViewModel()) {
+fun DiscoverScreen(
+    viewModel: DiscoverViewModel = koinViewModel(),
+    onGameClick: (Game) -> Unit,
+    onSeeAllClick: (DiscoverSection) -> Unit = {},
+) {
+    val uiState by viewModel.uiState.collectAsState()
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(16.dp)
     ) {
-        for (section in HomeViewModel.HomeSectionType.entries) {
-            val games by derivedStateOf { viewModel.games[section] ?: emptyList() }
+        for (section in DiscoverSection.entries) {
+            val sectionState = uiState.sections[section] ?: DiscoverViewModel.SectionUiState()
             discoverSection(
                 title = section.sectionTitle,
                 icon = section.icon,
-                list = games,
-                loading = viewModel.loading[section] == true,
-                navigateTo = {
-                    if (it is Game) {
-                        viewModel.navigateToGame(it)
-                        return@discoverSection
-                    }
-                    viewModel.navigateToList(section)
-                }
+                list = sectionState.games,
+                loading = sectionState.loading,
+                onGameClick = onGameClick,
+                onSeeAllClick = { onSeeAllClick(section) }
             )
         }
     }
@@ -82,15 +82,14 @@ private fun LazyListScope.discoverSection(
     icon: ImageVector,
     list: List<Game>,
     loading: Boolean,
-    navigateTo: (Game?) -> Unit
+    onGameClick: (Game) -> Unit,
+    onSeeAllClick: () -> Unit
 ) {
     item {
-        HomeSectionHeader(
+        SectionHeader(
             title = title,
             icon = icon,
-            onSeeAllClick = {
-                navigateTo(null)
-            }
+            onSeeAllClick = onSeeAllClick
         )
 
         if (loading) {
@@ -127,7 +126,7 @@ private fun LazyListScope.discoverSection(
                 DiscoverSectionCarouselItem(
                     game = game,
                     showTitle = showTitle,
-                    onItemClick = navigateTo
+                    onItemClick = onGameClick
                 )
             }
         }
@@ -136,7 +135,7 @@ private fun LazyListScope.discoverSection(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun HomeSectionHeader(
+private fun SectionHeader(
     title: StringResource,
     icon: ImageVector,
     onSeeAllClick: () -> Unit

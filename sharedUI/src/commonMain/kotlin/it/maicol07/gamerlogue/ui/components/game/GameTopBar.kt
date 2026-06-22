@@ -25,7 +25,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.And
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.ui.components.layout.LocalAppUiState
-import it.maicol07.gamerlogue.ui.views.game.GameDetailViewModel
 import org.koin.compose.koinInject
 
 var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>> {
@@ -35,7 +34,7 @@ var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>>
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GameTopBar(
-    viewModel: GameDetailViewModel,
+    gameName: String?,
     modifier: Modifier = Modifier,
     backStack: NavBackStack = koinInject()
 ) {
@@ -54,7 +53,7 @@ fun GameTopBar(
         title = {
             AnimatedVisibility(!isOverlayMode) {
                 Text(
-                    text = viewModel.game?.name ?: "",
+                    text = gameName ?: "",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

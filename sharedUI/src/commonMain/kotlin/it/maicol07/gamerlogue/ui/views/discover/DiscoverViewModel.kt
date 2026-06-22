@@ -1,137 +1,61 @@
 package it.maicol07.gamerlogue.ui.views.discover
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.IgdbEndpoint
-import at.released.igdbclient.apicalypse.ApicalypseQueryBuilder
-import at.released.igdbclient.apicalypse.SortOrder
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.PopularityPrimitive
 import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
-import gamerlogue.sharedui.generated.resources.Res
-import gamerlogue.sharedui.generated.resources.home__most_loved_games
-import gamerlogue.sharedui.generated.resources.home__popular_games
-import gamerlogue.sharedui.generated.resources.home__recently_released_games
-import gamerlogue.sharedui.generated.resources.home__upcoming_games
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LocalFireDepartmentW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonHeartW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarShineW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.UpcomingW500Rounded
-import it.maicol07.gamerlogue.NavBackStack
-import it.maicol07.gamerlogue.NavKeys
-import it.maicol07.gamerlogue.extensions.alreadyReleased
-import it.maicol07.gamerlogue.extensions.notYetReleased
-import it.maicol07.gamerlogue.extensions.sort
+import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.StringResource
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.time.ExperimentalTime
 
-const val HomeSectionGameLimit = 50
+const val SectionGameLimit = 50
 
 @OptIn(ExperimentalTime::class)
-class HomeViewModel : ViewModel(), KoinComponent {
-    enum class HomeSectionType(
-        val sectionTitle: StringResource,
-        val icon: ImageVector,
-        val baseQuery: ApicalypseQueryBuilder.() -> Unit,
-        val popscoreQuery: (ApicalypseQueryBuilder.() -> Unit)? = null
-    ) {
-        POPULAR(
-            Res.string.home__popular_games,
-            Icons.LocalFireDepartmentW500Rounded,
-            { },
-            {
-                sort(PopularityPrimitive.field.value, SortOrder.DESC)
-                where {
-                    PopularityPrimitive.field.popularity_type equalTo "1"
-                }
-            }
-        ),
-        MOST_LOVED(
-            Res.string.home__most_loved_games,
-            Icons.PersonHeartW500Rounded,
-            {
-                sort(Game.field.rating, SortOrder.DESC)
-            }
-        ),
-        RECENTLY_RELEASED(
-            Res.string.home__recently_released_games,
-            Icons.StarShineW500Rounded,
-            {
-                sort(Game.field.first_release_date, SortOrder.DESC)
-                where {
-                    Game.field.parent_game.isNull()
-                    alreadyReleased()
-                }
-            }
-        ),
-        UPCOMING(
-            Res.string.home__upcoming_games,
-            Icons.UpcomingW500Rounded,
-            {
-                sort(Game.field.first_release_date, SortOrder.ASC)
-                where {
-                    notYetReleased()
-                }
-            }
-        ),
-    }
-
-    val igdb by inject<IgdbClient>()
-
-    val games = mapOf<HomeSectionType, SnapshotStateList<Game>>(
-        HomeSectionType.MOST_LOVED to mutableStateListOf(),
-        HomeSectionType.UPCOMING to mutableStateListOf(),
-        HomeSectionType.POPULAR to mutableStateListOf(),
-        HomeSectionType.RECENTLY_RELEASED to mutableStateListOf()
+class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
+    /** Immutable state of the Discover screen, one entry per [DiscoverSection]. */
+    data class UiState(
+        val sections: Map<DiscoverSection, SectionUiState> =
+            DiscoverSection.entries.associateWith { SectionUiState() },
     )
-    val loading = mutableStateMapOf<HomeSectionType, Boolean>(
-        HomeSectionType.MOST_LOVED to false,
-        HomeSectionType.UPCOMING to false,
-        HomeSectionType.POPULAR to false,
-        HomeSectionType.RECENTLY_RELEASED to false
+
+    /** State of a single Discover section. */
+    data class SectionUiState(
+        val games: List<Game> = emptyList(),
+        val loading: Boolean = false,
     )
-//    var posts = mutableStateListOf<LibraryEntry>()
 
-//    var user by mutableStateOf<User?>(null)
-
-    val navBackStack by inject<NavBackStack>()
+    private val igdb by inject<IgdbClient>()
 
     init {
         loadGames()
     }
 
     fun loadGames() = viewModelScope.launch {
-        for (section in HomeSectionType.entries) loading[section] = true
+        setAllLoading(true)
 
         val popScores = loadPopScores()
 
         val result = safeRequest {
             igdb.multiquery {
-                for (sectionType in HomeSectionType.entries) {
-                    query(IgdbEndpoint.GAME, sectionType.name) {
+                for (section in DiscoverSection.entries) {
+                    query(IgdbEndpoint.GAME, section.name) {
                         fields(Game.field.name, Game.field.cover.image_id)
-                        if (popScores.containsKey(sectionType)) {
-                            val ids = popScores[sectionType] ?: emptyList()
+                        if (popScores.containsKey(section)) {
+                            val ids = popScores[section] ?: emptyList()
                             where {
                                 Game.field.id inAny ids.map(Int::toString)
                             }
                         }
-                        sectionType.baseQuery(this)
-                        limit(HomeSectionGameLimit)
+                        section.baseQuery(this)
+                        limit(SectionGameLimit)
                     }
                 }
             }
@@ -140,44 +64,40 @@ class HomeViewModel : ViewModel(), KoinComponent {
         if (result.isOk) {
             @Suppress("UNCHECKED_CAST")
             val responseList = result.unwrap() as? List<UnpackedMultiQueryResult<Game>>
-//            Log.d("IGDB", "Response: $responseList")
             for (response in (responseList ?: emptyList())) {
-                response.results?.let {
-                    val section = HomeSectionType.valueOf(response.name)
-                    games[section]?.clear()
-                    games[section]?.addAll(it)
-                    loading[section] = false
+                response.results?.let { games ->
+                    val section = DiscoverSection.valueOf(response.name)
+                    updateSection(section) { it.copy(games = games, loading = false) }
                 }
             }
         } else {
-            for (section in HomeSectionType.entries) loading[section] = false
+            setAllLoading(false)
         }
     }
 
-    suspend fun loadPopScores(): Map<HomeSectionType, List<Int>> {
-        val sectionsWithPopscore = HomeSectionType.entries.filter { it.popscoreQuery != null }
+    suspend fun loadPopScores(): Map<DiscoverSection, List<Int>> {
+        val sectionsWithPopscore = DiscoverSection.entries.filter { it.popscoreQuery != null }
 
         val popScoreResults = safeRequest {
             igdb.multiquery {
-                for (sectionType in sectionsWithPopscore) {
-                    query(IgdbEndpoint.POPULARITY_PRIMITIVE, sectionType.name) {
+                for (section in sectionsWithPopscore) {
+                    query(IgdbEndpoint.POPULARITY_PRIMITIVE, section.name) {
                         fields(PopularityPrimitive.field.game_id)
-                        sectionType.popscoreQuery?.invoke(this)
-                        limit(HomeSectionGameLimit)
+                        section.popscoreQuery?.invoke(this)
+                        limit(SectionGameLimit)
                     }
                 }
             }
         }
 
-        val popScores = mutableMapOf<HomeSectionType, List<Int>>()
+        val popScores = mutableMapOf<DiscoverSection, List<Int>>()
 
         if (popScoreResults.isOk) {
             @Suppress("UNCHECKED_CAST")
             val responseList = popScoreResults.unwrap() as? List<UnpackedMultiQueryResult<PopularityPrimitive>>
-//            Log.d("IGDB", "Popscore Response: $responseList")
             for (response in (responseList ?: emptyList())) {
                 response.results?.let {
-                    val section = HomeSectionType.valueOf(response.name)
+                    val section = DiscoverSection.valueOf(response.name)
                     val ids = it.map { primitive -> primitive.game_id }
                     popScores[section] = ids
                 }
@@ -187,28 +107,11 @@ class HomeViewModel : ViewModel(), KoinComponent {
         return popScores
     }
 
-    fun navigateToList(sectionType: HomeSectionType) {
-//        navBackStack.add(NavKeys.GameList(sectionType.name))
+    private fun setAllLoading(loading: Boolean) = update {
+        copy(sections = sections.mapValues { it.value.copy(loading = loading) })
     }
 
-    fun navigateToGame(game: Game) {
-        navBackStack.add(NavKeys.GameDetail(game.id.toInt()))
+    private fun updateSection(section: DiscoverSection, transform: (SectionUiState) -> SectionUiState) = update {
+        copy(sections = sections + (section to transform(sections[section] ?: SectionUiState())))
     }
-
-//    fun getUser() {
-//        viewModelScope.launch {
-//            user = userRepository.getUserByUid(
-//                Firebase.auth.currentUser?.uid!!
-//            ).first()
-//        }
-//    }
-//
-//    private fun fetchPosts() {
-//        viewModelScope.launch {
-//            libraryRepository.getAll().collectLatest {
-//                posts.clear()
-//                posts.addAll(it)
-//            }
-//        }
-//    }
 }

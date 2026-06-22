@@ -1,37 +1,38 @@
 package it.maicol07.gamerlogue.ui.views.game
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
 import com.github.michaelbull.result.unwrap
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
+import it.maicol07.gamerlogue.extensions.persist
+import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.safeRequest
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import it.maicol07.gamerlogue.ui.views.library.LibraryViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
-class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
+class GameDetailViewModel(val gameId: Int) : StateViewModel<GameDetailViewModel.UiState>(UiState()) {
+    /** Immutable state of the Game detail screen. */
+    data class UiState(
+        val game: Game? = null,
+        val libraryEntry: LibraryEntry? = null,
+        val errorMessage: String? = null,
+        val isLoading: Boolean = true,
+        val isPlayingButtonLoading: Boolean = false,
+        val isBacklogButtonLoading: Boolean = false,
+    )
+
     private val igdb by inject<IgdbClient>()
-    private val libraryViewModel by inject<LibraryViewModel>()
-
-    var game by mutableStateOf<Game?>(null)
-    var libraryEntry by mutableStateOf<LibraryEntry?>(null)
-    var errorMessage by mutableStateOf<String?>(null)
-
-    // Loading states
-    var isLoading by mutableStateOf(true)
-    var isPlayingButtonLoading by mutableStateOf(false)
-    var isBacklogButtonLoading by mutableStateOf(false)
+    private val authTokenProvider by inject<AuthTokenProvider>()
 
     companion object {
         @Composable
@@ -48,7 +49,7 @@ class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
     }
 
     suspend fun loadGameDetails() {
-        isLoading = true
+        update { copy(isLoading = true) }
         val result = safeRequest {
             igdb.getGames {
                 fields(
@@ -77,54 +78,52 @@ class GameDetailViewModel(val gameId: Int) : ViewModel(), KoinComponent {
                 limit(1)
             }
         }
-        if (result.isOk) {
-            val response = result.unwrap()
-            game = response.games.firstOrNull()
-        }
-        isLoading = false
+        val game = if (result.isOk) result.unwrap().games.firstOrNull() else null
+        update { copy(game = game, isLoading = false) }
     }
 
-    fun loadLibraryEntry() = viewModelScope.launch {
-        val result = libraryViewModel.getLibraryEntryForGame(gameId)
-        libraryEntry = if (result.isOk) result.unwrap() else null
+    fun loadLibraryEntry(): Job = viewModelScope.launch {
+        val result = safeRequest { LibraryEntry.currentUserEntryForGame(gameId).firstOrNull().data }
+        update { copy(libraryEntry = if (result.isOk) result.unwrap() else null) }
     }
 
     fun toggleGamePlaying() = viewModelScope.launch {
-        isPlayingButtonLoading = true
-
+        update { copy(isPlayingButtonLoading = true) }
         try {
-            if (libraryEntry?.status == GameLibraryStatus.PLAYING) {
+            if (state.libraryEntry?.status == GameLibraryStatus.PLAYING) {
                 removeGameLibraryEntry()
             } else {
-                libraryViewModel.quickToggleGameLibraryEntry(game!!, GameLibraryStatus.PLAYING, libraryEntry)
-                loadLibraryEntry().join()
+                applyStatus(GameLibraryStatus.PLAYING)
             }
         } catch (e: Exception) {
-            errorMessage = e.message
+            update { copy(errorMessage = e.message) }
         }
-
-        isPlayingButtonLoading = false
+        update { copy(isPlayingButtonLoading = false) }
     }
 
     fun toggleGameBacklog() = viewModelScope.launch {
-        isBacklogButtonLoading = true
+        update { copy(isBacklogButtonLoading = true) }
         try {
-            if (libraryEntry?.status == GameLibraryStatus.BACKLOG) {
+            if (state.libraryEntry?.status == GameLibraryStatus.BACKLOG) {
                 removeGameLibraryEntry()
             } else {
-                libraryViewModel.quickToggleGameLibraryEntry(game!!, GameLibraryStatus.BACKLOG, libraryEntry)
-                loadLibraryEntry().join()
+                applyStatus(GameLibraryStatus.BACKLOG)
             }
         } catch (e: Exception) {
-            errorMessage = e.message
+            update { copy(errorMessage = e.message) }
         }
-        isBacklogButtonLoading = false
+        update { copy(isBacklogButtonLoading = false) }
     }
 
-    suspend fun removeGameLibraryEntry() {
-        if (libraryEntry != null) {
-            libraryViewModel.quickToggleGameLibraryEntry(game!!, GameLibraryStatus.BACKLOG, libraryEntry)
-            loadLibraryEntry().join()
+    private suspend fun removeGameLibraryEntry() {
+        if (state.libraryEntry != null) {
+            applyStatus(GameLibraryStatus.BACKLOG)
         }
+    }
+
+    private suspend fun applyStatus(status: GameLibraryStatus) {
+        val game = state.game ?: return
+        LibraryEntry.quickDraft(game, status, authTokenProvider.currentUser, state.libraryEntry).persist()
+        loadLibraryEntry().join()
     }
 }

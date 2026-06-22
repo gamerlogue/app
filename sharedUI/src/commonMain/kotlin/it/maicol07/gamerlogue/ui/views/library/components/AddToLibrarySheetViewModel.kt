@@ -5,26 +5,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.Platform
+import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.library__error_select_status
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.extensions.persist
+import it.maicol07.gamerlogue.extensions.remove
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import it.maicol07.gamerlogue.ui.views.library.LibraryViewModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
-import org.koin.core.component.KoinComponent
+import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.inject
 
 class AddToLibrarySheetViewModel(
     private val game: Game,
     private val existingEntry: LibraryEntry?
-) : ViewModel(), KoinComponent {
-    val libraryViewModel by inject<LibraryViewModel>()
-    val authTokenProvider by inject<AuthTokenProvider>()
+) : BaseViewModel() {
+    private val authTokenProvider by inject<AuthTokenProvider>()
 
     // States
     var selectedStatus by mutableStateOf(existingEntry?.status)
@@ -46,7 +48,7 @@ class AddToLibrarySheetViewModel(
 
     var saveLoading by mutableStateOf(false)
     var deleteLoading by mutableStateOf(false)
-    var error by mutableStateOf<String?>(null)
+    var error by mutableStateOf<StringResource?>(null)
 
     fun togglePlatformSelection(platform: Platform) {
         if (selectedPlatforms.contains(platform)) {
@@ -60,7 +62,7 @@ class AddToLibrarySheetViewModel(
         deleteLoading = true
         error = null
         if (existingEntry != null) {
-            libraryViewModel.removeLibraryEntry(existingEntry)
+            existingEntry.remove()
             onDelete()
         }
         deleteLoading = false
@@ -71,13 +73,13 @@ class AddToLibrarySheetViewModel(
         error = null
 
         if (selectedStatus == null) {
-            error = "Please select a status."
+            error = Res.string.library__error_select_status
             saveLoading = false
             return@launch
         }
 
         val entry = getEntryToSave()
-        libraryViewModel.updateLibraryEntry(entry)
+        entry.persist()
         onSave(entry)
 
         saveLoading = false
