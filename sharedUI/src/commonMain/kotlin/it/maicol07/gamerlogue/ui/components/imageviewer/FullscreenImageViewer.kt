@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth // aggiunto
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -59,7 +59,10 @@ import com.github.panpf.zoomimage.compose.zoom.zoom
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import it.maicol07.gamerlogue.SystemBarsVisible
-import it.maicol07.gamerlogue.ui.views.game.Ratio169
+import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.common_close
+import it.maicol07.gamerlogue.ui.views.game.components.Ratio169
+import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.launch
 
 /**
@@ -85,8 +88,8 @@ fun FullscreenImageViewer(
     },
     showThumbnails: Boolean = imagesCount > 1,
     bottomBarHeight: Dp = 84.dp,
-    topOverlayHeight: Dp = 88.dp, // altezza area gradient top (statusbar + azioni)
-    bottomOverlayHeight: Dp = 140.dp, // altezza area gradient bottom (thumbnails)
+    topOverlayHeight: Dp = 88.dp, // top gradient area height (status bar + actions)
+    bottomOverlayHeight: Dp = 140.dp, // bottom gradient area height (thumbnails)
     topScrimAlpha: Float = 0.45f, // intensità massima scrim top
     bottomScrimMaxAlpha: Float = 0.5f, // intensità massima scrim bottom
 ) {
@@ -249,7 +252,7 @@ private fun TopOverlay(
             ) {
                 Icon(
                     Icons.CloseW500Rounded,
-                    contentDescription = null // TODO: Add res string
+                    contentDescription = stringResource(Res.string.common_close)
                 )
             }
 
