@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "adaptive": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "jetpack-compose/adaptive/SKILL.md",
+      "computedHash": "e80617b3557067f21df3ea49aaa0a6873ef3e5bb6c93651a8171419f8cbeb2a1"
+    },
+    "appfunctions": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "device-ai/appfunctions/SKILL.md",
+      "computedHash": "256eaf8ebe01cc976d466d4248a39db22a54f3e8305393bdd0c5f0da07c38e64"
+    },
+    "edge-to-edge": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "system/edge-to-edge/SKILL.md",
+      "computedHash": "28bedc928e6ca09caf03c36b926dd3cc4ba27010690c5518c2cc80b0f321f1dd"
+    },
+    "jetpack-compose-m3": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "wear/jetpack-compose-m3/SKILL.md",
+      "computedHash": "fb467393a10ac0053286c56a920bddd959ddbb3cb02b877f0636a667c201a4b0"
+    },
+    "navigation-3": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "navigation/navigation-3/SKILL.md",
+      "computedHash": "1f5bb9bf1c155066ae3aefcb6f19d3e94d145228ea836f5c2b065366be902768"
+    },
+    "r8-analyzer": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "performance/r8-analyzer/SKILL.md",
+      "computedHash": "b6235067308a3db62adafe508340c66a167877f4d4d14198eaa4a1b87bcdf581"
+    },
+    "styles": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "jetpack-compose/theming/styles/SKILL.md",
+      "computedHash": "ffa2c0a4a6ce97167ab1a213c56c7d17aa63166f07661fd7ddd2460ff5dc51c4"
+    },
+    "testing-setup": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "testing/testing-setup/SKILL.md",
+      "computedHash": "e644055648d166ce1ca797f78604ddfeb50b9a7bfb725a0e3f251e802e9f86f3"
+    },
+    "verified-email": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "identity/verified-email/SKILL.md",
+      "computedHash": "2ea91aa775514deb83c452f46e37f39d4016ad67c0812a459be5d4de59acbbd5"
+    }
+  }
+}
