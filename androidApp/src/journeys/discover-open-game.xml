@@ -1,0 +1,14 @@
+<journey name="Discover and open a game">
+    <description>
+        Verify the Discover screen loads its game sections and that a game can be opened
+        and dismissed. Runs logged out (Discover does not require authentication).
+    </description>
+    <actions>
+        <action>Verify the Discover screen is shown with at least one section such as "Popular Games" or "Upcoming Games"</action>
+        <action>Wait until game cover images appear in the carousels</action>
+        <action>Tap the first game cover shown on the screen</action>
+        <action>Verify a game detail screen is shown with a game title and a back arrow</action>
+        <action>Tap the back arrow</action>
+        <action>Verify the Discover screen is shown again</action>
+    </actions>
+</journey>

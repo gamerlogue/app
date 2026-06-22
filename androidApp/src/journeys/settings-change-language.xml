@@ -1,0 +1,16 @@
+<journey name="Change app language">
+    <description>
+        Change the app language from the Appearance settings and verify the UI switches
+        to the selected language. Exercises navigation to Settings and the i18n wiring.
+    </description>
+    <actions>
+        <action>Tap the "Profile" entry in the bottom navigation bar</action>
+        <action>Tap the settings icon in the top app bar</action>
+        <action>Verify the Settings screen is shown with an "Appearance" item</action>
+        <action>Tap "Appearance"</action>
+        <action>Verify a "Language" setting is visible</action>
+        <action>Tap the "Language" setting</action>
+        <action>Select "Italiano" from the language options</action>
+        <action>Verify the interface labels are now shown in Italian</action>
+    </actions>
+</journey>

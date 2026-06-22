@@ -1,0 +1,11 @@
+<journey name="Library requires login">
+    <description>
+        When the user is not authenticated, opening the Library shows the login prompt
+        instead of the games grid.
+    </description>
+    <actions>
+        <action>Tap the "Library" entry in the bottom navigation bar</action>
+        <action>Verify a login prompt is shown with a "Log in" button</action>
+        <action>Verify the message "You need to log in to access this section." is visible</action>
+    </actions>
+</journey>
