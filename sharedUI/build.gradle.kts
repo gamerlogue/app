@@ -113,6 +113,13 @@ kotlin {
             implementation(libs.compose.ui.test)
         }
 
+        // Unit tests run on the JVM (Kotest + JUnit Platform); kept off the JS target.
+        jvmTest.dependencies {
+            implementation(libs.kotest.runner.junit5)
+            implementation(libs.kotest.assertions.core)
+            implementation(libs.kotlinx.coroutines.test)
+        }
+
         androidMain.dependencies {
             implementation(libs.androidx.browser)
             implementation(libs.compose.ui.tooling)
@@ -161,6 +168,11 @@ kotlin {
 dependencies {
     androidRuntimeClasspath(libs.compose.ui.tooling)
     add("kspCommonMainMetadata", libs.spraypaintkt.processor)
+}
+
+// Kotest's JUnit5 runner needs the JUnit Platform on the JVM test task.
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    useJUnitPlatform()
 }
 
 tasks.withType<KspAATask>().configureEach {
