@@ -23,6 +23,7 @@
     <string name="home__recently_released_games">Rilasciati di recente</string>
     <string name="home__upcoming_games">In arrivo</string>
     <string name="home__see_all">Vedi tutti</string>
+    <string name="home__empty_section">Nessun gioco da mostrare</string>
 
     <!-- Game details -->
     <string name="game__release_dates_title">Date di rilascio per piattaforma</string>

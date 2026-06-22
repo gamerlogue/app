@@ -47,7 +47,14 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
             igdb.multiquery {
                 for (section in DiscoverSection.entries) {
                     query(IgdbEndpoint.GAME, section.name) {
-                        fields(Game.field.name, Game.field.cover.image_id)
+                        fields(
+                            Game.field.name,
+                            Game.field.cover.image_id,
+                            Game.field.rating,
+                            Game.field.first_release_date,
+                            Game.field.artworks.image_id,
+                            Game.field.screenshots.image_id,
+                        )
                         if (popScores.containsKey(section)) {
                             val ids = popScores[section] ?: emptyList()
                             where {

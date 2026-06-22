@@ -25,6 +25,7 @@
     <string name="home__recently_released_games">Recently Released Games</string>
     <string name="home__upcoming_games">Upcoming Games</string>
     <string name="home__see_all">See all</string>
+    <string name="home__empty_section">No games to show</string>
 
     <!-- Game details -->
     <string name="game__release_dates_title">Release dates by platform</string>
