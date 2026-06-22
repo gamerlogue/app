@@ -7,10 +7,13 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.navigation3.runtime.NavKey
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SettingsW500Rounded
+import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.nav__settings
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.ui.components.layout.LocalTopBarState
 import it.maicol07.gamerlogue.ui.views.auth.LoginView
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @Composable
@@ -24,7 +27,7 @@ fun ProfileScreen(
     DisposableEffect(Unit) {
         topBarState.customActions = {
             IconButton(onClick = { navigateTo(NavKeys.Settings) }) {
-                Icon(Icons.SettingsW500Rounded, contentDescription = "Settings")
+                Icon(Icons.SettingsW500Rounded, contentDescription = stringResource(Res.string.nav__settings))
             }
         }
         onDispose {

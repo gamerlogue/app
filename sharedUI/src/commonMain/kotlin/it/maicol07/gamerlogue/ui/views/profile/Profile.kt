@@ -10,7 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.auth__logout
 import gamerlogue.sharedui.generated.resources.nav__profile
+import gamerlogue.sharedui.generated.resources.profile__subtitle
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -29,14 +31,14 @@ fun Profile() {
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = "Il tuo profilo e impostazioni",
+            text = stringResource(Res.string.profile__subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Button(onClick = {
             authTokenProvider.updateToken(null)
         }) {
-            Text("Logout")
+            Text(stringResource(Res.string.auth__logout))
         }
     }
 }

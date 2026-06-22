@@ -178,4 +178,25 @@
     <string name="settings__service_xbox">Xbox</string>
     <string name="settings__service_gog">GOG</string>
     <string name="settings__service_epic">Epic Games</string>
+
+    <!-- Common -->
+    <string name="common_loading">Loading</string>
+    <string name="common_close">Close</string>
+    <string name="common_ok">OK</string>
+    <string name="common_select_date">Select date</string>
+    <string name="date__input_placeholder">MM/DD/YYYY</string>
+    <string name="nav__detail_placeholder">Select an item from the list</string>
+
+    <!-- Discover/Game extras -->
+    <string name="game__description_title">Description</string>
+    <string name="game__no_description">No description available</string>
+    <string name="game__not_found">Game details not found</string>
+    <string name="game__artwork_image">Artwork image</string>
+
+    <!-- Profile/Calendar placeholders -->
+    <string name="profile__subtitle">Your profile and settings</string>
+    <string name="calendar__placeholder">Here you\'ll see upcoming releases and your events</string>
+
+    <!-- Library extras -->
+    <string name="library__error_select_status">Please select a status.</string>
 </resources>

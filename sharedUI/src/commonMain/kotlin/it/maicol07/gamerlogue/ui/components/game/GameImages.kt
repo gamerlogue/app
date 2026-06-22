@@ -10,7 +10,10 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.model.Screenshot
 import at.released.igdbclient.util.igdbImageUrl
+import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.game__artwork_image
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun Game.CoverImage(modifier: Modifier = Modifier) = RemoteImage(
@@ -35,7 +38,7 @@ fun Artwork.Image(
     loadingModifier: Modifier = Modifier
 ) = RemoteImage(
     igdbImageUrl(image_id, IgdbImageSize.SCREENSHOT_HUGE),
-    contentDescription = "Artwork Image",
+    contentDescription = stringResource(Res.string.game__artwork_image),
     modifier = modifier,
     loadingModifier = loadingModifier
 )
@@ -46,7 +49,7 @@ fun Screenshot.Image(
     loadingModifier: Modifier = Modifier
 ) = RemoteImage(
     igdbImageUrl(image_id, IgdbImageSize.SCREENSHOT_HUGE),
-    contentDescription = "Artwork Image",
+    contentDescription = stringResource(Res.string.game__artwork_image),
     modifier = modifier,
     loadingModifier = loadingModifier
 )

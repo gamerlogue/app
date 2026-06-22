@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.calendar__placeholder
 import gamerlogue.sharedui.generated.resources.nav__calendar
 import org.jetbrains.compose.resources.stringResource
 
@@ -24,7 +25,7 @@ fun Calendar() {
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = "Qui vedrai le prossime uscite e i tuoi eventi",
+            text = stringResource(Res.string.calendar__placeholder),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
