@@ -1,22 +1,12 @@
 package it.maicol07.gamerlogue.data
 
-import io.ktor.client.plugins.auth.Auth
-import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.request.accept
-import io.ktor.http.contentType
 import it.maicol07.gamerlogue.BuildConfig
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.di.JsonApiHttpClient
 import it.maicol07.spraypaintkt.PaginationStrategy
 import it.maicol07.spraypaintkt.interfaces.HttpClient
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt_annotation.DefaultInstance
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
-import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 
@@ -24,33 +14,11 @@ import org.koin.core.component.get
 data object AppJsonApiConfig : JsonApiConfig, KoinComponent {
     override val baseUrl: String = "${BuildConfig.GAMERLOGUE_URL}/api"
     override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
-    override val httpClient: HttpClient = KtorHttpClient(
-        httpClientOptions = {
-            defaultRequest {
-                accept(VndApiJson)
-                contentType(VndApiJson)
-            }
 
-            install(Logging) {
-                logger = object : Logger {
-                    override fun log(message: String) {
-                        co.touchlab.kermit.Logger.v("HTTP Client") { message }
-                    }
-                }
-                level = LogLevel.HEADERS
-            }
-            install(Auth) {
-                bearer {
-                    loadTokens {
-                        val token = get<AuthTokenProvider>().accessToken
-                        token?.let { BearerTokens(it, "") }
-                    }
-                    refreshTokens {
-                        // No refresh yet
-                        null
-                    }
-                }
-            }
-        }
-    )
+    // Resolved lazily so Koin (started by App/tests) is ready at first request.
+    // The underlying Ktor client (auth, headers) lives in httpModule and can be
+    // swapped with a MockEngine in tests via the [JsonApiHttpClient] qualifier.
+    override val httpClient: HttpClient by lazy {
+        KtorHttpClient(httpClient = get<io.ktor.client.HttpClient>(JsonApiHttpClient))
+    }
 }
