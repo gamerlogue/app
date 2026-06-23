@@ -51,11 +51,7 @@ fun App() {
         AuthHandler()
 
         AppTheme {
-            AppScaffold(
-                currentNavKey = backStack.last(),
-                canNavigateBack = backStack.size > 1,
-                navigateUp = { backStack.removeAt(backStack.lastIndex) },
-            ) {
+            AppScaffold(currentNavKey = backStack.last()) {
                 Column(
                     modifier = Modifier.padding(it),
                     horizontalAlignment = Alignment.CenterHorizontally

@@ -6,7 +6,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,10 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import it.maicol07.gamerlogue.NavBackStack
-import it.maicol07.gamerlogue.ui.components.layout.LocalAppUiState
+import it.maicol07.gamerlogue.ui.components.layout.NetworkErrorAction
 import org.koin.compose.koinInject
 
 var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>> {
@@ -73,20 +71,7 @@ fun GameTopBar(
                 }
             }
         },
-        actions = {
-            val appUiState = LocalAppUiState.current
-            AnimatedVisibility(appUiState.networkException != null) {
-                IconButton(
-                    onClick = { appUiState.showExceptionBottomSheet = true }
-                ) {
-                    Icon(
-                        Icons.AndroidWifi3BarAlertW500Rounded,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        },
+        actions = { NetworkErrorAction() },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = containerColor,
             titleContentColor = contentColor,

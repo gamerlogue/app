@@ -1,7 +1,10 @@
 package it.maicol07.gamerlogue.ui.navigation
 
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
@@ -13,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
@@ -20,9 +24,13 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.nav__detail_placeholder
+import gamerlogue.sharedui.generated.resources.nav__settings
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SettingsW500Rounded
 import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.views.auth.LoginView
 import it.maicol07.gamerlogue.ui.views.calendar.Calendar
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverScreen
@@ -35,6 +43,19 @@ import it.maicol07.gamerlogue.ui.views.settings.categories.AppearanceScreen
 import it.maicol07.gamerlogue.ui.views.settings.categories.LinkedServicesScreen
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+
+/**
+ * Like [entry], but wraps the destination's content in a [ScreenScaffold] whose title is taken from
+ * [NavKeys.NavKeyWithMeta.title]. Use plain [entry] for destinations that draw their own bar (e.g.
+ * the game detail screen with its collapsing overlay bar).
+ */
+private inline fun <reified K : NavKey> EntryProviderScope<NavKey>.screen(
+    metadata: Map<String, Any> = emptyMap(),
+    noinline actions: @Composable RowScope.() -> Unit = {},
+    noinline content: @Composable (K) -> Unit
+) = entry<K>(metadata = metadata) { key ->
+    ScreenScaffold((key as? NavKeys.NavKeyWithMeta)?.title, actions = actions) { content(key) }
+}
 
 /**
  * Hosts the Navigation 3 display: builds the list-detail adaptive strategy, registers an entry
@@ -65,7 +86,7 @@ fun AppNavDisplay(
             entryProvider = entryProvider {
                 val authProvider = koinInject<AuthTokenProvider>()
 
-                entry<NavKeys.Discover>(
+                screen<NavKeys.Discover>(
                     metadata = ListDetailSceneStrategy.listPane(
                         detailPlaceholder = {
                             Text(stringResource(Res.string.nav__detail_placeholder))
@@ -73,68 +94,51 @@ fun AppNavDisplay(
                     )
                 ) {
                     DiscoverScreen(
-                        onGameClick = { game ->
-                            backStack.add(NavKeys.GameDetail(game.id.toInt()))
-                        },
-                        onSeeAllClick = { section ->
-                            backStack.add(NavKeys.GameList(section))
-                        }
+                        onGameClick = { game -> backStack.add(NavKeys.GameDetail(game.id.toInt())) },
+                        onSeeAllClick = { section -> backStack.add(NavKeys.GameList(section)) }
                     )
                 }
-                entry<NavKeys.Library>(
-                    metadata = ListDetailSceneStrategy.listPane()
-                ) {
+                screen<NavKeys.Library>(metadata = ListDetailSceneStrategy.listPane()) {
                     if (authProvider.accessToken == null) {
                         LoginView()
                     } else {
-                        Library(
-                            onGameClick = { game ->
-                                backStack.add(NavKeys.GameDetail(game.id.toInt()))
-                            }
-                        )
+                        Library(onGameClick = { game -> backStack.add(NavKeys.GameDetail(game.id.toInt())) })
                     }
                 }
-                entry<NavKeys.Calendar>(
-                    metadata = ListDetailSceneStrategy.detailPane()
-                ) {
-                    if (authProvider.accessToken == null) {
-                        LoginView()
-                    } else {
-                        Calendar()
-                    }
+                screen<NavKeys.Calendar>(metadata = ListDetailSceneStrategy.detailPane()) {
+                    if (authProvider.accessToken == null) LoginView() else Calendar()
                 }
-                entry<NavKeys.Profile>(
-                    metadata = ListDetailSceneStrategy.detailPane()
-                ) { ProfileScreen { backStack.add(it) } }
-                entry<NavKeys.Settings>(
-                    metadata = ListDetailSceneStrategy.detailPane()
-                ) {
+                screen<NavKeys.Profile>(
+                    metadata = ListDetailSceneStrategy.detailPane(),
+                    actions = {
+                        IconButton(onClick = { backStack.add(NavKeys.Settings) }) {
+                            Icon(
+                                Icons.SettingsW500Rounded,
+                                contentDescription = stringResource(Res.string.nav__settings)
+                            )
+                        }
+                    }
+                ) { ProfileScreen() }
+                screen<NavKeys.Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
                     SettingsScreen(navigateTo = { backStack.add(it) })
                 }
-                entry<NavKeys.LinkedServices>(
-                    metadata = ListDetailSceneStrategy.detailPane()
-                ) {
+                screen<NavKeys.LinkedServices>(metadata = ListDetailSceneStrategy.detailPane()) {
                     LinkedServicesScreen()
                 }
-                entry<NavKeys.Appearance>(
-                    metadata = ListDetailSceneStrategy.detailPane()
-                ) {
+                screen<NavKeys.Appearance>(metadata = ListDetailSceneStrategy.detailPane()) {
                     AppearanceScreen()
                 }
+                screen<NavKeys.GameList>(metadata = ListDetailSceneStrategy.detailPane()) { navKey ->
+                    GameListScreen(
+                        section = navKey.section,
+                        onGameClick = { game -> backStack.add(NavKeys.GameDetail(game.id.toInt())) }
+                    )
+                }
+                // Draws its own collapsing overlay bar, so it uses plain `entry`, not `screen`.
                 entry<NavKeys.GameDetail>(
                     metadata = ListDetailSceneStrategy.detailPane()
                 ) { navKey ->
                     GameDetailScreen(gameId = navKey.gameId)
-                }
-                entry<NavKeys.GameList>(
-                    metadata = ListDetailSceneStrategy.detailPane()
-                ) { navKey ->
-                    GameListScreen(
-                        section = navKey.section,
-                        onGameClick = { game ->
-                            backStack.add(NavKeys.GameDetail(game.id.toInt()))
-                        }
-                    )
                 }
             }
         )

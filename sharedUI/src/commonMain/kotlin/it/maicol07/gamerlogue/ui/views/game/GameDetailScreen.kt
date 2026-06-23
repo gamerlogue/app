@@ -14,8 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +26,6 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__not_found
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
 import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
-import it.maicol07.gamerlogue.ui.components.layout.LocalTopBarState
 import it.maicol07.gamerlogue.ui.views.game.components.GameToolbar
 import it.maicol07.gamerlogue.ui.views.game.components.gameDetailContent
 import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibrarySheet
@@ -45,19 +42,6 @@ fun GameDetailScreen(
     viewModel: GameDetailViewModel = GameDetailViewModel.inject(gameId)
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val topBarState = LocalTopBarState.current
-
-    LaunchedEffect(Unit) {
-        // Hide global topbar when entering the screen
-        topBarState.visible = false
-    }
-
-    // Restore global topbar on dispose (composition exit)
-    DisposableEffect(Unit) {
-        onDispose {
-            topBarState.visible = true
-        }
-    }
 
     var addToLibraryBottomSheetOpen by remember { mutableStateOf(false) }
 
