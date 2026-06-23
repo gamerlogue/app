@@ -29,6 +29,7 @@
 
     <!-- Game details -->
     <string name="game__release_dates_title">Release dates by platform</string>
+    <string name="game__ratings_title">Ratings</string>
     <string name="game__ratings_igdb_user">IGDB Users</string>
     <string name="game__ratings_igdb_critics">IGDB Critics</string>
     <string name="game__genres_title">Genres</string>

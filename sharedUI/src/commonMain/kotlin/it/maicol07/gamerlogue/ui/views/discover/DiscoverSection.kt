@@ -6,6 +6,7 @@ import at.released.igdbclient.apicalypse.SortOrder
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.PopularityPrimitive
+import at.released.igdbclient.model.ReleaseDate
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.home__most_loved_games
 import gamerlogue.sharedui.generated.resources.home__popular_games
@@ -17,10 +18,12 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Per
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarShineW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.UpcomingW500Rounded
 import it.maicol07.gamerlogue.extensions.alreadyReleased
+import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.serialization.Serializable
+import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -76,4 +79,15 @@ enum class DiscoverSection(
             }
         }
     ),
+}
+
+/** Star + score (0-10), or null when the game has no rating. */
+internal fun Game.ratingLabel(): String? = rating.takeIf { it > 0.0 }?.let { "★ %.1f".sprintf(it / 10) }
+
+/** Per-section metadata badge shown on a cover card. */
+internal fun DiscoverSection.cardMetadata(game: Game): String? = when (this) {
+    DiscoverSection.MOST_LOVED -> game.ratingLabel()
+    DiscoverSection.RECENTLY_RELEASED, DiscoverSection.UPCOMING ->
+        ReleaseDate(date = game.first_release_date).displayDate()
+    else -> null
 }

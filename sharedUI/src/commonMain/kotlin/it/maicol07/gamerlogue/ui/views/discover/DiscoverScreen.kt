@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.discover
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,11 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,17 +40,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Artwork
 import at.released.igdbclient.model.Game
-import at.released.igdbclient.model.ReleaseDate
 import at.released.igdbclient.model.Screenshot
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__see_all
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
-import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
+import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.game.Image
-import net.sergeych.sprintf.sprintf
+import it.maicol07.gamerlogue.ui.components.game.bottomScrim
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -197,60 +191,17 @@ private fun GameCarousel(section: DiscoverSection, games: List<Game>, onGameClic
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) { i ->
         val game = games[i]
-        GameCard(
+        GameCoverCard(
             game = game,
             metadata = section.cardMetadata(game),
-            showTitle = carouselItemDrawInfo.size > 200,
-            onItemClick = onGameClick
+            showTitle = carouselItemDrawInfo.size > CardTitleThreshold,
+            modifier = Modifier.maskClip(MaterialTheme.shapes.large),
+            onClick = onGameClick
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CarouselItemScope.GameCard(
-    game: Game,
-    metadata: String?,
-    showTitle: Boolean,
-    onItemClick: (Game) -> Unit
-) {
-    Box(contentAlignment = Alignment.BottomStart) {
-        val coverModifier = Modifier
-            .maskClip(MaterialTheme.shapes.large)
-            .let { if (showTitle) it.bottomScrim() else it }
-
-        game.CoverImage(coverModifier.clickable { onItemClick(game) })
-
-        if (metadata != null) {
-            Surface(
-                color = Color.Black.copy(alpha = 0.55f),
-                contentColor = Color.White,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
-            ) {
-                Text(
-                    text = metadata,
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
-        }
-
-        AnimatedVisibility(showTitle) {
-            Text(
-                text = game.name,
-                overflow = TextOverflow.Ellipsis,
-                color = Color.White,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    shadow = Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 2f), blurRadius = 2f)
-                ),
-                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
-                maxLines = 1
-            )
-        }
-    }
-}
+private const val CardTitleThreshold = 200
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -281,24 +232,3 @@ private fun EmptySection() {
     )
 }
 
-private fun Modifier.bottomScrim() = drawWithContent {
-    drawContent()
-    drawRect(
-        brush = Brush.verticalGradient(
-            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-            startY = size.height * 0.35f,
-            endY = size.height
-        )
-    )
-}
-
-/** Star + score (0-10), or null when the game has no rating. */
-private fun Game.ratingLabel(): String? = rating.takeIf { it > 0.0 }?.let { "★ %.1f".sprintf(it / 10) }
-
-/** Per-section metadata badge shown on a cover card. */
-private fun DiscoverSection.cardMetadata(game: Game): String? = when (this) {
-    DiscoverSection.MOST_LOVED -> game.ratingLabel()
-    DiscoverSection.RECENTLY_RELEASED, DiscoverSection.UPCOMING ->
-        ReleaseDate(date = game.first_release_date).displayDate()
-    else -> null
-}
