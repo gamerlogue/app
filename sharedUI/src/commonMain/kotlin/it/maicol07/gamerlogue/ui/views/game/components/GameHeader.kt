@@ -127,9 +127,10 @@ private fun GameBanner(game: Game) {
         .fillMaxWidth()
         .height(BannerHeight)
 
+    val bannerKey = "banner-${game.id}"
     when (banner) {
-        is Artwork -> banner.Image(bannerModifier, bannerLoadingModifier)
-        is Screenshot -> banner.Image(bannerModifier, bannerLoadingModifier)
+        is Artwork -> banner.Image(bannerModifier, bannerLoadingModifier, sharedKey = bannerKey)
+        is Screenshot -> banner.Image(bannerModifier, bannerLoadingModifier, sharedKey = bannerKey)
         else -> {}
     }
 }

@@ -163,9 +163,10 @@ private fun CarouselItemScope.HeroItem(game: Game, onItemClick: (Game) -> Unit) 
     ) {
         val imageModifier = Modifier.fillMaxWidth().height(HeroHeight).bottomScrim()
         val loadingModifier = Modifier.fillMaxWidth().height(HeroHeight)
+        val bannerKey = "banner-${game.id}"
         when (val banner = game.artworks.firstOrNull() ?: game.screenshots.firstOrNull()) {
-            is Artwork -> banner.Image(imageModifier, loadingModifier)
-            is Screenshot -> banner.Image(imageModifier, loadingModifier)
+            is Artwork -> banner.Image(imageModifier, loadingModifier, sharedKey = bannerKey)
+            is Screenshot -> banner.Image(imageModifier, loadingModifier, sharedKey = bannerKey)
             else -> game.CoverImage(Modifier.bottomScrim())
         }
 

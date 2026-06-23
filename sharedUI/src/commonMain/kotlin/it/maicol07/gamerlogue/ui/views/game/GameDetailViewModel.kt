@@ -20,6 +20,18 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
+/**
+ * In-memory handoff of the [Game] already loaded by a list screen to the detail screen, so the
+ * detail can render its hero instantly instead of waiting for [GameDetailViewModel.loadGameDetails].
+ * ponytail: plain map, single-entry-per-id, read-once. Cleared on [take]; survives only until the
+ * detail VM is created. Good enough for navigation handoff — no caching layer needed.
+ */
+object GameHandoff {
+    private val pending = mutableMapOf<Int, Game>()
+    fun put(game: Game) { pending[game.id.toInt()] = game }
+    fun take(gameId: Int): Game? = pending.remove(gameId)
+}
+
 class GameDetailViewModel(val gameId: Int) : StateViewModel<GameDetailViewModel.UiState>(UiState()) {
     /** Immutable state of the Game detail screen. */
     data class UiState(
@@ -44,6 +56,10 @@ class GameDetailViewModel(val gameId: Int) : StateViewModel<GameDetailViewModel.
     }
 
     init {
+        // Seed with the Game already loaded by the originating list so the hero (cover + banner)
+        // renders from the first frame — required for the shared-element transition to have a
+        // target while the full detail query is still in flight.
+        GameHandoff.take(gameId)?.let { seed -> update { copy(game = seed) } }
         viewModelScope.launch { loadGameDetails() }
         loadLibraryEntry()
     }

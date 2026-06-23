@@ -1,6 +1,11 @@
 package it.maicol07.gamerlogue.ui.navigation
 
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
@@ -12,6 +17,8 @@ import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -35,6 +42,7 @@ import it.maicol07.gamerlogue.ui.views.auth.LoginView
 import it.maicol07.gamerlogue.ui.views.calendar.Calendar
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverScreen
 import it.maicol07.gamerlogue.ui.views.game.GameDetailScreen
+import it.maicol07.gamerlogue.ui.views.game.GameHandoff
 import it.maicol07.gamerlogue.ui.views.library.Library
 import it.maicol07.gamerlogue.ui.views.list.GameListScreen
 import it.maicol07.gamerlogue.ui.views.profile.ProfileScreen
@@ -43,6 +51,12 @@ import it.maicol07.gamerlogue.ui.views.settings.categories.AppearanceScreen
 import it.maicol07.gamerlogue.ui.views.settings.categories.LinkedServicesScreen
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+
+/**
+ * The app's [SharedTransitionScope], provided around the [NavDisplay] so any screen can opt a
+ * composable into a shared-element transition (e.g. a game cover). Null outside the nav host.
+ */
+val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
 
 /**
  * Like [entry], but wraps the destination's content in a [ScreenScaffold] whose title is taken from
@@ -77,6 +91,7 @@ fun AppNavDisplay(
     val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(directive = directive)
 
     SharedTransitionLayout {
+        val sharedScope = this
         val entries = rememberDecoratedNavEntries(
             backStack = backStack,
             entryDecorators = listOf(
@@ -94,7 +109,7 @@ fun AppNavDisplay(
                     )
                 ) {
                     DiscoverScreen(
-                        onGameClick = { game -> backStack.add(NavKeys.GameDetail(game.id.toInt())) },
+                        onGameClick = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) },
                         onSeeAllClick = { section -> backStack.add(NavKeys.GameList(section)) }
                     )
                 }
@@ -102,7 +117,7 @@ fun AppNavDisplay(
                     if (authProvider.accessToken == null) {
                         LoginView()
                     } else {
-                        Library(onGameClick = { game -> backStack.add(NavKeys.GameDetail(game.id.toInt())) })
+                        Library(onGameClick = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) })
                     }
                 }
                 screen<NavKeys.Calendar>(metadata = ListDetailSceneStrategy.detailPane()) {
@@ -131,7 +146,7 @@ fun AppNavDisplay(
                 screen<NavKeys.GameList>(metadata = ListDetailSceneStrategy.detailPane()) { navKey ->
                     GameListScreen(
                         section = navKey.section,
-                        onGameClick = { game -> backStack.add(NavKeys.GameDetail(game.id.toInt())) }
+                        onGameClick = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) }
                     )
                 }
                 // Draws its own collapsing overlay bar, so it uses plain `entry`, not `screen`.
@@ -143,12 +158,21 @@ fun AppNavDisplay(
             }
         )
 
-        NavDisplay(
-            entries = entries,
-            sceneStrategies = listOf(listDetailStrategy),
-            sharedTransitionScope = this,
-            modifier = modifier.fillMaxSize(),
-            onBack = { backStack.removeLastOrNull() }
-        )
+        CompositionLocalProvider(LocalSharedTransitionScope provides sharedScope) {
+            NavDisplay(
+                entries = entries,
+                sceneStrategies = listOf(listDetailStrategy),
+                sharedTransitionScope = sharedScope,
+                transitionSpec = { fadeIn(tween(TransitionMillis)) togetherWith fadeOut(tween(TransitionMillis)) },
+                popTransitionSpec = { fadeIn(tween(TransitionMillis)) togetherWith fadeOut(tween(TransitionMillis)) },
+                predictivePopTransitionSpec = {
+                    fadeIn(tween(TransitionMillis)) togetherWith fadeOut(tween(TransitionMillis))
+                },
+                modifier = modifier.fillMaxSize(),
+                onBack = { backStack.removeLastOrNull() }
+            )
+        }
     }
 }
+
+private const val TransitionMillis = 250

@@ -58,14 +58,14 @@ fun GameDetailScreen(
                     ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (uiState.isLoading) {
+                if (uiState.game != null) {
+                    gameDetailContent(uiState.game!!)
+                } else if (uiState.isLoading) {
                     item {
                         Box(Modifier.fillMaxSize().animateItem(), contentAlignment = Alignment.Center) {
                             LoadingIndicator()
                         }
                     }
-                } else if (uiState.game != null) {
-                    gameDetailContent(uiState.game!!)
                 } else {
                     item {
                         Box(Modifier.fillMaxSize().animateItem(), contentAlignment = Alignment.Center) {
