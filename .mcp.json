@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "compose-hot-reload": {
+      "command": "./gradlew",
+      "args": [
+        "--no-daemon",
+        "--quiet",
+        "--console=plain",
+        "hotMcpServer"
+      ]
+    },
+    "android-studio": {
+      "type": "sse",
+      "url": "http://127.0.0.1:64342/sse",
+      "headers": {}
+    }
+  }
+}
