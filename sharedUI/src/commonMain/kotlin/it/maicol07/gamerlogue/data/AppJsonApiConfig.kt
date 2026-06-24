@@ -13,7 +13,8 @@ import org.koin.core.component.get
 @DefaultInstance
 data object AppJsonApiConfig : JsonApiConfig, KoinComponent {
     override val baseUrl: String = "${BuildConfig.GAMERLOGUE_URL}/api"
-    override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
+    // Backend is page-based (rejects page[offset] with "Page should not be less than 1").
+    override val paginationStrategy: PaginationStrategy = PaginationStrategy.PAGE_BASED
 
     // Resolved lazily so Koin (started by App/tests) is ready at first request.
     // The underlying Ktor client (auth, headers) lives in httpModule and can be

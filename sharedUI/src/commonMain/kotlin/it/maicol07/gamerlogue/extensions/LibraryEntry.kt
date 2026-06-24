@@ -37,6 +37,37 @@ fun LibraryEntry.Companion.currentUserEntryForGame(gameId: Number): Scope<Librar
         extraParam(CurrentUserParam, "true")
     }
 
+// Page-based pagination: backend returns one page per request; pages start at 1.
+private const val MaxPages = 500
+
+/**
+ * Walk every page of this scope, invoking [onPage] with each page's *new* entries as it arrives.
+ * [Scope.all] returns only one page. Stops when a page brings no new ids (covers both the end and a
+ * backend that ignores the page number and re-serves the same page) or once `meta.totalItems` is
+ * reached; [MaxPages] is a final guard.
+ */
+suspend fun Scope<LibraryEntry>.forEachPage(onPage: suspend (List<LibraryEntry>) -> Unit) {
+    val seen = mutableSetOf<String?>()
+    var total: Int? = null
+    var page = 1
+    repeat(MaxPages) {
+        val result = page(page).all()
+        total = total ?: (result.meta["totalItems"] as? Number)?.toInt()
+        val fresh = result.data.filter { seen.add(it.id) }
+        if (fresh.isEmpty()) return
+        onPage(fresh)
+        if (total != null && seen.size >= total) return
+        page++
+    }
+}
+
+/** Collect every page of this scope into one list (see [forEachPage]). */
+suspend fun Scope<LibraryEntry>.allPages(): List<LibraryEntry> {
+    val out = mutableListOf<LibraryEntry>()
+    forEachPage { out += it }
+    return out
+}
+
 /** Persist this entry (create or update) through the JSON:API backend. */
 suspend fun LibraryEntry.persist() = safeRequest { save() }
 

@@ -11,6 +11,7 @@ import com.github.michaelbull.result.unwrapError
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntries
+import it.maicol07.gamerlogue.extensions.forEachPage
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.launch
@@ -28,21 +29,33 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
     private val igdb by inject<IgdbClient>()
 
     fun loadLibraryEntries(section: GameLibraryStatus? = state.selectedSection) = viewModelScope.launch {
-        update { copy(loading = true) }
-
-        val result = safeRequest { LibraryEntry.currentUserEntries(section).all().data }
-        val entries = if (result.isOk) result.unwrap() else emptyList()
-
-        val grouped = groupEntriesByStatus(entries)
-
+        // Clear the target section(s), then fill them page by page as each page arrives.
         update {
-            val merged = if (section == null) {
-                GameLibraryStatus.entries.associateWith { grouped[it] ?: emptyMap() }
+            val cleared = if (section == null) {
+                GameLibraryStatus.entries.associateWith { emptyMap() }
             } else {
-                games + (section to (grouped[section] ?: emptyMap()))
+                games + (section to emptyMap())
             }
-            copy(games = merged, loading = false)
+            copy(loading = true, games = cleared)
         }
+
+        val result = safeRequest {
+            LibraryEntry.currentUserEntries(section).forEachPage { page ->
+                val grouped = groupEntriesByStatus(page)
+                update { copy(games = mergeGames(games, grouped)) }
+            }
+        }
+        if (result.isErr) Logger.e(result.unwrapError()) { "Error loading library entries" }
+        update { copy(loading = false) }
+    }
+
+    private fun mergeGames(
+        existing: Map<GameLibraryStatus, Map<Game, LibraryEntry>>,
+        add: Map<GameLibraryStatus, Map<Game, LibraryEntry>>,
+    ): Map<GameLibraryStatus, Map<Game, LibraryEntry>> {
+        val out = existing.toMutableMap()
+        add.forEach { (status, games) -> out[status] = (out[status] ?: emptyMap()) + games }
+        return out
     }
 
     private suspend fun groupEntriesByStatus(
@@ -57,6 +70,8 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
                 where {
                     "id" inAny allGameIds.map { it.toString() }
                 }
+                // Without an explicit limit IGDB returns only 10, dropping the rest of the page.
+                limit(allGameIds.size.coerceIn(1, 500))
             }
         }
 
