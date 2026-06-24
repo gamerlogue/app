@@ -16,6 +16,7 @@ import io.ktor.client.request.accept
 import io.ktor.http.contentType
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -43,6 +44,8 @@ val httpModule = module {
             install(HttpCache)
             install(HttpRequestRetry) {
                 retryOnServerErrors(maxRetries = 5)
+                // IGDB rate limiting (HTTP 429) is a client error, so retry it explicitly with backoff.
+                retryIf(maxRetries = 5) { _, response -> response.status.value == 429 }
                 exponentialDelay()
             }
         }
@@ -80,5 +83,18 @@ val httpModule = module {
                 this.httpClient = get()
             }
         }
+    }
+
+    // PSN API client: must NOT follow redirects (the OAuth code is read from the authorize 302).
+    single {
+        PsnApi(
+            HttpClient {
+                followRedirects = false
+                install(Logging) {
+                    logger = kermitKtorLogger()
+                    level = LogLevel.HEADERS
+                }
+            },
+        )
     }
 }
