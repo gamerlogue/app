@@ -48,6 +48,7 @@ import it.maicol07.gamerlogue.ui.views.list.GameListScreen
 import it.maicol07.gamerlogue.ui.views.profile.ProfileScreen
 import it.maicol07.gamerlogue.ui.views.settings.SettingsScreen
 import it.maicol07.gamerlogue.ui.views.settings.categories.AppearanceScreen
+import it.maicol07.gamerlogue.ui.views.settings.categories.LibraryImportPreviewScreen
 import it.maicol07.gamerlogue.ui.views.settings.categories.LinkedServicesScreen
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -138,7 +139,18 @@ fun AppNavDisplay(
                     SettingsScreen(navigateTo = { backStack.add(it) })
                 }
                 screen<NavKeys.LinkedServices>(metadata = ListDetailSceneStrategy.detailPane()) {
-                    LinkedServicesScreen()
+                    LinkedServicesScreen(
+                        navigateToImportPreview = { service, mode ->
+                            backStack.add(NavKeys.LibraryImportPreview(service, mode))
+                        }
+                    )
+                }
+                screen<NavKeys.LibraryImportPreview>(metadata = ListDetailSceneStrategy.detailPane()) { navKey ->
+                    LibraryImportPreviewScreen(
+                        service = navKey.service,
+                        mode = navKey.mode,
+                        onDone = { backStack.removeLastOrNull() }
+                    )
                 }
                 screen<NavKeys.Appearance>(metadata = ListDetailSceneStrategy.detailPane()) {
                     AppearanceScreen()

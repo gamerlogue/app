@@ -2,7 +2,10 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -10,110 +13,221 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__linked_services_disclaimer
+import gamerlogue.sharedui.generated.resources.settings__service_connect
+import gamerlogue.sharedui.generated.resources.settings__service_disconnect
 import gamerlogue.sharedui.generated.resources.settings__service_epic
 import gamerlogue.sharedui.generated.resources.settings__service_gog
+import gamerlogue.sharedui.generated.resources.settings__service_import_library
 import gamerlogue.sharedui.generated.resources.settings__service_playstation
 import gamerlogue.sharedui.generated.resources.settings__service_steam
+import gamerlogue.sharedui.generated.resources.settings__service_sync_done
+import gamerlogue.sharedui.generated.resources.settings__service_sync_error
+import gamerlogue.sharedui.generated.resources.settings__service_sync_now
+import gamerlogue.sharedui.generated.resources.settings__service_sync_wishlist
+import gamerlogue.sharedui.generated.resources.settings__service_web_unsupported
 import gamerlogue.sharedui.generated.resources.settings__service_xbox
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AddW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.EpicgamesSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.GogdotcomSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.PlaystationSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.SteamSimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
-import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.isServiceSyncSupported
+import it.maicol07.gamerlogue.ui.components.ServiceWebView
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbolsIcons
+import org.koin.compose.viewmodel.koinViewModel
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun LinkedServicesScreen() {
+fun LinkedServicesScreen(
+    navigateToImportPreview: (ExternalService, ImportMode) -> Unit,
+    viewModel: LinkedServicesViewModel = koinViewModel(),
+) {
+    if (!isServiceSyncSupported()) {
+        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Text(
+                stringResource(Res.string.settings__service_web_unsupported),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val action = uiState.action
+
+    if (action != null) {
+        val connector = viewModel.connector(action.service)
+        ServiceWebView(
+            initialUrl = connector.loginUrl(),
+            onClose = { viewModel.clearAction() },
+        ) { session ->
+            when (action) {
+                is LinkedServicesViewModel.Action.Connect -> viewModel.runConnect(action.service, session)
+                is LinkedServicesViewModel.Action.SyncWishlist -> viewModel.runWishlistSync(action.service, session)
+                is LinkedServicesViewModel.Action.ImportLibrary -> {
+                    val refs = viewModel.runReadOwned(action.service, session)
+                    ImportHandoff.put(action.service, refs)
+                    navigateToImportPreview(action.service, ImportMode.OWNED)
+                }
+                is LinkedServicesViewModel.Action.PreviewWishlist -> {
+                    val refs = viewModel.runWishlistPreview(action.service, session)
+                    ImportHandoff.put(action.service, refs)
+                    navigateToImportPreview(action.service, ImportMode.WISHLIST)
+                }
+            }
+        }
+        return
+    }
+
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
                 text = stringResource(Res.string.settings__linked_services_disclaimer),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             )
         }
 
-        // List of services
-        ServiceListItem(
-            stringResource(Res.string.settings__service_steam),
-            Icons.SteamSimpleIcons,
-            0,
-            isConnected = false
-        )
-        ServiceListItem(
-            stringResource(Res.string.settings__service_playstation),
-            Icons.PlaystationSimpleIcons,
-            1,
-            isConnected = false
-        )
-        ServiceListItem(stringResource(Res.string.settings__service_xbox), SvglIcons.XboxSvgl, 2, isConnected = false)
-        ServiceListItem(
-            stringResource(Res.string.settings__service_gog),
-            Icons.GogdotcomSimpleIcons,
-            3,
-            isConnected = false
-        )
-        ServiceListItem(
-            stringResource(Res.string.settings__service_epic),
-            Icons.EpicgamesSimpleIcons,
-            4,
-            isConnected = true
-        )
+        uiState.message?.let { message ->
+            val text = when {
+                message == "error" -> stringResource(Res.string.settings__service_sync_error)
+                else -> stringResource(Res.string.settings__service_sync_done)
+            }
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = viewModel::consumeMessage,
+            ) {
+                Text(text, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+
+        ExternalService.entries.forEach { service ->
+            val serviceState = uiState.services[service] ?: LinkedServicesViewModel.ServiceState()
+            ServiceCard(
+                service = service,
+                state = serviceState,
+                onConnect = { viewModel.connect(service) },
+                onDisconnect = { viewModel.disconnect(service) },
+                onToggleWishlist = { viewModel.toggleWishlistSync(service, it) },
+                onWishlistSyncNow = { viewModel.previewWishlist(service) },
+                onImport = { viewModel.importLibrary(service) },
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ServiceListItem(name: String, icon: ImageVector, index: Int, isConnected: Boolean) = SegmentedListItem(
-    colors = ListItemDefaults.expressiveSegmentedColors(),
-    shapes = ListItemDefaults.segmentedShapes(index = index, count = 5),
-    leadingContent = {
-        Image(
-            icon,
-            contentDescription = null,
-            Modifier.size(24.dp),
-            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant)
-        )
-    },
-    trailingContent = {
-        IconButton(onClick = { /* Handle connection/disconnection logic */ }) {
-            Icon(
-                imageVector = if (isConnected) MaterialSymbolsIcons.CheckW500Rounded else MaterialSymbolsIcons.AddW500Rounded,
-                contentDescription = if (isConnected) "Connected" else "Connect"
+private fun ServiceCard(
+    service: ExternalService,
+    state: LinkedServicesViewModel.ServiceState,
+    onConnect: () -> Unit,
+    onDisconnect: () -> Unit,
+    onToggleWishlist: (Boolean) -> Unit,
+    onWishlistSyncNow: () -> Unit,
+    onImport: () -> Unit,
+) = Card(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                service.icon(),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
             )
+            Text(
+                stringResource(service.labelRes()),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 12.dp).weight(1f),
+            )
+            if (state.connected) {
+                TextButton(onClick = onDisconnect) {
+                    Text(stringResource(Res.string.settings__service_disconnect))
+                }
+            } else {
+                FilledTonalButton(onClick = onConnect) {
+                    Text(stringResource(Res.string.settings__service_connect))
+                }
+            }
         }
-    },
-    onClick = { /* Handle connection/disconnection logic */ }
-) { Text(name) }
+
+        if (state.connected) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.settings__service_sync_wishlist),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onWishlistSyncNow, enabled = !state.busy) {
+                    Icon(
+                        MaterialSymbols.SyncW500Rounded,
+                        contentDescription = stringResource(Res.string.settings__service_sync_now),
+                    )
+                }
+                Switch(checked = state.wishlistSync, onCheckedChange = onToggleWishlist)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = onImport, enabled = !state.busy) {
+                    Text(stringResource(Res.string.settings__service_import_library))
+                }
+                if (state.busy) {
+                    CircularProgressIndicator(Modifier.padding(start = 12.dp).size(20.dp))
+                }
+            }
+        }
+    }
+}
+
+private fun ExternalService.icon(): ImageVector = when (this) {
+    ExternalService.STEAM -> Icons.SteamSimpleIcons
+    ExternalService.PLAYSTATION -> Icons.PlaystationSimpleIcons
+    ExternalService.XBOX -> SvglIcons.XboxSvgl
+    ExternalService.GOG -> Icons.GogdotcomSimpleIcons
+    ExternalService.EPIC -> Icons.EpicgamesSimpleIcons
+}
+
+private fun ExternalService.labelRes(): StringResource = when (this) {
+    ExternalService.STEAM -> Res.string.settings__service_steam
+    ExternalService.PLAYSTATION -> Res.string.settings__service_playstation
+    ExternalService.XBOX -> Res.string.settings__service_xbox
+    ExternalService.GOG -> Res.string.settings__service_gog
+    ExternalService.EPIC -> Res.string.settings__service_epic
+}

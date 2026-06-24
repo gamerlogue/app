@@ -239,7 +239,7 @@ symbolCraft {
         "publish",
         "school", "search", "settings", "skeleton", "simulation", "sports_and_outdoors",
         "sports_martial_arts", "sports_baseball", "sports_motorsports", "stadium", "star",
-        "star_shine", "strategy", "swords", "sword_rose",
+        "star_shine", "strategy", "swords", "sword_rose", "sync",
         "tactic", "theater_comedy", "toys_and_games",
         "upcoming",
         "wand_stars", "web_traffic"

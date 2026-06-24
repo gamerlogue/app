@@ -10,8 +10,12 @@ import gamerlogue.sharedui.generated.resources.nav__profile
 import gamerlogue.sharedui.generated.resources.nav__settings
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__appearance
+import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__linked_services
+import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
+import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
+import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -73,6 +77,19 @@ object NavKeys {
     }
 
     @Serializable
+    data class LibraryImportPreview(
+        val service: ExternalService,
+        val mode: ImportMode = ImportMode.OWNED,
+    ) : NavKeyWithMeta() {
+        // Custom getters (no backing field) so only the data fields are serialized — see GameList.
+        override val title: StringResource? get() = when (mode) {
+            ImportMode.OWNED -> Res.string.settings__import_library_title
+            ImportMode.WISHLIST -> Res.string.settings__wishlist_preview_title
+        }
+        override val showBottomBar: Boolean get() = false
+    }
+
+    @Serializable
     data class GameList(val section: DiscoverSection) : NavKeyWithMeta() {
         // Custom getters (no backing field) so only `section` is serialized.
         override val title: StringResource? get() = section.sectionTitle
@@ -92,6 +109,7 @@ object NavKeys {
                 subclass(Login::class, Login.serializer())
                 subclass(GameDetail::class, GameDetail.serializer())
                 subclass(GameList::class, GameList.serializer())
+                subclass(LibraryImportPreview::class, LibraryImportPreview.serializer())
             }
         }
     }
