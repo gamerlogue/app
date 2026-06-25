@@ -6,40 +6,33 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import co.touchlab.kermit.Logger
-import it.maicol07.gamerlogue.auth.AndroidAuthTokenProvider
-import java.io.UnsupportedEncodingException
-import java.net.URLDecoder
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 class AppActivity : ComponentActivity() {
+    // Observed by setContent: updated by onCreate/onNewIntent so the callback reaches App().
+    private var authCallbackUri by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        handleLoginDeepLink(intent)
+        captureLoginDeepLink(intent)
         setContent {
-            App()
+            App(authCallbackUri = authCallbackUri)
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleLoginDeepLink(intent)
+        captureLoginDeepLink(intent)
     }
 
-    private fun handleLoginDeepLink(intent: Intent) {
+    private fun captureLoginDeepLink(intent: Intent) {
         val data: Uri? = intent.data
         if (data != null && data.toString().startsWith("gamerlogue://auth/callback")) {
-            val authProvider = AndroidAuthTokenProvider(applicationContext)
-            val authHandler = it.maicol07.gamerlogue.auth.AndroidAuthenticationHandler(applicationContext, authProvider)
-            authHandler.handleCallback(data.toString()) {
-                try {
-                    URLDecoder.decode(it, "UTF-8")
-                } catch (e: UnsupportedEncodingException) {
-                    Logger.e(e) { "Error decoding callback query parameter" }
-                    null
-                }
-            }
+            authCallbackUri = data.toString()
         }
     }
 }

@@ -101,6 +101,7 @@ kotlin {
 dependencies {
     implementation(project(":sharedUI"))
     implementation(libs.androidx.activityCompose)
+    implementation(libs.koin.android)
 
     androidTestImplementation(libs.androidx.uitest.junit4)
     debugImplementation(libs.androidx.uitest.testManifest)

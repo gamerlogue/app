@@ -64,13 +64,11 @@ val httpModule = module {
             }
             install(Auth) {
                 bearer {
-                    loadTokens {
-                        get<AuthTokenProvider>().accessToken?.let { BearerTokens(it, "") }
-                    }
-                    refreshTokens {
-                        // No refresh yet
-                        null
-                    }
+                    val currentTokens = { get<AuthTokenProvider>().accessToken?.let { BearerTokens(it, "") } }
+                    loadTokens(currentTokens)
+                    // No refresh endpoint yet; just re-read the provider so a token saved after login
+                    // (or after a pre-login null was cached) is picked up on the 401 retry.
+                    refreshTokens { currentTokens() }
                 }
             }
         }

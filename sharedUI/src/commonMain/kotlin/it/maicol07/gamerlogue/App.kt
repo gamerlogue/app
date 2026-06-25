@@ -13,7 +13,9 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.github.michaelbull.result.unwrap
+import io.ktor.http.decodeURLQueryComponent
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.auth.rememberAuthenticationHandler
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.data.UserStore
 import it.maicol07.gamerlogue.di.appModule
@@ -32,7 +34,7 @@ import org.koin.dsl.module
 
 @OptIn(KoinExperimentalAPI::class)
 @Composable
-fun App() {
+fun App(authCallbackUri: String? = null) {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
 
     KoinMultiplatformApplication(
@@ -48,7 +50,7 @@ fun App() {
             )
         }
     ) {
-        AuthHandler()
+        AuthHandler(authCallbackUri)
 
         AppTheme {
             AppScaffold(currentNavKey = backStack.last()) {
@@ -74,9 +76,28 @@ fun App() {
 }
 
 @Composable
-private fun AuthHandler() {
+private fun AuthHandler(authCallbackUri: String?) {
     val authProvider = koinInject<AuthTokenProvider>()
+    val authHandler = rememberAuthenticationHandler()
     val userStore = remember { UserStore() }
+
+    // Handle the login callback here, inside the Koin composition, so the token lands on the
+    // same AuthTokenProvider singleton the Ktor client reads (the Activity has its own Koin-less scope).
+    LaunchedEffect(authCallbackUri) {
+        if (authCallbackUri != null) {
+            // Backend double-URL-encodes the token, so Sanctum's "id|hash" arrives as "id%257Chash".
+            // ponytail: fully decode (safe: token has no literal '%'); single decode if the backend stops double-encoding.
+            authHandler.handleCallback(authCallbackUri) { raw ->
+                var value = raw
+                while (true) {
+                    val decoded = value.decodeURLQueryComponent(plusIsSpace = true)
+                    if (decoded == value) break
+                    value = decoded
+                }
+                value
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (BuildConfig.APP_ENV === AppEnvironment.LOCAL) {
