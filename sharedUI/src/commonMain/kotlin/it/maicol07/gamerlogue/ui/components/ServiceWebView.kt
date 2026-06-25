@@ -88,6 +88,14 @@ interface WebSession {
     suspend fun run(step: WebStep): List<ExternalGameRef>
 
     /**
+     * Navigate to [url] and reveal the WebView with a "Continue" button so the user can interactively
+     * sign into a second (store) origin whose first-party session the DOM ops need; suspends until they
+     * tap Continue. Used when [ServiceConnector.storeLoginUrl] is set (e.g. Xbox: the Microsoft Store
+     * wishlist origin, which the login.live.com token session doesn't cover).
+     */
+    suspend fun awaitStoreLogin(url: String)
+
+    /**
      * Show an in-WebView checklist of [games] about to be pushed to the store wishlist and suspend
      * until the user picks which to send (empty if they skip). No-op (returns empty) when [games] is
      * empty. Used to preview the outgoing direction before writing to the store.
@@ -137,7 +145,11 @@ fun ServiceWebView(
     val loginDone = session.loginDone
     val url = session.currentUrl
     val confirming = session.pendingConfirm
-    val showWebView = confirming == null && !loginDone && (url == null || url.contains("login"))
+    val manualLogin = session.awaitingManualLogin
+    // Reveal the WebView for the first login (login pages only) OR whenever we're waiting on the user to
+    // sign into a second store origin (any URL — the store page degrades to logged-out, never a /login).
+    val showWebView = confirming == null &&
+        (manualLogin || (!loginDone && (url == null || url.contains("login"))))
 
     Box(Modifier.fillMaxSize()) {
         // The progress panel is the base layer; the WebView sits on top only when login is needed.
@@ -192,6 +204,15 @@ fun ServiceWebView(
             }
             IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
                 Icon(Icons.CloseW500Rounded, contentDescription = "Close")
+            }
+            // Second-origin store login: the user signs in on the page, then taps Continue to proceed.
+            if (manualLogin) {
+                Button(
+                    onClick = session::resolveManualLogin,
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
+                ) {
+                    Text(stringResource(Res.string.settings__wishlist_push_confirm))
+                }
             }
         }
     }
@@ -307,11 +328,14 @@ private class WebSessionImpl(
 ) : WebSession {
     private var pending: CompletableDeferred<List<ExternalGameRef>>? = null
     private var confirm: CompletableDeferred<List<LibrarySync.OutgoingGame>>? = null
+    private var manualLogin: CompletableDeferred<Unit>? = null
 
     // Observed by the composable to drive the WebView/overlay and the progress log.
     var loginDone by mutableStateOf(false)
         private set
     var pendingConfirm by mutableStateOf<List<LibrarySync.OutgoingGame>?>(null)
+        private set
+    var awaitingManualLogin by mutableStateOf(false)
         private set
     val log = mutableStateListOf<SyncPhase>()
 
@@ -335,6 +359,24 @@ private class WebSessionImpl(
     /** Called by the checklist overlay with the user's selection. */
     fun resolveConfirm(selected: List<LibrarySync.OutgoingGame>) {
         confirm?.complete(selected)
+    }
+
+    override suspend fun awaitStoreLogin(url: String) {
+        Logger.i(tag = TAG) { "awaitStoreLogin: loadUrl $url" }
+        controller.loadUrl(url)
+        awaitLoaded()
+        val deferred = CompletableDeferred<Unit>()
+        manualLogin = deferred
+        awaitingManualLogin = true
+        deferred.await()
+        awaitingManualLogin = false
+        manualLogin = null
+        Logger.i(tag = TAG) { "awaitStoreLogin: continued at ${state.lastLoadedUrl}" }
+    }
+
+    /** Called by the Continue button once the user has signed into the store. */
+    fun resolveManualLogin() {
+        manualLogin?.complete(Unit)
     }
 
     override suspend fun awaitLogin(connector: ServiceConnector) {

@@ -17,6 +17,7 @@ import io.ktor.http.contentType
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.services.PsnApi
+import it.maicol07.gamerlogue.services.XboxApi
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -88,6 +89,19 @@ val httpModule = module {
         PsnApi(
             HttpClient {
                 followRedirects = false
+                install(Logging) {
+                    logger = kermitKtorLogger()
+                    level = LogLevel.HEADERS
+                }
+            },
+        )
+    }
+
+    // Xbox Live API client (token chain + titlehub); the MSA token comes from the WebView, so this
+    // client just makes plain JSON calls.
+    single {
+        XboxApi(
+            HttpClient {
                 install(Logging) {
                     logger = kermitKtorLogger()
                     level = LogLevel.HEADERS

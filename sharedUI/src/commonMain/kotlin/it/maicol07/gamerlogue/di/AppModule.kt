@@ -44,7 +44,7 @@ val appModule = module {
         mapOf(
             ExternalService.STEAM to SteamConnector(),
             ExternalService.PLAYSTATION to PsnConnector(get()),
-            ExternalService.XBOX to XboxConnector(),
+            ExternalService.XBOX to XboxConnector(get()),
             ExternalService.GOG to GogConnector(),
             ExternalService.EPIC to EpicConnector(),
         )

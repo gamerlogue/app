@@ -44,6 +44,13 @@ abstract class ServiceConnector(
     /** Page where the user signs in (defaults to the store root). */
     open fun loginUrl(): String = "https://$host/"
 
+    /** A second, store-domain page the user must interactively sign into before DOM wishlist ops, or
+     *  null when the [loginUrl] session already covers them. Needed when the wishlist lives on a
+     *  different origin than [loginUrl] and cross-origin (third-party-cookie) SSO is blocked in the
+     *  WebView — a top-level sign-in here sets that origin's own first-party cookies (e.g. Xbox: the API
+     *  token comes from login.live.com, but the wishlist DOM is on the Microsoft Store). */
+    open fun storeLoginUrl(): String? = null
+
     /** True once [currentUrl] is a logged-in page of this store. */
     open fun isLoggedIn(currentUrl: String): Boolean =
         currentUrl.contains(host) && LOGIN_MARKERS.none { currentUrl.contains(it) }

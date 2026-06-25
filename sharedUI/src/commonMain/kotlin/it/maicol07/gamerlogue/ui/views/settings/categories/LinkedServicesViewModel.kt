@@ -105,6 +105,9 @@ class LinkedServicesViewModel(
         setBusy(service, true)
         try {
             session.awaitLogin(connector)
+            // Some stores keep the wishlist on a different origin than the login (Xbox: Microsoft Store
+            // vs login.live.com) — let the user sign into it before any DOM read/write.
+            connector.storeLoginUrl()?.let { session.awaitStoreLogin(it) }
             val wishlist = wishlistRefs(connector, session)
             val result = librarySync.pullWishlist(connector, wishlist)
             if (result.toPush.isNotEmpty()) pushWishlist(connector, session, result.toPush)
@@ -133,6 +136,7 @@ class LinkedServicesViewModel(
     suspend fun runWishlistPreview(service: ExternalService, session: WebSession): List<ExternalGameRef> {
         val connector = connector(service)
         session.awaitLogin(connector)
+        connector.storeLoginUrl()?.let { session.awaitStoreLogin(it) }
         val wishlist = wishlistRefs(connector, session)
         // Outgoing preview: let the user pick which backlog games to push to the store, then push them.
         val selected = session.confirmPush(librarySync.computeWishlistPush(connector, wishlist))
