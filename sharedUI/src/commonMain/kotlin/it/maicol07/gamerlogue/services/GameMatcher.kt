@@ -36,7 +36,7 @@ class GameMatcher(private val igdb: IgdbClient) {
         val confident: Boolean,
     )
 
-    private val externalFields = arrayOf("url", "game.id", "game.name", "game.cover.image_id")
+    private val externalFields = arrayOf("url", "uid", "game.id", "game.name", "game.cover.image_id")
 
     /**
      * Match [refs] of [service] to IGDB games. Tries the `external_games` store-id mapping first; for
@@ -136,6 +136,7 @@ class GameMatcher(private val igdb: IgdbClient) {
      */
     private suspend fun matchByStoreId(connector: ServiceConnector, refs: List<ExternalGameRef>): Map<String, Game> {
         val source = connector.externalGameSource
+        if (connector.idMatchesUid) return matchByUid(source, refs)
         val urlToUid = refs.asSequence()
             .mapNotNull { ref -> connector.storeUrl(ref.uid)?.let { it to ref.uid } }
             .toMap()
@@ -156,6 +157,31 @@ class GameMatcher(private val igdb: IgdbClient) {
                 val game = ext.game ?: return@forEach
                 val url = ext.url ?: return@forEach
                 val uid = connector.uidFromUrl(url) ?: urlToUid[url] ?: return@forEach
+                byUid[uid] = game
+            }
+        }
+        return byUid
+    }
+
+    /**
+     * Store-id match on the numeric `uid` field (for stores whose IGDB `url` is slug-based and can't
+     * be rebuilt from the store uid, e.g. GOG): the store's product id equals IGDB's `external_games.uid`.
+     */
+    private suspend fun matchByUid(source: Int, refs: List<ExternalGameRef>): Map<String, Game> {
+        val byUid = mutableMapOf<String, Game>()
+        refs.map { it.uid }.distinct().chunked(UID_CHUNK).forEach { chunk ->
+            val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
+            val result = safeRequest {
+                igdb.getExternalGames {
+                    fields(*externalFields)
+                    where("external_game_source = $source & uid = ($quoted)")
+                    limit(chunk.size)
+                }
+            }
+            result.getError()?.let { Logger.w(tag = TAG, throwable = it) { "external_games uid lookup failed" } }
+            result.get()?.externalgames?.forEach { ext ->
+                val game = ext.game ?: return@forEach
+                val uid = ext.uid.ifBlank { return@forEach }
                 byUid[uid] = game
             }
         }

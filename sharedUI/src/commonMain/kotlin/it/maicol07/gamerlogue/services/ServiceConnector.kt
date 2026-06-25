@@ -55,6 +55,10 @@ abstract class ServiceConnector(
     open fun isLoggedIn(currentUrl: String): Boolean =
         currentUrl.contains(host) && LOGIN_MARKERS.none { currentUrl.contains(it) }
 
+    /** Match IGDB `external_games` on the numeric `uid` field instead of `url` — for stores whose
+     *  IGDB url is slug-based and can't be rebuilt from the store uid (e.g. GOG). */
+    open val idMatchesUid: Boolean = false
+
     /** The IGDB-indexed store URL for [uid], or null when this service has no URL mapping. */
     fun storeUrl(uid: String): String? = storeUrlTemplate?.replace("{id}", uid)
 

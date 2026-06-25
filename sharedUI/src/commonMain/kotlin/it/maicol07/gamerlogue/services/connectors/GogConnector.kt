@@ -10,24 +10,40 @@ import it.maicol07.gamerlogue.services.uidJsonArray
 /**
  * GOG. Reads come from same-origin www.gog.com account JSON endpoints used by the site itself.
  *
- * ponytail: only the first page of owned products is read; add pagination (`totalPages`) if a large
- * library is truncated. Wishlist read/write are best-effort and may need live tuning.
+ * GOG's numeric product id can't be turned into a store URL (GOG pages are slug-based), so we match
+ * IGDB on the `uid` field ([idMatchesUid]) — IGDB's GOG `external_games.uid` is that same product id.
+ * Wishlist read/write are best-effort and may need live tuning.
  */
 class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com", externalGameSource = 5) {
+    override val idMatchesUid = true
+
     override fun loginUrl() = "https://www.gog.com/account"
 
+    /** Recognise a GOG store page (returns its slug) so IGDB `websites` URLs are matched for push. */
+    override fun uidFromUrl(url: String) = Regex("gog\\.com/(?:[a-z]{2}/)?game/([^/?#]+)").find(url)?.groupValues?.get(1)
+
     override fun readOwned() = WebStep(ACCOUNT, SyncScripts.wrap("""
-        let r = await fetch('https://www.gog.com/account/getFilteredProducts?mediaType=1&page=1',
-            { credentials: 'include' });
-        let j = await r.json();
-        out = (j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' }));
+        out = [];
+        let page = 1, totalPages = 1;
+        do {
+            let r = await fetch('https://www.gog.com/account/getFilteredProducts?mediaType=1&page=' + page,
+                { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            let j = await r.json();
+            totalPages = j.totalPages || 1;
+            out = out.concat((j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' })));
+        } while (++page <= totalPages);
     """.trimIndent()))
 
     override fun readWishlist() = WebStep(ACCOUNT, SyncScripts.wrap("""
-        let r = await fetch('https://www.gog.com/account/wishlist/search?hiddenFlag=0&mediaType=1&page=1',
-            { credentials: 'include' });
-        let j = await r.json();
-        out = (j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' }));
+        out = [];
+        let page = 1, totalPages = 1;
+        do {
+            let r = await fetch('https://www.gog.com/account/wishlist/search?hiddenFlag=0&mediaType=1&page=' + page,
+                { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            let j = await r.json();
+            totalPages = j.totalPages || 1;
+            out = out.concat((j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' })));
+        } while (++page <= totalPages);
     """.trimIndent()))
 
     override fun addToWishlist(refs: List<ExternalGameRef>) = WebStep(ACCOUNT, SyncScripts.wrap("""
