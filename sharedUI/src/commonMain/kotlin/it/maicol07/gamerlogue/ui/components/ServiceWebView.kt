@@ -61,6 +61,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_push_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
+import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
@@ -277,7 +278,7 @@ private fun PushRow(game: LibrarySync.OutgoingGame, checked: Boolean, onCheckedC
             }
         }
         if (game.storeUrl != null) {
-            IconButton(onClick = { uriHandler.openUri(game.storeUrl) }) {
+            IconButton(onClick = { uriHandler.openURL(game.storeUrl) }) {
                 Icon(Icons.OpenInNewW500Rounded, contentDescription = stringResource(Res.string.settings__open_store))
             }
         }

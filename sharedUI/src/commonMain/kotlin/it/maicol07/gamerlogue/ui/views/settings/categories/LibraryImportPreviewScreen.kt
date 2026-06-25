@@ -65,6 +65,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import org.jetbrains.compose.resources.stringResource
@@ -148,7 +149,7 @@ fun LibraryImportPreviewScreen(
                     trailingContent = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (row.sourceUrl != null) {
-                                IconButton(onClick = { uriHandler.openUri(row.sourceUrl) }) {
+                                IconButton(onClick = { uriHandler.openURL(row.sourceUrl) }) {
                                     Icon(
                                         Icons.OpenInNewW500Rounded,
                                         contentDescription = stringResource(Res.string.settings__open_store),
