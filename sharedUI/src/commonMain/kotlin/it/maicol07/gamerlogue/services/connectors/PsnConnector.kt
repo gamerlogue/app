@@ -43,21 +43,27 @@ class PsnConnector(private val api: PsnApi) :
         storeUrl,
         SyncScripts.wrap(
             """
-            // The add-to-wishlist button renders late; retry until it appears, then click it. When the
-            // game is already wishlisted the button reads "removeFromWishlist" instead, so this selector
-            // matches nothing and we (correctly) skip — no need to check aria-pressed.
-            let clicked = await new Promise(function(res) {
-                let tries = 0;
-                (function tick() {
-                    let b = document.querySelector('button[data-track-click*="addToWishlist"]');
-                    if (b) { b.click(); return res(true); }
-                    if (++tries > 30) { console.log('[GL] psn wishlist button not found (maybe already wishlisted)'); return res(false); }
-                    setTimeout(tick, 500);
-                })();
-            });
-            // Let the add-to-wishlist request fire before we navigate away to the next game.
-            if (clicked) await new Promise(function(r) { setTimeout(r, 2000); });
-            console.log('[GL] psn wishlist push clicked=' + clicked + ' ' + location.href);
+            // Click then VERIFY, with retry. The store is React+SSR: the add button's HTML renders before
+            // its onClick is bound, so a single early click hits a dead handler and silently does nothing
+            // (this was the bug — clicked=true but nothing added). Success = the button flips to the
+            // already-wishlisted "removeFromWishlist" variant, so we re-click until that appears.
+            let wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
+            let confirmed = function() { return !!document.querySelector('button[data-track-click*="removeFromWishlist"]'); };
+            let attempts = 0;
+            for (let i = 0; i < 5 && !confirmed(); i++) {
+                // First VISIBLE add button (offsetParent!==null skips hidden edition-picker duplicates).
+                let btn = Array.prototype.find.call(
+                    document.querySelectorAll('button[data-track-click*="addToWishlist"]'),
+                    function(b) { return b.offsetParent !== null; },
+                );
+                if (!btn) { await wait(500); continue; } // still rendering
+                attempts++;
+                btn.click();
+                await wait(1200); // let React handle the click + the add request fire
+            }
+            let ok = confirmed();
+            out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
+            console.log('[GL] psn wishlist push added=' + ok + ' attempts=' + attempts + ' ' + location.href);
             """.trimIndent(),
         ),
     )
@@ -67,10 +73,20 @@ class PsnConnector(private val api: PsnApi) :
         SyncScripts.wrap(
             """
             console.log('[GL] psn wishlist at ' + location.href);
+            // Tiles render late (React); poll until they appear instead of reading once on an empty DOM
+            // (that one-shot read was returning an empty wishlist).
+            let tiles = await new Promise(function(res) {
+                let tries = 0;
+                (function tick() {
+                    let t = document.querySelectorAll('[data-track-click="web:product-tile-click"]');
+                    if (t.length || ++tries > 30) return res(t);
+                    setTimeout(tick, 500);
+                })();
+            });
             // Each tile carries a clean name + product id in its data-telemetry-meta JSON, and the store
             // URL in its href — no text parsing/cleanup needed.
             let res = {};
-            document.querySelectorAll('[data-track-click="web:product-tile-click"]').forEach(tile => {
+            tiles.forEach(tile => {
                 let name = '', id = '';
                 try {
                     let meta = JSON.parse(tile.getAttribute('data-telemetry-meta') || '{}');

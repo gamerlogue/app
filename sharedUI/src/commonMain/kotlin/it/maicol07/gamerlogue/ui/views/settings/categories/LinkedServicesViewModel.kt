@@ -151,8 +151,8 @@ class LinkedServicesViewModel(
         else session.run(connector.readWishlist())
 
     private suspend fun pushWishlist(connector: ServiceConnector, session: WebSession, games: List<LibrarySync.OutgoingGame>) {
-        // Only games that release on this platform and have a store page are pushable.
-        val pushable = games.filter { it.onPlatform && it.storeUrl != null }
+        // Only games that release on this platform, have a store page, and aren't already wishlisted.
+        val pushable = games.filter { it.onPlatform && it.storeUrl != null && !it.alreadyOnWishlist }
         if (pushable.isEmpty()) return
         when {
             connector.wishlistViaApi() ->

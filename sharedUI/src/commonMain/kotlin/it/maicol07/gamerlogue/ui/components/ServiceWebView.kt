@@ -54,6 +54,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_login_required
 import gamerlogue.sharedui.generated.resources.settings__service_phase_logged_in
 import gamerlogue.sharedui.generated.resources.settings__service_phase_reading
 import gamerlogue.sharedui.generated.resources.settings__service_working
+import gamerlogue.sharedui.generated.resources.settings__wishlist_already_present
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
@@ -205,7 +206,9 @@ private fun PushChecklist(
 ) {
     // Pushable rows need both a store page and to release on this platform; the rest are shown disabled.
     val selected = remember(games) {
-        mutableStateMapOf<String, Boolean>().apply { games.forEach { put(it.uid, it.storeUrl != null && it.onPlatform) } }
+        mutableStateMapOf<String, Boolean>().apply {
+            games.forEach { put(it.uid, it.storeUrl != null && it.onPlatform && !it.alreadyOnWishlist) }
+        }
     }
     val onPlatform = games.filter { it.onPlatform }
     val offPlatform = games.filter { !it.onPlatform }
@@ -251,7 +254,7 @@ private fun PushChecklist(
 @Composable
 private fun PushRow(game: LibrarySync.OutgoingGame, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     val uriHandler = LocalUriHandler.current
-    val pushable = game.storeUrl != null && game.onPlatform
+    val pushable = game.storeUrl != null && game.onPlatform && !game.alreadyOnWishlist
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -269,9 +272,14 @@ private fun PushRow(game: LibrarySync.OutgoingGame, checked: Boolean, onCheckedC
         val color = if (pushable) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
             Text(game.name, color = color)
-            if (game.onPlatform && game.storeUrl == null) {
+            val subtitle = when {
+                game.alreadyOnWishlist -> Res.string.settings__wishlist_already_present
+                game.onPlatform && game.storeUrl == null -> Res.string.settings__import_no_match
+                else -> null
+            }
+            if (subtitle != null) {
                 Text(
-                    stringResource(Res.string.settings__import_no_match),
+                    stringResource(subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

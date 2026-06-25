@@ -36,6 +36,8 @@ class LibrarySync(
         val coverImageId: String?,
         val storeUrl: String?,
         val onPlatform: Boolean = true,
+        /** Already on the store wishlist — shown in the preview but disabled/deselected, not pushed. */
+        val alreadyOnWishlist: Boolean = false,
     )
 
     /** Persist confirmed IGDB [games] as owned. Existing entries keep their status/ratings and only
@@ -83,16 +85,16 @@ class LibrarySync(
     suspend fun computeWishlistPush(connector: ServiceConnector, storeWishlist: List<ExternalGameRef>): List<OutgoingGame> {
         // Only un-owned backlog games belong on a wishlist — an owned game isn't "wished for".
         val backlogIds = allEntries().filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
+        if (backlogIds.isEmpty()) return emptyList()
         val onWishlistIds = matcher.match(connector, storeWishlist).mapNotNull { it.game?.id?.toInt() }.toSet()
-        val toPushIds = backlogIds.filter { it !in onWishlistIds }
-        if (toPushIds.isEmpty()) return emptyList()
 
-        val urls = matcher.urlsForGames(connector, toPushIds)
-        val games = matcher.gamesByIds(toPushIds).associateBy { it.id.toInt() }
+        val urls = matcher.urlsForGames(connector, backlogIds)
+        val games = matcher.gamesByIds(backlogIds).associateBy { it.id.toInt() }
         val family = connector.platformFamily
-        // Include games with no store mapping too (storeUrl=null) so the preview can show them disabled,
-        // and flag games that don't release on this store's platform family (null family = PC = all ok).
-        return toPushIds.map { id ->
+        // Show every backlog game in the preview: ones already on the store wishlist are flagged so the UI
+        // disables/deselects them, games with no store mapping (storeUrl=null) are shown disabled, and
+        // games that don't release on this store's platform family are flagged (null family = PC = all ok).
+        return backlogIds.map { id ->
             val url = urls[id]
             val game = games[id]
             val onPlatform = family == null ||
@@ -104,6 +106,7 @@ class LibrarySync(
                 game?.cover?.image_id,
                 url?.let { connector.normalizePushUrl(it) },
                 onPlatform,
+                alreadyOnWishlist = id in onWishlistIds,
             )
         }
     }

@@ -200,6 +200,7 @@
     <string name="settings__import_search_hint">Search a game</string>
     <string name="settings__import_no_match">No match found</string>
     <string name="settings__import_already_present">Already in your library</string>
+    <string name="settings__wishlist_already_present">Already on wishlist</string>
     <string name="settings__import_confirm_match">Tap to confirm the match</string>
     <string name="settings__import_confirm">Import selected</string>
     <string name="settings__import_done">Imported %1$d games</string>
