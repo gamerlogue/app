@@ -26,7 +26,7 @@ import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.components.layout.LocalAppUiState
 import it.maicol07.gamerlogue.ui.navigation.AppNavDisplay
 import it.maicol07.gamerlogue.ui.theme.AppTheme
-import org.koin.compose.KoinMultiplatformApplication
+import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.KoinConfiguration
@@ -37,18 +37,17 @@ import org.koin.dsl.module
 fun App(authCallbackUri: String? = null) {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
 
-    KoinMultiplatformApplication(
-        KoinConfiguration {
-            modules(
-                appModule,
-                httpModule,
-                platformModule,
-                // Compose specific module to provide the NavBackStack
-                module {
-                    single<NavBackStack> { backStack }
-                }
-            )
-        }
+    KoinApplication(KoinConfiguration {
+        modules(
+            appModule,
+            httpModule,
+            platformModule,
+            // Compose specific module to provide the NavBackStack
+            module {
+                single<NavBackStack> { backStack }
+            }
+        )
+    }
     ) {
         AuthHandler(authCallbackUri)
 
