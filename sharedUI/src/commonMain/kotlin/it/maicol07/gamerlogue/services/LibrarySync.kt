@@ -12,6 +12,8 @@ import it.maicol07.gamerlogue.extensions.persist
 import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.safeRequest
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Single
 
 /**
  * Writes Gamerlogue [LibraryEntry]s from data read off an external store, reusing the JSON:API CRUD.
@@ -19,6 +21,7 @@ import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
  * Two flows: [importOwned] (store → Gamerlogue, one-way, after the user confirms the mapping preview)
  * and [pullWishlist] (bidirectional additive merge; wishlist ≡ [GameLibraryStatus.BACKLOG]).
  */
+@Single
 class LibrarySync(
     private val matcher: GameMatcher,
     private val authProvider: AuthTokenProvider,

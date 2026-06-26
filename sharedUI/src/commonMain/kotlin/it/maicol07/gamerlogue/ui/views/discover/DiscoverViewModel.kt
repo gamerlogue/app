@@ -13,12 +13,14 @@ import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 import kotlin.time.ExperimentalTime
 
 const val SectionGameLimit = 50
 
 @OptIn(ExperimentalTime::class)
+@KoinViewModel
 class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
     /** Immutable state of the Discover screen, one entry per [DiscoverSection]. */
     data class UiState(

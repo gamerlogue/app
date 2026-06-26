@@ -9,8 +9,10 @@ import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.ui.views.settings.utils.SettingsKeys
+import org.koin.core.annotation.KoinViewModel
 
 @OptIn(ExperimentalSettingsApi::class)
+@KoinViewModel
 class SettingsViewModel(
     private val settings: ObservableSettings,
     private val authTokenProvider: AuthTokenProvider

@@ -19,6 +19,7 @@ kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.8.0"
 kotlinx-serialization = "1.11.0"
 koin = "4.2.2"
+koin-plugin = "1.0.1"
 kotlinx_datetime_ext = "1.4.0"
 kotest = "6.2.1"
 ksp = "2.3.9"
@@ -69,6 +70,7 @@ composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", na
 composeSettings-ui-expressive = { group = "com.github.alorma.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-compose-viewmodel = {group = "io.insert-koin", name = "koin-compose-viewmodel", version.ref = "koin"}
@@ -118,6 +120,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 compose-hot-reload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
 git-semantic-versioning = { id = "io.github.andreabrighi.android-git-sensitive-semantic-versioning-gradle-plugin", version.ref = "git-semantic-versioning" }
+koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

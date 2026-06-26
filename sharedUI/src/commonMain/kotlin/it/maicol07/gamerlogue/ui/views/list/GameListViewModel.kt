@@ -16,6 +16,8 @@ import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 
 /**
@@ -23,8 +25,9 @@ import org.koin.core.component.inject
  * the Discover carousel. Sections backed by a popularity-score query paginate through the
  * primitive endpoint; the others paginate the games endpoint directly.
  */
+@KoinViewModel
 class GameListViewModel(
-    private val section: DiscoverSection,
+    @InjectedParam private val section: DiscoverSection,
 ) : StateViewModel<GameListViewModel.UiState>(UiState()) {
     /** Immutable state of the paginated GameList screen. */
     data class UiState(

@@ -15,8 +15,10 @@ import it.maicol07.gamerlogue.extensions.forEachPage
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 
+@KoinViewModel
 class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
     /** Immutable state of the Library screen. */
     data class UiState(

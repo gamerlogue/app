@@ -13,6 +13,8 @@ import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.delay
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Single
 
 /**
  * Maps games coming from an external store to IGDB games, reusing the app's [IgdbClient].
@@ -21,6 +23,7 @@ import kotlinx.coroutines.delay
  * mapping (common for PSN/Xbox), callers fall back to [searchByName]. Alternatives for the editable
  * import preview are fetched on demand via [searchByName] rather than eagerly, to keep IGDB calls down.
  */
+@Single()
 class GameMatcher(private val igdb: IgdbClient) {
 
     /**

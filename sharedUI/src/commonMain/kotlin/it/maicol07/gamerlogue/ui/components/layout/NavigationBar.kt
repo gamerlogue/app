@@ -25,16 +25,16 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.New
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500RoundedFill
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500RoundedFill
+import it.maicol07.gamerlogue.LocalNavBackStack
 import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.koinInject
 
 @Composable
 fun AppNavigationBar(
     currentNavKey: NavKey,
-    backStack: NavBackStack = koinInject()
+    backStack: NavBackStack = LocalNavBackStack.current
 ) {
     AnimatedVisibility(
         (currentNavKey as? NavKeys.NavKeyWithMeta)?.showBottomBar ?: true,

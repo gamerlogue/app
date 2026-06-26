@@ -21,9 +21,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
+import it.maicol07.gamerlogue.LocalNavBackStack
 import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.ui.components.layout.NetworkErrorAction
-import org.koin.compose.koinInject
 
 var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>> {
     error("No LocalGameTopBarOverlayMode provided")
@@ -34,7 +34,7 @@ var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>>
 fun GameTopBar(
     gameName: String?,
     modifier: Modifier = Modifier,
-    backStack: NavBackStack = koinInject()
+    backStack: NavBackStack = LocalNavBackStack.current
 ) {
     val canNavigateBack = backStack.size > 1
     val isOverlayMode by LocalGameTopBarOverlayMode.current

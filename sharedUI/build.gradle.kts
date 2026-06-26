@@ -25,11 +25,15 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.symbolCraft)
+    alias(libs.plugins.koin.compiler)
 }
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.add("-Xcollection-literals")
+        freeCompilerArgs.addAll(
+            "-Xcollection-literals",
+            "-Xexpect-actual-classes"
+        )
     }
 
     android {
@@ -84,6 +88,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+            api(libs.koin.annotations)
             implementation(libs.materialKolor)
             implementation(libs.multiplatform.settings)
             implementation(libs.sketch)

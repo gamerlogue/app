@@ -20,11 +20,14 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
 import org.jetbrains.compose.resources.StringResource
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 
+@KoinViewModel
 class AddToLibrarySheetViewModel(
-    private val game: Game,
-    private val existingEntry: LibraryEntry?
+    @InjectedParam private val game: Game,
+    @InjectedParam private val existingEntry: LibraryEntry?
 ) : BaseViewModel() {
     private val authTokenProvider by inject<AuthTokenProvider>()
 

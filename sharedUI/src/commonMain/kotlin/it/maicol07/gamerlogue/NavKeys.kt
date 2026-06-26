@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
@@ -22,6 +23,11 @@ import kotlinx.serialization.modules.polymorphic
 import org.jetbrains.compose.resources.StringResource
 
 typealias NavBackStack = NavBackStack<NavKey>
+
+/** The single app back stack, provided down the composition instead of via DI. */
+val LocalNavBackStack = staticCompositionLocalOf<NavBackStack<NavKey>> {
+    error("LocalNavBackStack not provided")
+}
 
 object NavKeys {
     abstract class NavKeyWithMeta : NavKey {

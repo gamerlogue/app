@@ -15,17 +15,17 @@ import androidx.compose.ui.Modifier
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
+import it.maicol07.gamerlogue.LocalNavBackStack
 import it.maicol07.gamerlogue.NavBackStack
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppTopBar(
     title: StringResource?,
     modifier: Modifier = Modifier,
-    backStack: NavBackStack = koinInject(),
+    backStack: NavBackStack = LocalNavBackStack.current,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(

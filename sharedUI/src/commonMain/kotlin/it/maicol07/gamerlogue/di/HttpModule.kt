@@ -3,6 +3,8 @@ package it.maicol07.gamerlogue.di
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.ktor.IgdbKtorEngine
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
+import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
@@ -19,94 +21,88 @@ import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.XboxApi
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
+import org.koin.core.annotation.Configuration
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Module
+import org.koin.core.annotation.Named
+import org.koin.core.annotation.Single
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
-/**
- * Qualifier for the Ktor [HttpClient] used by the JSON:API layer (SprayPaintKT).
- * Kept separate from the IGDB client so tests can override just this one with a MockEngine.
- */
-val JsonApiHttpClient = named("jsonApiHttpClient")
-
-private fun kermitKtorLogger() = object : Logger {
-    override fun log(message: String) {
-        co.touchlab.kermit.Logger.v(tag = "HTTP Client") { message }
+private val ktorHttpClientConfig: HttpClientConfig<*>.() -> Unit = {
+    install(HttpCache)
+    install(Logging) {
+        logger = object : Logger {
+            override fun log(message: String) {
+                co.touchlab.kermit.Logger.v(tag = "HTTP Client") { message }
+            }
+        }
+        level = LogLevel.HEADERS
+    }
+    install(HttpRequestRetry) {
+        maxRetries = 3
+        retryIf { _, response ->
+            response.status.value in 500..599
+        }
     }
 }
 
-val httpModule = module {
-    // Plain client used by the IGDB client.
-    single {
-        HttpClient {
-            install(Logging) {
-                logger = kermitKtorLogger()
-                level = LogLevel.HEADERS
-            }
-            install(HttpCache)
-            install(HttpRequestRetry) {
-                retryOnServerErrors(maxRetries = 5)
-                // IGDB rate limiting (HTTP 429) is a client error, so retry it explicitly with backoff.
-                retryIf(maxRetries = 5) { _, response -> response.status.value == 429 }
-                exponentialDelay()
+@Suppress("unused")
+@Module
+@Configuration
+object HttpModule {
+    /**
+     * Provides an instance of [IgdbClient] configured with a custom Ktor HTTP engine and base URL.
+     *
+     * The client is initialized using the [IgdbKtorEngine] and a base URL defined in [BuildConfig.IGDB_API_URL].
+     * A custom [HttpClient] is configured and provided to handle HTTP communication, where additional settings
+     * can be applied through the `ktorHttpClientConfig` function.
+     *
+     * This method is annotated with `@Single` indicating it provides a singleton instance in the Koin dependency injection setup.
+     *
+     * @return A configured instance of [IgdbClient].
+     */
+    @Single
+    fun provideIgdbClient() = IgdbClient(IgdbKtorEngine) {
+        baseUrl = BuildConfig.IGDB_API_URL
+        httpClient {
+            this.httpClient = HttpClient {
+                ktorHttpClientConfig()
             }
         }
     }
 
-    // Client backing the JSON:API config; injected so it can be swapped in tests.
-    single(JsonApiHttpClient) {
-        HttpClient {
-            defaultRequest {
-                accept(VndApiJson)
-                contentType(VndApiJson)
-            }
-            install(Logging) {
-                logger = kermitKtorLogger()
-                level = LogLevel.HEADERS
-            }
-            install(Auth) {
-                bearer {
-                    val currentTokens = { get<AuthTokenProvider>().accessToken?.let { BearerTokens(it, "") } }
-                    loadTokens(currentTokens)
-                    // No refresh endpoint yet; just re-read the provider so a token saved after login
-                    // (or after a pre-login null was cached) is picked up on the 401 retry.
-                    refreshTokens { currentTokens() }
+    @Single
+    @Named("JsonApiHttpClient")
+    fun provideJsonApiHttpClient(authTokenProvider: AuthTokenProvider) = HttpClient {
+        defaultRequest {
+            accept(VndApiJson)
+            contentType(VndApiJson)
+        }
+        ktorHttpClientConfig()
+        install(Auth) {
+            bearer {
+                loadTokens {
+                    authTokenProvider.accessToken?.let { BearerTokens(it, "") }
                 }
-            }
-        }
-    }
-
-    single {
-        IgdbClient(IgdbKtorEngine) {
-            baseUrl = BuildConfig.IGDB_API_URL
-            httpClient {
-                this.httpClient = get()
             }
         }
     }
 
     // PSN API client: must NOT follow redirects (the OAuth code is read from the authorize 302).
-    single {
-        PsnApi(
-            HttpClient {
-                followRedirects = false
-                install(Logging) {
-                    logger = kermitKtorLogger()
-                    level = LogLevel.HEADERS
-                }
-            },
-        )
-    }
+    @Single
+    fun providePsnApi() = PsnApi(
+        HttpClient {
+            followRedirects = false
+            ktorHttpClientConfig()
+        }
+    )
 
-    // Xbox Live API client (token chain + titlehub); the MSA token comes from the WebView, so this
-    // client just makes plain JSON calls.
-    single {
-        XboxApi(
-            HttpClient {
-                install(Logging) {
-                    logger = kermitKtorLogger()
-                    level = LogLevel.HEADERS
-                }
-            },
-        )
-    }
+    // Xbox Live API client (token chain + titlehub); plain JSON calls, the MSA token comes from the WebView.
+    @Single
+    fun provideXboxApi() = XboxApi(
+        HttpClient {
+            ktorHttpClientConfig()
+        }
+    )
 }

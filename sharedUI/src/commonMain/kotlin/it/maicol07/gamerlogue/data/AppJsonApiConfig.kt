@@ -1,7 +1,6 @@
 package it.maicol07.gamerlogue.data
 
 import it.maicol07.gamerlogue.BuildConfig
-import it.maicol07.gamerlogue.di.JsonApiHttpClient
 import it.maicol07.spraypaintkt.PaginationStrategy
 import it.maicol07.spraypaintkt.interfaces.HttpClient
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
@@ -9,6 +8,7 @@ import it.maicol07.spraypaintkt_annotation.DefaultInstance
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
+import org.koin.core.qualifier.named
 
 @DefaultInstance
 data object AppJsonApiConfig : JsonApiConfig, KoinComponent {
@@ -20,6 +20,6 @@ data object AppJsonApiConfig : JsonApiConfig, KoinComponent {
     // The underlying Ktor client (auth, headers) lives in httpModule and can be
     // swapped with a MockEngine in tests via the [JsonApiHttpClient] qualifier.
     override val httpClient: HttpClient by lazy {
-        KtorHttpClient(httpClient = get<io.ktor.client.HttpClient>(JsonApiHttpClient))
+        KtorHttpClient(httpClient = get<io.ktor.client.HttpClient>(named("JsonApiHttpClient")))
     }
 }

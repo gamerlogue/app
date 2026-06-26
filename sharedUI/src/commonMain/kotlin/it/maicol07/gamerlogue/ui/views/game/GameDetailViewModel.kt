@@ -17,6 +17,8 @@ import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
@@ -32,7 +34,8 @@ object GameHandoff {
     fun take(gameId: Int): Game? = pending.remove(gameId)
 }
 
-class GameDetailViewModel(val gameId: Int) : StateViewModel<GameDetailViewModel.UiState>(UiState()) {
+@KoinViewModel
+class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameDetailViewModel.UiState>(UiState()) {
     /** Immutable state of the Game detail screen. */
     data class UiState(
         val game: Game? = null,

@@ -9,6 +9,7 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.ui.components.WebSession
+import org.koin.core.annotation.KoinViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -22,6 +23,7 @@ import kotlin.time.ExperimentalTime
  * actual session lives in the WebView cookies).
  */
 @OptIn(ExperimentalTime::class, ExperimentalSettingsApi::class)
+@KoinViewModel
 class LinkedServicesViewModel(
     private val connectors: Map<ExternalService, ServiceConnector>,
     private val settings: ObservableSettings,

@@ -10,6 +10,8 @@ import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.KoinViewModel
 
 /** Which library the preview imports into: owned games or the wishlist (→ backlog). */
 @Serializable
@@ -29,9 +31,10 @@ object ImportHandoff {
  * Drives the editable mapping preview for a library import: matches each store game to an IGDB game,
  * lets the user toggle inclusion or swap the match via name search, then persists the chosen games.
  */
+@KoinViewModel
 class LibraryImportViewModel(
-    val service: ExternalService,
-    private val mode: ImportMode,
+    @InjectedParam val service: ExternalService,
+    @InjectedParam private val mode: ImportMode,
     private val connectors: Map<ExternalService, ServiceConnector>,
     private val matcher: GameMatcher,
     private val librarySync: LibrarySync,

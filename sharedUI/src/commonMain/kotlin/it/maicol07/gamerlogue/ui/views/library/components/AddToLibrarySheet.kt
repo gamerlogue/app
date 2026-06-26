@@ -54,7 +54,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun GameAddEditLibrarySheet(
     game: Game,
-    existingData: LibraryEntrySchema? = null,
+    existingData: LibraryEntry? = null,
     onDismiss: () -> Unit,
     viewModel: AddToLibrarySheetViewModel = koinViewModel(
         key = "${game.id}_${existingData.hashCode()}",
