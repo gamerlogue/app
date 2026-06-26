@@ -18,8 +18,10 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.PolymorphicModuleBuilder
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.serializer
 import org.jetbrains.compose.resources.StringResource
 
 typealias NavBackStack = NavBackStack<NavKey>
@@ -102,20 +104,24 @@ object NavKeys {
         override val showBottomBar: Boolean get() = false
     }
 
+    // Reified helper so each key is registered once, avoiding the subclass(A::class, B.serializer()) mismatch footgun.
+    private inline fun <reified T : NavKey> PolymorphicModuleBuilder<NavKey>.key() =
+        subclass(T::class, serializer<T>())
+
     val savedStateConfiguration = SavedStateConfiguration {
         serializersModule = SerializersModule {
             polymorphic(NavKey::class) {
-                subclass(Discover::class, Discover.serializer())
-                subclass(Library::class, Library.serializer())
-                subclass(Calendar::class, Calendar.serializer())
-                subclass(Profile::class, Profile.serializer())
-                subclass(Settings::class, Settings.serializer())
-                subclass(LinkedServices::class, LinkedServices.serializer())
-                subclass(Appearance::class, Appearance.serializer())
-                subclass(Login::class, Login.serializer())
-                subclass(GameDetail::class, GameDetail.serializer())
-                subclass(GameList::class, GameList.serializer())
-                subclass(LibraryImportPreview::class, LibraryImportPreview.serializer())
+                key<Discover>()
+                key<Library>()
+                key<Calendar>()
+                key<Profile>()
+                key<Settings>()
+                key<LinkedServices>()
+                key<Appearance>()
+                key<Login>()
+                key<GameDetail>()
+                key<GameList>()
+                key<LibraryImportPreview>()
             }
         }
     }
