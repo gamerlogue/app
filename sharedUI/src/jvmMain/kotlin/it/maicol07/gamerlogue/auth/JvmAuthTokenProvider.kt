@@ -2,7 +2,7 @@ package it.maicol07.gamerlogue.auth
 
 import java.util.prefs.Preferences
 
-class JvmAuthTokenProvider : BaseAuthTokenProvider() {
+class JvmAuthTokenProvider : AuthTokenProvider() {
     private val prefs = Preferences.userNodeForPackage(JvmAuthTokenProvider::class.java)
     private val tokenKey = "auth_token"
     private val userIdKey = "auth_user_id"

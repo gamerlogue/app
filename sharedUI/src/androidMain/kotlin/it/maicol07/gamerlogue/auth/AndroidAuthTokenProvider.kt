@@ -4,7 +4,7 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.Context
 
-class AndroidAuthTokenProvider(context: Context) : BaseAuthTokenProvider() {
+class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
     private val accountManager: AccountManager = AccountManager.get(context)
     private val accountType = "it.maicol07.gamerlogue"
     private val authTokenType = "Bearer"
