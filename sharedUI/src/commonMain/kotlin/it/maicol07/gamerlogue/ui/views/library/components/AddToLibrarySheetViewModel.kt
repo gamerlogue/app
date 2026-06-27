@@ -13,8 +13,7 @@ import gamerlogue.sharedui.generated.resources.library__error_select_status
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
-import it.maicol07.gamerlogue.extensions.persist
-import it.maicol07.gamerlogue.extensions.remove
+
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
 import kotlinx.datetime.format
@@ -65,7 +64,7 @@ class AddToLibrarySheetViewModel(
         deleteLoading = true
         error = null
         if (existingEntry != null) {
-            existingEntry.remove()
+            safeRequest { existingEntry.destroy() }
             onDelete()
         }
         deleteLoading = false
@@ -82,7 +81,7 @@ class AddToLibrarySheetViewModel(
         }
 
         val entry = getEntryToSave()
-        entry.persist()
+        safeRequest { entry.save() }
         onSave(entry)
 
         saveLoading = false

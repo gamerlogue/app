@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.exception__details_copy
 import gamerlogue.sharedui.generated.resources.exception__details_hide
@@ -55,23 +56,30 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Con
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LightbulbW500Rounded
+import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GlobalExceptionBottomSheet() {
-    val appUi = LocalAppUiState.current
-    val exception = appUi.networkException ?: return
+    val reporter = koinInject<ExceptionReporter>()
+    val exception by reporter.exception.collectAsStateWithLifecycle()
+    val e = exception ?: return
 
     val fallbackMessage = stringResource(Res.string.exception__fallback_message)
-    val message = exception.message ?: fallbackMessage
-    val errorType = exception::class.simpleName ?: stringResource(Res.string.exception__generic_error)
-    val details = remember(exception) { exception.stackTraceToString() }
+    val message = e.message ?: fallbackMessage
+    val errorType = e::class.simpleName ?: stringResource(Res.string.exception__generic_error)
+    val details = remember(e) { e.stackTraceToString() }
 
     val hint = run {
-        val t = (exception::class.simpleName.orEmpty() + " " + (exception.message ?: ""))
-        if (t.contains("timeout", ignoreCase = true) || t.contains("network", ignoreCase = true) || t.contains("connect", ignoreCase = true)) {
+        val t = (e::class.simpleName.orEmpty() + " " + (e.message ?: ""))
+        if (t.contains("timeout", ignoreCase = true) || t.contains("network", ignoreCase = true) || t.contains(
+                "connect",
+                ignoreCase = true
+            )
+        ) {
             stringResource(Res.string.exception__hint_network)
         } else {
             null
@@ -81,7 +89,7 @@ fun GlobalExceptionBottomSheet() {
     var showDetails by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    ModalBottomSheet({ appUi.showExceptionBottomSheet = false }, sheetState = sheetState) {
+    ModalBottomSheet({ reporter.dismissSheet() }, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)

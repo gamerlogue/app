@@ -11,14 +11,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import it.maicol07.gamerlogue.LocalNavBackStack
 import it.maicol07.gamerlogue.NavBackStack
+import it.maicol07.gamerlogue.core.ExceptionReporter
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -51,9 +55,10 @@ fun AppTopBar(
 /** Network-error indicator shared by every top bar; opens the exception bottom sheet when tapped. */
 @Composable
 fun NetworkErrorAction() {
-    val appUiState = LocalAppUiState.current
-    AnimatedVisibility(appUiState.networkException != null) {
-        IconButton(onClick = { appUiState.showExceptionBottomSheet = true }) {
+    val reporter = koinInject<ExceptionReporter>()
+    val exception by reporter.exception.collectAsStateWithLifecycle()
+    AnimatedVisibility(exception != null) {
+        IconButton(onClick = { reporter.show() }) {
             Icon(
                 Icons.AndroidWifi3BarAlertW500Rounded,
                 contentDescription = null,

@@ -10,9 +10,8 @@ import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
-import it.maicol07.gamerlogue.extensions.persist
 import it.maicol07.gamerlogue.extensions.quickDraft
-import it.maicol07.gamerlogue.safeRequest
+import it.maicol07.gamerlogue.ui.views.game.GameHandoff.take
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -30,7 +29,10 @@ import org.koin.core.parameter.parametersOf
  */
 object GameHandoff {
     private val pending = mutableMapOf<Int, Game>()
-    fun put(game: Game) { pending[game.id.toInt()] = game }
+    fun put(game: Game) {
+        pending[game.id.toInt()] = game
+    }
+
     fun take(gameId: Int): Game? = pending.remove(gameId)
 }
 
@@ -142,7 +144,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
 
     private suspend fun applyStatus(status: GameLibraryStatus) {
         val game = state.game ?: return
-        LibraryEntry.quickDraft(game, status, authTokenProvider.currentUser, state.libraryEntry).persist()
+        safeRequest { LibraryEntry.quickDraft(game, status, authTokenProvider.currentUser, state.libraryEntry).save() }
         loadLibraryEntry().join()
     }
 }

@@ -11,9 +11,9 @@ import at.released.igdbclient.multiquery
 import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
-import it.maicol07.gamerlogue.safeRequest
+import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.safeRequest
 import kotlinx.coroutines.delay
-import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Single
 
 /**
@@ -24,7 +24,10 @@ import org.koin.core.annotation.Single
  * import preview are fetched on demand via [searchByName] rather than eagerly, to keep IGDB calls down.
  */
 @Single()
-class GameMatcher(private val igdb: IgdbClient) {
+class GameMatcher(
+    private val igdb: IgdbClient,
+    private val exceptionReporter: ExceptionReporter,
+) {
 
     /**
      * IGDB match for a store [ref]: the best [game] (or null) plus the full [candidates] list so the
@@ -108,7 +111,7 @@ class GameMatcher(private val igdb: IgdbClient) {
     }
 
     private suspend fun nameMultiquery(batch: List<ExternalGameRef>, useSearch: Boolean): Map<String, List<Game>> {
-        val result = safeRequest {
+        val result = exceptionReporter.safeRequest {
             igdb.multiquery {
                 batch.forEachIndexed { i, ref ->
                     val q = ref.name.sanitizeForSearch()
@@ -148,7 +151,7 @@ class GameMatcher(private val igdb: IgdbClient) {
         val byUid = mutableMapOf<String, Game>()
         urlToUid.keys.chunked(UID_CHUNK).forEach { chunk ->
             val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
-            val result = safeRequest {
+            val result = exceptionReporter.safeRequest {
                 igdb.getExternalGames {
                     fields(*externalFields)
                     where("external_game_source = $source & url = ($quoted)")
@@ -174,7 +177,7 @@ class GameMatcher(private val igdb: IgdbClient) {
         val byUid = mutableMapOf<String, Game>()
         refs.map { it.uid }.distinct().chunked(UID_CHUNK).forEach { chunk ->
             val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
-            val result = safeRequest {
+            val result = exceptionReporter.safeRequest {
                 igdb.getExternalGames {
                     fields(*externalFields)
                     where("external_game_source = $source & uid = ($quoted)")
@@ -202,7 +205,7 @@ class GameMatcher(private val igdb: IgdbClient) {
         val byGame = mutableMapOf<Int, String>()
         gameIds.distinct().chunked(UID_CHUNK).forEach { chunk ->
             val ids = chunk.joinToString(",")
-            val result = safeRequest {
+            val result = exceptionReporter.safeRequest {
                 igdb.getExternalGames {
                     fields("url", "game.id")
                     where("external_game_source = $source & game = ($ids)")
@@ -219,7 +222,7 @@ class GameMatcher(private val igdb: IgdbClient) {
         // website URL when the connector recognises it as one of its store pages (uidFromUrl matches).
         val missing = gameIds.distinct().filter { it !in byGame }
         missing.chunked(WEBSITE_GAME_CHUNK).forEach { chunk ->
-            val result = safeRequest {
+            val result = exceptionReporter.safeRequest {
                 igdb.getWebsites {
                     fields("url", "game.id")
                     where("game = (${chunk.joinToString(",")})")
@@ -241,7 +244,7 @@ class GameMatcher(private val igdb: IgdbClient) {
         if (ids.isEmpty()) return emptyList()
         val games = mutableListOf<Game>()
         ids.distinct().chunked(UID_CHUNK).forEach { chunk ->
-            val result = safeRequest {
+            val result = exceptionReporter.safeRequest {
                 igdb.getGames {
                     fields("id", "name", "cover.image_id", "platforms.platform_family")
                     where("id = (${chunk.joinToString(",")})")
@@ -257,7 +260,7 @@ class GameMatcher(private val igdb: IgdbClient) {
     suspend fun searchByName(query: String, limit: Int = SEARCH_LIMIT): List<Game> {
         val q = query.sanitizeForSearch()
         if (q.isEmpty()) return emptyList()
-        val result = safeRequest {
+        val result = exceptionReporter.safeRequest {
             igdb.getGames {
                 search(q)
                 fields("id", "name", "cover.image_id")
@@ -278,9 +281,11 @@ class GameMatcher(private val igdb: IgdbClient) {
         private const val UID_CHUNK = 100
         private const val SEARCH_LIMIT = 15
         private const val NAME_FALLBACK_LIMIT = 6
+
         // IGDB multiquery sub-query cap.
         private const val MULTIQUERY_CHUNK = 10
         private const val THROTTLE_MS = 350L
+
         // Websites: many rows per game, so fewer games per request against IGDB's 500-row page cap.
         private const val WEBSITE_GAME_CHUNK = 30
         private const val WEBSITE_LIMIT = 500

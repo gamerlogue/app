@@ -11,7 +11,6 @@ import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.extensions.where
-import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject

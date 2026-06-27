@@ -3,7 +3,6 @@ package it.maicol07.gamerlogue.extensions
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.User
-import it.maicol07.gamerlogue.safeRequest
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.spraypaintkt.Scope
 
@@ -67,12 +66,6 @@ suspend fun Scope<LibraryEntry>.allPages(): List<LibraryEntry> {
     forEachPage { out += it }
     return out
 }
-
-/** Persist this entry (create or update) through the JSON:API backend. */
-suspend fun LibraryEntry.persist() = safeRequest { save() }
-
-/** Delete this entry from the JSON:API backend. */
-suspend fun LibraryEntry.remove() = safeRequest { destroy() }
 
 /**
  * Build (without persisting) a quick library entry for [game] with [status], owned by [user].

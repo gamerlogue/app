@@ -11,7 +11,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -23,27 +22,16 @@ val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
 }
 
 /**
- * App shell: owns only the genuinely global chrome — the bottom navigation bar, the snackbar host,
- * and the static bridge for non-Compose error reporting. Each screen renders its own top bar
- * (see [ScreenScaffold]).
+ * App shell: owns only the genuinely global chrome — the bottom navigation bar and the snackbar host.
+ * Each screen renders its own top bar (see [ScreenScaffold]).
  */
 @Composable
 fun AppScaffold(
     currentNavKey: NavKey,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val appUiState = rememberAppUiState()
     val snackbarHostState = remember { SnackbarHostState() }
-    CompositionLocalProvider(
-        LocalAppUiState provides appUiState,
-        LocalSnackbarHostState provides snackbarHostState
-    ) {
-        // Attach the static bridge for non-Compose reporting
-        DisposableEffect(Unit) {
-            AppUi.attach(appUiState)
-            onDispose { AppUi.detach(appUiState) }
-        }
-
+    CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
         Scaffold(
             bottomBar = { AppNavigationBar(currentNavKey) },
             snackbarHost = { SnackbarHost(snackbarHostState) },

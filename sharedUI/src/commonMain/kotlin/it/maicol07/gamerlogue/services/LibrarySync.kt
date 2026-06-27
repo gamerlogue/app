@@ -5,14 +5,13 @@ import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.allPages
 import it.maicol07.gamerlogue.extensions.currentUserEntries
-import it.maicol07.gamerlogue.extensions.persist
 import it.maicol07.gamerlogue.extensions.quickDraft
-import it.maicol07.gamerlogue.safeRequest
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Single
 
 /**
@@ -25,6 +24,7 @@ import org.koin.core.annotation.Single
 class LibrarySync(
     private val matcher: GameMatcher,
     private val authProvider: AuthTokenProvider,
+    private val exceptionReporter: ExceptionReporter,
 ) {
     /** [added] = entries created in Gamerlogue; [toPush] = backlog games to add to the store wishlist. */
     data class WishlistResult(val added: Int, val toPush: List<OutgoingGame>)
@@ -70,7 +70,7 @@ class LibrarySync(
         // Distinct by id: several store entries (game + demo/DLC) can map to one IGDB game; saving the
         // same gameId twice would create a duplicate / be rejected, leaving fewer entries than expected.
         games.distinctBy { it.id }.forEach { game ->
-            val result = draft(game).persist()
+            val result = exceptionReporter.safeRequest { draft(game).save() }
             if (result.get() != null) {
                 saved++
             } else {
@@ -133,5 +133,5 @@ class LibrarySync(
         allEntries().filter { !ownedOnly || it.owned }.mapTo(mutableSetOf()) { it.gameId }
 
     private suspend fun allEntries(): List<LibraryEntry> =
-        safeRequest { LibraryEntry.currentUserEntries().allPages() }.get().orEmpty()
+        exceptionReporter.safeRequest { LibraryEntry.currentUserEntries().allPages() }.get().orEmpty()
 }

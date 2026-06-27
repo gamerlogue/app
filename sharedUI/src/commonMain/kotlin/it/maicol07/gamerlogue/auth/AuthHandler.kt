@@ -9,9 +9,10 @@ import com.github.michaelbull.result.unwrap
 import io.ktor.http.decodeURLQueryComponent
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
+import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.data.UserStore
-import it.maicol07.gamerlogue.safeRequest
 import org.koin.compose.koinInject
 
 @Composable
@@ -19,6 +20,7 @@ internal fun AuthHandler(authCallbackUri: String?) {
     val authProvider = koinInject<AuthTokenProvider>()
     val authHandler = rememberAuthenticationHandler()
     val userStore = remember { UserStore() }
+    val exceptionReporter = koinInject<ExceptionReporter>()
 
     // Handle the login callback here, inside the Koin composition, so the token lands on the
     // same AuthTokenProvider singleton the Ktor client reads (the Activity has its own Koin-less scope).
@@ -53,7 +55,7 @@ internal fun AuthHandler(authCallbackUri: String?) {
         Logger.d("AuthState changed: token=${authProvider.accessToken}, userId=${authProvider.currentUserId}")
         if (authProvider.accessToken != null) {
             if (authProvider.currentUser == null && authProvider.currentUserId != null) {
-                val result = safeRequest { User.find(authProvider.currentUserId!!).data }
+                val result = exceptionReporter.safeRequest { User.find(authProvider.currentUserId!!).data }
                 if (result.isOk) {
                     val user = result.unwrap()
                     authProvider.currentUser = user

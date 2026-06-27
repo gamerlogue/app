@@ -13,7 +13,6 @@ import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntries
 import it.maicol07.gamerlogue.extensions.forEachPage
 import it.maicol07.gamerlogue.extensions.where
-import it.maicol07.gamerlogue.safeRequest
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
