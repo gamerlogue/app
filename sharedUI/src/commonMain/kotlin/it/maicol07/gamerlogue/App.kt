@@ -21,6 +21,9 @@ import org.koin.core.annotation.KoinApplication
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.plugin.module.dsl.koinConfiguration
 
+@KoinApplication
+private object KoinApp
+
 @OptIn(KoinExperimentalAPI::class)
 @Composable
 fun App(authCallbackUri: String? = null) {
@@ -53,6 +56,3 @@ fun App(authCallbackUri: String? = null) {
         }
     }
 }
-
-@KoinApplication
-object KoinApp
