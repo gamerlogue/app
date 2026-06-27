@@ -20,9 +20,7 @@ class GamerlogueAuthenticator(private val context: Context) : AbstractAccountAut
         authTokenType: String?,
         requiredFeatures: Array<out String>?,
         options: Bundle?
-    ): Bundle {
-        return Bundle()
-    }
+    ) = Bundle()
 
     // Return the auth token for an account
     override fun getAuthToken(
@@ -46,9 +44,7 @@ class GamerlogueAuthenticator(private val context: Context) : AbstractAccountAut
     }
 
     // Get the label for the account type
-    override fun getAuthTokenLabel(authTokenType: String?): String {
-        return "Gamerlogue"
-    }
+    override fun getAuthTokenLabel(authTokenType: String?) = "Gamerlogue"
 
     // We don't support editing account properties
     override fun editProperties(
@@ -63,9 +59,7 @@ class GamerlogueAuthenticator(private val context: Context) : AbstractAccountAut
         response: AccountAuthenticatorResponse?,
         account: Account?,
         options: Bundle?
-    ): Bundle {
-        return Bundle()
-    }
+    ) = Bundle()
 
     // We don't support updating credentials
     override fun updateCredentials(
@@ -73,19 +67,13 @@ class GamerlogueAuthenticator(private val context: Context) : AbstractAccountAut
         account: Account?,
         authTokenType: String?,
         options: Bundle?
-    ): Bundle {
-        return Bundle()
-    }
+    ) = Bundle()
 
     // We don't have any specific account features
     override fun hasFeatures(
         response: AccountAuthenticatorResponse?,
         account: Account?,
         features: Array<out String>?
-    ): Bundle {
-        val result = Bundle()
-        result.putBoolean(AccountManager.KEY_BOOLEAN_RESULT, false)
-        return result
-    }
+    ) = Bundle().apply { putBoolean(AccountManager.KEY_BOOLEAN_RESULT, false) }
 }
 

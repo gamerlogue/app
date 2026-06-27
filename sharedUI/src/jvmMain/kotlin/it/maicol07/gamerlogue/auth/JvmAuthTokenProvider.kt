@@ -12,27 +12,19 @@ class JvmAuthTokenProvider : AuthTokenProvider() {
         restore()
     }
 
-    override fun loadToken(): String? {
-        return prefs.get(tokenKey, null)
+    override fun loadToken() = prefs.get(tokenKey, null)
+
+    override fun saveToken(token: String?) = if (token == null) {
+        prefs.remove(tokenKey)
+    } else {
+        prefs.put(tokenKey, token)
     }
 
-    override fun saveToken(token: String?) {
-        if (token == null) {
-            prefs.remove(tokenKey)
-        } else {
-            prefs.put(tokenKey, token)
-        }
-    }
+    override fun loadUserId() = prefs.get(userIdKey, null)
 
-    override fun loadUserId(): String? {
-        return prefs.get(userIdKey, null)
-    }
-
-    override fun saveUserId(userId: String?) {
-        if (userId == null) {
-            prefs.remove(userIdKey)
-        } else {
-            prefs.put(userIdKey, userId)
-        }
+    override fun saveUserId(userId: String?) = if (userId == null) {
+        prefs.remove(userIdKey)
+    } else {
+        prefs.put(userIdKey, userId)
     }
 }
