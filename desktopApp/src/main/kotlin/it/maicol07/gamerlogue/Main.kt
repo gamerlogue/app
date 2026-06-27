@@ -12,7 +12,7 @@ private const val WindowMinHeight = 200
 
 fun main() = application {
     Window(
-        title = "Gamerlogue App",
+        title = "Gamerlogue",
         state = rememberWindowState(width = 800.dp, height = 1200.dp),
         onCloseRequest = ::exitApplication,
     ) {
