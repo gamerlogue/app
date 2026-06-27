@@ -22,13 +22,14 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,6 +60,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Con
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LightbulbW500Rounded
+import it.maicol07.gamerlogue.clipEntryFor
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
 import kotlinx.coroutines.launch
@@ -90,7 +93,7 @@ fun GlobalExceptionBottomSheet() {
     }
 
     var showDetails by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden)
     val scope = rememberCoroutineScope()
 
     fun dismiss() = scope.launch { sheetState.hide(); reporter.dismissSheet() }
@@ -197,10 +200,15 @@ fun GlobalExceptionBottomSheet() {
                             { PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) } },
                             rememberTooltipState()
                         ) {
+                            val clipboard = LocalClipboard.current
+                            val coroutineScope = rememberCoroutineScope()
                             FilledIconButton(
                                 shapes = IconButtonDefaults.shapes(),
                                 onClick = {
-                                    // TODO: multiplatform clipboard — https://youtrack.jetbrains.com/issue/CMP-7624
+                                    coroutineScope.launch {
+                                        // TODO: multiplatform clipboard — https://youtrack.jetbrains.com/issue/CMP-7624
+                                        clipboard.setClipEntry(clipEntryFor(details))
+                                    }
                                 }
                             ) {
                                 Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))

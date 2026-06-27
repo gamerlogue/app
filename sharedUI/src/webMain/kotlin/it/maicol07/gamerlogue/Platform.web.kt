@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.ClipEntry
 import com.raedghazal.kotlinx_datetime_ext.Locale
 import com.raedghazal.kotlinx_datetime_ext.initPlatformLocales
 
@@ -23,3 +24,5 @@ fun webAppInit() {
 actual fun appLanguageSettingsOpener(): () -> Unit = {
     // No-op on web, as the language is determined by the browser settings
 }
+
+actual fun clipEntryFor(string: String) = ClipEntry.withPlainText(string)

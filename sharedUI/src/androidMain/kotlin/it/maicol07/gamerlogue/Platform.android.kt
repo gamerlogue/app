@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -8,6 +9,7 @@ import android.provider.Settings
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalContext
 import com.stoyanvuchev.systemuibarstweaker.rememberSystemUIBarsTweaker
 
@@ -36,3 +38,5 @@ actual fun appLanguageSettingsOpener(): () -> Unit {
         }
     }
 }
+
+actual fun clipEntryFor(string: String) = ClipEntry(ClipData.newPlainText("Copied Text", string))
