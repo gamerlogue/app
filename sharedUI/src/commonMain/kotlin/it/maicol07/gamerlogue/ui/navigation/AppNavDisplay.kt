@@ -2,9 +2,9 @@ package it.maicol07.gamerlogue.ui.navigation
 
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +29,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.nav__detail_placeholder
 import gamerlogue.sharedui.generated.resources.nav__settings
@@ -90,6 +91,7 @@ fun AppNavDisplay(
             .copy(horizontalPartitionSpacerSize = 0.dp)
     }
     val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(directive = directive)
+    val navigateToGame: (Game) -> Unit = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) }
 
     SharedTransitionLayout {
         val sharedScope = this
@@ -110,7 +112,7 @@ fun AppNavDisplay(
                     )
                 ) {
                     DiscoverScreen(
-                        onGameClick = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) },
+                        onGameClick = navigateToGame,
                         onSeeAllClick = { section -> backStack.add(NavKeys.GameList(section)) }
                     )
                 }
@@ -118,7 +120,7 @@ fun AppNavDisplay(
                     if (authProvider.accessToken == null) {
                         LoginView()
                     } else {
-                        Library(onGameClick = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) })
+                        Library(onGameClick = navigateToGame)
                     }
                 }
                 screen<NavKeys.Calendar>(metadata = ListDetailSceneStrategy.detailPane()) {
@@ -158,7 +160,7 @@ fun AppNavDisplay(
                 screen<NavKeys.GameList>(metadata = ListDetailSceneStrategy.detailPane()) { navKey ->
                     GameListScreen(
                         section = navKey.section,
-                        onGameClick = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) }
+                        onGameClick = navigateToGame
                     )
                 }
                 // Draws its own collapsing overlay bar, so it uses plain `entry`, not `screen`.
