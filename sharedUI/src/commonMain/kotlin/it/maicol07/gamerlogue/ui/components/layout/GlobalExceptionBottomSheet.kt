@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.exception__action_close
 import gamerlogue.sharedui.generated.resources.exception__details_copy
 import gamerlogue.sharedui.generated.resources.exception__details_hide
 import gamerlogue.sharedui.generated.resources.exception__details_show
@@ -58,6 +60,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Key
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LightbulbW500Rounded
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
@@ -87,32 +90,36 @@ fun GlobalExceptionBottomSheet() {
     }
 
     var showDetails by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    fun dismiss() = scope.launch { sheetState.hide(); reporter.dismissSheet() }
 
     ModalBottomSheet({ reporter.dismissSheet() }, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    shape = MaterialTheme.shapes.medium,
-                    tonalElevation = 1.dp
+                    shape = MaterialTheme.shapes.large,
                 ) {
                     Icon(
                         imageVector = Icons.ErrorW500Rounded,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(40.dp)
-                            .padding(6.dp)
+                            .size(56.dp)
+                            .padding(10.dp)
                     )
                 }
 
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = stringResource(Res.string.exception__title),
                         style = MaterialTheme.typography.titleLarge,
@@ -127,22 +134,29 @@ fun GlobalExceptionBottomSheet() {
                 }
             }
 
+            // Message
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
             )
 
+            // Network hint
             if (hint != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         .padding(12.dp),
-                    Arrangement.spacedBy(12.dp),
-                    Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.LightbulbW500Rounded, null, Modifier.size(20.dp))
+                    Icon(
+                        Icons.LightbulbW500Rounded,
+                        null,
+                        Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         text = hint,
                         style = MaterialTheme.typography.bodySmall,
@@ -151,8 +165,13 @@ fun GlobalExceptionBottomSheet() {
                 }
             }
 
+            // Technical details
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     TextButton(
                         shapes = ButtonDefaults.shapes(),
                         onClick = { showDetails = !showDetails }
@@ -161,55 +180,27 @@ fun GlobalExceptionBottomSheet() {
                             if (showDetails) 90f else 0f,
                             label = "RotateDetailsArrow"
                         )
-
                         ButtonIcon(
                             imageVector = Icons.KeyboardArrowRightW500Rounded,
                             contentDescription = null,
                             modifier = Modifier.rotate(rotate)
                         )
-
                         Text(
-                            if (showDetails) {
-                                stringResource(
-                                    Res.string.exception__details_hide
-                                )
-                            } else {
-                                stringResource(Res.string.exception__details_show)
-                            }
+                            if (showDetails) stringResource(Res.string.exception__details_hide)
+                            else stringResource(Res.string.exception__details_show)
                         )
                     }
-//                TextButton(onClick = { openURL }) { Text("See status page") }
-                }
 
-                AnimatedVisibility(showDetails) {
-                    Box(contentAlignment = Alignment.TopEnd) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            tonalElevation = 2.dp,
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            SelectionContainer {
-                                Text(
-                                    text = details,
-                                    modifier = Modifier.padding(12.dp),
-                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
-                                )
-                            }
-                        }
+                    AnimatedVisibility(showDetails) {
                         TooltipBox(
                             TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                            {
-                                PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) }
-                            },
+                            { PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) } },
                             rememberTooltipState()
                         ) {
-//                            val clipboard = LocalClipboard.current
-
                             FilledIconButton(
                                 shapes = IconButtonDefaults.shapes(),
                                 onClick = {
-                                    // TODO: Add multiplatform clipboard support (wait https://youtrack.jetbrains.com/issue/CMP-7624)
+                                    // TODO: multiplatform clipboard — https://youtrack.jetbrains.com/issue/CMP-7624
                                 }
                             ) {
                                 Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))
@@ -217,6 +208,35 @@ fun GlobalExceptionBottomSheet() {
                         }
                     }
                 }
+
+                AnimatedVisibility(showDetails) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        SelectionContainer {
+                            Text(
+                                text = details,
+                                modifier = Modifier.padding(12.dp),
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Close action
+            Button(
+                shapes = ButtonDefaults.shapes(),
+                onClick = { dismiss() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text(stringResource(Res.string.exception__action_close))
             }
         }
     }
