@@ -1,6 +1,10 @@
 package it.maicol07.gamerlogue.ui.components.layout
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.Icon
@@ -38,8 +42,8 @@ fun AppNavigationBar(
 ) {
     AnimatedVisibility(
         (currentNavKey as? NavKeys.NavKeyWithMeta)?.showBottomBar ?: true,
-        enter = slideInVertically(),
-        exit = slideOutVertically()
+        enter = slideInVertically { it } + fadeIn(),
+        exit = slideOutVertically(tween(200, easing = FastOutLinearInEasing)) { it } + fadeOut(tween(200))
     ) {
         NavigationBar {
             for (item in NavBarItems.entries) {
