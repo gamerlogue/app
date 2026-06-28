@@ -10,6 +10,7 @@ import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.update
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
@@ -21,9 +22,8 @@ const val SectionGameLimit = 50
 @OptIn(ExperimentalTime::class)
 @KoinViewModel
 class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
-    /** Immutable state of the Discover screen, one entry per [DiscoverSection]. */
     data class UiState(
-        val sections: Map<DiscoverSection, SectionUiState> =
+        var sections: Map<DiscoverSection, SectionUiState> =
             DiscoverSection.entries.associateWith { SectionUiState() },
     )
 
@@ -115,11 +115,11 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
         return popScores
     }
 
-    private fun setAllLoading(loading: Boolean) = update {
-        copy(sections = sections.mapValues { it.value.copy(loading = loading) })
+    private fun setAllLoading(loading: Boolean) = uiState.update {
+        sections = sections.mapValues { it.value.copy(loading = loading) }
     }
 
-    private fun updateSection(section: DiscoverSection, transform: (SectionUiState) -> SectionUiState) = update {
-        copy(sections = sections + (section to transform(sections[section] ?: SectionUiState())))
+    private fun updateSection(section: DiscoverSection, transform: (SectionUiState) -> SectionUiState) = uiState.update {
+        sections = sections + (section to transform(sections[section] ?: SectionUiState()))
     }
 }

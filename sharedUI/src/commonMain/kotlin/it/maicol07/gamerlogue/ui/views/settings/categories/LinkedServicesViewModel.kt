@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.update
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.LibrarySync
@@ -47,14 +48,14 @@ class LinkedServicesViewModel(
     )
 
     data class UiState(
-        val services: Map<ExternalService, ServiceState> = emptyMap(),
-        val action: Action? = null,
-        val message: String? = null,
+        var services: Map<ExternalService, ServiceState> = emptyMap(),
+        var action: Action? = null,
+        var message: String? = null,
     )
 
     init {
-        update {
-            copy(services = ExternalService.entries.associateWith { readServiceState(it) })
+        uiState.update {
+            services = ExternalService.entries.associateWith { readServiceState(it) }
         }
     }
 
@@ -62,19 +63,19 @@ class LinkedServicesViewModel(
 
     // --- UI intents (set the active WebView action; the screen renders it) ---
 
-    fun connect(service: ExternalService) = update { copy(action = Action.Connect(service)) }
+    fun connect(service: ExternalService) = uiState.update { action = Action.Connect(service) }
 
     fun syncWishlistNow(service: ExternalService) {
-        if (isConnected(service)) update { copy(action = Action.SyncWishlist(service)) }
+        if (isConnected(service)) uiState.update { action = Action.SyncWishlist(service) }
     }
 
     /** Manual wishlist sync with preview (vs the toggle's automatic background sync). */
     fun previewWishlist(service: ExternalService) {
-        if (isConnected(service)) update { copy(action = Action.PreviewWishlist(service)) }
+        if (isConnected(service)) uiState.update { action = Action.PreviewWishlist(service) }
     }
 
     fun importLibrary(service: ExternalService) {
-        if (isConnected(service)) update { copy(action = Action.ImportLibrary(service)) }
+        if (isConnected(service)) uiState.update { action = Action.ImportLibrary(service) }
     }
 
     fun toggleWishlistSync(service: ExternalService, enabled: Boolean) {
@@ -88,9 +89,9 @@ class LinkedServicesViewModel(
         refresh(service)
     }
 
-    fun clearAction() = update { copy(action = null) }
+    fun clearAction() = uiState.update { action = null }
 
-    fun consumeMessage() = update { copy(message = null) }
+    fun consumeMessage() = uiState.update { message = null }
 
     // --- WebView flows (called by the screen's ServiceWebView) ---
 
@@ -114,10 +115,10 @@ class LinkedServicesViewModel(
             val result = librarySync.pullWishlist(connector, wishlist)
             if (result.toPush.isNotEmpty()) pushWishlist(connector, session, result.toPush)
             setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-            update { copy(message = "wishlist:${result.added}:${result.toPush.size}") }
+            uiState.update { message = "wishlist:${result.added}:${result.toPush.size}" }
         } catch (e: Exception) {
             Logger.e(e) { "Wishlist sync failed for $service" }
-            update { copy(message = "error") }
+            uiState.update { message = "error" }
         } finally {
             setBusy(service, false)
             refresh(service)
@@ -173,12 +174,12 @@ class LinkedServicesViewModel(
     private suspend fun credential(connector: ServiceConnector, session: WebSession): String =
         connector.credentialStep()?.let { session.run(it).firstOrNull()?.uid.orEmpty() }.orEmpty()
 
-    private fun setBusy(service: ExternalService, busy: Boolean) = update {
-        copy(services = services + (service to (services[service] ?: ServiceState()).copy(busy = busy)))
+    private fun setBusy(service: ExternalService, busy: Boolean) = uiState.update {
+        services = services + (service to (services[service] ?: ServiceState()).copy(busy = busy))
     }
 
-    private fun refresh(service: ExternalService) = update {
-        copy(services = services + (service to readServiceState(service)))
+    private fun refresh(service: ExternalService) = uiState.update {
+        services = services + (service to readServiceState(service))
     }
 
     private fun readServiceState(service: ExternalService) = ServiceState(

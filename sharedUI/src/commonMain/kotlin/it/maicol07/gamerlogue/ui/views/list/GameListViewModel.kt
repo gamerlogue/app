@@ -12,6 +12,7 @@ import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.update
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import kotlinx.coroutines.launch
@@ -28,11 +29,10 @@ import org.koin.core.component.inject
 class GameListViewModel(
     @InjectedParam private val section: DiscoverSection,
 ) : StateViewModel<GameListViewModel.UiState>(UiState()) {
-    /** Immutable state of the paginated GameList screen. */
     data class UiState(
-        val games: List<Game> = emptyList(),
-        val loading: Boolean = false,
-        val endReached: Boolean = false,
+        var games: List<Game> = emptyList(),
+        var loading: Boolean = false,
+        var endReached: Boolean = false,
     )
 
     private companion object {
@@ -58,18 +58,16 @@ class GameListViewModel(
     private fun load(reset: Boolean) = viewModelScope.launch {
         if (reset) {
             offset = 0
-            update { copy(games = emptyList(), endReached = false) }
+            uiState.update { games = emptyList(); endReached = false }
         }
         if (state.endReached) return@launch
 
-        update { copy(loading = true) }
+        uiState.update { loading = true }
         val added = fetchPage(offset)
-        update {
-            copy(
-                games = games + added,
-                loading = false,
-                endReached = added.size < PageSize,
-            )
+        uiState.update {
+            games = games + added
+            loading = false
+            endReached = added.size < PageSize
         }
         if (added.size >= PageSize) offset += PageSize
     }
