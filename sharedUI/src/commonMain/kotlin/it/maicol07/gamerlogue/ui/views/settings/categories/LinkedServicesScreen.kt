@@ -14,9 +14,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -26,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -45,22 +49,26 @@ import gamerlogue.sharedui.generated.resources.settings__service_sync_now
 import gamerlogue.sharedui.generated.resources.settings__service_sync_wishlist
 import gamerlogue.sharedui.generated.resources.settings__service_web_unsupported
 import gamerlogue.sharedui.generated.resources.settings__service_xbox
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.EpicgamesSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.GogdotcomSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.PlaystationSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.SteamSimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
 import it.maicol07.gamerlogue.ui.components.ServiceWebView
+import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LinkedServicesScreen(
     navigateToImportPreview: (ExternalService, ImportMode) -> Unit,
@@ -94,6 +102,7 @@ fun LinkedServicesScreen(
                     ImportHandoff.put(action.service, refs)
                     navigateToImportPreview(action.service, ImportMode.OWNED)
                 }
+
                 is LinkedServicesViewModel.Action.PreviewWishlist -> {
                     val refs = viewModel.runWishlistPreview(action.service, session)
                     ImportHandoff.put(action.service, refs)
@@ -109,7 +118,7 @@ fun LinkedServicesScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
@@ -124,8 +133,8 @@ fun LinkedServicesScreen(
         }
 
         uiState.message?.let { message ->
-            val text = when {
-                message == "error" -> stringResource(Res.string.settings__service_sync_error)
+            val text = when (message) {
+                "error" -> stringResource(Res.string.settings__service_sync_error)
                 else -> stringResource(Res.string.settings__service_sync_done)
             }
             Card(
@@ -138,10 +147,10 @@ fun LinkedServicesScreen(
         }
 
         ExternalService.entries.forEach { service ->
-            val serviceState = uiState.services[service] ?: LinkedServicesViewModel.ServiceState()
-            ServiceCard(
+            val state = uiState.services[service] ?: LinkedServicesViewModel.ServiceState()
+            ServiceSegmentedGroup(
                 service = service,
-                state = serviceState,
+                state = state,
                 onConnect = { viewModel.connect(service) },
                 onDisconnect = { viewModel.disconnect(service) },
                 onToggleWishlist = { viewModel.toggleWishlistSync(service, it) },
@@ -152,8 +161,9 @@ fun LinkedServicesScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ServiceCard(
+private fun ServiceSegmentedGroup(
     service: ExternalService,
     state: LinkedServicesViewModel.ServiceState,
     onConnect: () -> Unit,
@@ -161,57 +171,72 @@ private fun ServiceCard(
     onToggleWishlist: (Boolean) -> Unit,
     onWishlistSyncNow: () -> Unit,
     onImport: () -> Unit,
-) = Card(modifier = Modifier.fillMaxWidth()) {
-    Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                service.icon(),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
-            )
-            Text(
-                stringResource(service.labelRes()),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 12.dp).weight(1f),
-            )
-            if (state.connected) {
-                TextButton(onClick = onDisconnect) {
-                    Text(stringResource(Res.string.settings__service_disconnect))
-                }
-            } else {
-                FilledTonalButton(onClick = onConnect) {
-                    Text(stringResource(Res.string.settings__service_connect))
-                }
-            }
-        }
+) {
+    val connected = state.connected
 
-        if (state.connected) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(Res.string.settings__service_sync_wishlist),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
+    SegmentedListLayout(Modifier.fillMaxWidth()) {
+        // Header: service icon + name + connect/disconnect
+        ListItem(
+            modifier = Modifier.clip(ListItemDefaults.expressiveShape(first = true, last = !connected)),
+            colors = ListItemDefaults.expressiveSegmentedColors(),
+            leadingContent = {
+                Image(
+                    service.icon(),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
                 )
-                IconButton(onClick = onWishlistSyncNow, enabled = !state.busy) {
-                    Icon(
-                        MaterialSymbols.SyncW500Rounded,
-                        contentDescription = stringResource(Res.string.settings__service_sync_now),
-                    )
+            },
+            trailingContent = {
+                if (connected) {
+                    TextButton(onClick = onDisconnect) {
+                        Text(stringResource(Res.string.settings__service_disconnect))
+                    }
+                } else {
+                    FilledTonalButton(onClick = onConnect) {
+                        Text(stringResource(Res.string.settings__service_connect))
+                    }
                 }
-                Switch(checked = state.wishlistSync, onCheckedChange = onToggleWishlist)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = onImport, enabled = !state.busy) {
-                    Text(stringResource(Res.string.settings__service_import_library))
-                }
-                if (state.busy) {
-                    CircularProgressIndicator(Modifier.padding(start = 12.dp).size(20.dp))
-                }
-            }
+            },
+            headlineContent = {
+                Text(stringResource(service.labelRes()), style = MaterialTheme.typography.titleMedium)
+            },
+        )
+
+        if (connected) {
+            // Wishlist sync: auto-toggle + manual preview
+            ListItem(
+                modifier = Modifier.clip(ListItemDefaults.expressiveShape(first = false, last = false)),
+                colors = ListItemDefaults.expressiveSegmentedColors(),
+                trailingContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onWishlistSyncNow, enabled = !state.busy) {
+                            Icon(
+                                MaterialSymbols.SyncW500Rounded,
+                                contentDescription = stringResource(Res.string.settings__service_sync_now),
+                            )
+                        }
+                        Switch(checked = state.wishlistSync, onCheckedChange = onToggleWishlist)
+                    }
+                },
+                headlineContent = { Text(stringResource(Res.string.settings__service_sync_wishlist)) },
+            )
+
+            // Import library
+            ListItem(
+                modifier = Modifier.clip(ListItemDefaults.expressiveShape(first = false, last = true)),
+                colors = ListItemDefaults.expressiveSegmentedColors(),
+                trailingContent = {
+                    if (state.busy) {
+                        CircularProgressIndicator(Modifier.size(20.dp))
+                    } else {
+                        OutlinedButton(onClick = onImport) {
+                            Text(stringResource(Res.string.settings__service_import_library))
+                        }
+                    }
+                },
+                headlineContent = { Text(stringResource(Res.string.settings__service_import_library)) },
+            )
         }
     }
 }
