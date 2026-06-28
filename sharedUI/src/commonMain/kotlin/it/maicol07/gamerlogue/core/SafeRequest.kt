@@ -9,7 +9,10 @@ import kotlin.coroutines.cancellation.CancellationException
 suspend fun <T> ExceptionReporter.safeRequest(request: suspend () -> T) = runCatching {
     request()
 }.also {
-    val error = it.getError() ?: return@also
+    val error = it.getError() ?: run {
+        requestDismiss()
+        return@also
+    }
     if (error.cause !is CancellationException) {
         when (error) {
             is IgdbException, is JsonApiException -> report(error)

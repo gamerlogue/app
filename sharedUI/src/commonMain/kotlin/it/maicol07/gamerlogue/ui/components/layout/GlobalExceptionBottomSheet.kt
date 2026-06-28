@@ -32,6 +32,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,6 +98,13 @@ fun GlobalExceptionBottomSheet() {
     val scope = rememberCoroutineScope()
 
     fun dismiss() = scope.launch { sheetState.hide(); reporter.dismissSheet() }
+
+    LaunchedEffect(reporter.dismissRequested) {
+        if (reporter.dismissRequested) {
+            sheetState.hide()
+            reporter.clearError()
+        }
+    }
 
     ModalBottomSheet({ reporter.dismissSheet() }, sheetState = sheetState) {
         Column(

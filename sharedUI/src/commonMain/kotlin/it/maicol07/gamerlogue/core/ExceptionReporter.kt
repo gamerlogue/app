@@ -15,6 +15,10 @@ class ExceptionReporter {
     var sheetOpen by mutableStateOf(false)
         private set
 
+    // Set when a successful retry should animate the sheet closed.
+    var dismissRequested by mutableStateOf(false)
+        private set
+
     fun report(t: Throwable) {
         exception.value = t; sheetOpen = true
     }
@@ -28,6 +32,13 @@ class ExceptionReporter {
     }
 
     fun clearError() {
-        exception.value = null; sheetOpen = false
+        exception.value = null
+        sheetOpen = false
+        dismissRequested = false
+    }
+
+    // Triggers animated close if the sheet is open; no-op otherwise.
+    fun requestDismiss() {
+        if (sheetOpen) dismissRequested = true
     }
 }
