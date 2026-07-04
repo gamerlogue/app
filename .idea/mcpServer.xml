@@ -13,6 +13,7 @@
         <option value="get_sonar_rule_description" />
       </set>
     </option>
+    <option name="port" value="8643" />
     <option name="smoothScrollEnabled" value="true" />
   </component>
 </project>
