@@ -1,12 +1,9 @@
 {
   "mcpServers": {
     "compose-hot-reload": {
-      "command": "./gradlew",
+      "command": "node",
       "args": [
-        "--no-daemon",
-        "--quiet",
-        "--console=plain",
-        "hotMcpServer"
+        ".claude/mcp-wrapper.js"
       ]
     }
   }
