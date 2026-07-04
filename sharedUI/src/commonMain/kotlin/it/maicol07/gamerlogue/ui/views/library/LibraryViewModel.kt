@@ -12,7 +12,6 @@ import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntries
 import it.maicol07.gamerlogue.extensions.forEachPage
-import it.maicol07.gamerlogue.extensions.update
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
@@ -20,10 +19,11 @@ import org.koin.core.component.inject
 
 @KoinViewModel
 class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
+    /** Immutable state of the Library screen. */
     data class UiState(
-        var loading: Boolean = false,
-        var selectedSection: GameLibraryStatus? = null,
-        var games: Map<GameLibraryStatus, Map<Game, LibraryEntry>> =
+        val loading: Boolean = false,
+        val selectedSection: GameLibraryStatus? = null,
+        val games: Map<GameLibraryStatus, Map<Game, LibraryEntry>> =
             GameLibraryStatus.entries.associateWith { emptyMap() },
     )
 
@@ -31,24 +31,23 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
 
     fun loadLibraryEntries(section: GameLibraryStatus? = state.selectedSection) = viewModelScope.launch {
         // Clear the target section(s), then fill them page by page as each page arrives.
-        uiState.update {
+        update {
             val cleared = if (section == null) {
                 GameLibraryStatus.entries.associateWith { emptyMap() }
             } else {
                 games + (section to emptyMap())
             }
-            loading = true
-            games = cleared
+            copy(loading = true, games = cleared)
         }
 
         val result = safeRequest {
             LibraryEntry.currentUserEntries(section).forEachPage { page ->
                 val grouped = groupEntriesByStatus(page)
-                uiState.update { games = mergeGames(games, grouped) }
+                update { copy(games = mergeGames(games, grouped)) }
             }
         }
         if (result.isErr) Logger.e(result.unwrapError()) { "Error loading library entries" }
-        uiState.update { loading = false }
+        update { copy(loading = false) }
     }
 
     private fun mergeGames(
@@ -93,7 +92,7 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
     }
 
     fun selectSection(section: GameLibraryStatus?) {
-        uiState.update { selectedSection = section }
+        update { copy(selectedSection = section) }
         loadLibraryEntries(section)
     }
 }

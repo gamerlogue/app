@@ -3,7 +3,6 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.core.StateViewModel
-import it.maicol07.gamerlogue.extensions.update
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
@@ -24,10 +23,7 @@ enum class ImportMode { OWNED, WISHLIST }
  */
 object ImportHandoff {
     private val pending = mutableMapOf<ExternalService, List<ExternalGameRef>>()
-    fun put(service: ExternalService, refs: List<ExternalGameRef>) {
-        pending[service] = refs
-    }
-
+    fun put(service: ExternalService, refs: List<ExternalGameRef>) { pending[service] = refs }
     fun take(service: ExternalService): List<ExternalGameRef> = pending.remove(service).orEmpty()
 }
 
@@ -68,41 +64,45 @@ class LibraryImportViewModel(
     )
 
     data class UiState(
-        var loading: Boolean = true,
-        var matching: Boolean = false,
-        var processed: Int = 0,
-        var total: Int = 0,
-        var rows: List<Row> = emptyList(),
-        var importing: Boolean = false,
-        var importedCount: Int? = null,
-        var editingIndex: Int? = null,
-        var searching: Boolean = false,
-        var searchResults: List<Game> = emptyList(),
+        val loading: Boolean = true,
+        val matching: Boolean = false,
+        val processed: Int = 0,
+        val total: Int = 0,
+        val rows: List<Row> = emptyList(),
+        val importing: Boolean = false,
+        val importedCount: Int? = null,
+        val editingIndex: Int? = null,
+        val searching: Boolean = false,
+        val searchResults: List<Game> = emptyList(),
     )
 
     init {
         val refs = ImportHandoff.take(service)
-        uiState.update {
-            loading = false
-            matching = refs.isNotEmpty()
-            total = refs.size
-            rows = refs.map {
-                Row(it, game = null, candidates = emptyList(), included = false, sourceUrl = connector.storeUrl(it.uid))
-            }
+        update {
+            copy(
+                loading = false,
+                matching = refs.isNotEmpty(),
+                total = refs.size,
+                rows = refs.map {
+                    Row(it, game = null, candidates = emptyList(), included = false, sourceUrl = connector.storeUrl(it.uid))
+                },
+            )
         }
         viewModelScope.launch {
             existingIds = librarySync.existingGameIds(ownedOnly = mode == ImportMode.OWNED)
             // Stream matches in as each batch resolves so the list fills progressively.
             matcher.match(connector, refs) { batch ->
                 val byUid = batch.associateBy { it.ref.uid }
-                uiState.update {
-                    processed += batch.size
-                    rows = rows.map { row ->
-                        byUid[row.ref.uid]?.let { m -> row.withMatch(m.game, m.candidates, m.confident) } ?: row
-                    }
+                update {
+                    copy(
+                        processed = processed + batch.size,
+                        rows = rows.map { row ->
+                            byUid[row.ref.uid]?.let { m -> row.withMatch(m.game, m.candidates, m.confident) } ?: row
+                        },
+                    )
                 }
             }
-            uiState.update { matching = false }
+            update { copy(matching = false) }
         }
     }
 
@@ -121,47 +121,49 @@ class LibraryImportViewModel(
         )
     }
 
-    fun toggleIncluded(index: Int) = uiState.update {
-        rows = rows.mapIndexed { i, row ->
-            // Only confident, not-already-present rows are selectable.
-            if (i == index && row.confident && !row.alreadyPresent) row.copy(included = !row.included) else row
-        }
+    fun toggleIncluded(index: Int) = update {
+        copy(
+            rows = rows.mapIndexed { i, row ->
+                // Only confident, not-already-present rows are selectable.
+                if (i == index && row.confident && !row.alreadyPresent) row.copy(included = !row.included) else row
+            },
+        )
     }
 
     /** Select or deselect every selectable row (confident match, not already in the library). */
-    fun setAllIncluded(included: Boolean) = uiState.update {
-        rows = rows.map { it.copy(included = included && it.confident && !it.alreadyPresent) }
+    fun setAllIncluded(included: Boolean) = update {
+        copy(rows = rows.map { it.copy(included = included && it.confident && !it.alreadyPresent) })
     }
 
     // Prefill the search dialog with the auto-found candidates so a pick needs no extra typing.
-    fun startEdit(index: Int) = uiState.update {
-        editingIndex = index
-        searchResults = rows.getOrNull(index)?.candidates.orEmpty()
+    fun startEdit(index: Int) = update {
+        copy(editingIndex = index, searchResults = rows.getOrNull(index)?.candidates.orEmpty())
     }
-
-    fun cancelEdit() = uiState.update { editingIndex = null; searchResults = emptyList() }
+    fun cancelEdit() = update { copy(editingIndex = null, searchResults = emptyList()) }
 
     fun search(query: String) = viewModelScope.launch {
-        uiState.update { searching = true }
+        update { copy(searching = true) }
         val results = matcher.searchByName(query)
-        uiState.update { searching = false; searchResults = results }
+        update { copy(searching = false, searchResults = results) }
     }
 
-    fun chooseMatch(game: Game) = uiState.update {
-        val index = editingIndex ?: return@update
+    fun chooseMatch(game: Game) = update {
+        val index = editingIndex ?: return@update this
         // A manual pick is a confirmation → confident.
-        rows = rows.mapIndexed { i, row -> if (i == index) row.withMatch(game, row.candidates, confident = true) else row }
-        editingIndex = null
-        searchResults = emptyList()
+        copy(
+            rows = rows.mapIndexed { i, row -> if (i == index) row.withMatch(game, row.candidates, confident = true) else row },
+            editingIndex = null,
+            searchResults = emptyList(),
+        )
     }
 
     fun confirm() = viewModelScope.launch {
-        uiState.update { importing = true }
+        update { copy(importing = true) }
         val games = state.rows.filter { it.included }.mapNotNull { it.game }
         val count = when (mode) {
             ImportMode.OWNED -> librarySync.importOwned(games)
             ImportMode.WISHLIST -> librarySync.importWishlist(games)
         }
-        uiState.update { importing = false; importedCount = count }
+        update { copy(importing = false, importedCount = count) }
     }
 }

@@ -11,7 +11,6 @@ import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
 import it.maicol07.gamerlogue.extensions.quickDraft
-import it.maicol07.gamerlogue.extensions.update
 import it.maicol07.gamerlogue.ui.views.game.GameHandoff.take
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
@@ -39,13 +38,14 @@ object GameHandoff {
 
 @KoinViewModel
 class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameDetailViewModel.UiState>(UiState()) {
+    /** Immutable state of the Game detail screen. */
     data class UiState(
-        var game: Game? = null,
-        var libraryEntry: LibraryEntry? = null,
-        var errorMessage: String? = null,
-        var isLoading: Boolean = true,
-        var isPlayingButtonLoading: Boolean = false,
-        var isBacklogButtonLoading: Boolean = false,
+        val game: Game? = null,
+        val libraryEntry: LibraryEntry? = null,
+        val errorMessage: String? = null,
+        val isLoading: Boolean = true,
+        val isPlayingButtonLoading: Boolean = false,
+        val isBacklogButtonLoading: Boolean = false,
     )
 
     private val igdb by inject<IgdbClient>()
@@ -64,13 +64,13 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         // Seed with the Game already loaded by the originating list so the hero (cover + banner)
         // renders from the first frame — required for the shared-element transition to have a
         // target while the full detail query is still in flight.
-        GameHandoff.take(gameId)?.let { seed -> uiState.update { game = seed } }
+        GameHandoff.take(gameId)?.let { seed -> update { copy(game = seed) } }
         viewModelScope.launch { loadGameDetails() }
         loadLibraryEntry()
     }
 
     suspend fun loadGameDetails() {
-        uiState.update { isLoading = true }
+        update { copy(isLoading = true) }
         val result = safeRequest {
             igdb.getGames {
                 fields(
@@ -100,16 +100,16 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
             }
         }
         val game = if (result.isOk) result.unwrap().games.firstOrNull() else null
-        uiState.update { this.game = game; isLoading = false }
+        update { copy(game = game, isLoading = false) }
     }
 
     fun loadLibraryEntry(): Job = viewModelScope.launch {
         val result = safeRequest { LibraryEntry.currentUserEntryForGame(gameId).firstOrNull().data }
-        uiState.update { libraryEntry = if (result.isOk) result.unwrap() else null }
+        update { copy(libraryEntry = if (result.isOk) result.unwrap() else null) }
     }
 
     fun toggleGamePlaying() = viewModelScope.launch {
-        uiState.update { isPlayingButtonLoading = true }
+        update { copy(isPlayingButtonLoading = true) }
         try {
             if (state.libraryEntry?.status == GameLibraryStatus.PLAYING) {
                 removeGameLibraryEntry()
@@ -117,13 +117,13 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
                 applyStatus(GameLibraryStatus.PLAYING)
             }
         } catch (e: Exception) {
-            uiState.update { errorMessage = e.message }
+            update { copy(errorMessage = e.message) }
         }
-        uiState.update { isPlayingButtonLoading = false }
+        update { copy(isPlayingButtonLoading = false) }
     }
 
     fun toggleGameBacklog() = viewModelScope.launch {
-        uiState.update { isBacklogButtonLoading = true }
+        update { copy(isBacklogButtonLoading = true) }
         try {
             if (state.libraryEntry?.status == GameLibraryStatus.BACKLOG) {
                 removeGameLibraryEntry()
@@ -131,9 +131,9 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
                 applyStatus(GameLibraryStatus.BACKLOG)
             }
         } catch (e: Exception) {
-            uiState.update { errorMessage = e.message }
+            update { copy(errorMessage = e.message) }
         }
-        uiState.update { isBacklogButtonLoading = false }
+        update { copy(isBacklogButtonLoading = false) }
     }
 
     private suspend fun removeGameLibraryEntry() {
