@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.ByteArrayOutputStream
 
 val appPackageName = project.findProperty("appPackageName").toString()
 
@@ -106,4 +107,55 @@ dependencies {
     androidTestImplementation(libs.androidx.uitest.junit4)
     debugImplementation(libs.androidx.uitest.testManifest)
     coreLibraryDesugaring(libs.desugarJdkLibs)
+}
+
+// The emulator's virtual Wi-Fi does not forward the 10.0.2.2 magic host, so a debug build pointed at
+// http://localhost reaches the local backend only through an adb reverse tunnel. adb reverse does not
+// survive an emulator/adb restart, so re-establish it after every debug install. It targets the running
+// emulator-* device (a physical device reaches the backend over the LAN, not this tunnel); no emulator
+// running just skips it.
+abstract class AdbReverseTask : DefaultTask() {
+    @get:Input
+    abstract val adbPath: Property<String>
+
+    @get:Inject
+    abstract val exec: ExecOperations
+
+    @TaskAction
+    fun reverse() {
+        val devices = ByteArrayOutputStream()
+        exec.exec {
+            executable = adbPath.get()
+            args = listOf("devices")
+            standardOutput = devices
+        }
+        val emulator = devices.toString()
+            .lineSequence()
+            .firstOrNull { it.startsWith("emulator-") }
+            ?.substringBefore('\t')
+        if (emulator == null) {
+            logger.lifecycle("adbReverseLocalhost: no emulator running, skipping")
+            return
+        }
+        exec.exec {
+            executable = adbPath.get()
+            args = listOf("-s", emulator, "reverse", "tcp:80", "tcp:80")
+            isIgnoreExitValue = true
+        }
+    }
+}
+
+val adbExecutable = extensions
+    .getByType<com.android.build.api.variant.ApplicationAndroidComponentsExtension>()
+    .sdkComponents.adb
+
+tasks.register<AdbReverseTask>("adbReverseLocalhost") {
+    description = "Tunnel emulator localhost:80 to host:80 for local backend access"
+    adbPath.set(adbExecutable.map { it.asFile.absolutePath })
+}
+
+tasks.configureEach {
+    if (name.startsWith("install") && name.endsWith("Debug")) {
+        finalizedBy("adbReverseLocalhost")
+    }
 }
