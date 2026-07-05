@@ -43,6 +43,7 @@ import com.parkwoocheol.composewebview.ComposeWebView
 import com.parkwoocheol.composewebview.WebViewController
 import com.parkwoocheol.composewebview.WebViewState
 import com.parkwoocheol.composewebview.client.onConsoleMessage
+import com.parkwoocheol.composewebview.client.onProgressChanged
 import com.parkwoocheol.composewebview.client.rememberWebChromeClient
 import com.parkwoocheol.composewebview.rememberWebViewController
 import com.parkwoocheol.composewebview.rememberWebViewJsBridge
@@ -126,11 +127,13 @@ fun ServiceWebView(
         nativeInterfaceName = SyncScripts.BRIDGE_NATIVE,
     )
     val session = remember(controller, state) { WebSessionImpl(controller, state) }
+    var progress by remember { mutableStateOf(0) }
     val chromeClient = rememberWebChromeClient {
         onConsoleMessage { _, message ->
             Logger.i(tag = "ServiceWebView") { "JS: ${message.message}" }
             false
         }
+        onProgressChanged { _, p -> progress = p }
     }
 
     LaunchedEffect(bridge, session) {
@@ -200,6 +203,15 @@ fun ServiceWebView(
         )
 
         if (showWebView) {
+            // The WebView surface paints black until the page's first frame; cover it with a progress
+            // indicator while it loads so the user sees progress instead of a black screen.
+            if (progress < 100) {
+                Surface(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(progress = { progress / 100f })
+                    }
+                }
+            }
             Surface(
                 tonalElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
