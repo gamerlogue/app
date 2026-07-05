@@ -48,6 +48,8 @@ kotlin {
 
         androidResources.enable = true
         compilerOptions { jvmTarget.set(JvmTarget.JVM_21) }
+
+        withHostTest {}
     }
 
     jvm()
