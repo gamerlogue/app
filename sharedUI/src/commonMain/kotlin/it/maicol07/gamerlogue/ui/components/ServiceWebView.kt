@@ -68,6 +68,7 @@ import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
+import it.maicol07.gamerlogue.services.configureServiceWebView
 import it.maicol07.gamerlogue.services.parseRefsJson
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
@@ -187,6 +188,7 @@ fun ServiceWebView(
             controller = controller,
             jsBridge = bridge,
             chromeClient = chromeClient,
+            onCreated = ::configureServiceWebView,
             modifier = if (showWebView) Modifier.fillMaxSize() else Modifier.size(1.dp),
         )
 
