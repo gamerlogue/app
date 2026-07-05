@@ -1,6 +1,8 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
+import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
+import com.parkwoocheol.composewebview.PlatformCookieManager
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.StateViewModel
@@ -9,6 +11,7 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.ui.components.WebSession
+import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -86,6 +89,21 @@ class LinkedServicesViewModel(
     fun disconnect(service: ExternalService) {
         setConnected(service, false)
         refresh(service)
+        clearSession(service)
+    }
+
+    /**
+     * Clear the store's WebView cookies so the next connect starts logged out.
+     *
+     * ponytail: best-effort — reliable on Android (per-URL cookie removal). On JCEF desktop the
+     * library's cookie manager is a stub and on the JS browser it can only reach same-origin,
+     * non-HttpOnly cookies, so those platforms may stay signed in until the store cookies expire.
+     */
+    private fun clearSession(service: ExternalService) = viewModelScope.launch {
+        connector(service).sessionUrls().forEach { url ->
+            runCatching { PlatformCookieManager.removeCookies(url) }
+                .onFailure { Logger.w(throwable = it) { "Cookie clear failed for service=$service url=$url" } }
+        }
     }
 
     fun clearAction() = update { copy(action = null) }

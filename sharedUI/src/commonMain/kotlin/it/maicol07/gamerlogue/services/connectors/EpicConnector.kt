@@ -15,6 +15,8 @@ import it.maicol07.gamerlogue.services.WebStep
 class EpicConnector : ServiceConnector(ExternalService.EPIC, host = "epicgames.com", externalGameSource = 26) {
     override fun loginUrl() = "https://www.epicgames.com/id/login"
 
+    override fun sessionUrls() = listOf("https://www.epicgames.com/", "https://store.epicgames.com/")
+
     override fun readOwned() = WebStep(STORE, SyncScripts.wrap("""
         let r = await fetch('$GRAPHQL', ${graphqlBody("{ Launcher { entitledOfferItems { items { id title } } } }")});
         let j = await r.json();

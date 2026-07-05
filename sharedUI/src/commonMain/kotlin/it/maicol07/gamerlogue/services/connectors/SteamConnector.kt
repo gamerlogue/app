@@ -23,6 +23,10 @@ class SteamConnector : ServiceConnector(
     storeUrlTemplate = "https://store.steampowered.com/app/{id}",
 ) {
     override fun loginUrl() = "https://store.steampowered.com/login/"
+
+    // The login cookie (steamLoginSecure) is set on both the store and community origins.
+    override fun sessionUrls() = listOf("https://store.steampowered.com/", "https://steamcommunity.com/")
+
     override fun uidFromUrl(url: String) = Regex("/app/(\\d+)").find(url)?.groupValues?.get(1)
 
     override fun readOwned() = WebStep(HOME, SyncScripts.wrap("""

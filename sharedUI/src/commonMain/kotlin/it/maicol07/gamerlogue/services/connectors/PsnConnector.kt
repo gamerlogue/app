@@ -24,6 +24,14 @@ class PsnConnector(private val api: PsnApi) :
 
     override fun loginUrl() = "https://library.playstation.com/"
 
+    // Session spans the library/store origins and the Sony account origins that hold the npsso/SSO cookies.
+    override fun sessionUrls() = listOf(
+        "https://library.playstation.com/",
+        "https://www.playstation.com/",
+        "https://ca.account.sony.com/",
+        "https://my.account.sony.com/",
+    )
+
     // Owned games come from the trophy API (npsso credential); the wishlist has no clean API, so it's
     // scraped from the store wishlist page instead. Wishlist write to PSN isn't supported (no API).
     override fun ownedViaApi() = true

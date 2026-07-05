@@ -51,6 +51,11 @@ abstract class ServiceConnector(
      *  token comes from login.live.com, but the wishlist DOM is on the Microsoft Store). */
     open fun storeLoginUrl(): String? = null
 
+    /** Origins whose WebView cookies hold this store's authenticated session; cleared on disconnect so
+     *  the next connect starts logged out. Defaults to the login origin(s); override when the session
+     *  spans more hosts (e.g. Steam's community domain, PSN's Sony account domains). */
+    open fun sessionUrls(): List<String> = listOf(loginUrl()) + listOfNotNull(storeLoginUrl())
+
     /** True once [currentUrl] is a logged-in page of this store. */
     open fun isLoggedIn(currentUrl: String): Boolean =
         currentUrl.contains(host) && LOGIN_MARKERS.none { currentUrl.contains(it) }

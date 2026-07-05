@@ -48,6 +48,14 @@ class XboxConnector(private val api: XboxApi) :
     // the store directly (top-level → first-party cookies) before we read/write the wishlist.
     override fun storeLoginUrl() = "https://www.microsoft.com/store/wishlist"
 
+    // MSA login (login.live.com) + the Microsoft/Xbox store origins that carry the signed-in session.
+    override fun sessionUrls() = listOf(
+        "https://login.live.com/",
+        "https://account.microsoft.com/",
+        "https://www.microsoft.com/",
+        "https://www.xbox.com/",
+    )
+
     override fun uidFromUrl(url: String): String? =
         Regex("/([0-9A-Za-z]{12})(?:[/?#]|$)").find(url)?.groupValues?.get(1)
 
