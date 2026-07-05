@@ -33,6 +33,8 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
         let r = await fetch('https://www.gog.com/userData.json', { credentials: 'include' });
         let j = await r.json();
         let av = j.avatar ? (j.avatar.indexOf('http') === 0 ? j.avatar : 'https:' + j.avatar) : '';
+        // GOG now returns the bare image hash; images.gog.com 404s without a format extension.
+        if (av && !/\.(png|jpg|jpeg|webp)$/i.test(av)) av += '.png';
         out = {
             username: j.username || '',
             avatarUrl: av,
