@@ -19,6 +19,11 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
 
     override fun loginUrl() = "https://www.gog.com/account"
 
+    // Logged-out, /account redirects to a hash-based login modal (e.g. www.gog.com/en##openlogin) rather
+    // than a /login path, so the default marker check misreads it as signed in. Treat it as logged out.
+    override suspend fun isLoggedIn(currentUrl: String) =
+        super.isLoggedIn(currentUrl) && !currentUrl.contains("openlogin", ignoreCase = true)
+
     /** Recognise a GOG store page (returns its slug) so IGDB `websites` URLs are matched for push. */
     override fun uidFromUrl(url: String) = Regex("gog\\.com/(?:[a-z]{2}/)?game/([^/?#]+)").find(url)?.groupValues?.get(1)
 

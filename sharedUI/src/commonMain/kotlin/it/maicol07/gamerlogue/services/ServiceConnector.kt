@@ -199,7 +199,9 @@ object SyncScripts {
                 try {
                     __glEnsureNative();
                     console.log('[GL] send ' + (out ? out.length : 'null'));
-                    window.$BRIDGE_OBJECT.call('$RESULT_METHOD', JSON.stringify(out || []));
+                    // Pass the plain value: the bridge JSON-stringifies its `data` argument itself, so
+                    // pre-stringifying here would double-encode and break the native-side decode.
+                    window.$BRIDGE_OBJECT.call('$RESULT_METHOD', out || []);
                 } catch (e) { console.log('[GL] send error ' + e); }
             }
             function __glRun() {
@@ -212,10 +214,20 @@ object SyncScripts {
             if (window.$BRIDGE_OBJECT && window.$BRIDGE_OBJECT.call) {
                 console.log('[GL] bridge ready'); __glRun();
             } else {
+                // Don't wait on the bridge-ready event: the library dispatches a fixed 'AppBridgeReady'
+                // (not '${BRIDGE_OBJECT}Ready') and it may have already fired before this listener runs.
+                // Poll for the injected object instead — robust on SPA pages that install it late (e.g. GOG).
                 console.log('[GL] waiting bridge');
-                window.addEventListener('${BRIDGE_OBJECT}Ready', function() {
-                    console.log('[GL] bridge event'); __glRun();
-                }, { once: true });
+                let __glTries = 0;
+                const __glPoll = setInterval(function() {
+                    if (window.$BRIDGE_OBJECT && window.$BRIDGE_OBJECT.call) {
+                        clearInterval(__glPoll);
+                        console.log('[GL] bridge ready (poll)'); __glRun();
+                    } else if (++__glTries > 200) { // ~20s, under the Kotlin script timeout
+                        clearInterval(__glPoll);
+                        console.log('[GL] bridge never appeared'); __glSend([]);
+                    }
+                }, 100);
             }
         })();
     """.trimIndent()

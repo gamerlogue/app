@@ -76,6 +76,7 @@ import it.maicol07.gamerlogue.services.parseRefsJson
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonElement
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -137,8 +138,10 @@ fun ServiceWebView(
     }
 
     LaunchedEffect(bridge, session) {
-        bridge.register<String, Boolean>(SyncScripts.RESULT_METHOD) { json ->
-            session.deliver(json)
+        // Accept a JsonElement (never a typed String): the connector scripts deliver an object, array or
+        // scalar, and decoding to a String would throw on the object/array shapes. Re-stringify for parsing.
+        bridge.register<JsonElement, Boolean>(SyncScripts.RESULT_METHOD) { json ->
+            session.deliver(json.toString())
             true
         }
     }
