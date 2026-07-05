@@ -60,7 +60,14 @@ class PsnApi(private val http: HttpClient) {
 
     /** The signed-in user's profile (onlineId + avatar). PSN profiles aren't publicly web-linkable. */
     suspend fun profile(token: String): ServiceProfile? {
-        val resp = http.get(PROFILE) {
+        // The profiles endpoint rejects "me" (400); it needs the numeric accountId from the account service first.
+        val accountResp = http.get(MY_ACCOUNT) {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+        val accountId = JSON.parseToJsonElement(accountResp.bodyAsText()).jsonObject["accountId"]
+            ?.jsonPrimitive?.content ?: error("PSN account: no accountId")
+
+        val resp = http.get("$PROFILE_BASE/$accountId/profiles") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
         val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
@@ -69,6 +76,7 @@ class PsnApi(private val http: HttpClient) {
             ?.map { it.jsonObject }
             ?.firstOrNull { it["size"]?.jsonPrimitive?.content == "xl" || it["size"]?.jsonPrimitive?.content == "l" }
             ?.get("url")?.jsonPrimitive?.content
+            ?.replaceFirst("http://", "https://") // PSN returns cleartext avatar URLs, blocked on Android
         return ServiceProfile(username = onlineId, avatarUrl = avatar)
     }
 
@@ -105,7 +113,8 @@ class PsnApi(private val http: HttpClient) {
         const val AUTHORIZE = "https://ca.account.sony.com/api/authz/v3/oauth/authorize"
         const val TOKEN = "https://ca.account.sony.com/api/authz/v3/oauth/token"
         const val TROPHY_TITLES = "https://m.np.playstation.com/api/trophy/v1/users/me/trophyTitles"
-        const val PROFILE = "https://m.np.playstation.com/api/userProfile/v1/internal/users/me/profiles"
+        const val MY_ACCOUNT = "https://dms.api.playstation.com/api/v1/devices/accounts/me"
+        const val PROFILE_BASE = "https://m.np.playstation.com/api/userProfile/v1/internal/users"
         const val PAGE_SIZE = 100
         const val MAX_PAGES = 50
         val CODE_REGEX = Regex("code=([^&]+)")
