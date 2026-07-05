@@ -43,10 +43,8 @@ class XboxConnector(private val api: XboxApi) :
 
     override fun pushesPerGame() = true
 
-    // The wishlist DOM lives on the Microsoft Store, a different origin than the login.live.com token
-    // login; WebView third-party-cookie blocking stops the store's silent SSO, so the user signs into
-    // the store directly (top-level → first-party cookies) before we read/write the wishlist.
-    override fun storeLoginUrl() = "https://www.microsoft.com/store/wishlist"
+    // No storeLoginUrl override: xbox.com SSOs silently from the MSA session, so we skip the manual
+    // store-login step and read the wishlist directly (readWishlist navigates xbox.com top-level).
 
     // MSA login (login.live.com) + the Microsoft/Xbox store origins that carry the signed-in session.
     override fun sessionUrls() = listOf(
@@ -83,16 +81,15 @@ class XboxConnector(private val api: XboxApi) :
     }
 
     override fun readWishlist() = WebStep(
-        "https://www.microsoft.com/store/wishlist",
+        "https://www.xbox.com/wishlist",
         SyncScripts.wrap(
             """
             console.log('[GL] xbox wishlist at ' + location.href);
-            // Only product anchors carry a 12-char store id; match those, NOT every /p/ link (nav/footer
-            // links also have /p/ and made the old poll exit early on a page with zero real tiles).
+            // Wishlist tiles are CSS-module anchors; the hashed class suffix (___OfDqr) changes per build,
+            // so match the stable module prefix substring instead of the full generated class name.
             let productAnchors = function() {
-                return Array.prototype.filter.call(
-                    document.querySelectorAll('a[href]'),
-                    function(a) { return /\/([0-9A-Za-z]{12})(?:[\/?#]|$)/.test(a.getAttribute('href') || ''); },
+                return Array.prototype.slice.call(
+                    document.querySelectorAll('[class*="WishlistProductItem-module__productDetails"] > a[href]'),
                 );
             };
             // Tiles render late (React); poll until product anchors appear instead of reading an empty DOM.
