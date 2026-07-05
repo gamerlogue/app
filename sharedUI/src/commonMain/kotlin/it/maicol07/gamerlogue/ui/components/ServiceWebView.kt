@@ -147,10 +147,12 @@ fun ServiceWebView(
     val url = session.currentUrl
     val confirming = session.pendingConfirm
     val manualLogin = session.awaitingManualLogin
-    // Reveal the WebView for the first login (login pages only) OR whenever we're waiting on the user to
-    // sign into a second store origin (any URL — the store page degrades to logged-out, never a /login).
+    // Reveal the WebView for the first login (login/sign-in pages only) OR whenever we're waiting on the
+    // user to sign into a second store origin (any URL — the store page degrades to logged-out, never a
+    // /login). The landing page (e.g. PSN's home) stays hidden behind the spinner until it redirects to
+    // the sign-in page via the injected trigger.
     val showWebView = confirming == null &&
-        (manualLogin || (!loginDone && (url == null || url.contains("login"))))
+        (manualLogin || (!loginDone && (url == null || url.contains("login") || url.contains("signin"))))
 
     Box(Modifier.fillMaxSize()) {
         // The progress panel is the base layer; the WebView sits on top only when login is needed.
@@ -383,10 +385,18 @@ private class WebSessionImpl(
 
     override suspend fun awaitLogin(connector: ServiceConnector) {
         Logger.i(tag = TAG) { "awaitLogin(${connector.service}) — current=${state.lastLoadedUrl}" }
+        val trigger = connector.loginTriggerScript()
         val reached = withTimeoutOrNull(LOGIN_TIMEOUT) {
+            var triggered = false
             while (true) {
                 val url = state.lastLoadedUrl
                 if (url != null && connector.isLoggedIn(url)) return@withTimeoutOrNull true
+                // Once the landing page has loaded, kick off the store's sign-in flow (e.g. PSN: click
+                // the header sign-in button). Fire-and-forget and idempotent, so injecting once is enough.
+                if (!triggered && trigger != null && url != null && !state.isLoading) {
+                    controller.evaluateJavascript(trigger) {}
+                    triggered = true
+                }
                 delay(POLL_INTERVAL)
             }
             @Suppress("UNREACHABLE_CODE") false

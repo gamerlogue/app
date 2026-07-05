@@ -34,7 +34,7 @@ class XboxConnector(private val api: XboxApi) :
     // Logged in once MSA redirects to the desktop landing page. Can't just match "oauth20_desktop.srf"
     // (it's also the redirect_uri param in the authorize URL), and the #access_token fragment may be
     // stripped from the reported URL — so match the landing path while excluding the authorize page.
-    override fun isLoggedIn(currentUrl: String) =
+    override suspend fun isLoggedIn(currentUrl: String) =
         currentUrl.contains("oauth20_desktop.srf") && !currentUrl.contains("authorize")
 
     // Owned games come from the Xbox Live title history (MSA credential); the wishlist is scraped from

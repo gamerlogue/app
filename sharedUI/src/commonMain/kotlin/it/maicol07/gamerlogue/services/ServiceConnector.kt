@@ -56,9 +56,16 @@ abstract class ServiceConnector(
      *  spans more hosts (e.g. Steam's community domain, PSN's Sony account domains). */
     open fun sessionUrls(): List<String> = listOf(loginUrl()) + listOfNotNull(storeLoginUrl())
 
-    /** True once [currentUrl] is a logged-in page of this store. */
-    open fun isLoggedIn(currentUrl: String): Boolean =
+    /** True once the store session is established. Defaults to a URL check (on a store host, off any
+     *  login page); override for stores where the URL alone is ambiguous and the session must be read
+     *  from cookies instead (e.g. PSN, whose post-login URL is just the store host). */
+    open suspend fun isLoggedIn(currentUrl: String): Boolean =
         currentUrl.contains(host) && LOGIN_MARKERS.none { currentUrl.contains(it) }
+
+    /** JS injected once on the login landing page to kick off the store's sign-in flow (e.g. click the
+     *  header sign-in button). Null (default) = the sign-in page is reached directly, no trigger needed.
+     *  Fire-and-forget (no bridge result); must be a no-op when its target element isn't present. */
+    open fun loginTriggerScript(): String? = null
 
     /** Match IGDB `external_games` on the numeric `uid` field instead of `url` — for stores whose
      *  IGDB url is slug-based and can't be rebuilt from the store uid (e.g. GOG). */

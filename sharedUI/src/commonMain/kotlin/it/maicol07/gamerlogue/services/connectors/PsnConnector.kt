@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.services.connectors
 
 import co.touchlab.kermit.Logger
+import com.parkwoocheol.composewebview.PlatformCookieManager
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.PsnApi
@@ -22,7 +23,35 @@ class PsnConnector(private val api: PsnApi) :
 
     override val platformFamily = 1 // IGDB platform_family: PlayStation
 
-    override fun loginUrl() = "https://library.playstation.com/"
+    // Land on the public home and drive its header sign-in button (see [loginTriggerScript]) instead of
+    // opening library.playstation.com directly: hitting the library first goes straight to the Sony
+    // OAuth page, whose cross-origin token XHR fails in the WebView. Starting from the home first sets
+    // playstation.com's own first-party cookies, and the button builds the correct sign-in redirect.
+    override fun loginUrl() = "https://www.playstation.com/"
+
+    // Click the header sign-in button once it renders (React). No-op on the Sony sign-in page (button
+    // absent there), so it's safe to inject on any load during the login wait.
+    override fun loginTriggerScript() = """
+        (function() {
+            var tries = 0;
+            (function tick() {
+                var btn = document.querySelector('[data-qa="web-toolbar#profile-container#signin-button"]');
+                if (btn) { btn.click(); return; }
+                if (++tries > 40) return;
+                setTimeout(tick, 500);
+            })();
+        })();
+    """.trimIndent()
+
+    // The post-login URL is just the store host (no reliable path marker), so detect the session from
+    // cookies: the client-readable isSignedIn flag, or the session/userinfo cookies the account sets.
+    override suspend fun isLoggedIn(currentUrl: String): Boolean {
+        if (!currentUrl.contains("playstation.com")) return false
+        val cookies = PlatformCookieManager.getCookies("https://www.playstation.com")
+        return cookies.any { c ->
+            (c.name == "isSignedIn" && c.value == "true") || c.name == "session" || c.name == "userinfo"
+        }
+    }
 
     // Session spans the library/store origins and the Sony account origins that hold the npsso/SSO cookies.
     override fun sessionUrls() = listOf(
