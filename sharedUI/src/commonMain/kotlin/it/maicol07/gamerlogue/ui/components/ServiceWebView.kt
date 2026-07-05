@@ -66,9 +66,11 @@ import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
+import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.configureServiceWebView
+import it.maicol07.gamerlogue.services.parseProfileJson
 import it.maicol07.gamerlogue.services.parseRefsJson
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
@@ -87,6 +89,9 @@ interface WebSession {
     val currentUrl: String?
     suspend fun awaitLogin(connector: ServiceConnector)
     suspend fun run(step: WebStep): List<ExternalGameRef>
+
+    /** Run [step] and parse its bridge result as a [ServiceProfile] (null if the script delivered none). */
+    suspend fun runProfile(step: WebStep): ServiceProfile?
 
     /**
      * Navigate to [url] and reveal the WebView with a "Continue" button so the user can interactively
@@ -130,7 +135,7 @@ fun ServiceWebView(
 
     LaunchedEffect(bridge, session) {
         bridge.register<String, Boolean>(SyncScripts.RESULT_METHOD) { json ->
-            session.deliver(parseRefsJson(json))
+            session.deliver(json)
             true
         }
     }
@@ -330,7 +335,7 @@ private class WebSessionImpl(
     private val controller: WebViewController,
     private val state: WebViewState,
 ) : WebSession {
-    private var pending: CompletableDeferred<List<ExternalGameRef>>? = null
+    private var pending: CompletableDeferred<String?>? = null
     private var confirm: CompletableDeferred<List<LibrarySync.OutgoingGame>>? = null
     private var manualLogin: CompletableDeferred<Unit>? = null
 
@@ -345,8 +350,8 @@ private class WebSessionImpl(
 
     override val currentUrl: String? get() = state.lastLoadedUrl
 
-    fun deliver(refs: List<ExternalGameRef>) {
-        pending?.complete(refs)
+    fun deliver(json: String?) {
+        pending?.complete(json)
     }
 
     override suspend fun confirmPush(games: List<LibrarySync.OutgoingGame>): List<LibrarySync.OutgoingGame> {
@@ -408,19 +413,24 @@ private class WebSessionImpl(
         }
     }
 
-    override suspend fun run(step: WebStep): List<ExternalGameRef> {
+    override suspend fun run(step: WebStep): List<ExternalGameRef> = parseRefsJson(runStep(step))
+
+    override suspend fun runProfile(step: WebStep): ServiceProfile? = parseProfileJson(runStep(step))
+
+    /** Navigate + inject [step], then await its raw bridge JSON (null on timeout). */
+    private suspend fun runStep(step: WebStep): String? {
         log.add(SyncPhase.READING)
-        val deferred = CompletableDeferred<List<ExternalGameRef>>()
+        val deferred = CompletableDeferred<String?>()
         pending = deferred
         Logger.i(tag = TAG) { "run: loadUrl ${step.url}" }
         controller.loadUrl(step.url)
         awaitLoaded()
         controller.evaluateJavascript(step.script) {} // fire-and-forget; result via the bridge
         Logger.i(tag = TAG) { "run: injected script, awaiting bridge result…" }
-        val refs = withTimeoutOrNull(SCRIPT_TIMEOUT) { deferred.await() } ?: emptyList()
+        val json = withTimeoutOrNull(SCRIPT_TIMEOUT) { deferred.await() }
         pending = null
-        Logger.i(tag = TAG) { "run: got ${refs.size} refs" }
-        return refs
+        Logger.i(tag = TAG) { "run: got bridge result=${json != null}" }
+        return json
     }
 
     private suspend fun awaitLoaded() {

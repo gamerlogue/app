@@ -38,6 +38,27 @@ class XboxApi(private val http: HttpClient) {
         return titleHistory(uhs, xsts, xuid)
     }
 
+    /** The signed-in user's profile (gamertag + avatar) via the same user→XSTS chain as [ownedGames]. */
+    suspend fun profile(accessToken: String): ServiceProfile? {
+        val userToken = userToken(accessToken)
+        val (uhs, xsts, _) = xstsToken(userToken)
+        val resp = http.get(PROFILE) {
+            header(HttpHeaders.Authorization, "XBL3.0 x=$uhs;$xsts")
+            header("x-xbl-contract-version", "2")
+        }
+        val settings = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject["profileUsers"]?.jsonArray
+            ?.firstOrNull()?.jsonObject?.get("settings")?.jsonArray ?: return null
+        val byId = settings.associate {
+            it.jsonObject["id"]?.jsonPrimitive?.content to it.jsonObject["value"]?.jsonPrimitive?.contentOrNull
+        }
+        val gamertag = byId["Gamertag"] ?: return null
+        return ServiceProfile(
+            username = gamertag,
+            avatarUrl = byId["GameDisplayPicRaw"],
+            profileUrl = "https://account.xbox.com/en-us/profile?gamertag=$gamertag",
+        )
+    }
+
     /** Exchange the MSA [accessToken] for an Xbox Live user token. */
     private suspend fun userToken(accessToken: String): String {
         // ponytail: RPS RpsTicket is the raw MBI_SSL token. If a token from the modern OAuth (d=) flow is
@@ -108,6 +129,8 @@ class XboxApi(private val http: HttpClient) {
     private companion object {
         const val USER_AUTH = "https://user.auth.xboxlive.com/user/authenticate"
         const val XSTS_AUTH = "https://xsts.auth.xboxlive.com/xsts/authorize"
+        const val PROFILE = "https://profile.xboxlive.com/users/me/profile/settings" +
+            "?settings=Gamertag,GameDisplayPicRaw"
         fun titleHistoryUrl(xuid: String) =
             "https://titlehub.xboxlive.com/users/xuid($xuid)/titles/titleHistory/decoration/scid"
         val JSON = Json { ignoreUnknownKeys = true }

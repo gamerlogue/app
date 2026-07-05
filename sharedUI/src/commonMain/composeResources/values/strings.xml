@@ -182,6 +182,7 @@
     <string name="settings__service_epic">Epic Games</string>
     <string name="settings__service_connect">Connect</string>
     <string name="settings__service_disconnect">Disconnect</string>
+    <string name="settings__service_refresh_profile">Refresh profile</string>
     <string name="settings__service_sync_wishlist">Sync wishlist</string>
     <string name="settings__service_import_library">Import library</string>
     <string name="settings__service_sync_done">Wishlist synced.</string>

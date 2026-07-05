@@ -10,8 +10,10 @@ import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
+import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.ui.components.WebSession
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.koin.core.annotation.KoinViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -37,6 +39,7 @@ class LinkedServicesViewModel(
     sealed interface Action {
         val service: ExternalService
         data class Connect(override val service: ExternalService) : Action
+        data class RefreshProfile(override val service: ExternalService) : Action
         data class SyncWishlist(override val service: ExternalService) : Action
         data class PreviewWishlist(override val service: ExternalService) : Action
         data class ImportLibrary(override val service: ExternalService) : Action
@@ -47,6 +50,7 @@ class LinkedServicesViewModel(
         val wishlistSync: Boolean = false,
         val lastSyncAt: Long? = null,
         val busy: Boolean = false,
+        val profile: ServiceProfile? = null,
     )
 
     data class UiState(
@@ -54,6 +58,8 @@ class LinkedServicesViewModel(
         val action: Action? = null,
         val message: String? = null,
     )
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     init {
         update {
@@ -66,6 +72,10 @@ class LinkedServicesViewModel(
     // --- UI intents (set the active WebView action; the screen renders it) ---
 
     fun connect(service: ExternalService) = update { copy(action = Action.Connect(service)) }
+
+    fun refreshProfile(service: ExternalService) {
+        if (isConnected(service)) update { copy(action = Action.RefreshProfile(service)) }
+    }
 
     fun syncWishlistNow(service: ExternalService) {
         if (isConnected(service)) update { copy(action = Action.SyncWishlist(service)) }
@@ -113,12 +123,33 @@ class LinkedServicesViewModel(
     // --- WebView flows (called by the screen's ServiceWebView) ---
 
     suspend fun runConnect(service: ExternalService, session: WebSession) {
-        session.awaitLogin(connector(service))
-        if (session.currentUrl?.let { connector(service).isLoggedIn(it) } == true) {
+        val connector = connector(service)
+        session.awaitLogin(connector)
+        if (session.currentUrl?.let { connector.isLoggedIn(it) } == true) {
             setConnected(service, true)
+            fetchProfile(connector, session)?.let { setProfile(service, it) }
             refresh(service)
         }
     }
+
+    /** Re-fetch the profile of an already-connected service (manual refresh from the list). */
+    suspend fun runRefreshProfile(service: ExternalService, session: WebSession) {
+        val connector = connector(service)
+        setBusy(service, true)
+        try {
+            session.awaitLogin(connector)
+            fetchProfile(connector, session)?.let { setProfile(service, it) }
+        } finally {
+            setBusy(service, false)
+            refresh(service)
+        }
+    }
+
+    // JS-path connectors read the profile same-origin; API-path ones (PSN/Xbox) fetch it with the
+    // WebView-obtained credential. Best-effort: a null profile just leaves the service without one.
+    private suspend fun fetchProfile(connector: ServiceConnector, session: WebSession): ServiceProfile? =
+        connector.readProfile()?.let { session.runProfile(it) }
+            ?: connector.apiProfile(credential(connector, session))
 
     suspend fun runWishlistSync(service: ExternalService, session: WebSession) {
         val connector = connector(service)
@@ -203,6 +234,7 @@ class LinkedServicesViewModel(
         connected = isConnected(service),
         wishlistSync = isWishlistSyncEnabled(service),
         lastSyncAt = lastSyncAt(service),
+        profile = profile(service),
     )
 
     // --- Per-service link flags (the actual session lives in the WebView cookies) ---
@@ -210,6 +242,13 @@ class LinkedServicesViewModel(
     private fun isConnected(service: ExternalService) = settings.getBoolean(key(service, "connected"), false)
     private fun isWishlistSyncEnabled(service: ExternalService) = settings.getBoolean(key(service, "wishlistSync"), false)
     private fun lastSyncAt(service: ExternalService) = settings.getLong(key(service, "lastSyncAt"), 0L).takeIf { it > 0L }
+
+    private fun profile(service: ExternalService): ServiceProfile? =
+        settings.getStringOrNull(key(service, "profile"))
+            ?.let { runCatching { json.decodeFromString(ServiceProfile.serializer(), it) }.getOrNull() }
+
+    private fun setProfile(service: ExternalService, profile: ServiceProfile) =
+        settings.putString(key(service, "profile"), json.encodeToString(ServiceProfile.serializer(), profile))
 
     private fun setConnected(service: ExternalService, connected: Boolean) {
         if (connected) {
@@ -219,6 +258,7 @@ class LinkedServicesViewModel(
             settings.remove(key(service, "connected"))
             settings.remove(key(service, "wishlistSync"))
             settings.remove(key(service, "lastSyncAt"))
+            settings.remove(key(service, "profile"))
         }
     }
 

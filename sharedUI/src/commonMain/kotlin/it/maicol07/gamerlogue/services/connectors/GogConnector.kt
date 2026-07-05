@@ -22,6 +22,19 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
     /** Recognise a GOG store page (returns its slug) so IGDB `websites` URLs are matched for push. */
     override fun uidFromUrl(url: String) = Regex("gog\\.com/(?:[a-z]{2}/)?game/([^/?#]+)").find(url)?.groupValues?.get(1)
 
+    // Same-origin userData.json the site uses for the header; avatar is protocol-relative, username maps
+    // to the public /u/ page. ponytail: best-effort like the rest of this connector — tune if GOG changes.
+    override fun readProfile() = WebStep(ACCOUNT, SyncScripts.wrap("""
+        let r = await fetch('https://www.gog.com/userData.json', { credentials: 'include' });
+        let j = await r.json();
+        let av = j.avatar ? (j.avatar.indexOf('http') === 0 ? j.avatar : 'https:' + j.avatar) : '';
+        out = {
+            username: j.username || '',
+            avatarUrl: av,
+            profileUrl: j.username ? 'https://www.gog.com/u/' + j.username : '',
+        };
+    """.trimIndent()))
+
     override fun readOwned() = WebStep(ACCOUNT, SyncScripts.wrap("""
         out = [];
         let page = 1, totalPages = 1;

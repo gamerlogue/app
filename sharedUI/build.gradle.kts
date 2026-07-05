@@ -241,6 +241,7 @@ symbolCraft {
         "newsstand",
         "open_in_new",
         "quiz",
+        "refresh",
         "rocket",
         "palette", "partner_heart", "pause_circle", "person", "person_heart", "playground", "play_circle", "playing_cards",
         "publish",

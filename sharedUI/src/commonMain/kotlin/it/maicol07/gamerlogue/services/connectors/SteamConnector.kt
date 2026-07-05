@@ -29,6 +29,21 @@ class SteamConnector : ServiceConnector(
 
     override fun uidFromUrl(url: String) = Regex("/app/(\\d+)").find(url)?.groupValues?.get(1)
 
+    // The store WebAPI token isn't valid for ISteamUser/GetPlayerSummaries (that needs a publisher key),
+    // and fetching the community XML fails (the /my redirect goes cross-origin). Instead navigate top-level
+    // to the community profile page (/my resolves to the logged-in profile) and read the data Steam puts
+    // inline: g_rgProfileData (persona name + profile URL) and the avatar <img> in the profile header.
+    override fun readProfile() = WebStep("https://steamcommunity.com/my/", SyncScripts.wrap("""
+        let d = window.g_rgProfileData || {};
+        let img = document.querySelector('.playerAvatarAutoSizeInner img, .playerAvatar img, .profile_header .playerAvatar img');
+        out = {
+            username: d.personaname || '',
+            avatarUrl: img ? (img.getAttribute('src') || '') : '',
+            profileUrl: d.url || (d.steamid ? 'https://steamcommunity.com/profiles/' + d.steamid : ''),
+        };
+        console.log('[GL] steam profile user=' + out.username + ' at ' + location.href);
+    """.trimIndent()))
+
     override fun readOwned() = WebStep(HOME, SyncScripts.wrap("""
         console.log('[GL] steam readOwned at ' + location.href);
         function __b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return atob(s); }

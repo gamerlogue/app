@@ -58,6 +58,20 @@ class PsnApi(private val http: HttpClient) {
             ?.jsonPrimitive?.content ?: error("PSN token: no access_token")
     }
 
+    /** The signed-in user's profile (onlineId + avatar). PSN profiles aren't publicly web-linkable. */
+    suspend fun profile(token: String): ServiceProfile? {
+        val resp = http.get(PROFILE) {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+        val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
+        val onlineId = obj["onlineId"]?.jsonPrimitive?.content ?: return null
+        val avatar = obj["avatars"]?.jsonArray
+            ?.map { it.jsonObject }
+            ?.firstOrNull { it["size"]?.jsonPrimitive?.content == "xl" || it["size"]?.jsonPrimitive?.content == "l" }
+            ?.get("url")?.jsonPrimitive?.content
+        return ServiceProfile(username = onlineId, avatarUrl = avatar)
+    }
+
     /** The user's games via trophy titles (paginated). Names drive the IGDB name-fallback match. */
     suspend fun ownedGames(token: String): List<ExternalGameRef> {
         val out = mutableListOf<ExternalGameRef>()
@@ -91,6 +105,7 @@ class PsnApi(private val http: HttpClient) {
         const val AUTHORIZE = "https://ca.account.sony.com/api/authz/v3/oauth/authorize"
         const val TOKEN = "https://ca.account.sony.com/api/authz/v3/oauth/token"
         const val TROPHY_TITLES = "https://m.np.playstation.com/api/trophy/v1/users/me/trophyTitles"
+        const val PROFILE = "https://m.np.playstation.com/api/userProfile/v1/internal/users/me/profiles"
         const val PAGE_SIZE = 100
         const val MAX_PAGES = 50
         val CODE_REGEX = Regex("code=([^&]+)")

@@ -17,6 +17,14 @@ class EpicConnector : ServiceConnector(ExternalService.EPIC, host = "epicgames.c
 
     override fun sessionUrls() = listOf("https://www.epicgames.com/", "https://store.epicgames.com/")
 
+    // The id.epicgames.com session endpoint returns the signed-in displayName (no avatar/public page).
+    // ponytail: best-effort like the rest of this scaffold — verify against a live session.
+    override fun readProfile() = WebStep("https://www.epicgames.com/account/personal", SyncScripts.wrap("""
+        let r = await fetch('https://www.epicgames.com/id/api/authenticate', { credentials: 'include' });
+        let j = await r.json();
+        out = { username: j.displayName || '', avatarUrl: '', profileUrl: '' };
+    """.trimIndent()))
+
     override fun readOwned() = WebStep(STORE, SyncScripts.wrap("""
         let r = await fetch('$GRAPHQL', ${graphqlBody("{ Launcher { entitledOfferItems { items { id title } } } }")});
         let j = await r.json();

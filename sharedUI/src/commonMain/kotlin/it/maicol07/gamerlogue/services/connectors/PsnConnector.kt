@@ -6,6 +6,7 @@ import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.ServiceConnector
+import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 
@@ -158,5 +159,12 @@ class PsnConnector(private val api: PsnApi) :
         return runCatching { api.ownedGames(api.accessToken(credential)) }
             .onFailure { Logger.w(throwable = it) { "PSN ownedGames failed" } }
             .getOrDefault(emptyList())
+    }
+
+    override suspend fun apiProfile(credential: String): ServiceProfile? {
+        if (credential.isBlank()) return null
+        return runCatching { api.profile(api.accessToken(credential)) }
+            .onFailure { Logger.w(throwable = it) { "PSN profile failed" } }
+            .getOrNull()
     }
 }

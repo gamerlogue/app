@@ -11,6 +11,13 @@ import kotlinx.serialization.json.Json
 data class ExternalGameRef(val uid: String, val name: String = "")
 
 /**
+ * The logged-in user's identity on a store: their [username], optional [avatarUrl] and [profileUrl]
+ * (a public page for the account). Shown per connected service in the linked-services list.
+ */
+@Serializable
+data class ServiceProfile(val username: String, val avatarUrl: String? = null, val profileUrl: String? = null)
+
+/**
  * One automation step: navigate the WebView to [url], then run [script].
  *
  * Scripts push their result to Kotlin through the WebView JS bridge (so it works even where
@@ -82,6 +89,15 @@ abstract class ServiceConnector(
     open fun readOwned(): WebStep = empty()
     open fun readWishlist(): WebStep = empty()
 
+    /** JS path: read the signed-in user's profile same-origin; the script assigns `out` to a
+     *  `{username, avatarUrl, profileUrl}` object. Null when this store reads its profile via the API
+     *  path ([apiProfile]) or exposes no profile at all. */
+    open fun readProfile(): WebStep? = null
+
+    /** API path: fetch the signed-in user's profile from Kotlin using a WebView-obtained [credential]
+     *  (same credential as [apiOwned]). Null (default) when this store uses the JS path or has none. */
+    open suspend fun apiProfile(credential: String): ServiceProfile? = null
+
     /** Batch wishlist write (one request for all [refs]); for stores with a write endpoint (e.g. Steam). */
     open fun addToWishlist(refs: List<ExternalGameRef>): WebStep = empty()
 
@@ -134,6 +150,14 @@ internal fun cleanJsResult(raw: String?): String? {
 internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
     val s = cleanJsResult(raw) ?: return emptyList()
     return runCatching { resultJson.decodeFromString<List<ExternalGameRef>>(s) }.getOrDefault(emptyList())
+}
+
+/** Parse the `{username, avatarUrl, profileUrl}` JSON a [ServiceConnector.readProfile] script delivers
+ *  through the bridge. Null on error or an empty username (the wrapper sends `[]` on script failure). */
+internal fun parseProfileJson(raw: String?): ServiceProfile? {
+    val s = cleanJsResult(raw) ?: return null
+    return runCatching { resultJson.decodeFromString<ServiceProfile>(s) }
+        .getOrNull()?.takeIf { it.username.isNotBlank() }
 }
 
 /** Shared JS plumbing for connectors: bridge delivery + desktop/CEF native polyfill. */

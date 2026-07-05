@@ -177,6 +177,7 @@
     <string name="settings__service_epic">Epic Games</string>
     <string name="settings__service_connect">Collega</string>
     <string name="settings__service_disconnect">Scollega</string>
+    <string name="settings__service_refresh_profile">Aggiorna profilo</string>
     <string name="settings__service_sync_wishlist">Sincronizza wishlist</string>
     <string name="settings__service_import_library">Importa libreria</string>
     <string name="settings__service_sync_done">Wishlist sincronizzata.</string>

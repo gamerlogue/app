@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
+import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.XboxApi
@@ -80,6 +81,15 @@ class XboxConnector(private val api: XboxApi) :
             .getOrDefault(emptyList())
     }
 
+    override suspend fun apiProfile(credential: String): ServiceProfile? {
+        if (credential.isBlank()) return null
+        return runCatching { api.profile(credential) }
+            .onFailure { Logger.w(throwable = it) { "Xbox profile failed" } }
+            .getOrNull()
+    }
+
+    // ponytail: locale hardcoded — xbox.com/wishlist 307-redirects to /it-IT/wishlist and the WebView
+    // doesn't follow it (shows a 404). Derive the locale from the account region if non-IT users need it.
     override fun readWishlist() = WebStep(
         "https://www.xbox.com/wishlist",
         SyncScripts.wrap(
