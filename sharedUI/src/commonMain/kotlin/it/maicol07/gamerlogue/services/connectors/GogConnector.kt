@@ -58,7 +58,7 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
         out = [];
         let page = 1, totalPages = 1;
         do {
-            let r = await fetch('https://www.gog.com/account/wishlist/search?hiddenFlag=0&mediaType=1&page=' + page,
+            let r = await fetch('https://www.gog.com/account/wishlist/search?sortBy=date_added&page=' + page,
                 { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             let j = await r.json();
             totalPages = j.totalPages || 1;
