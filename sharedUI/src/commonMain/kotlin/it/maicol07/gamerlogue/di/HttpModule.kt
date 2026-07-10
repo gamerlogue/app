@@ -18,6 +18,7 @@ import io.ktor.client.request.accept
 import io.ktor.http.contentType
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.XboxApi
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
@@ -101,6 +102,15 @@ object HttpModule {
     // Xbox Live API client (token chain + titlehub); plain JSON calls, the MSA token comes from the WebView.
     @Single
     fun provideXboxApi() = XboxApi(
+        HttpClient {
+            ktorHttpClientConfig()
+        }
+    )
+
+    // Epic launcher API client (token exchange + library/catalog); plain JSON, the auth code comes from
+    // the WebView. Off-WebView so it isn't CORS-blocked like the same calls would be in the browser.
+    @Single
+    fun provideEpicApi() = EpicApi(
         HttpClient {
             ktorHttpClientConfig()
         }

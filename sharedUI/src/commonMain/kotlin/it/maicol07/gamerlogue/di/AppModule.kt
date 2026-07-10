@@ -4,6 +4,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.observable.makeObservable
+import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.ServiceConnector
@@ -28,11 +29,11 @@ object AppModule {
     fun provideSettings(): ObservableSettings = Settings().makeObservable()
 
     @Single
-    fun provideConnectors(psnApi: PsnApi, xboxApi: XboxApi): Map<ExternalService, ServiceConnector> = mapOf(
+    fun provideConnectors(psnApi: PsnApi, xboxApi: XboxApi, epicApi: EpicApi): Map<ExternalService, ServiceConnector> = mapOf(
         ExternalService.STEAM to SteamConnector(),
         ExternalService.PLAYSTATION to PsnConnector(psnApi),
         ExternalService.XBOX to XboxConnector(xboxApi),
         ExternalService.GOG to GogConnector(),
-        ExternalService.EPIC to EpicConnector(),
+        ExternalService.EPIC to EpicConnector(epicApi),
     )
 }
