@@ -27,12 +27,58 @@ data class ServiceProfile(val username: String, val avatarUrl: String? = null, v
 data class WebStep(val url: String, val script: String)
 
 /**
- * The single per-service object: identity ([service]), IGDB mapping metadata ([externalGameSource],
- * [storeUrl], [uidFromUrl]) and the WebView automation recipe (login + read/write scripts).
+ * How one store read resolves. Every read is EITHER same-origin in the WebView OR off-WebView from
+ * Kotlin — a connector never needs both for one operation, so this is a two-case choice, not two
+ * parallel methods + a flag.
  *
- * We call no official API: the user logs into the store in a WebView and we drive that authenticated,
- * same-origin session with injected JavaScript. Subclasses override only what differs from the
- * sensible defaults below (most just need URLs + scripts).
+ * - [Web]: run [Web.step] in the WebView and [Web.parse] its bridge result.
+ * - [Api]: grab a credential in the WebView (via [Api.credentialStep]), then [Api.fetch] from Kotlin
+ *   (no browser CORS); falls back to [Api.default] on a blank credential or a failed fetch.
+ */
+sealed interface DataSource<T> {
+    data class Web<T>(val step: WebStep, val parse: (String?) -> T) : DataSource<T>
+    data class Api<T>(
+        val credentialStep: WebStep,
+        val default: T,
+        val fetch: suspend (credential: String) -> T,
+    ) : DataSource<T>
+}
+
+/**
+ * How wishlist writes are performed. [Batch] sends all refs in a single step (stores with a write
+ * endpoint, e.g. Steam/GOG); [PerGame] opens each game's store page and acts on it (PSN/Xbox/Epic).
+ */
+sealed interface WishlistWrite {
+    data class Batch(val step: (refs: List<ExternalGameRef>) -> WebStep) : WishlistWrite
+    data class PerGame(val step: (storeUrl: String) -> WebStep?) : WishlistWrite
+}
+
+/** Web read delivering a `[{uid,name}, …]` list (owned games / wishlist). */
+internal fun webRefs(step: WebStep): DataSource<List<ExternalGameRef>> = DataSource.Web(step, ::parseRefsJson)
+
+/** Web read delivering a `{username, avatarUrl, profileUrl}` profile. */
+internal fun webProfile(step: WebStep): DataSource<ServiceProfile?> = DataSource.Web(step, ::parseProfileJson)
+
+/** API read of the user's games; empty on a blank credential or a failed fetch. */
+internal fun apiRefs(
+    credentialStep: WebStep,
+    fetch: suspend (credential: String) -> List<ExternalGameRef>,
+): DataSource<List<ExternalGameRef>> = DataSource.Api(credentialStep, emptyList(), fetch)
+
+/** API read of the user's profile; null on a blank credential or a failed fetch. */
+internal fun apiProfile(
+    credentialStep: WebStep,
+    fetch: suspend (credential: String) -> ServiceProfile?,
+): DataSource<ServiceProfile?> = DataSource.Api(credentialStep, null, fetch)
+
+/**
+ * The single per-service object: identity ([service]), IGDB mapping metadata ([externalGameSource],
+ * [storeUrl], [uidFromUrl]) and the WebView automation recipe (login + read/write [DataSource]s).
+ *
+ * We call no official API from the browser: the user logs into the store in a WebView and we drive
+ * that authenticated, same-origin session with injected JavaScript (or, for [DataSource.Api] reads,
+ * grab a credential there and fetch from Kotlin). Subclasses override only what differs from the
+ * sensible defaults below (most just need URLs + the read/write sources).
  */
 abstract class ServiceConnector(
     val service: ExternalService,
@@ -49,19 +95,19 @@ abstract class ServiceConnector(
     open val platformFamily: Int? = null
 
     /** Page where the user signs in (defaults to the store root). */
-    open fun loginUrl(): String = "https://$host/"
+    open val loginUrl: String get() = "https://$host/"
 
     /** A second, store-domain page the user must interactively sign into before DOM wishlist ops, or
      *  null when the [loginUrl] session already covers them. Needed when the wishlist lives on a
      *  different origin than [loginUrl] and cross-origin (third-party-cookie) SSO is blocked in the
      *  WebView — a top-level sign-in here sets that origin's own first-party cookies (e.g. Xbox: the API
      *  token comes from login.live.com, but the wishlist DOM is on the Microsoft Store). */
-    open fun storeLoginUrl(): String? = null
+    open val storeLoginUrl: String? get() = null
 
     /** Origins whose WebView cookies hold this store's authenticated session; cleared on disconnect so
      *  the next connect starts logged out. Defaults to the login origin(s); override when the session
      *  spans more hosts (e.g. Steam's community domain, PSN's Sony account domains). */
-    open fun sessionUrls(): List<String> = listOf(loginUrl()) + listOfNotNull(storeLoginUrl())
+    open val sessionUrls: List<String> get() = listOf(loginUrl) + listOfNotNull(storeLoginUrl)
 
     /** True once the store session is established. Defaults to a URL check (on a store host, off any
      *  login page); override for stores where the URL alone is ambiguous and the session must be read
@@ -72,7 +118,7 @@ abstract class ServiceConnector(
     /** JS injected once on the login landing page to kick off the store's sign-in flow (e.g. click the
      *  header sign-in button). Null (default) = the sign-in page is reached directly, no trigger needed.
      *  Fire-and-forget (no bridge result); must be a no-op when its target element isn't present. */
-    open fun loginTriggerScript(): String? = null
+    open val loginTriggerScript: String? get() = null
 
     /** Match IGDB `external_games` on the numeric `uid` field instead of `url` — for stores whose
      *  IGDB url is slug-based and can't be rebuilt from the store uid (e.g. GOG). */
@@ -84,49 +130,22 @@ abstract class ServiceConnector(
     /** Extract the store uid back out of an IGDB `url` (inverse of [storeUrl]). */
     open fun uidFromUrl(url: String): String? = null
 
-    // --- JS path (default): the WebView runs a script that returns the data same-origin. ---
+    // --- Reads + wishlist write. One member per concern; each connector picks Web or Api per read. ---
 
-    open fun readOwned(): WebStep = empty()
-    open fun readWishlist(): WebStep = empty()
+    /** The user's owned/played games (every connector reads these). */
+    abstract val ownedGames: DataSource<List<ExternalGameRef>>
 
-    /** JS path: read the signed-in user's profile same-origin; the script assigns `out` to a
-     *  `{username, avatarUrl, profileUrl}` object. Null when this store reads its profile via the API
-     *  path ([apiProfile]) or exposes no profile at all. */
-    open fun readProfile(): WebStep? = null
+    /** The user's store wishlist, or null if this store exposes none. */
+    open val wishlist: DataSource<List<ExternalGameRef>>? get() = null
 
-    /** API path: fetch the signed-in user's profile from Kotlin using a WebView-obtained [credential]
-     *  (same credential as [apiOwned]). Null (default) when this store uses the JS path or has none. */
-    open suspend fun apiProfile(credential: String): ServiceProfile? = null
+    /** The signed-in user's profile, or null if this store exposes none. */
+    open val profile: DataSource<ServiceProfile?>? get() = null
 
-    /** Batch wishlist write (one request for all [refs]); for stores with a write endpoint (e.g. Steam). */
-    open fun addToWishlist(refs: List<ExternalGameRef>): WebStep = empty()
-
-    /** True if the wishlist write is done one game at a time via [wishlistPushStep] (e.g. PSN: open the
-     *  store page and click its add-to-wishlist button) instead of the batch [addToWishlist]. */
-    open fun pushesPerGame(): Boolean = false
-
-    /** Per-game wishlist write step (navigate to the store page + click), given the IGDB store URL. */
-    open fun wishlistPushStep(storeUrl: String): WebStep? = null
+    /** How to push backlog games onto the store wishlist, or null if writes aren't supported. */
+    open val wishlistWrite: WishlistWrite? get() = null
 
     /** Adjust an IGDB store URL before navigating to it for a push (e.g. strip the locale segment). */
     open fun normalizePushUrl(url: String): String = url
-
-    private fun empty() = WebStep(loginUrl(), SyncScripts.wrap("out = [];"))
-
-    // --- API path (e.g. PSN): the WebView only grabs a credential, then data is fetched off-WebView
-    // from Kotlin (no CORS). A connector uses EITHER the JS path above OR this one. ---
-
-    /** If non-null, the WebView runs this step to obtain a credential (its first ref's `uid`) used by
-     *  whichever operations opt into the API path via [ownedViaApi]/[wishlistViaApi]. */
-    open fun credentialStep(): WebStep? = null
-
-    /** Per-operation: read owned games / the wishlist from Kotlin (API) instead of a WebView script. */
-    open fun ownedViaApi(): Boolean = false
-    open fun wishlistViaApi(): Boolean = false
-
-    open suspend fun apiOwned(credential: String): List<ExternalGameRef> = emptyList()
-    open suspend fun apiWishlist(credential: String): List<ExternalGameRef> = emptyList()
-    open suspend fun apiAddToWishlist(credential: String, refs: List<ExternalGameRef>) {}
 
     private companion object {
         val LOGIN_MARKERS = listOf("/login", "signin")
@@ -152,7 +171,7 @@ internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
     return runCatching { resultJson.decodeFromString<List<ExternalGameRef>>(s) }.getOrDefault(emptyList())
 }
 
-/** Parse the `{username, avatarUrl, profileUrl}` JSON a [ServiceConnector.readProfile] script delivers
+/** Parse the `{username, avatarUrl, profileUrl}` JSON a [ServiceConnector.profile] script delivers
  *  through the bridge. Null on error or an empty username (the wrapper sends `[]` on script failure). */
 internal fun parseProfileJson(raw: String?): ServiceProfile? {
     val s = cleanJsResult(raw) ?: return null
