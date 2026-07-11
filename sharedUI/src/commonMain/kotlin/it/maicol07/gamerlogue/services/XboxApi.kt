@@ -9,14 +9,11 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -46,10 +43,10 @@ class XboxApi(private val http: HttpClient) {
             header(HttpHeaders.Authorization, "XBL3.0 x=$uhs;$xsts")
             header("x-xbl-contract-version", "2")
         }
-        val settings = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject["profileUsers"]?.jsonArray
+        val settings = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject["profileUsers"]?.jsonArray
             ?.firstOrNull()?.jsonObject?.get("settings")?.jsonArray ?: return null
         val byId = settings.associate {
-            it.jsonObject["id"]?.jsonPrimitive?.content to it.jsonObject["value"]?.jsonPrimitive?.contentOrNull
+            it.jsonObject.string("id") to it.jsonObject.string("value")
         }
         val gamertag = byId["Gamertag"] ?: return null
         return ServiceProfile(
@@ -75,10 +72,10 @@ class XboxApi(private val http: HttpClient) {
         val resp = http.post(USER_AUTH) {
             contentType(ContentType.Application.Json)
             header("x-xbl-contract-version", "1")
-            setBody(JSON.encodeToString(JsonObject.serializer(), body))
+            setBody(apiJson.encodeToString(JsonObject.serializer(), body))
         }
-        return JSON.parseToJsonElement(resp.bodyAsText()).jsonObject["Token"]
-            ?.jsonPrimitive?.content ?: error("Xbox user token: no Token (access_token invalid?)")
+        return apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
+            .requireString("Token", "Xbox user token: no Token (access_token invalid?)")
     }
 
     /** Exchange the [userToken] for an XSTS token, returning (userhash, xstsToken, xuid). */
@@ -94,14 +91,14 @@ class XboxApi(private val http: HttpClient) {
         val resp = http.post(XSTS_AUTH) {
             contentType(ContentType.Application.Json)
             header("x-xbl-contract-version", "1")
-            setBody(JSON.encodeToString(JsonObject.serializer(), body))
+            setBody(apiJson.encodeToString(JsonObject.serializer(), body))
         }
-        val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
-        val token = obj["Token"]?.jsonPrimitive?.content ?: error("Xbox XSTS: no Token")
+        val obj = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
+        val token = obj.requireString("Token", "Xbox XSTS: no Token")
         val xui = obj["DisplayClaims"]?.jsonObject?.get("xui")?.jsonArray?.firstOrNull()?.jsonObject
             ?: error("Xbox XSTS: no DisplayClaims")
-        val uhs = xui["uhs"]?.jsonPrimitive?.content ?: error("Xbox XSTS: no uhs")
-        val xuid = xui["xid"]?.jsonPrimitive?.content ?: error("Xbox XSTS: no xid")
+        val uhs = xui.requireString("uhs", "Xbox XSTS: no uhs")
+        val xuid = xui.requireString("xid", "Xbox XSTS: no xid")
         return Triple(uhs, token, xuid)
     }
 
@@ -112,16 +109,15 @@ class XboxApi(private val http: HttpClient) {
             header("x-xbl-contract-version", "2")
             header(HttpHeaders.AcceptLanguage, "en-US")
         }
-        val titles = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject["titles"]?.jsonArray
+        val titles = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject["titles"]?.jsonArray
             ?: return emptyList()
         return titles.mapNotNull { entry ->
             val o = entry.jsonObject
             // titleHistory spans every title the account ever launched, incl. non-Microsoft ones. Keep
             // only store-packaged titles: those carry a Package Family Name (`pfn`); the rest don't.
-            val pfn = o["pfn"]?.jsonPrimitive?.contentOrNull
-            if (pfn.isNullOrBlank()) return@mapNotNull null
-            val name = o["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
-            val uid = o["titleId"]?.jsonPrimitive?.content ?: name
+            if (o.string("pfn").isNullOrBlank()) return@mapNotNull null
+            val name = o.string("name") ?: return@mapNotNull null
+            val uid = o.string("titleId") ?: name
             ExternalGameRef(uid, name)
         }
     }
@@ -133,6 +129,5 @@ class XboxApi(private val http: HttpClient) {
             "?settings=Gamertag,GameDisplayPicRaw"
         fun titleHistoryUrl(xuid: String) =
             "https://titlehub.xboxlive.com/users/xuid($xuid)/titles/titleHistory/decoration/scid"
-        val JSON = Json { ignoreUnknownKeys = true }
     }
 }

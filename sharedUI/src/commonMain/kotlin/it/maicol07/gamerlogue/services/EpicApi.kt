@@ -10,13 +10,9 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Parameters
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Minimal Epic Games launcher API client, run from Kotlin so it isn't subject to browser CORS —
@@ -48,13 +44,11 @@ class EpicApi(private val http: HttpClient) {
                 ),
             )
         }
-        val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
-        val accessToken = obj["access_token"]?.jsonPrimitive?.content
-            ?: error("Epic token: no access_token (code expired/invalid?)")
+        val obj = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
         return Token(
-            accessToken = accessToken,
-            accountId = obj["account_id"]?.jsonPrimitive?.content.orEmpty(),
-            displayName = obj["displayName"]?.jsonPrimitive?.content.orEmpty(),
+            accessToken = obj.requireString("access_token", "Epic token: no access_token (code expired/invalid?)"),
+            accountId = obj.string("account_id").orEmpty(),
+            displayName = obj.string("displayName").orEmpty(),
         )
     }
 
@@ -76,14 +70,14 @@ class EpicApi(private val http: HttpClient) {
                 parameter("includeMetadata", "false")
                 cursor?.let { parameter("cursor", it) }
             }
-            val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
+            val obj = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
             obj["records"]?.jsonArray?.forEach { entry ->
                 val o = entry.jsonObject
-                val ns = o["namespace"]?.jsonPrimitive?.content
-                val id = o["catalogItemId"]?.jsonPrimitive?.content
+                val ns = o.string("namespace")
+                val id = o.string("catalogItemId")
                 if (ns != null && ns != "ue" && id != null) records.add(ns to id)
             }
-            cursor = obj["responseMetadata"]?.jsonObject?.get("nextCursor")?.jsonPrimitive?.content
+            cursor = obj["responseMetadata"]?.jsonObject?.string("nextCursor")
             if (cursor.isNullOrBlank()) break
             page++
         }
@@ -100,10 +94,10 @@ class EpicApi(private val http: HttpClient) {
                 parameter("country", "US")
                 parameter("locale", "en-US")
             }
-            val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
+            val obj = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
             chunk.forEach { id ->
                 val item = obj[id]?.jsonObject ?: return@forEach
-                val title = item["title"]?.jsonPrimitive?.content
+                val title = item.string("title")
                 if (title != null && isImportable(item)) out.add(ExternalGameRef(id, title))
             }
         }
@@ -118,7 +112,7 @@ class EpicApi(private val http: HttpClient) {
      */
     private fun isImportable(item: JsonObject): Boolean {
         val paths = item["categories"]?.jsonArray
-            ?.mapNotNull { it.jsonObject["path"]?.jsonPrimitive?.content } ?: return true
+            ?.mapNotNull { it.jsonObject.string("path") } ?: return true
         val isGame = paths.any { it == "games" || it.startsWith("games/") }
         val isApp = paths.any { path ->
             path == "applications" || path.startsWith("applications/") ||
@@ -136,9 +130,6 @@ class EpicApi(private val http: HttpClient) {
         const val CATALOG = "https://catalog-public-service-prod06.ol.epicgames.com/catalog/api/shared/namespace"
         const val MAX_PAGES = 50
         const val CATALOG_CHUNK = 40
-        val JSON = Json { ignoreUnknownKeys = true }
-
-        @OptIn(ExperimentalEncodingApi::class)
-        val BASIC = Base64.encode("$CLIENT_ID:$CLIENT_SECRET".encodeToByteArray())
+        val BASIC = basicAuth(CLIENT_ID, CLIENT_SECRET)
     }
 }

@@ -10,13 +10,10 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Parameters
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Minimal PSN API client (psn-api style), run from Kotlin so it isn't subject to browser CORS.
@@ -54,8 +51,8 @@ class PsnApi(private val http: HttpClient) {
                 ),
             )
         }
-        return JSON.parseToJsonElement(tokenResp.bodyAsText()).jsonObject["access_token"]
-            ?.jsonPrimitive?.content ?: error("PSN token: no access_token")
+        return apiJson.parseToJsonElement(tokenResp.bodyAsText()).jsonObject
+            .requireString("access_token", "PSN token: no access_token")
     }
 
     /** The signed-in user's profile (onlineId + avatar). PSN profiles aren't publicly web-linkable. */
@@ -64,14 +61,14 @@ class PsnApi(private val http: HttpClient) {
         val accountResp = http.get(MY_ACCOUNT) {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
-        val accountId = JSON.parseToJsonElement(accountResp.bodyAsText()).jsonObject["accountId"]
-            ?.jsonPrimitive?.content ?: error("PSN account: no accountId")
+        val accountId = apiJson.parseToJsonElement(accountResp.bodyAsText()).jsonObject
+            .requireString("accountId", "PSN account: no accountId")
 
         val resp = http.get("$PROFILE_BASE/$accountId/profiles") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
-        val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
-        val onlineId = obj["onlineId"]?.jsonPrimitive?.content ?: return null
+        val obj = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
+        val onlineId = obj.string("onlineId") ?: return null
         val avatar = obj["avatars"]?.jsonArray
             ?.map { it.jsonObject }
             ?.firstOrNull { it["size"]?.jsonPrimitive?.content == "xl" || it["size"]?.jsonPrimitive?.content == "l" }
@@ -90,12 +87,12 @@ class PsnApi(private val http: HttpClient) {
                 parameter("offset", offset)
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
-            val obj = JSON.parseToJsonElement(resp.bodyAsText()).jsonObject
+            val obj = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
             val titles = obj["trophyTitles"]?.jsonArray ?: return out
             titles.forEach { entry ->
                 val o = entry.jsonObject
-                val name = o["trophyTitleName"]?.jsonPrimitive?.content ?: return@forEach
-                val uid = o["npCommunicationId"]?.jsonPrimitive?.content ?: name
+                val name = o.string("trophyTitleName") ?: return@forEach
+                val uid = o.string("npCommunicationId") ?: name
                 out.add(ExternalGameRef(uid, name))
             }
             val total = obj["totalItemCount"]?.jsonPrimitive?.intOrNull ?: out.size
@@ -118,9 +115,6 @@ class PsnApi(private val http: HttpClient) {
         const val PAGE_SIZE = 100
         const val MAX_PAGES = 50
         val CODE_REGEX = Regex("code=([^&]+)")
-        val JSON = Json { ignoreUnknownKeys = true }
-
-        @OptIn(ExperimentalEncodingApi::class)
-        val BASIC = Base64.encode("$CLIENT_ID:$CLIENT_SECRET".encodeToByteArray())
+        val BASIC = basicAuth(CLIENT_ID, CLIENT_SECRET)
     }
 }
