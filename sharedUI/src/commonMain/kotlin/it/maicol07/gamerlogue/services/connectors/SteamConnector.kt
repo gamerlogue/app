@@ -48,17 +48,7 @@ class SteamConnector : ServiceConnector(
 
     override val ownedGames = webRefs(WebStep(HOME, SyncScripts.wrap("""
         console.log('[GL] steam readOwned at ' + location.href);
-        function __b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return atob(s); }
-        let token = '';
-        try {
-            let cr = await fetch('/pointssummary/ajaxgetasyncconfig', { credentials: 'include' });
-            let cj = await cr.json();
-            token = (cj && cj.data && cj.data.webapi_token) || '';
-        } catch (e) { console.log('[GL] token err ' + e); }
-        console.log('[GL] token=' + (token ? 'ok' : 'empty'));
-        let steamid = '';
-        try { steamid = JSON.parse(__b64(token.split('.')[1])).sub || ''; } catch (e) {}
-        console.log('[GL] steamid=' + steamid);
+        $TOKEN_PREAMBLE
         if (token && steamid) {
             let u = 'https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?access_token='
                 + encodeURIComponent(token) + '&steamid=' + steamid
@@ -74,19 +64,10 @@ class SteamConnector : ServiceConnector(
 
     override val wishlist = webRefs(WebStep(HOME, SyncScripts.wrap("""
         console.log('[GL] steam readWishlist at ' + location.href);
-        function __b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return atob(s); }
         // Wishlist moved off dynamicstore, so read it from the current WebAPI: GetWishlist gives the
         // appids, GetItems resolves names in bulk. Both use the store WebAPI token (as readOwned) and
         // the steamid decoded from that token's JWT `sub` claim.
-        let token = '';
-        try {
-            let cr = await fetch('/pointssummary/ajaxgetasyncconfig', { credentials: 'include' });
-            let cj = await cr.json();
-            token = (cj && cj.data && cj.data.webapi_token) || '';
-        } catch (e) { console.log('[GL] token err ' + e); }
-        let steamid = '';
-        try { steamid = JSON.parse(__b64(token.split('.')[1])).sub || ''; } catch (e) {}
-        console.log('[GL] steamid=' + steamid);
+        $TOKEN_PREAMBLE
         let ids = [];
         if (token && steamid) {
             let r = await fetch('https://api.steampowered.com/IWishlistService/GetWishlist/v1/?access_token='
@@ -131,5 +112,22 @@ class SteamConnector : ServiceConnector(
 
     private companion object {
         const val HOME = "https://store.steampowered.com/"
+
+        // Shared by ownedGames + wishlist: decodes the store WebAPI token (from the site's own
+        // pointssummary endpoint) and the steamid from that token's JWT `sub` claim. Leaves `token`
+        // and `steamid` in scope for the caller.
+        val TOKEN_PREAMBLE = """
+            function __b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return atob(s); }
+            let token = '';
+            try {
+                let cr = await fetch('/pointssummary/ajaxgetasyncconfig', { credentials: 'include' });
+                let cj = await cr.json();
+                token = (cj && cj.data && cj.data.webapi_token) || '';
+            } catch (e) { console.log('[GL] token err ' + e); }
+            console.log('[GL] token=' + (token ? 'ok' : 'empty'));
+            let steamid = '';
+            try { steamid = JSON.parse(__b64(token.split('.')[1])).sub || ''; } catch (e) {}
+            console.log('[GL] steamid=' + steamid);
+        """.trimIndent()
     }
 }

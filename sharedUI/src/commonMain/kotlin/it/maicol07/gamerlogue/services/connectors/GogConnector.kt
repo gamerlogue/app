@@ -44,29 +44,11 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
         };
     """.trimIndent())))
 
-    override val ownedGames = webRefs(WebStep(ACCOUNT, SyncScripts.wrap("""
-        out = [];
-        let page = 1, totalPages = 1;
-        do {
-            let r = await fetch('https://www.gog.com/account/getFilteredProducts?mediaType=1&page=' + page,
-                { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            let j = await r.json();
-            totalPages = j.totalPages || 1;
-            out = out.concat((j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' })));
-        } while (++page <= totalPages);
-    """.trimIndent())))
+    override val ownedGames = webRefs(WebStep(ACCOUNT,
+        paginated("https://www.gog.com/account/getFilteredProducts?mediaType=1&page=")))
 
-    override val wishlist = webRefs(WebStep(ACCOUNT, SyncScripts.wrap("""
-        out = [];
-        let page = 1, totalPages = 1;
-        do {
-            let r = await fetch('https://www.gog.com/account/wishlist/search?sortBy=date_added&page=' + page,
-                { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            let j = await r.json();
-            totalPages = j.totalPages || 1;
-            out = out.concat((j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' })));
-        } while (++page <= totalPages);
-    """.trimIndent())))
+    override val wishlist = webRefs(WebStep(ACCOUNT,
+        paginated("https://www.gog.com/account/wishlist/search?sortBy=date_added&page=")))
 
     override val wishlistWrite = WishlistWrite.Batch { refs ->
         WebStep(ACCOUNT, SyncScripts.wrap("""
@@ -77,6 +59,19 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
             out = ids.map(id => ({ uid: id, name: '' }));
         """.trimIndent()))
     }
+
+    // Shared by ownedGames + wishlist: same paginated products endpoint shape, only the URL differs.
+    private fun paginated(url: String) = SyncScripts.wrap("""
+        out = [];
+        let page = 1, totalPages = 1;
+        do {
+            let r = await fetch('$url' + page,
+                { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            let j = await r.json();
+            totalPages = j.totalPages || 1;
+            out = out.concat((j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' })));
+        } while (++page <= totalPages);
+    """.trimIndent())
 
     private companion object {
         const val ACCOUNT = "https://www.gog.com/account"
