@@ -1,11 +1,13 @@
 package it.maicol07.gamerlogue.services.connectors
 
-import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
+import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.uidJsonArray
+import it.maicol07.gamerlogue.services.webProfile
+import it.maicol07.gamerlogue.services.webRefs
 
 /**
  * Steam — everything runs on the **store** domain (single login, no cross-domain SSO).
@@ -22,10 +24,10 @@ class SteamConnector : ServiceConnector(
     externalGameSource = 1,
     storeUrlTemplate = "https://store.steampowered.com/app/{id}",
 ) {
-    override fun loginUrl() = "https://store.steampowered.com/login/"
+    override val loginUrl = "https://store.steampowered.com/login/"
 
     // The login cookie (steamLoginSecure) is set on both the store and community origins.
-    override fun sessionUrls() = listOf("https://store.steampowered.com/", "https://steamcommunity.com/")
+    override val sessionUrls = listOf("https://store.steampowered.com/", "https://steamcommunity.com/")
 
     override fun uidFromUrl(url: String) = Regex("/app/(\\d+)").find(url)?.groupValues?.get(1)
 
@@ -33,7 +35,7 @@ class SteamConnector : ServiceConnector(
     // and fetching the community XML fails (the /my redirect goes cross-origin). Instead navigate top-level
     // to the community profile page (/my resolves to the logged-in profile) and read the data Steam puts
     // inline: g_rgProfileData (persona name + profile URL) and the avatar <img> in the profile header.
-    override fun readProfile() = WebStep("https://steamcommunity.com/my/", SyncScripts.wrap("""
+    override val profile = webProfile(WebStep("https://steamcommunity.com/my/", SyncScripts.wrap("""
         let d = window.g_rgProfileData || {};
         let img = document.querySelector('.playerAvatarAutoSizeInner img, .playerAvatar img, .profile_header .playerAvatar img');
         out = {
@@ -42,9 +44,9 @@ class SteamConnector : ServiceConnector(
             profileUrl: d.url || (d.steamid ? 'https://steamcommunity.com/profiles/' + d.steamid : ''),
         };
         console.log('[GL] steam profile user=' + out.username + ' at ' + location.href);
-    """.trimIndent()))
+    """.trimIndent())))
 
-    override fun readOwned() = WebStep(HOME, SyncScripts.wrap("""
+    override val ownedGames = webRefs(WebStep(HOME, SyncScripts.wrap("""
         console.log('[GL] steam readOwned at ' + location.href);
         function __b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return atob(s); }
         let token = '';
@@ -68,9 +70,9 @@ class SteamConnector : ServiceConnector(
             out = games.map(g => ({ uid: String(g.appid), name: g.name || '' }));
             console.log('[GL] api games=' + out.length);
         }
-    """.trimIndent()))
+    """.trimIndent())))
 
-    override fun readWishlist() = WebStep(HOME, SyncScripts.wrap("""
+    override val wishlist = webRefs(WebStep(HOME, SyncScripts.wrap("""
         console.log('[GL] steam readWishlist at ' + location.href);
         function __b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return atob(s); }
         // Wishlist moved off dynamicstore, so read it from the current WebAPI: GetWishlist gives the
@@ -113,17 +115,19 @@ class SteamConnector : ServiceConnector(
         }
         console.log('[GL] wishlist names=' + Object.keys(names).length);
         out = ids.map(id => ({ uid: id, name: names[id] || '' }));
-    """.trimIndent()))
+    """.trimIndent())))
 
-    override fun addToWishlist(refs: List<ExternalGameRef>) = WebStep(HOME, SyncScripts.wrap("""
-        const ids = ${refs.uidJsonArray()};
-        for (const id of ids) {
-            const body = new URLSearchParams({ sessionid: window.g_sessionID || '', appid: id });
-            await fetch('https://store.steampowered.com/api/addtowishlist',
-                { method: 'POST', body, credentials: 'include' });
-        }
-        out = ids.map(id => ({ uid: id, name: '' }));
-    """.trimIndent()))
+    override val wishlistWrite = WishlistWrite.Batch { refs ->
+        WebStep(HOME, SyncScripts.wrap("""
+            const ids = ${refs.uidJsonArray()};
+            for (const id of ids) {
+                const body = new URLSearchParams({ sessionid: window.g_sessionID || '', appid: id });
+                await fetch('https://store.steampowered.com/api/addtowishlist',
+                    { method: 'POST', body, credentials: 'include' });
+            }
+            out = ids.map(id => ({ uid: id, name: '' }));
+        """.trimIndent()))
+    }
 
     private companion object {
         const val HOME = "https://store.steampowered.com/"

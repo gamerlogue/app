@@ -1,13 +1,15 @@
 package it.maicol07.gamerlogue.services.connectors
 
-import co.touchlab.kermit.Logger
 import it.maicol07.gamerlogue.services.EpicApi
-import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
+import it.maicol07.gamerlogue.services.WishlistWrite
+import it.maicol07.gamerlogue.services.apiProfile
+import it.maicol07.gamerlogue.services.apiRefs
+import it.maicol07.gamerlogue.services.webRefs
 
 /**
  * Epic Games Store.
@@ -23,15 +25,15 @@ import it.maicol07.gamerlogue.services.WebStep
  */
 class EpicConnector(private val api: EpicApi) :
     ServiceConnector(ExternalService.EPIC, host = "epicgames.com", externalGameSource = 26) {
-    override fun loginUrl() = "https://www.epicgames.com/id/login"
+    override val loginUrl = "https://www.epicgames.com/id/login"
 
-    override fun sessionUrls() = listOf("https://www.epicgames.com/", "https://store.epicgames.com/")
+    override val sessionUrls = listOf("https://www.epicgames.com/", "https://store.epicgames.com/")
 
     // When an id.epicgames.com session already exists, the login page shows an account picker with a
     // "Continue with my account" button instead of the credential form. Auto-click it so the user isn't
     // prompted every time. Text match on "continu" covers the localized label (e.g. IT "Continua").
     // Fire-and-forget + no-op when the button is absent (real first login), so it's safe on any load.
-    override fun loginTriggerScript() = """
+    override val loginTriggerScript = """
         (function() {
             var tries = 0;
             (function tick() {
@@ -53,15 +55,13 @@ class EpicConnector(private val api: EpicApi) :
     override fun normalizePushUrl(url: String) =
         url.replace(Regex("(store\\.epicgames\\.com)/[a-z]{2}-[A-Z]{2}/"), "$1/")
 
-    // Profile + owned games both use the API path (the credential is a launcher authorization code).
-    override fun ownedViaApi() = true
-
     // Navigate straight to the JSON `id/api/redirect` endpoint and read the code from the body — a
     // `fetch` from any Epic page is cross-origin (CORS-blocked), but a direct navigation is same-origin
     // with the www session cookies. Falls back to a `code=` query param if the endpoint 302-redirects.
-    override fun credentialStep() = WebStep(
+    private val credentialStep = WebStep(
         "https://www.epicgames.com/id/api/redirect?clientId=$LauncherClientId&responseType=code",
-        SyncScripts.wrap("""
+        SyncScripts.wrap(
+            """
             let code = '';
             try {
                 let j = JSON.parse(document.body.innerText || '{}');
@@ -70,85 +70,91 @@ class EpicConnector(private val api: EpicApi) :
             if (!code) code = (location.href.match(/code=([^&]+)/) || [])[1] || '';
             console.log('[GL] epic code=' + (code ? 'ok' : 'empty'));
             out = code ? [{ uid: code, name: 'code' }] : [];
-        """.trimIndent()),
+            """.trimIndent(),
+        ),
     )
+
+    // Owned games via the launcher library (the credential is a launcher authorization code).
+    override val ownedGames = apiRefs(credentialStep) { code -> api.ownedGames(api.token(code).accessToken) }
 
     // The launcher token response includes displayName + account_id, so the profile needs no extra call.
     // Epic's launcher API exposes no avatar URL; profileUrl points at the public store profile page.
-    override suspend fun apiProfile(credential: String): ServiceProfile? {
-        if (credential.isBlank()) return null
-        return runCatching {
-            val token = api.token(credential)
-            token.displayName.takeIf { it.isNotBlank() }?.let { name ->
-                ServiceProfile(
-                    username = name,
-                    avatarUrl = null,
-                    profileUrl = token.accountId.takeIf { it.isNotBlank() }
-                        ?.let { "https://store.epicgames.com/u/$it" },
-                )
-            }
-        }.onFailure { Logger.w(throwable = it) { "Epic profile failed" } }.getOrNull()
-    }
-
-    override suspend fun apiOwned(credential: String): List<ExternalGameRef> {
-        if (credential.isBlank()) return emptyList()
-        return runCatching { api.ownedGames(api.token(credential).accessToken) }
-            .onFailure { Logger.w(throwable = it) { "Epic ownedGames failed" } }
-            .getOrDefault(emptyList())
+    override val profile = apiProfile(credentialStep) { code ->
+        val token = api.token(code)
+        token.displayName.takeIf { it.isNotBlank() }?.let { name ->
+            ServiceProfile(
+                username = name,
+                avatarUrl = null,
+                profileUrl = token.accountId.takeIf { it.isNotBlank() }
+                    ?.let { "https://store.epicgames.com/u/$it" },
+            )
+        }
     }
 
     // Wishlist read via the store's own GraphQL, POSTed same-origin from a store page (so no CORS and no
     // dependence on the off-screen DOM rendering). The launcher token can't reach it — the wishlist is a
     // store concept — but the store session cookie can. Logs any GraphQL errors (e.g. persisted-query
     // enforcement) for tuning. uid = offerId (name drives the IGDB match, as Epic has no URL template).
-    override fun readWishlist() = WebStep("https://store.epicgames.com/", SyncScripts.wrap("""
-        let q = 'query wishlistQuery { Wishlist { wishlistItems { elements { offerId namespace offer { title productSlug } } } } }';
-        let r = await fetch('https://store.epicgames.com/graphql', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ query: q, operationName: 'wishlistQuery' }),
-        });
-        let j = await r.json();
-        console.log('[GL] epic wishlist status=' + r.status + ' err=' + (j.errors ? JSON.stringify(j.errors).slice(0, 200) : 'none'));
-        let els = (((j.data || {}).Wishlist || {}).wishlistItems || {}).elements || [];
-        let byUid = {};
-        els.forEach(function(e) {
-            let offer = e.offer || {};
-            let uid = e.offerId || offer.productSlug || '';
-            let name = offer.title || '';
-            if (uid && name) byUid[uid] = { uid: String(uid), name: name };
-        });
-        out = Object.values(byUid);
-        console.log('[GL] epic wishlist games=' + out.length);
-    """.trimIndent()))
+    override val wishlist = webRefs(
+        WebStep(
+            "https://store.epicgames.com/",
+            SyncScripts.wrap(
+                """
+                let q = 'query wishlistQuery { Wishlist { wishlistItems { elements { offerId namespace offer { title productSlug } } } } }';
+                let r = await fetch('https://store.epicgames.com/graphql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ query: q, operationName: 'wishlistQuery' }),
+                });
+                let j = await r.json();
+                console.log('[GL] epic wishlist status=' + r.status + ' err=' + (j.errors ? JSON.stringify(j.errors).slice(0, 200) : 'none'));
+                let els = (((j.data || {}).Wishlist || {}).wishlistItems || {}).elements || [];
+                let byUid = {};
+                els.forEach(function(e) {
+                    let offer = e.offer || {};
+                    let uid = e.offerId || offer.productSlug || '';
+                    let name = offer.title || '';
+                    if (uid && name) byUid[uid] = { uid: String(uid), name: name };
+                });
+                out = Object.values(byUid);
+                console.log('[GL] epic wishlist games=' + out.length);
+                """.trimIndent(),
+            ),
+        ),
+    )
 
     // Push per game: open the product page and click its bookmark button. The button's icon carries a
     // language-independent data-testid — "empty-icon" (not wishlisted) / "filled-icon" (already added) —
     // so we detect state without reading the localized label. Click then verify with retry, since the
     // store is React+SSR and an early click can hit an unbound handler (same fix as the PSN connector).
-    override fun pushesPerGame() = true
-
-    override fun wishlistPushStep(storeUrl: String) = WebStep(storeUrl, SyncScripts.wrap("""
-        let wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
-        let btnWith = function(testid) {
-            return Array.prototype.find.call(document.querySelectorAll('button'), function(b) {
-                return b.querySelector('svg[data-testid="' + testid + '"]') && b.offsetParent !== null;
-            });
-        };
-        let confirmed = function() { return !!btnWith('filled-icon'); };
-        let attempts = 0;
-        for (let i = 0; i < 6 && !confirmed(); i++) {
-            let btn = btnWith('empty-icon');
-            if (!btn) { await wait(500); continue; }
-            attempts++;
-            btn.click();
-            await wait(1200);
-        }
-        let ok = confirmed();
-        out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
-        console.log('[GL] epic wishlist push added=' + ok + ' attempts=' + attempts + ' ' + location.href);
-    """.trimIndent()))
+    override val wishlistWrite = WishlistWrite.PerGame { storeUrl ->
+        WebStep(
+            storeUrl,
+            SyncScripts.wrap(
+                """
+                let wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
+                let btnWith = function(testid) {
+                    return Array.prototype.find.call(document.querySelectorAll('button'), function(b) {
+                        return b.querySelector('svg[data-testid="' + testid + '"]') && b.offsetParent !== null;
+                    });
+                };
+                let confirmed = function() { return !!btnWith('filled-icon'); };
+                let attempts = 0;
+                for (let i = 0; i < 6 && !confirmed(); i++) {
+                    let btn = btnWith('empty-icon');
+                    if (!btn) { await wait(500); continue; }
+                    attempts++;
+                    btn.click();
+                    await wait(1200);
+                }
+                let ok = confirmed();
+                out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
+                console.log('[GL] epic wishlist push added=' + ok + ' attempts=' + attempts + ' ' + location.href);
+                """.trimIndent(),
+            ),
+        )
+    }
 
     private companion object {
         // Public "fortnitePCGameClient" launcher client id — used to request the authorization code.
