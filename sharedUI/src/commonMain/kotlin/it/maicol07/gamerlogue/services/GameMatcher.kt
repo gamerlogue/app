@@ -111,7 +111,7 @@ class GameMatcher(
     }
 
     private suspend fun nameMultiquery(batch: List<ExternalGameRef>, useSearch: Boolean): Map<String, List<Game>> {
-        val result = exceptionReporter.safeRequest {
+        val result = igdbCall("name multiquery failed (search=$useSearch)") {
             igdb.multiquery {
                 batch.forEachIndexed { i, ref ->
                     val q = ref.name.sanitizeForSearch()
@@ -123,9 +123,8 @@ class GameMatcher(
                 }
             }
         }
-        result.getError()?.let { Logger.w(tag = TAG, throwable = it) { "name multiquery failed (search=$useSearch)" } }
         @Suppress("UNCHECKED_CAST")
-        val responses = result.get() as? List<UnpackedMultiQueryResult<Game>> ?: return emptyMap()
+        val responses = result as? List<UnpackedMultiQueryResult<Game>> ?: return emptyMap()
         val byUid = mutableMapOf<String, List<Game>>()
         responses.forEach { response ->
             val i = response.name.removePrefix("q").toIntOrNull() ?: return@forEach
@@ -151,15 +150,14 @@ class GameMatcher(
         val byUid = mutableMapOf<String, Game>()
         urlToUid.keys.chunked(UID_CHUNK).forEach { chunk ->
             val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
-            val result = exceptionReporter.safeRequest {
+            val response = igdbCall("external_games lookup failed") {
                 igdb.getExternalGames {
                     fields(*externalFields)
                     where("external_game_source = $source & url = ($quoted)")
                     limit(chunk.size)
                 }
             }
-            result.getError()?.let { Logger.w(tag = TAG, throwable = it) { "external_games lookup failed" } }
-            result.get()?.externalgames?.forEach { ext ->
+            response?.externalgames?.forEach { ext ->
                 val game = ext.game ?: return@forEach
                 val url = ext.url ?: return@forEach
                 val uid = connector.uidFromUrl(url) ?: urlToUid[url] ?: return@forEach
@@ -177,15 +175,14 @@ class GameMatcher(
         val byUid = mutableMapOf<String, Game>()
         refs.map { it.uid }.distinct().chunked(UID_CHUNK).forEach { chunk ->
             val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
-            val result = exceptionReporter.safeRequest {
+            val response = igdbCall("external_games uid lookup failed") {
                 igdb.getExternalGames {
                     fields(*externalFields)
                     where("external_game_source = $source & uid = ($quoted)")
                     limit(chunk.size)
                 }
             }
-            result.getError()?.let { Logger.w(tag = TAG, throwable = it) { "external_games uid lookup failed" } }
-            result.get()?.externalgames?.forEach { ext ->
+            response?.externalgames?.forEach { ext ->
                 val game = ext.game ?: return@forEach
                 val uid = ext.uid.ifBlank { return@forEach }
                 byUid[uid] = game
@@ -205,14 +202,14 @@ class GameMatcher(
         val byGame = mutableMapOf<Int, String>()
         gameIds.distinct().chunked(UID_CHUNK).forEach { chunk ->
             val ids = chunk.joinToString(",")
-            val result = exceptionReporter.safeRequest {
+            val response = igdbCall("external_games url lookup failed") {
                 igdb.getExternalGames {
                     fields("url", "game.id")
                     where("external_game_source = $source & game = ($ids)")
                     limit(chunk.size)
                 }
             }
-            result.get()?.externalgames?.forEach { ext ->
+            response?.externalgames?.forEach { ext ->
                 val gid = ext.game?.id?.toInt() ?: return@forEach
                 val url = ext.url ?: return@forEach
                 if (gid !in byGame) byGame[gid] = url
@@ -222,14 +219,14 @@ class GameMatcher(
         // website URL when the connector recognises it as one of its store pages (uidFromUrl matches).
         val missing = gameIds.distinct().filter { it !in byGame }
         missing.chunked(WEBSITE_GAME_CHUNK).forEach { chunk ->
-            val result = exceptionReporter.safeRequest {
+            val response = igdbCall("websites lookup failed") {
                 igdb.getWebsites {
                     fields("url", "game.id")
                     where("game = (${chunk.joinToString(",")})")
                     limit(WEBSITE_LIMIT)
                 }
             }
-            result.get()?.websites?.forEach { web ->
+            response?.websites?.forEach { web ->
                 val gid = web.game?.id?.toInt() ?: return@forEach
                 val url = web.url ?: return@forEach
                 if (gid !in byGame && connector.uidFromUrl(url) != null) byGame[gid] = url
@@ -244,14 +241,13 @@ class GameMatcher(
         if (ids.isEmpty()) return emptyList()
         val games = mutableListOf<Game>()
         ids.distinct().chunked(UID_CHUNK).forEach { chunk ->
-            val result = exceptionReporter.safeRequest {
+            igdbCall("games by-id lookup failed") {
                 igdb.getGames {
                     fields("id", "name", "cover.image_id", "platforms.platform_family")
                     where("id = (${chunk.joinToString(",")})")
                     limit(chunk.size)
                 }
-            }
-            result.get()?.games?.let { games.addAll(it) }
+            }?.games?.let { games.addAll(it) }
         }
         return games
     }
@@ -260,14 +256,22 @@ class GameMatcher(
     suspend fun searchByName(query: String, limit: Int = SEARCH_LIMIT): List<Game> {
         val q = query.sanitizeForSearch()
         if (q.isEmpty()) return emptyList()
-        val result = exceptionReporter.safeRequest {
+        return igdbCall("name search failed") {
             igdb.getGames {
                 search(q)
                 fields("id", "name", "cover.image_id")
                 limit(limit)
             }
-        }
-        return result.get()?.games.orEmpty()
+        }?.games.orEmpty()
+    }
+
+    /** Run an IGDB [request] through [safeRequest] (global error reporting), logging [warn] on failure
+     *  and returning the response, or null when the call failed.
+     */
+    private suspend fun <T> igdbCall(warn: String, request: suspend () -> T): T? {
+        val result = exceptionReporter.safeRequest(request)
+        result.getError()?.let { Logger.w(tag = TAG, throwable = it) { warn } }
+        return result.get()
     }
 
     private fun String.escapeApicalypse() = replace("\"", "")
