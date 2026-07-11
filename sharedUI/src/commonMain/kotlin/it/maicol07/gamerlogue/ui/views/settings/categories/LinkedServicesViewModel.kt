@@ -11,6 +11,7 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.ServiceProfile
+import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.WebSession
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -110,7 +111,7 @@ class LinkedServicesViewModel(
      * non-HttpOnly cookies, so those platforms may stay signed in until the store cookies expire.
      */
     private fun clearSession(service: ExternalService) = viewModelScope.launch {
-        connector(service).sessionUrls().forEach { url ->
+        connector(service).sessionUrls.forEach { url ->
             runCatching { PlatformCookieManager.removeCookies(url) }
                 .onFailure { Logger.w(throwable = it) { "Cookie clear failed for service=$service url=$url" } }
         }
@@ -145,11 +146,10 @@ class LinkedServicesViewModel(
         }
     }
 
-    // JS-path connectors read the profile same-origin; API-path ones (PSN/Xbox) fetch it with the
-    // WebView-obtained credential. Best-effort: a null profile just leaves the service without one.
+    // Best-effort: a connector with no profile source, or one whose read fails, just leaves the service
+    // without a profile. Web vs API is the connector's choice ([ServiceConnector.profile]), not ours.
     private suspend fun fetchProfile(connector: ServiceConnector, session: WebSession): ServiceProfile? =
-        connector.readProfile()?.let { session.runProfile(it) }
-            ?: connector.apiProfile(credential(connector, session))
+        connector.profile?.let { session.read(it) }
 
     suspend fun runWishlistSync(service: ExternalService, session: WebSession) {
         val connector = connector(service)
@@ -158,7 +158,7 @@ class LinkedServicesViewModel(
             session.awaitLogin(connector)
             // Some stores keep the wishlist on a different origin than the login (Xbox: Microsoft Store
             // vs login.live.com) — let the user sign into it before any DOM read/write.
-            connector.storeLoginUrl()?.let { session.awaitStoreLogin(it) }
+            connector.storeLoginUrl?.let { session.awaitStoreLogin(it) }
             val wishlist = wishlistRefs(connector, session)
             val result = librarySync.pullWishlist(connector, wishlist)
             if (result.toPush.isNotEmpty()) pushWishlist(connector, session, result.toPush)
@@ -177,7 +177,7 @@ class LinkedServicesViewModel(
     suspend fun runReadOwned(service: ExternalService, session: WebSession): List<ExternalGameRef> =
         connector(service).let { connector ->
             session.awaitLogin(connector)
-            ownedRefs(connector, session)
+            session.read(connector.ownedGames)
         }
 
     /**
@@ -187,7 +187,7 @@ class LinkedServicesViewModel(
     suspend fun runWishlistPreview(service: ExternalService, session: WebSession): List<ExternalGameRef> {
         val connector = connector(service)
         session.awaitLogin(connector)
-        connector.storeLoginUrl()?.let { session.awaitStoreLogin(it) }
+        connector.storeLoginUrl?.let { session.awaitStoreLogin(it) }
         val wishlist = wishlistRefs(connector, session)
         // Outgoing preview: let the user pick which backlog games to push to the store, then push them.
         val selected = session.confirmPush(librarySync.computeWishlistPush(connector, wishlist))
@@ -195,32 +195,21 @@ class LinkedServicesViewModel(
         return wishlist
     }
 
-    // Each operation independently uses the API path (Kotlin, with a WebView-obtained credential) or
-    // the JS path (a WebView script). PSN, e.g., reads owned games via API but the wishlist via JS.
-    private suspend fun ownedRefs(connector: ServiceConnector, session: WebSession): List<ExternalGameRef> =
-        if (connector.ownedViaApi()) connector.apiOwned(credential(connector, session))
-        else session.run(connector.readOwned())
-
+    // The connector's [ServiceConnector.wishlist] source decides Web vs API internally; null = no wishlist.
     private suspend fun wishlistRefs(connector: ServiceConnector, session: WebSession): List<ExternalGameRef> =
-        if (connector.wishlistViaApi()) connector.apiWishlist(credential(connector, session))
-        else session.run(connector.readWishlist())
+        connector.wishlist?.let { session.read(it) }.orEmpty()
 
     private suspend fun pushWishlist(connector: ServiceConnector, session: WebSession, games: List<LibrarySync.OutgoingGame>) {
         // Only games that release on this platform, have a store page, and aren't already wishlisted.
         val pushable = games.filter { it.onPlatform && it.storeUrl != null && !it.alreadyOnWishlist }
         if (pushable.isEmpty()) return
-        when {
-            connector.wishlistViaApi() ->
-                connector.apiAddToWishlist(credential(connector, session), pushable.map { ExternalGameRef(it.uid, it.name) })
+        when (val write = connector.wishlistWrite) {
+            is WishlistWrite.Batch -> session.run(write.step(pushable.map { ExternalGameRef(it.uid, it.name) }))
             // Per-game write: open each store page and click its add-to-wishlist button (e.g. PSN).
-            connector.pushesPerGame() ->
-                pushable.forEach { g -> connector.wishlistPushStep(g.storeUrl!!)?.let { step -> session.run(step) } }
-            else -> session.run(connector.addToWishlist(pushable.map { ExternalGameRef(it.uid, it.name) }))
+            is WishlistWrite.PerGame -> pushable.forEach { g -> write.step(g.storeUrl!!)?.let { session.run(it) } }
+            null -> Unit
         }
     }
-
-    private suspend fun credential(connector: ServiceConnector, session: WebSession): String =
-        connector.credentialStep()?.let { session.run(it).firstOrNull()?.uid.orEmpty() }.orEmpty()
 
     private fun setBusy(service: ExternalService, busy: Boolean) = update {
         copy(services = services + (service to (services[service] ?: ServiceState()).copy(busy = busy)))

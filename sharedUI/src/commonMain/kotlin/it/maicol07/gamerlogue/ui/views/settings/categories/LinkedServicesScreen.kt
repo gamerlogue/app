@@ -98,7 +98,7 @@ fun LinkedServicesScreen(
     if (action != null) {
         val connector = viewModel.connector(action.service)
         ServiceWebView(
-            initialUrl = connector.loginUrl(),
+            initialUrl = connector.loginUrl,
             onClose = { viewModel.clearAction() },
         ) { session ->
             when (action) {

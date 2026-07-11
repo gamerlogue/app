@@ -64,20 +64,20 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import it.maicol07.gamerlogue.extensions.openURL
+import it.maicol07.gamerlogue.services.DataSource
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
-import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.configureServiceWebView
-import it.maicol07.gamerlogue.services.parseProfileJson
 import it.maicol07.gamerlogue.services.parseRefsJson
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Drives one store automation flow inside a WebView.
@@ -90,10 +90,16 @@ import org.jetbrains.compose.resources.stringResource
 interface WebSession {
     val currentUrl: String?
     suspend fun awaitLogin(connector: ServiceConnector)
+
+    /** Run a write [step] in the WebView; the returned refs are the script's confirmation, if any. */
     suspend fun run(step: WebStep): List<ExternalGameRef>
 
-    /** Run [step] and parse its bridge result as a [ServiceProfile] (null if the script delivered none). */
-    suspend fun runProfile(step: WebStep): ServiceProfile?
+    /**
+     * Resolve a read [source]: a [DataSource.Web] runs its script same-origin and parses the bridge
+     * result; a [DataSource.Api] grabs a credential in the WebView then fetches from Kotlin, falling
+     * back to the source's default on a blank credential or a failed fetch.
+     */
+    suspend fun <T> read(source: DataSource<T>): T
 
     /**
      * Navigate to [url] and reveal the WebView with a "Continue" button so the user can interactively
@@ -405,8 +411,8 @@ private class WebSessionImpl(
 
     override suspend fun awaitLogin(connector: ServiceConnector) {
         Logger.i(tag = TAG) { "awaitLogin(${connector.service}) — current=${state.lastLoadedUrl}" }
-        val trigger = connector.loginTriggerScript()
-        val reached = withTimeoutOrNull(LOGIN_TIMEOUT) {
+        val trigger = connector.loginTriggerScript
+        val reached = withTimeoutOrNull(LOGIN_TIMEOUT.milliseconds) {
             var triggered = false
             while (true) {
                 val url = state.lastLoadedUrl
@@ -430,7 +436,20 @@ private class WebSessionImpl(
 
     override suspend fun run(step: WebStep): List<ExternalGameRef> = parseRefsJson(runStep(step))
 
-    override suspend fun runProfile(step: WebStep): ServiceProfile? = parseProfileJson(runStep(step))
+    override suspend fun <T> read(source: DataSource<T>): T = when (source) {
+        is DataSource.Web -> source.parse(runStep(source.step))
+        is DataSource.Api -> {
+            // The credential step delivers the credential as its single ref's uid (e.g. PSN npsso).
+            val credential = parseRefsJson(runStep(source.credentialStep)).firstOrNull()?.uid.orEmpty()
+            if (credential.isBlank()) {
+                source.default
+            } else {
+                runCatching { source.fetch(credential) }
+                    .onFailure { Logger.w(throwable = it) { "API read failed for ${state.lastLoadedUrl}" } }
+                    .getOrDefault(source.default)
+            }
+        }
+    }
 
     /** Navigate + inject [step], then await its raw bridge JSON (null on timeout). */
     private suspend fun runStep(step: WebStep): String? {
