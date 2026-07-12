@@ -14,19 +14,25 @@ import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.WebSession
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.core.annotation.KoinViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+/** A store flow that requires the WebView; carried by the [it.maicol07.gamerlogue.NavKeys.ServiceSync] key. */
+@Serializable
+enum class ServiceSyncAction { CONNECT, REFRESH_PROFILE, SYNC_WISHLIST, PREVIEW_WISHLIST, IMPORT_LIBRARY }
+
 /**
- * State + actions for the Linked Services screen.
+ * State + actions for the Linked Services list.
  *
- * The screen renders the WebView while [UiState.action] is non-null; its flow lambda calls the `run*`
- * suspend functions here, which combine the WebView session (read/write the store) with IGDB matching
- * and Gamerlogue persistence ([LibrarySync]). Library import only reads owned games here — matching
- * and confirmation happen on the preview screen. Per-service link flags are kept in [settings] (the
- * actual session lives in the WebView cookies).
+ * The store flows that need the WebView ([ServiceSyncAction]) run on the [ServiceSyncScreen], which
+ * shares this ViewModel type (its own instance) and calls the `run*` suspend functions here; they
+ * combine the WebView session (read/write the store) with IGDB matching and Gamerlogue persistence
+ * ([LibrarySync]). Library import only reads owned games here — matching and confirmation happen on
+ * the preview screen. Per-service link flags are kept in [settings] (the actual session lives in the
+ * WebView cookies); [refreshAll] re-reads them when the list returns to the foreground.
  */
 @OptIn(ExperimentalTime::class, ExperimentalSettingsApi::class)
 @KoinViewModel
@@ -35,16 +41,6 @@ class LinkedServicesViewModel(
     private val settings: ObservableSettings,
     private val librarySync: LibrarySync,
 ) : StateViewModel<LinkedServicesViewModel.UiState>(UiState()) {
-
-    /** A flow that requires the WebView, for [service]. */
-    sealed interface Action {
-        val service: ExternalService
-        data class Connect(override val service: ExternalService) : Action
-        data class RefreshProfile(override val service: ExternalService) : Action
-        data class SyncWishlist(override val service: ExternalService) : Action
-        data class PreviewWishlist(override val service: ExternalService) : Action
-        data class ImportLibrary(override val service: ExternalService) : Action
-    }
 
     data class ServiceState(
         val connected: Boolean = false,
@@ -56,45 +52,27 @@ class LinkedServicesViewModel(
 
     data class UiState(
         val services: Map<ExternalService, ServiceState> = emptyMap(),
-        val action: Action? = null,
         val message: String? = null,
     )
 
     private val json = Json { ignoreUnknownKeys = true }
 
     init {
-        update {
-            copy(services = ExternalService.entries.associateWith { readServiceState(it) })
-        }
+        refreshAll()
     }
 
     fun connector(service: ExternalService): ServiceConnector = connectors.getValue(service)
 
-    // --- UI intents (set the active WebView action; the screen renders it) ---
-
-    fun connect(service: ExternalService) = update { copy(action = Action.Connect(service)) }
-
-    fun refreshProfile(service: ExternalService) {
-        if (isConnected(service)) update { copy(action = Action.RefreshProfile(service)) }
+    /** Re-read every service's link flags from [settings] (e.g. after a sync flow on another entry). */
+    fun refreshAll() = update {
+        copy(services = ExternalService.entries.associateWith { readServiceState(it) })
     }
 
-    fun syncWishlistNow(service: ExternalService) {
-        if (isConnected(service)) update { copy(action = Action.SyncWishlist(service)) }
-    }
-
-    /** Manual wishlist sync with preview (vs the toggle's automatic background sync). */
-    fun previewWishlist(service: ExternalService) {
-        if (isConnected(service)) update { copy(action = Action.PreviewWishlist(service)) }
-    }
-
-    fun importLibrary(service: ExternalService) {
-        if (isConnected(service)) update { copy(action = Action.ImportLibrary(service)) }
-    }
+    // --- UI intents ---
 
     fun toggleWishlistSync(service: ExternalService, enabled: Boolean) {
         setWishlistSync(service, enabled)
         refresh(service)
-        if (enabled && isConnected(service)) syncWishlistNow(service)
     }
 
     fun disconnect(service: ExternalService) {
@@ -117,11 +95,9 @@ class LinkedServicesViewModel(
         }
     }
 
-    fun clearAction() = update { copy(action = null) }
-
     fun consumeMessage() = update { copy(message = null) }
 
-    // --- WebView flows (called by the screen's ServiceWebView) ---
+    // --- WebView flows (called by the ServiceSyncScreen's WebView) ---
 
     suspend fun runConnect(service: ExternalService, session: WebSession) {
         val connector = connector(service)

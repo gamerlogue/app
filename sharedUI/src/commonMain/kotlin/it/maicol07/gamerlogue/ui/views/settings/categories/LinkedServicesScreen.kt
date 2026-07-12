@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -36,6 +35,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__linked_services_disclaimer
@@ -47,8 +47,6 @@ import gamerlogue.sharedui.generated.resources.settings__service_import_library
 import gamerlogue.sharedui.generated.resources.settings__service_playstation
 import gamerlogue.sharedui.generated.resources.settings__service_refresh_profile
 import gamerlogue.sharedui.generated.resources.settings__service_steam
-import gamerlogue.sharedui.generated.resources.settings__service_sync_done
-import gamerlogue.sharedui.generated.resources.settings__service_sync_error
 import gamerlogue.sharedui.generated.resources.settings__service_sync_now
 import gamerlogue.sharedui.generated.resources.settings__service_sync_wishlist
 import gamerlogue.sharedui.generated.resources.settings__service_web_unsupported
@@ -67,7 +65,6 @@ import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
 import it.maicol07.gamerlogue.ui.components.RemoteImage
-import it.maicol07.gamerlogue.ui.components.ServiceWebView
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -78,7 +75,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LinkedServicesScreen(
-    navigateToImportPreview: (ExternalService, ImportMode) -> Unit,
+    navigateToSync: (ExternalService, ServiceSyncAction) -> Unit,
     viewModel: LinkedServicesViewModel = koinViewModel(),
 ) {
     if (!isServiceSyncSupported()) {
@@ -93,32 +90,12 @@ fun LinkedServicesScreen(
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val action = uiState.action
 
-    if (action != null) {
-        val connector = viewModel.connector(action.service)
-        ServiceWebView(
-            initialUrl = connector.loginUrl,
-            onClose = { viewModel.clearAction() },
-        ) { session ->
-            when (action) {
-                is LinkedServicesViewModel.Action.Connect -> viewModel.runConnect(action.service, session)
-                is LinkedServicesViewModel.Action.RefreshProfile -> viewModel.runRefreshProfile(action.service, session)
-                is LinkedServicesViewModel.Action.SyncWishlist -> viewModel.runWishlistSync(action.service, session)
-                is LinkedServicesViewModel.Action.ImportLibrary -> {
-                    val refs = viewModel.runReadOwned(action.service, session)
-                    ImportHandoff.put(action.service, refs)
-                    navigateToImportPreview(action.service, ImportMode.OWNED)
-                }
-
-                is LinkedServicesViewModel.Action.PreviewWishlist -> {
-                    val refs = viewModel.runWishlistPreview(action.service, session)
-                    ImportHandoff.put(action.service, refs)
-                    navigateToImportPreview(action.service, ImportMode.WISHLIST)
-                }
-            }
-        }
-        return
+    // A sync flow runs on its own screen (its own ViewModel instance) and persists to settings; re-read
+    // when we return so the list reflects any connect/disconnect/sync that happened while away.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshAll()
+        onPauseOrDispose {}
     }
 
     Column(
@@ -140,20 +117,6 @@ fun LinkedServicesScreen(
             )
         }
 
-        uiState.message?.let { message ->
-            val text = when (message) {
-                "error" -> stringResource(Res.string.settings__service_sync_error)
-                else -> stringResource(Res.string.settings__service_sync_done)
-            }
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                modifier = Modifier.fillMaxWidth(),
-                onClick = viewModel::consumeMessage,
-            ) {
-                Text(text, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-
         ExternalService.entries.forEach { service ->
             val state = uiState.services[service] ?: LinkedServicesViewModel.ServiceState()
             val uriHandler = LocalUriHandler.current
@@ -161,12 +124,15 @@ fun LinkedServicesScreen(
                 service = service,
                 state = state,
                 onOpenProfile = { state.profile?.profileUrl?.let { uriHandler.openURL(it) } },
-                onRefreshProfile = { viewModel.refreshProfile(service) },
-                onConnect = { viewModel.connect(service) },
+                onRefreshProfile = { navigateToSync(service, ServiceSyncAction.REFRESH_PROFILE) },
+                onConnect = { navigateToSync(service, ServiceSyncAction.CONNECT) },
                 onDisconnect = { viewModel.disconnect(service) },
-                onToggleWishlist = { viewModel.toggleWishlistSync(service, it) },
-                onWishlistSyncNow = { viewModel.previewWishlist(service) },
-                onImport = { viewModel.importLibrary(service) },
+                onToggleWishlist = { enabled ->
+                    viewModel.toggleWishlistSync(service, enabled)
+                    if (enabled) navigateToSync(service, ServiceSyncAction.SYNC_WISHLIST)
+                },
+                onWishlistSyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_WISHLIST) },
+                onImport = { navigateToSync(service, ServiceSyncAction.IMPORT_LIBRARY) },
             )
         }
     }
@@ -241,7 +207,6 @@ private fun ServiceSegmentedGroup(
                         }
                         IconButton(
                             onClick = onRefreshProfile,
-                            enabled = !state.busy,
                             modifier = Modifier.size(28.dp),
                         ) {
                             Icon(
@@ -264,7 +229,7 @@ private fun ServiceSegmentedGroup(
                 colors = ListItemDefaults.expressiveSegmentedColors(),
                 trailingContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onWishlistSyncNow, enabled = !state.busy) {
+                        IconButton(onClick = onWishlistSyncNow) {
                             Icon(
                                 MaterialSymbols.SyncW500Rounded,
                                 contentDescription = stringResource(Res.string.settings__service_sync_now),
@@ -281,12 +246,8 @@ private fun ServiceSegmentedGroup(
                 modifier = Modifier.clip(ListItemDefaults.expressiveShape(first = false, last = true)),
                 colors = ListItemDefaults.expressiveSegmentedColors(),
                 trailingContent = {
-                    if (state.busy) {
-                        CircularProgressIndicator(Modifier.size(20.dp))
-                    } else {
-                        OutlinedButton(onClick = onImport) {
-                            Text(stringResource(Res.string.settings__service_import_library))
-                        }
+                    OutlinedButton(onClick = onImport) {
+                        Text(stringResource(Res.string.settings__service_import_library))
                     }
                 },
                 headlineContent = { Text(stringResource(Res.string.settings__service_import_library)) },
