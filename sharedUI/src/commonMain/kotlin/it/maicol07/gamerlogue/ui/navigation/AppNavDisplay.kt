@@ -51,6 +51,7 @@ import it.maicol07.gamerlogue.ui.views.settings.SettingsScreen
 import it.maicol07.gamerlogue.ui.views.settings.categories.AppearanceScreen
 import it.maicol07.gamerlogue.ui.views.settings.categories.LibraryImportPreviewScreen
 import it.maicol07.gamerlogue.ui.views.settings.categories.LinkedServicesScreen
+import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncScreen
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
@@ -142,9 +143,21 @@ fun AppNavDisplay(
                 }
                 screen<NavKeys.LinkedServices>(metadata = ListDetailSceneStrategy.detailPane()) {
                     LinkedServicesScreen(
-                        navigateToImportPreview = { service, mode ->
-                            backStack.add(NavKeys.LibraryImportPreview(service, mode))
+                        navigateToSync = { service, action ->
+                            backStack.add(NavKeys.ServiceSync(service, action))
                         }
+                    )
+                }
+                // Draws its own chrome (a persistent bottom sheet hosting the WebView), so plain `entry`.
+                entry<NavKeys.ServiceSync>(metadata = ListDetailSceneStrategy.detailPane()) { navKey ->
+                    ServiceSyncScreen(
+                        service = navKey.service,
+                        action = navKey.action,
+                        onFinish = { backStack.removeLastOrNull() },
+                        navigateToImportPreview = { service, mode ->
+                            backStack.removeLastOrNull()
+                            backStack.add(NavKeys.LibraryImportPreview(service, mode))
+                        },
                     )
                 }
                 screen<NavKeys.LibraryImportPreview>(metadata = ListDetailSceneStrategy.detailPane()) { navKey ->
