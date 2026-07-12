@@ -17,6 +17,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
+import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.PolymorphicModuleBuilder
 import kotlinx.serialization.modules.SerializersModule
@@ -85,6 +86,16 @@ object NavKeys {
     }
 
     @Serializable
+    data class ServiceSync(
+        val service: ExternalService,
+        val action: ServiceSyncAction,
+    ) : NavKeyWithMeta() {
+        // Draws its own chrome (a BottomSheetScaffold), so no top-bar title and no bottom bar.
+        override val title: StringResource? get() = null
+        override val showBottomBar: Boolean get() = false
+    }
+
+    @Serializable
     data class LibraryImportPreview(
         val service: ExternalService,
         val mode: ImportMode = ImportMode.OWNED,
@@ -122,6 +133,7 @@ object NavKeys {
                 key<GameDetail>()
                 key<GameList>()
                 key<LibraryImportPreview>()
+                key<ServiceSync>()
             }
         }
     }
