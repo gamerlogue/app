@@ -205,6 +205,10 @@
     <string name="settings__import_deselect_all">Deseleziona tutto</string>
     <string name="settings__import_selected">%1$d/%2$d selezionati</string>
     <string name="settings__import_source">%1$s: %2$s</string>
+    <string name="settings__import_group_to_import">Da importare (%1$d)</string>
+    <string name="settings__import_group_to_review">Da rivedere (%1$d)</string>
+    <string name="settings__import_group_already_present">Già nella libreria (%1$d)</string>
+    <string name="settings__service_done">Fatto</string>
     <string name="settings__service_web_unsupported">Il collegamento degli account non è disponibile sul web. Usa l\'app Android o desktop per collegare i tuoi store.</string>
     <string name="settings__service_login_required">Accedi per continuare</string>
     <string name="settings__service_working">Operazione in corso…</string>
