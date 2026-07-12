@@ -13,12 +13,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -51,9 +51,13 @@ import gamerlogue.sharedui.generated.resources.settings__import_already_present
 import gamerlogue.sharedui.generated.resources.settings__import_cancel
 import gamerlogue.sharedui.generated.resources.settings__import_confirm_match
 import gamerlogue.sharedui.generated.resources.settings__import_confirm
+import gamerlogue.sharedui.generated.resources.settings__import_change_match
 import gamerlogue.sharedui.generated.resources.settings__import_deselect_all
 import gamerlogue.sharedui.generated.resources.settings__import_done
 import gamerlogue.sharedui.generated.resources.settings__import_finish
+import gamerlogue.sharedui.generated.resources.settings__import_group_already_present
+import gamerlogue.sharedui.generated.resources.settings__import_group_to_import
+import gamerlogue.sharedui.generated.resources.settings__import_group_to_review
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__import_search
 import gamerlogue.sharedui.generated.resources.settings__import_search_hint
@@ -62,12 +66,14 @@ import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__import_source
 import gamerlogue.sharedui.generated.resources.settings__open_store
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -100,9 +106,14 @@ fun LibraryImportPreviewScreen(
         return
     }
 
+    val indexedRows = uiState.rows.withIndex().toList()
+    // Mutually-exclusive groups: importable (confident, new), to review (unmatched/low-confidence), present.
+    val toImport = indexedRows.filter { !it.value.alreadyPresent && it.value.confident }
+    val toReview = indexedRows.filter { !it.value.alreadyPresent && !it.value.confident }
+    val alreadyPresent = indexedRows.filter { it.value.alreadyPresent }
+
     val selectedCount = uiState.rows.count { it.included }
-    val selectableCount = uiState.rows.count { it.confident && !it.alreadyPresent }
-    val allSelected = selectableCount > 0 && selectedCount == selectableCount
+    val allSelected = toImport.isNotEmpty() && selectedCount == toImport.size
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -116,7 +127,7 @@ fun LibraryImportPreviewScreen(
             )
             TextButton(
                 onClick = { viewModel.setAllIncluded(!allSelected) },
-                enabled = selectableCount > 0,
+                enabled = toImport.isNotEmpty(),
             ) {
                 Text(
                     stringResource(
@@ -140,56 +151,18 @@ fun LibraryImportPreviewScreen(
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
-            itemsIndexed(uiState.rows) { index, row ->
-                SegmentedListItem(
-                    colors = ListItemDefaults.expressiveSegmentedColors(),
-                    shapes = ListItemDefaults.segmentedShapes(index = index, count = uiState.rows.size),
-                    onClick = { viewModel.startEdit(index) },
-                    leadingContent = { MatchCover(row.game) },
-                    trailingContent = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (row.sourceUrl != null) {
-                                IconButton(onClick = { uriHandler.openURL(row.sourceUrl) }) {
-                                    Icon(
-                                        Icons.OpenInNewW500Rounded,
-                                        contentDescription = stringResource(Res.string.settings__open_store),
-                                    )
-                                }
-                            }
-                            Checkbox(
-                                checked = row.included,
-                                enabled = row.confident && !row.alreadyPresent,
-                                onCheckedChange = { viewModel.toggleIncluded(index) },
-                            )
-                        }
-                    },
-                    supportingContent = {
-                        Column {
-                            // Always show what the store calls this game, so the IGDB match can be verified.
-                            Text(
-                                stringResource(
-                                    Res.string.settings__import_source,
-                                    service.name,
-                                    row.ref.name.ifEmpty { "#${row.ref.uid}" },
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            val status = when {
-                                row.alreadyPresent -> stringResource(Res.string.settings__import_already_present) to
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                row.game == null -> stringResource(Res.string.settings__import_no_match) to
-                                    MaterialTheme.colorScheme.error
-                                !row.confident -> stringResource(Res.string.settings__import_confirm_match) to
-                                    MaterialTheme.colorScheme.tertiary
-                                else -> null
-                            }
-                            status?.let { (text, color) -> Text(text, color = color) }
-                        }
-                    },
-                ) {
-                    Text(row.game?.name ?: row.ref.name.ifEmpty { row.ref.uid })
-                }
-            }
+            importGroup(
+                Res.string.settings__import_group_to_import, toImport, selectable = true,
+                service, viewModel::toggleIncluded, viewModel::startEdit, uriHandler::openURL,
+            )
+            importGroup(
+                Res.string.settings__import_group_to_review, toReview, selectable = false,
+                service, viewModel::toggleIncluded, viewModel::startEdit, uriHandler::openURL,
+            )
+            importGroup(
+                Res.string.settings__import_group_already_present, alreadyPresent, selectable = false,
+                service, viewModel::toggleIncluded, viewModel::startEdit, uriHandler::openURL,
+            )
         }
 
         Button(
@@ -212,6 +185,120 @@ fun LibraryImportPreviewScreen(
             onPick = viewModel::chooseMatch,
             onDismiss = viewModel::cancelEdit,
         )
+    }
+}
+
+/** A titled segmented list for one status group; no-op when empty. Indices are the original row indices. */
+private fun LazyListScope.importGroup(
+    titleRes: StringResource,
+    rows: List<IndexedValue<LibraryImportViewModel.Row>>,
+    selectable: Boolean,
+    service: ExternalService,
+    onToggle: (Int) -> Unit,
+    onEdit: (Int) -> Unit,
+    onOpenStore: (String) -> Unit,
+) {
+    if (rows.isEmpty()) return
+    item { GroupHeader(titleRes, rows.size) }
+    itemsIndexed(rows) { indexInGroup, indexed ->
+        ImportRow(
+            row = indexed.value,
+            indexInGroup = indexInGroup,
+            groupCount = rows.size,
+            selectable = selectable,
+            service = service,
+            onToggle = { onToggle(indexed.index) },
+            onEdit = { onEdit(indexed.index) },
+            onOpenStore = onOpenStore,
+        )
+    }
+}
+
+@Composable
+private fun GroupHeader(titleRes: StringResource, count: Int) {
+    Text(
+        stringResource(titleRes, count),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+    )
+}
+
+/**
+ * One import row. Selectable rows toggle inclusion on tap (expressive `selected` styling, no checkbox);
+ * review/already-present rows open the match editor on tap. The trailing edit icon always opens the
+ * editor so the match can be changed.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ImportRow(
+    row: LibraryImportViewModel.Row,
+    indexInGroup: Int,
+    groupCount: Int,
+    selectable: Boolean,
+    service: ExternalService,
+    onToggle: () -> Unit,
+    onEdit: () -> Unit,
+    onOpenStore: (String) -> Unit,
+) {
+    val shapes = ListItemDefaults.segmentedShapes(index = indexInGroup, count = groupCount)
+    val colors = ListItemDefaults.expressiveSegmentedColors()
+    val leading: @Composable () -> Unit = { MatchCover(row.game) }
+    val trailing: @Composable () -> Unit = {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (row.sourceUrl != null) {
+                IconButton(onClick = { onOpenStore(row.sourceUrl) }) {
+                    Icon(Icons.OpenInNewW500Rounded, contentDescription = stringResource(Res.string.settings__open_store))
+                }
+            }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.EditW500Rounded, contentDescription = stringResource(Res.string.settings__import_change_match))
+            }
+        }
+    }
+    val supporting: @Composable () -> Unit = {
+        Column {
+            // Always show what the store calls this game, so the IGDB match can be verified.
+            Text(
+                stringResource(
+                    Res.string.settings__import_source,
+                    service.name,
+                    row.ref.name.ifEmpty { "#${row.ref.uid}" },
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val status = when {
+                row.alreadyPresent -> stringResource(Res.string.settings__import_already_present) to
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                row.game == null -> stringResource(Res.string.settings__import_no_match) to
+                    MaterialTheme.colorScheme.error
+                !row.confident -> stringResource(Res.string.settings__import_confirm_match) to
+                    MaterialTheme.colorScheme.tertiary
+                else -> null
+            }
+            status?.let { (text, color) -> Text(text, color = color) }
+        }
+    }
+    val headline = row.game?.name ?: row.ref.name.ifEmpty { row.ref.uid }
+    if (selectable) {
+        SegmentedListItem(
+            selected = row.included,
+            onClick = onToggle,
+            shapes = shapes,
+            colors = colors,
+            leadingContent = leading,
+            trailingContent = trailing,
+            supportingContent = supporting,
+        ) { Text(headline) }
+    } else {
+        SegmentedListItem(
+            onClick = onEdit,
+            shapes = shapes,
+            colors = colors,
+            leadingContent = leading,
+            trailingContent = trailing,
+            supportingContent = supporting,
+        ) { Text(headline) }
     }
 }
 
