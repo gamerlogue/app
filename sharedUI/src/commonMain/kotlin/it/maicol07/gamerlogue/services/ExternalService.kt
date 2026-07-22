@@ -8,4 +8,4 @@ import kotlinx.serialization.Serializable
  * mapped in the UI layer.
  */
 @Serializable
-enum class ExternalService { STEAM, PLAYSTATION, XBOX, GOG, EPIC }
+enum class ExternalService { STEAM, PLAYSTATION, XBOX, GOG, EPIC, NINTENDO }

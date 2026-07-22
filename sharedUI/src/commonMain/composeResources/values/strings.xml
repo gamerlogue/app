@@ -180,6 +180,12 @@
     <string name="settings__service_xbox">Xbox</string>
     <string name="settings__service_gog">GOG</string>
     <string name="settings__service_epic">Epic Games</string>
+    <string name="settings__service_nintendo">Nintendo</string>
+    <string name="settings__service_webview_busy">Operation in progress — the WebView can\'t be used right now</string>
+    <string name="settings__sync_title_connect">Signing in to %1$s</string>
+    <string name="settings__sync_title_refresh_profile">Updating your %1$s profile</string>
+    <string name="settings__sync_title_sync_wishlist">Syncing your %1$s wishlist</string>
+    <string name="settings__sync_title_import_library">Importing from %1$s</string>
     <string name="settings__service_connect">Connect</string>
     <string name="settings__service_disconnect">Disconnect</string>
     <string name="settings__service_refresh_profile">Refresh profile</string>

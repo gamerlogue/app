@@ -175,6 +175,12 @@
     <string name="settings__service_xbox">Xbox</string>
     <string name="settings__service_gog">GOG</string>
     <string name="settings__service_epic">Epic Games</string>
+    <string name="settings__service_nintendo">Nintendo</string>
+    <string name="settings__service_webview_busy">Operazione in corso — la WebView non è utilizzabile ora</string>
+    <string name="settings__sync_title_connect">Accesso a %1$s</string>
+    <string name="settings__sync_title_refresh_profile">Aggiornamento del profilo %1$s</string>
+    <string name="settings__sync_title_sync_wishlist">Sincronizzazione wishlist %1$s</string>
+    <string name="settings__sync_title_import_library">Importazione da %1$s</string>
     <string name="settings__service_connect">Collega</string>
     <string name="settings__service_disconnect">Scollega</string>
     <string name="settings__service_refresh_profile">Aggiorna profilo</string>

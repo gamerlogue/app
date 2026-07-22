@@ -11,6 +11,7 @@ import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.XboxApi
 import it.maicol07.gamerlogue.services.connectors.EpicConnector
 import it.maicol07.gamerlogue.services.connectors.GogConnector
+import it.maicol07.gamerlogue.services.connectors.NintendoConnector
 import it.maicol07.gamerlogue.services.connectors.PsnConnector
 import it.maicol07.gamerlogue.services.connectors.SteamConnector
 import it.maicol07.gamerlogue.services.connectors.XboxConnector
@@ -35,5 +36,6 @@ object AppModule {
         ExternalService.XBOX to XboxConnector(xboxApi),
         ExternalService.GOG to GogConnector(),
         ExternalService.EPIC to EpicConnector(epicApi),
+        ExternalService.NINTENDO to NintendoConnector(),
     )
 }

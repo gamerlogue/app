@@ -46,11 +46,18 @@ sealed interface DataSource<T> {
 
 /**
  * How wishlist writes are performed. [Batch] sends all refs in a single step (stores with a write
- * endpoint, e.g. Steam/GOG); [PerGame] opens each game's store page and acts on it (PSN/Xbox/Epic).
+ * endpoint, e.g. Steam/GOG); [PerGame] opens each game's store page and acts on it (PSN/Xbox/Epic);
+ * [PerGameResolved] first loads an intermediate page ([resolve]) whose result's first uid is the real
+ * product URL, then acts on that (Nintendo: the IGDB URL is a www.nintendo.com page whose eShop link
+ * carries the numeric title id needed to reach the ec.nintendo.com product page with the add button).
  */
 sealed interface WishlistWrite {
     data class Batch(val step: (refs: List<ExternalGameRef>) -> WebStep) : WishlistWrite
     data class PerGame(val step: (storeUrl: String) -> WebStep?) : WishlistWrite
+    data class PerGameResolved(
+        val resolve: (storeUrl: String) -> WebStep,
+        val step: (resolvedUrl: String) -> WebStep?,
+    ) : WishlistWrite
 }
 
 /** Web read delivering a `[{uid,name}, …]` list (owned games / wishlist). */

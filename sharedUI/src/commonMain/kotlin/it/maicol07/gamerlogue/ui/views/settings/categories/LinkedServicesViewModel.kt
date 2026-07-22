@@ -183,6 +183,11 @@ class LinkedServicesViewModel(
             is WishlistWrite.Batch -> session.run(write.step(pushable.map { ExternalGameRef(it.uid, it.name) }))
             // Per-game write: open each store page and click its add-to-wishlist button (e.g. PSN).
             is WishlistWrite.PerGame -> pushable.forEach { g -> write.step(g.storeUrl!!)?.let { session.run(it) } }
+            // Resolve the real product URL from an intermediate page first, then act on it (Nintendo).
+            is WishlistWrite.PerGameResolved -> pushable.forEach { g ->
+                val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
+                if (!resolved.isNullOrBlank()) write.step(resolved)?.let { session.run(it) }
+            }
             null -> Unit
         }
     }

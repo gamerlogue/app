@@ -44,6 +44,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_disconnect
 import gamerlogue.sharedui.generated.resources.settings__service_epic
 import gamerlogue.sharedui.generated.resources.settings__service_gog
 import gamerlogue.sharedui.generated.resources.settings__service_import_library
+import gamerlogue.sharedui.generated.resources.settings__service_nintendo
 import gamerlogue.sharedui.generated.resources.settings__service_playstation
 import gamerlogue.sharedui.generated.resources.settings__service_refresh_profile
 import gamerlogue.sharedui.generated.resources.settings__service_steam
@@ -51,6 +52,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_sync_now
 import gamerlogue.sharedui.generated.resources.settings__service_sync_wishlist
 import gamerlogue.sharedui.generated.resources.settings__service_web_unsupported
 import gamerlogue.sharedui.generated.resources.settings__service_xbox
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons
@@ -262,12 +264,15 @@ private fun ExternalService.icon(): ImageVector = when (this) {
     ExternalService.XBOX -> SvglIcons.XboxSvgl
     ExternalService.GOG -> Icons.GogdotcomSimpleIcons
     ExternalService.EPIC -> Icons.EpicgamesSimpleIcons
+    // Nintendo's logo was pulled from simple-icons/svgl on legal request; use a neutral gaming glyph.
+    ExternalService.NINTENDO -> MaterialSymbols.JoystickW500Rounded
 }
 
-private fun ExternalService.labelRes(): StringResource = when (this) {
+internal fun ExternalService.labelRes(): StringResource = when (this) {
     ExternalService.STEAM -> Res.string.settings__service_steam
     ExternalService.PLAYSTATION -> Res.string.settings__service_playstation
     ExternalService.XBOX -> Res.string.settings__service_xbox
     ExternalService.GOG -> Res.string.settings__service_gog
     ExternalService.EPIC -> Res.string.settings__service_epic
+    ExternalService.NINTENDO -> Res.string.settings__service_nintendo
 }
