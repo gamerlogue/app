@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,7 +50,12 @@ import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__open_store
 import gamerlogue.sharedui.generated.resources.settings__service_done
 import gamerlogue.sharedui.generated.resources.settings__service_sync_error
+import gamerlogue.sharedui.generated.resources.settings__service_webview_busy
 import gamerlogue.sharedui.generated.resources.settings__service_working
+import gamerlogue.sharedui.generated.resources.settings__sync_title_connect
+import gamerlogue.sharedui.generated.resources.settings__sync_title_import_library
+import gamerlogue.sharedui.generated.resources.settings__sync_title_refresh_profile
+import gamerlogue.sharedui.generated.resources.settings__sync_title_sync_wishlist
 import gamerlogue.sharedui.generated.resources.settings__wishlist_already_present
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
@@ -119,6 +124,15 @@ fun ServiceSyncScreen(
     val session = host.session
     val loginRequired = session.loginRequired
 
+    val serviceName = stringResource(service.labelRes())
+    val title = when (action) {
+        ServiceSyncAction.CONNECT -> stringResource(Res.string.settings__sync_title_connect, serviceName)
+        ServiceSyncAction.REFRESH_PROFILE -> stringResource(Res.string.settings__sync_title_refresh_profile, serviceName)
+        ServiceSyncAction.SYNC_WISHLIST,
+        ServiceSyncAction.PREVIEW_WISHLIST -> stringResource(Res.string.settings__sync_title_sync_wishlist, serviceName)
+        ServiceSyncAction.IMPORT_LIBRARY -> stringResource(Res.string.settings__sync_title_import_library, serviceName)
+    }
+
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = true)
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
 
@@ -132,7 +146,7 @@ fun ServiceSyncScreen(
         sheetPeekHeight = 220.dp,
         topBar = {
             TopAppBar(
-                title = { Text(service.name) },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onFinish) {
                         Icon(Icons.CloseW500Rounded, contentDescription = stringResource(Res.string.common_close))
@@ -143,15 +157,21 @@ fun ServiceSyncScreen(
         sheetContent = {
             Box(Modifier.fillMaxWidth().fillMaxSize()) {
                 host.webView(Modifier.fillMaxSize())
-                // Non-interactive while working: consume all pointer events so the automation isn't
-                // disturbed. ponytail: best-effort — on desktop CEF the native surface draws above
-                // Compose, so the overlay can't fully block it (same limit as the cookie/CEF notes).
+                // Non-interactive while working: a scrim hides the page and tells the user it can't be used
+                // right now. It does NOT consume pointer events, so vertical drags still reach the WebView's
+                // nested-scroll bridge and keep the bottom sheet draggable.
                 if (!loginRequired) {
                     Box(
-                        Modifier.matchParentSize().pointerInput(Unit) {
-                            awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } }
-                        },
-                    )
+                        Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            stringResource(Res.string.settings__service_webview_busy),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(24.dp),
+                        )
+                    }
                 }
                 if (session.awaitingManualLogin) {
                     Button(
@@ -172,7 +192,9 @@ fun ServiceSyncScreen(
                     onConfirm = session::resolveConfirm,
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
-                finished -> CompletionContent(error = uiState.message == "error", onFinish = onFinish)
+                // On success just pop back to Linked Services; only stop to show an error.
+                finished && uiState.message == "error" -> CompletionContent(error = true, onFinish = onFinish)
+                finished -> LaunchedEffect(Unit) { onFinish() }
                 else -> LoadingContent(session.log)
             }
         }

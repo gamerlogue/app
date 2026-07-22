@@ -34,6 +34,7 @@ import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.configureServiceWebView
 import it.maicol07.gamerlogue.services.parseRefsJson
+import it.maicol07.gamerlogue.services.webViewNestedScrollModifier
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -150,7 +151,8 @@ fun rememberServiceWebViewHost(
                 jsBridge = bridge,
                 chromeClient = chromeClient,
                 onCreated = ::configureServiceWebView,
-                modifier = Modifier.fillMaxSize(),
+                // Bridge nested scroll so the page scrolls within the sheet, which stays draggable.
+                modifier = Modifier.fillMaxSize().then(webViewNestedScrollModifier()),
             )
             // The WebView surface paints black until the page's first frame; cover it with a progress
             // indicator while it loads so the user sees progress instead of a black screen.
@@ -185,17 +187,20 @@ class ServiceWebViewSession internal constructor(
         private set
     var awaitingManualLogin by mutableStateOf(false)
         private set
+    var awaitingLogin by mutableStateOf(false)
+        private set
     val log = mutableStateListOf<SyncPhase>()
 
     override val currentUrl: String? get() = state.lastLoadedUrl
 
     /**
-     * The WebView must be interactive: either the first login (the login/sign-in page is showing) or a
-     * second store-origin login. Otherwise it's working and should be shown passively (peek) or hidden.
+     * The WebView must be interactive while we're waiting for the user to sign in — the whole [awaitLogin]
+     * window (incl. 2FA / passkey "choose another method" pages) or a second store-origin login. It is NOT
+     * keyed off the URL: multi-step logins (e.g. Nintendo's 2FA) leave the "login"/"signin" path, which
+     * used to flip the WebView to passive "working" mid-login and block the user from finishing sign-in.
      */
     val loginRequired: Boolean
-        get() = awaitingManualLogin ||
-            (!loginDone && currentUrl.let { it == null || it.contains("login") || it.contains("signin") })
+        get() = awaitingManualLogin || awaitingLogin
 
     internal fun deliver(json: String?) {
         pending?.complete(json)
@@ -236,6 +241,15 @@ class ServiceWebViewSession internal constructor(
     }
 
     override suspend fun awaitLogin(connector: ServiceConnector) {
+        awaitingLogin = true
+        try {
+            awaitLoginLoop(connector)
+        } finally {
+            awaitingLogin = false
+        }
+    }
+
+    private suspend fun awaitLoginLoop(connector: ServiceConnector) {
         Logger.i(tag = TAG) { "awaitLogin(${connector.service}) — current=${state.lastLoadedUrl}" }
         val trigger = connector.loginTriggerScript
         val reached = withTimeoutOrNull(LOGIN_TIMEOUT.milliseconds) {
