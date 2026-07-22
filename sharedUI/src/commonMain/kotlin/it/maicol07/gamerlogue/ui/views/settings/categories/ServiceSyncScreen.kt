@@ -70,6 +70,7 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.LibrarySync
+import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.label
@@ -189,6 +190,7 @@ fun ServiceSyncScreen(
             when {
                 pending != null -> PushChecklist(
                     games = pending,
+                    matchesByName = connector.wishlistWrite is WishlistWrite.SearchByName,
                     onConfirm = session::resolveConfirm,
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
@@ -242,13 +244,18 @@ private fun CompletionContent(error: Boolean, onFinish: () -> Unit) {
 @Composable
 private fun PushChecklist(
     games: List<LibrarySync.OutgoingGame>,
+    matchesByName: Boolean,
     onConfirm: (List<LibrarySync.OutgoingGame>) -> Unit,
     onSkip: () -> Unit,
 ) {
-    // Pushable rows need both a store page and to release on this platform; the rest are shown disabled.
+    // Pushable rows need to release on this platform and either a store page or, for connectors that
+    // push by searching the store's title (no store URL from IGDB), a confirmed publisher match — so an
+    // unrelated backlog game from another publisher isn't searched for and pushed onto the wrong store.
     val selected = remember(games) {
         mutableStateMapOf<String, Boolean>().apply {
-            games.forEach { put(it.uid, it.storeUrl != null && it.onPlatform && !it.alreadyOnWishlist) }
+            games.forEach {
+                put(it.uid, (it.storeUrl != null || (matchesByName && it.matchesPublisher)) && it.onPlatform && !it.alreadyOnWishlist)
+            }
         }
     }
     val onPlatform = games.filter { it.onPlatform }
@@ -267,7 +274,7 @@ private fun PushChecklist(
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
             itemsIndexed(onPlatform) { index, game ->
-                PushRow(game, index, onPlatform.size, selected[game.uid] == true, uriHandler::openURL) {
+                PushRow(game, index, onPlatform.size, selected[game.uid] == true, matchesByName, uriHandler::openURL) {
                     selected[game.uid] = it
                 }
             }
@@ -281,7 +288,7 @@ private fun PushChecklist(
                     )
                 }
                 itemsIndexed(offPlatform) { index, game ->
-                    PushRow(game, index, offPlatform.size, selected[game.uid] == true, uriHandler::openURL) {
+                    PushRow(game, index, offPlatform.size, selected[game.uid] == true, matchesByName, uriHandler::openURL) {
                         selected[game.uid] = it
                     }
                 }
@@ -311,10 +318,11 @@ private fun PushRow(
     index: Int,
     count: Int,
     checked: Boolean,
+    matchesByName: Boolean,
     onOpenStore: (String) -> Unit,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    val pushable = game.storeUrl != null && game.onPlatform && !game.alreadyOnWishlist
+    val pushable = (game.storeUrl != null || (matchesByName && game.matchesPublisher)) && game.onPlatform && !game.alreadyOnWishlist
     SegmentedListItem(
         selected = checked,
         enabled = pushable,
@@ -342,7 +350,8 @@ private fun PushRow(
         supportingContent = {
             val subtitle = when {
                 game.alreadyOnWishlist -> stringResource(Res.string.settings__wishlist_already_present)
-                game.onPlatform && game.storeUrl == null -> stringResource(Res.string.settings__import_no_match)
+                game.onPlatform && game.storeUrl == null && !(matchesByName && game.matchesPublisher) ->
+                    stringResource(Res.string.settings__import_no_match)
                 else -> null
             }
             subtitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }

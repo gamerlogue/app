@@ -235,15 +235,19 @@ class GameMatcher(
         return byGame
     }
 
-    /** Fetch IGDB games by id (name + cover + platform family), e.g. to label Gamerlogue backlog games
-     *  for a push preview and to tell which release on the target store's platform. */
+    /** Fetch IGDB games by id (name + cover + platform family + involved companies), e.g. to label
+     *  Gamerlogue backlog games for a push preview, tell which release on the target store's platform,
+     *  and confirm ([ServiceConnector.matchesPublisher]) a search-by-name push targets the right store. */
     suspend fun gamesByIds(ids: List<Int>): List<Game> {
         if (ids.isEmpty()) return emptyList()
         val games = mutableListOf<Game>()
         ids.distinct().chunked(UID_CHUNK).forEach { chunk ->
             igdbCall("games by-id lookup failed") {
                 igdb.getGames {
-                    fields("id", "name", "cover.image_id", "platforms.platform_family")
+                    fields(
+                        "id", "name", "cover.image_id", "platforms.platform_family",
+                        "involved_companies.company.name",
+                    )
                     where("id = (${chunk.joinToString(",")})")
                     limit(chunk.size)
                 }

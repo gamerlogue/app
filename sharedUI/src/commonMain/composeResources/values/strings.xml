@@ -181,6 +181,8 @@
     <string name="settings__service_gog">GOG</string>
     <string name="settings__service_epic">Epic Games</string>
     <string name="settings__service_nintendo">Nintendo</string>
+    <string name="settings__service_ubisoft">Ubisoft Connect</string>
+    <string name="settings__service_pc_only">PC only</string>
     <string name="settings__service_webview_busy">Operation in progress — the WebView can\'t be used right now</string>
     <string name="settings__sync_title_connect">Signing in to %1$s</string>
     <string name="settings__sync_title_refresh_profile">Updating your %1$s profile</string>

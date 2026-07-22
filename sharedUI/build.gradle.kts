@@ -276,7 +276,8 @@ symbolCraft {
         "github",
         "gogdotcom",
         "playstation",
-        "steam"
+        "steam",
+        "ubisoft"
     )
     @Suppress("SpreadOperator")
     externalIcons(*brandIcons.toTypedArray(), libraryName = "simple-icons") {

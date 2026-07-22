@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.services
 
+import at.released.igdbclient.model.Game
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -49,7 +50,9 @@ sealed interface DataSource<T> {
  * endpoint, e.g. Steam/GOG); [PerGame] opens each game's store page and acts on it (PSN/Xbox/Epic);
  * [PerGameResolved] first loads an intermediate page ([resolve]) whose result's first uid is the real
  * product URL, then acts on that (Nintendo: the IGDB URL is a www.nintendo.com page whose eShop link
- * carries the numeric title id needed to reach the ec.nintendo.com product page with the add button).
+ * carries the numeric title id needed to reach the ec.nintendo.com product page with the add button);
+ * [SearchByName] searches the store by title and acts on the matching result (Ubisoft: games are
+ * name-matched with no IGDB store URL, so there's no `storeUrl` to open a product page with).
  */
 sealed interface WishlistWrite {
     data class Batch(val step: (refs: List<ExternalGameRef>) -> WebStep) : WishlistWrite
@@ -58,6 +61,7 @@ sealed interface WishlistWrite {
         val resolve: (storeUrl: String) -> WebStep,
         val step: (resolvedUrl: String) -> WebStep?,
     ) : WishlistWrite
+    data class SearchByName(val step: (name: String) -> WebStep) : WishlistWrite
 }
 
 /** Web read delivering a `[{uid,name}, …]` list (owned games / wishlist). */
@@ -136,6 +140,12 @@ abstract class ServiceConnector(
 
     /** Extract the store uid back out of an IGDB `url` (inverse of [storeUrl]). */
     open fun uidFromUrl(url: String): String? = null
+
+    /** For [WishlistWrite.SearchByName] connectors with no store URL to confirm a game belongs on this
+     *  store: whether [game] plausibly does, so an unrelated backlog game isn't searched for and pushed
+     *  onto a store it was never published on (e.g. Ubisoft: check IGDB's involved companies). Ignored
+     *  by connectors that always have a store URL to confirm the match instead. */
+    open fun matchesPublisher(game: Game): Boolean = true
 
     // --- Reads + wishlist write. One member per concern; each connector picks Web or Api per read. ---
 

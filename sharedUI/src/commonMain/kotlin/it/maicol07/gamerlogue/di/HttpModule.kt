@@ -20,6 +20,7 @@ import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.PsnApi
+import it.maicol07.gamerlogue.services.UbisoftApi
 import it.maicol07.gamerlogue.services.XboxApi
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient.Companion.VndApiJson
 import org.koin.core.annotation.Configuration
@@ -111,6 +112,15 @@ object HttpModule {
     // the WebView. Off-WebView so it isn't CORS-blocked like the same calls would be in the browser.
     @Single
     fun provideEpicApi() = EpicApi(
+        HttpClient {
+            ktorHttpClientConfig()
+        }
+    )
+
+    // Ubisoft Connect API client (GraphQL owned games); plain JSON, the session ticket comes from the
+    // WebView. Off-WebView so it isn't CORS-blocked like the same calls would be in the browser.
+    @Single
+    fun provideUbisoftApi() = UbisoftApi(
         HttpClient {
             ktorHttpClientConfig()
         }

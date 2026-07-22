@@ -45,11 +45,13 @@ import gamerlogue.sharedui.generated.resources.settings__service_epic
 import gamerlogue.sharedui.generated.resources.settings__service_gog
 import gamerlogue.sharedui.generated.resources.settings__service_import_library
 import gamerlogue.sharedui.generated.resources.settings__service_nintendo
+import gamerlogue.sharedui.generated.resources.settings__service_pc_only
 import gamerlogue.sharedui.generated.resources.settings__service_playstation
 import gamerlogue.sharedui.generated.resources.settings__service_refresh_profile
 import gamerlogue.sharedui.generated.resources.settings__service_steam
 import gamerlogue.sharedui.generated.resources.settings__service_sync_now
 import gamerlogue.sharedui.generated.resources.settings__service_sync_wishlist
+import gamerlogue.sharedui.generated.resources.settings__service_ubisoft
 import gamerlogue.sharedui.generated.resources.settings__service_web_unsupported
 import gamerlogue.sharedui.generated.resources.settings__service_xbox
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
@@ -60,6 +62,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Epic
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.GogdotcomSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.PlaystationSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.SteamSimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.UbisoftSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
@@ -187,7 +190,16 @@ private fun ServiceSegmentedGroup(
                 }
             },
             headlineContent = {
-                Text(stringResource(service.labelRes()), style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(service.labelRes()), style = MaterialTheme.typography.titleMedium)
+                    service.platformNoteRes()?.let { note ->
+                        Text(
+                            stringResource(note),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             },
             // Account row (small avatar + username + refresh) below the platform name when connected.
             supportingContent = if (connected) {
@@ -266,6 +278,7 @@ private fun ExternalService.icon(): ImageVector = when (this) {
     ExternalService.EPIC -> Icons.EpicgamesSimpleIcons
     // Nintendo's logo was pulled from simple-icons/svgl on legal request; use a neutral gaming glyph.
     ExternalService.NINTENDO -> MaterialSymbols.JoystickW500Rounded
+    ExternalService.UBISOFT -> Icons.UbisoftSimpleIcons
 }
 
 internal fun ExternalService.labelRes(): StringResource = when (this) {
@@ -275,4 +288,12 @@ internal fun ExternalService.labelRes(): StringResource = when (this) {
     ExternalService.GOG -> Res.string.settings__service_gog
     ExternalService.EPIC -> Res.string.settings__service_epic
     ExternalService.NINTENDO -> Res.string.settings__service_nintendo
+    ExternalService.UBISOFT -> Res.string.settings__service_ubisoft
+}
+
+// Ubisoft's console releases are already covered by their own platform connectors, so this
+// connector only ever reflects the PC (Ubisoft Connect launcher) copy of a game.
+private fun ExternalService.platformNoteRes(): StringResource? = when (this) {
+    ExternalService.UBISOFT -> Res.string.settings__service_pc_only
+    else -> null
 }

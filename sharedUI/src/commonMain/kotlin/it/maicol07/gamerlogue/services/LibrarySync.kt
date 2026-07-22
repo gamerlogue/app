@@ -31,7 +31,10 @@ class LibrarySync(
 
     /** A Gamerlogue backlog game about to be pushed to a store wishlist (for the outgoing preview).
      *  [onPlatform] is false when the game doesn't release on the store's platform family (shown in a
-     *  separate, non-pushable section); pushable rows need both [onPlatform] and a non-null [storeUrl]. */
+     *  separate, non-pushable section); pushable rows need both [onPlatform] and a non-null [storeUrl] —
+     *  except for [it.maicol07.gamerlogue.services.WishlistWrite.SearchByName] connectors, which have no
+     *  [storeUrl] and instead need [matchesPublisher] ([ServiceConnector.matchesPublisher]) to confirm the
+     *  game is actually on that store before it's searched for and pushed. */
     data class OutgoingGame(
         val gameId: Int,
         val uid: String,
@@ -41,6 +44,7 @@ class LibrarySync(
         val onPlatform: Boolean = true,
         /** Already on the store wishlist — shown in the preview but disabled/deselected, not pushed. */
         val alreadyOnWishlist: Boolean = false,
+        val matchesPublisher: Boolean = true,
     )
 
     /** Persist confirmed IGDB [games] as owned. Existing entries keep their status/ratings and only
@@ -110,6 +114,7 @@ class LibrarySync(
                 url?.let { connector.normalizePushUrl(it) },
                 onPlatform,
                 alreadyOnWishlist = id in onWishlistIds,
+                matchesPublisher = game != null && connector.matchesPublisher(game),
             )
         }
     }
