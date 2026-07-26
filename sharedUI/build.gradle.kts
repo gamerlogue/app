@@ -232,7 +232,7 @@ symbolCraft {
         "edit", "error", "explosion", "explore",
         "family_star", "flutter_dash",
         "grid_4x4",
-        "history", "home", "hourglass_top",
+        "history", "home", "hourglass",
         "info", "inventory_2",
         "joystick",
         "keyboard_arrow_right",

@@ -64,7 +64,7 @@ import gamerlogue.sharedui.generated.resources.library__start_date
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DevicesW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassTopW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Inventory2W500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
@@ -341,7 +341,7 @@ internal fun PlayedTimeField(viewModel: AddToLibrarySheetViewModel) {
     NumericField(
         state = viewModel.playedTime,
         label = stringResource(Res.string.library__played_time),
-        leadingIcon = Icons.HourglassTopW500Rounded,
+        leadingIcon = Icons.HourglassW500Rounded,
         suffix = stringResource(Res.string.library__hours),
         supportingText = {
             Text(stringResource(Res.string.library__played_time_description))
