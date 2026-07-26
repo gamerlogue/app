@@ -49,6 +49,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Tro
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.LibraryEntrySchema
 import it.maicol07.gamerlogue.ui.components.ButtonProgress
+import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import org.jetbrains.compose.resources.stringResource
@@ -272,29 +273,15 @@ private fun CompletionStatusChips(
     onStatusSelected: (LibraryEntrySchema.CompletionStatus?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier
-    ) {
-        LibraryEntrySchema.CompletionStatus.entries.forEach { status ->
-            FilterChip(
-                leadingIcon = {
-                    AnimatedVisibility(selectedStatus == status) {
-                        Icon(
-                            imageVector = Icons.CheckW500Rounded,
-                            contentDescription = null
-                        )
-                    }
-                },
-                selected = selectedStatus == status,
-                onClick = {
-                    onStatusSelected(if (selectedStatus == status) null else status)
-                },
-                label = { Text(stringResource(status.displayName)) }
-            )
-        }
-    }
+    SingleSelectConnectedButtonGroup(
+        options = LibraryEntrySchema.CompletionStatus.entries,
+        selected = selectedStatus,
+        onSelectedChange = onStatusSelected,
+        toggleButtonText = { stringResource(it.displayName) },
+        showChecks = true,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        rowModifier = modifier
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

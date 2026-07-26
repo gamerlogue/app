@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 
+import androidx.compose.ui.graphics.Color
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> ConnectedButtonGroup(
@@ -33,10 +35,11 @@ fun <T> ConnectedButtonGroup(
     showChecks: Boolean = false,
     toggleButtonModifier: (T) -> Modifier = { Modifier },
     rowModifier: Modifier = Modifier,
-    multiple: Boolean = false
+    multiple: Boolean = false,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest
 ) {
     FlowRow(
-        modifier = rowModifier.padding(horizontal = 8.dp),
+        modifier = rowModifier,
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         for ((index, type) in options.withIndex()) {
@@ -53,7 +56,7 @@ fun <T> ConnectedButtonGroup(
                     else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                 },
                 colors = ToggleButtonDefaults.toggleButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                    containerColor = containerColor
                 )
             ) {
                 AnimatedVisibility(showChecks && checked(type)) {
@@ -79,4 +82,39 @@ fun <T> ConnectedButtonGroup(
             }
         }
     }
+}
+
+@Composable
+fun <T> SingleSelectConnectedButtonGroup(
+    options: List<T>,
+    selected: T?,
+    onSelectedChange: (T?) -> Unit,
+    toggleButtonText: @Composable (T) -> String,
+    toggleButtonIcon: (T) -> ImageVector? = { null },
+    toggleButtonEnabled: (T) -> Boolean = { true },
+    showChecks: Boolean = false,
+    toggleButtonModifier: (T) -> Modifier = { Modifier },
+    rowModifier: Modifier = Modifier,
+    deselectable: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest
+) {
+    ConnectedButtonGroup(
+        options = options,
+        checked = { selected == it },
+        onCheckedChange = { option, isChecked ->
+            if (isChecked) {
+                onSelectedChange(option)
+            } else if (deselectable) {
+                onSelectedChange(null)
+            }
+        },
+        toggleButtonText = toggleButtonText,
+        toggleButtonIcon = toggleButtonIcon,
+        toggleButtonEnabled = toggleButtonEnabled,
+        showChecks = showChecks,
+        toggleButtonModifier = toggleButtonModifier,
+        rowModifier = rowModifier,
+        multiple = false,
+        containerColor = containerColor
+    )
 }
