@@ -226,7 +226,13 @@ private fun LibraryStatusSelector(
                 FilledIconToggleButton(
                     checked = selectedStatus == section,
                     onCheckedChange = { onSectionStatus(section) },
-                    shapes = IconButtonDefaults.toggleableShapes()
+                    shapes = IconButtonDefaults.toggleableShapes(),
+                    colors = IconButtonDefaults.filledIconToggleButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        checkedContainerColor = MaterialTheme.colorScheme.primary,
+                        checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
                 ) {
                     Icon(
                         imageVector = section.icon,

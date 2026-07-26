@@ -86,7 +86,9 @@ internal fun OwnedSwitch(
             checked = owned,
             onCheckedChange = onOwnedChange,
             shapes = ListItemDefaults.segmentedShapes(0, 1),
-            colors = ListItemDefaults.expressiveSegmentedColors(),
+            colors = ListItemDefaults.expressiveSegmentedColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
             supportingContent = {
                 Text(
                     text = stringResource(Res.string.library__owned_description),
@@ -243,7 +245,9 @@ internal fun LazyItemScope.PlatformSection(
                 checked = checked,
                 onCheckedChange = { viewModel.togglePlatformSelection(platform) },
                 shapes = ListItemDefaults.segmentedShapes(index, game.platforms.lastIndex),
-                colors = ListItemDefaults.expressiveSegmentedColors(),
+                colors = ListItemDefaults.expressiveSegmentedColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
                 leadingContent = {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
