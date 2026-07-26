@@ -272,11 +272,27 @@ symbolCraft {
     }
 
     val brandIcons = listOf(
+        "android",
+        "apple",
+        "atari",
+        "commodore",
         "epicgames",
         "github",
         "gogdotcom",
+        "ios",
+        "linux",
+        "macos",
+        "meta",
+        "oculus",
         "playstation",
+        "playstation2",
+        "playstation3",
+        "playstation4",
+        "playstation5",
+        "playstationvita",
+        "sega",
         "steam",
+        "steamdeck",
         "ubisoft"
     )
     @Suppress("SpreadOperator")
@@ -285,6 +301,7 @@ symbolCraft {
     }
 
     val brandLogos = listOf(
+        "windows",
         "xbox"
     )
     @Suppress("SpreadOperator")
