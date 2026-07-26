@@ -49,7 +49,7 @@ fun DatePickerFieldDialog(
         onValueChange = { },
         label = { Text(label) },
         placeholder = { Text(stringResource(Res.string.date__input_placeholder)) },
-        trailingIcon = {
+        leadingIcon = {
             Icon(Icons.DateRangeW500Rounded, contentDescription = stringResource(Res.string.common_select_date))
         },
         modifier = modifier

@@ -43,7 +43,9 @@ import gamerlogue.sharedui.generated.resources.library__save
 import gamerlogue.sharedui.generated.resources.library__status
 import gamerlogue.sharedui.generated.resources.library__status_description
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CategoryW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TrophyW500Rounded
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.LibraryEntrySchema
 import it.maicol07.gamerlogue.ui.components.ButtonProgress
@@ -164,10 +166,20 @@ private fun LazyListScope.statusSection(
     item {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(Res.string.library__status),
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.CategoryW500Rounded,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = stringResource(Res.string.library__status),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
                 Text(
                     text = stringResource(Res.string.library__status_description),
                     style = MaterialTheme.typography.bodySmall,
@@ -188,10 +200,20 @@ private fun LazyListScope.statusSection(
                 modifier = Modifier.animateItem(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = stringResource(Res.string.library__completion_status),
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.TrophyW500Rounded,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = stringResource(Res.string.library__completion_status),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
                 Text(
                     text = stringResource(Res.string.library__completion_status_description),
                     style = MaterialTheme.typography.bodySmall,

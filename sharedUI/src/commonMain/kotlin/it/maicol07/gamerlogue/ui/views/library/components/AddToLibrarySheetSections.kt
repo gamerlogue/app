@@ -63,6 +63,12 @@ import gamerlogue.sharedui.generated.resources.library__standard_edition
 import gamerlogue.sharedui.generated.resources.library__start_date
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DevicesW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassTopW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Inventory2W500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.extensions.roundTo
@@ -89,6 +95,12 @@ internal fun OwnedSwitch(
             colors = ListItemDefaults.expressiveSegmentedColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
+            leadingContent = {
+                Icon(
+                    imageVector = Icons.Inventory2W500Rounded,
+                    contentDescription = null
+                )
+            },
             supportingContent = {
                 Text(
                     text = stringResource(Res.string.library__owned_description),
@@ -127,10 +139,20 @@ internal fun LazyItemScope.EditionSection(
 ) {
     if (!viewModel.editionsLoading && viewModel.editions.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = stringResource(Res.string.library__edition),
-            style = MaterialTheme.typography.titleMedium
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.StyleW500Rounded,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = stringResource(Res.string.library__edition),
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
         Text(
             text = stringResource(Res.string.library__edition_description),
             style = MaterialTheme.typography.bodySmall,
@@ -227,10 +249,20 @@ internal fun LazyItemScope.PlatformSection(
     viewModel: AddToLibrarySheetViewModel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = stringResource(Res.string.library__platforms),
-            style = MaterialTheme.typography.titleMedium
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.DevicesW500Rounded,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = stringResource(Res.string.library__platforms),
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
         Text(
             text = stringResource(Res.string.library__platforms_description),
             style = MaterialTheme.typography.bodySmall,
@@ -309,6 +341,7 @@ internal fun PlayedTimeField(viewModel: AddToLibrarySheetViewModel) {
     NumericField(
         state = viewModel.playedTime,
         label = stringResource(Res.string.library__played_time),
+        leadingIcon = Icons.HourglassTopW500Rounded,
         suffix = stringResource(Res.string.library__hours),
         supportingText = {
             Text(stringResource(Res.string.library__played_time_description))
@@ -320,13 +353,23 @@ internal fun PlayedTimeField(viewModel: AddToLibrarySheetViewModel) {
 @Composable
 internal fun RatingSection(viewModel: AddToLibrarySheetViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = stringResource(
-                Res.string.library__rating,
-                viewModel.rating?.toDouble()?.roundTo(1) ?: 0f
-            ),
-            style = MaterialTheme.typography.titleMedium
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.StarW500Rounded,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = stringResource(
+                    Res.string.library__rating,
+                    viewModel.rating?.toDouble()?.roundTo(1) ?: 0f
+                ),
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
         Text(
             text = stringResource(Res.string.library__rating_description),
             style = MaterialTheme.typography.bodySmall,
@@ -348,6 +391,12 @@ internal fun ReviewSection(viewModel: AddToLibrarySheetViewModel) {
     TextField(
         state = viewModel.review,
         label = { Text(stringResource(Res.string.library__review)) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.RateReviewW500Rounded,
+                contentDescription = null
+            )
+        },
         supportingText = {
             Text(stringResource(Res.string.library__review_description))
         },
