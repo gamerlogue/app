@@ -36,9 +36,12 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__add_to_library
 import gamerlogue.sharedui.generated.resources.library__cancel
 import gamerlogue.sharedui.generated.resources.library__completion_status
+import gamerlogue.sharedui.generated.resources.library__completion_status_description
 import gamerlogue.sharedui.generated.resources.library__delete
 import gamerlogue.sharedui.generated.resources.library__edit_entry
 import gamerlogue.sharedui.generated.resources.library__save
+import gamerlogue.sharedui.generated.resources.library__status
+import gamerlogue.sharedui.generated.resources.library__status_description
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import it.maicol07.gamerlogue.data.LibraryEntry
@@ -159,20 +162,43 @@ private fun LazyListScope.statusSection(
         )
     }
     item {
-        LibraryStatusSelector(
-            selectedStatus = viewModel.selectedStatus,
-            onSectionStatus = { viewModel.selectedStatus = it }
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(Res.string.library__status),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = stringResource(Res.string.library__status_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            LibraryStatusSelector(
+                selectedStatus = viewModel.selectedStatus,
+                onSectionStatus = { viewModel.selectedStatus = it }
+            )
+        }
     }
 
     // Completion status (only for the COMPLETED section)
     if (viewModel.selectedStatus == GameLibraryStatus.COMPLETED) {
         item("completion_status") {
-            Text(
-                text = stringResource(Res.string.library__completion_status),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.animateItem()
-            )
+            Column(
+                modifier = Modifier.animateItem(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.library__completion_status),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = stringResource(Res.string.library__completion_status_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             CompletionStatusChips(
                 selectedStatus = viewModel.completionStatus,
                 onStatusSelected = { viewModel.completionStatus = it },

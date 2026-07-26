@@ -21,6 +21,7 @@ fun NumericField(
     suffix: String? = null,
     leadingIcon: ImageVector? = null,
     allowDecimals: Boolean = true,
+    supportingText: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     TextField(
@@ -47,6 +48,7 @@ fun NumericField(
             imeAction = ImeAction.Done
         ),
         leadingIcon = leadingIcon?.let { @Composable { Icon(it, null) } },
-        suffix = suffix?.let { { Text(suffix) } }
+        suffix = suffix?.let { { Text(suffix) } },
+        supportingText = supportingText
     )
 }

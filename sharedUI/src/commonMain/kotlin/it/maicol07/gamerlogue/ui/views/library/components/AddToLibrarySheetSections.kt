@@ -7,7 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,14 +44,21 @@ import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__dates
+import gamerlogue.sharedui.generated.resources.library__dates_description
 import gamerlogue.sharedui.generated.resources.library__edition
+import gamerlogue.sharedui.generated.resources.library__edition_description
 import gamerlogue.sharedui.generated.resources.library__end_date
 import gamerlogue.sharedui.generated.resources.library__hours
 import gamerlogue.sharedui.generated.resources.library__owned
+import gamerlogue.sharedui.generated.resources.library__owned_description
 import gamerlogue.sharedui.generated.resources.library__platforms
+import gamerlogue.sharedui.generated.resources.library__platforms_description
 import gamerlogue.sharedui.generated.resources.library__played_time
+import gamerlogue.sharedui.generated.resources.library__played_time_description
 import gamerlogue.sharedui.generated.resources.library__rating
+import gamerlogue.sharedui.generated.resources.library__rating_description
 import gamerlogue.sharedui.generated.resources.library__review
+import gamerlogue.sharedui.generated.resources.library__review_description
 import gamerlogue.sharedui.generated.resources.library__standard_edition
 import gamerlogue.sharedui.generated.resources.library__start_date
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -76,10 +85,20 @@ internal fun OwnedSwitch(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = stringResource(Res.string.library__owned),
-            style = MaterialTheme.typography.titleMedium
-        )
+        Column(
+            modifier = Modifier.weight(1f).padding(end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.library__owned),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = stringResource(Res.string.library__owned_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Switch(
             checked = owned,
             onCheckedChange = onOwnedChange,
@@ -102,10 +121,18 @@ internal fun LazyItemScope.EditionSection(
     viewModel: AddToLibrarySheetViewModel
 ) {
     if (!viewModel.editionsLoading && viewModel.editions.isEmpty()) return
-    Text(
-        text = stringResource(Res.string.library__edition),
-        style = MaterialTheme.typography.titleMedium
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(Res.string.library__edition),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = stringResource(Res.string.library__edition_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     if (viewModel.editionsLoading) {
         LoadingIndicator()
         return
@@ -194,10 +221,18 @@ internal fun LazyItemScope.PlatformSection(
     game: Game,
     viewModel: AddToLibrarySheetViewModel
 ) {
-    Text(
-        text = stringResource(Res.string.library__platforms),
-        style = MaterialTheme.typography.titleMedium
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(Res.string.library__platforms),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = stringResource(Res.string.library__platforms_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     SegmentedListLayout(Modifier.fillMaxWidth()) {
         game.platforms.forEachIndexed { index, platform ->
             val checked = platform in viewModel.selectedPlatforms
@@ -227,10 +262,18 @@ internal fun DatesSection(
     viewModel: AddToLibrarySheetViewModel,
     showEndDate: Boolean
 ) {
-    Text(
-        text = stringResource(Res.string.library__dates),
-        style = MaterialTheme.typography.titleMedium
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(Res.string.library__dates),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = stringResource(Res.string.library__dates_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -260,19 +303,30 @@ internal fun PlayedTimeField(viewModel: AddToLibrarySheetViewModel) {
         state = viewModel.playedTime,
         label = stringResource(Res.string.library__played_time),
         suffix = stringResource(Res.string.library__hours),
+        supportingText = {
+            Text(stringResource(Res.string.library__played_time_description))
+        },
         modifier = Modifier.fillMaxWidth()
     )
 }
 
 @Composable
 internal fun RatingSection(viewModel: AddToLibrarySheetViewModel) {
-    Text(
-        text = stringResource(
-            Res.string.library__rating,
-            viewModel.rating?.toDouble()?.roundTo(1) ?: 0f
-        ),
-        style = MaterialTheme.typography.titleMedium
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(
+                Res.string.library__rating,
+                viewModel.rating?.toDouble()?.roundTo(1) ?: 0f
+            ),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = stringResource(Res.string.library__rating_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     Slider(
         value = viewModel.rating?.toFloat() ?: 0f,
         onValueChange = { viewModel.rating = it },
@@ -287,9 +341,12 @@ internal fun ReviewSection(viewModel: AddToLibrarySheetViewModel) {
     TextField(
         state = viewModel.review,
         label = { Text(stringResource(Res.string.library__review)) },
+        supportingText = {
+            Text(stringResource(Res.string.library__review_description))
+        },
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp),
+            .height(140.dp),
         lineLimits = TextFieldLineLimits.MultiLine()
     )
 }

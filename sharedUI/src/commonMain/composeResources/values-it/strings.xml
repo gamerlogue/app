@@ -146,6 +146,18 @@
     <string name="library__delete">Elimina</string>
     <string name="library__disabled_fields_message">Alcuni campi sono disabilitati a causa dello stato %1$s.</string>
 
+    <!-- Library Field Descriptions -->
+    <string name="library__status">Stato</string>
+    <string name="library__status_description">Seleziona lo stato attuale di questo gioco nella tua libreria.</string>
+    <string name="library__completion_status_description">Indica quanto dei contenuti del gioco hai completato.</string>
+    <string name="library__owned_description">Indica se possiedi una copia di questo gioco.</string>
+    <string name="library__edition_description">Seleziona le edizioni del gioco che possiedi o a cui hai giocato.</string>
+    <string name="library__platforms_description">Seleziona le piattaforme su cui giochi a questo titolo.</string>
+    <string name="library__dates_description">Registra le date in cui hai iniziato e terminato di giocare.</string>
+    <string name="library__played_time_description">Inserisci il numero totale di ore trascorse a giocare.</string>
+    <string name="library__rating_description">Valuta la tua esperienza complessiva da 0 a 10.</string>
+    <string name="library__review_description">Scrivi i tuoi pensieri, note personali o una recensione del gioco.</string>
+
     <!-- Authentication -->
     <string name="auth__login_required_title">Accesso richiesto</string>
     <string name="auth__login_required_message">Devi effettuare l\'accesso per accedere a questa sezione.</string>
