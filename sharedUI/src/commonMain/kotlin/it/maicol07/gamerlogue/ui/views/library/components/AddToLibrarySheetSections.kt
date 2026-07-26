@@ -75,42 +75,45 @@ import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun OwnedSwitch(
     owned: Boolean,
     onOwnedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(
-            modifier = Modifier.weight(1f).padding(end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+    SegmentedListLayout(Modifier.fillMaxWidth()) {
+        SegmentedListItem(
+            checked = owned,
+            onCheckedChange = onOwnedChange,
+            shapes = ListItemDefaults.segmentedShapes(0, 1),
+            colors = ListItemDefaults.expressiveSegmentedColors(),
+            supportingContent = {
+                Text(
+                    text = stringResource(Res.string.library__owned_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = owned,
+                    onCheckedChange = onOwnedChange,
+                    thumbContent = {
+                        if (owned) {
+                            Icon(
+                                imageVector = Icons.CheckW500Rounded,
+                                contentDescription = stringResource(Res.string.library__owned)
+                            )
+                        }
+                    }
+                )
+            }
         ) {
             Text(
                 text = stringResource(Res.string.library__owned),
                 style = MaterialTheme.typography.titleMedium
             )
-            Text(
-                text = stringResource(Res.string.library__owned_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
-        Switch(
-            checked = owned,
-            onCheckedChange = onOwnedChange,
-            thumbContent = {
-                if (owned) {
-                    Icon(
-                        imageVector = Icons.CheckW500Rounded,
-                        contentDescription = stringResource(Res.string.library__owned)
-                    )
-                }
-            }
-        )
     }
 }
 
