@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import com.github.panpf.sketch.SubcomposeAsyncImage
+import com.github.panpf.sketch.cache.CachePolicy
 import com.github.panpf.sketch.request.ComposableImageRequest
 import com.github.panpf.sketch.request.ImageRequest
 
@@ -25,6 +26,7 @@ fun RemoteImage(
     RemoteImage(
         ComposableImageRequest(url) {
             crossfade()
+            resultCachePolicy(CachePolicy.DISABLED) // Disable to avoid nosuchmetoderror. @see https://github.com/panpf/sketch/issues/295
         },
         contentDescription = contentDescription,
         contentScale = contentScale,
