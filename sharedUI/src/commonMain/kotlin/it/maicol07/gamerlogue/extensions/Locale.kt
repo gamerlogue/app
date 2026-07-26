@@ -16,10 +16,29 @@ internal fun Locale.asLanguageTag(): String = buildString {
     }
 }
 
-fun Locale.getFlag(flagsList: List<ImageVector> = FlagIcons.LargeFlagList): ImageVector? = flagsList.find {
-    val localeLanguage = when (this.language) {
-        "en" -> "us"
-        else -> this.language
+fun Locale.getFlag(flagsList: List<ImageVector> = FlagIcons.LargeFlagList): ImageVector? {
+    val targetCode = if (region.isNotBlank()) {
+        region.lowercase()
+    } else {
+        when (language.lowercase()) {
+            "en" -> "us"
+            "ja" -> "jp"
+            "ko" -> "kr"
+            "ar" -> "sa"
+            "zh" -> "cn"
+            "cs" -> "cz"
+            "da" -> "dk"
+            "el" -> "gr"
+            "he" -> "il"
+            "hi" -> "in"
+            "sv" -> "se"
+            "uk" -> "ua"
+            "vi" -> "vn"
+            else -> language.lowercase()
+        }
     }
-    it.name.split(":")[1].equals(localeLanguage, ignoreCase = true)
+    return flagsList.find {
+        val flagCode = it.name.split(":").getOrNull(1) ?: return@find false
+        flagCode.equals(targetCode, ignoreCase = true)
+    }
 }

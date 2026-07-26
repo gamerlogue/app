@@ -275,9 +275,13 @@ symbolCraft {
         "apple",
         "atari",
         "commodore",
+        "discord",
         "epicgames",
+        "facebook",
+        "fandom",
         "github",
         "gogdotcom",
+        "instagram",
         "ios",
         "linux",
         "macos",
@@ -289,10 +293,15 @@ symbolCraft {
         "playstation4",
         "playstation5",
         "playstationvita",
+        "reddit",
         "sega",
         "steam",
         "steamdeck",
-        "ubisoft"
+        "twitch",
+        "ubisoft",
+        "wikipedia",
+        "x",
+        "youtube"
     )
     @Suppress("SpreadOperator")
     externalIcons(*brandIcons.toTypedArray(), libraryName = "simple-icons") {

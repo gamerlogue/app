@@ -180,7 +180,10 @@ fun AppNavDisplay(
                 entry<NavKeys.GameDetail>(
                     metadata = ListDetailSceneStrategy.detailPane()
                 ) { navKey ->
-                    GameDetailScreen(gameId = navKey.gameId)
+                    GameDetailScreen(
+                        gameId = navKey.gameId,
+                        onGameClick = navigateToGame
+                    )
                 }
             }
         )

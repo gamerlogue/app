@@ -32,9 +32,87 @@
     <string name="game__ratings_igdb_critics">Critica IGDB</string>
     <string name="game__genres_title">Generi</string>
     <string name="game__themes_title">Temi</string>
+    <string name="game__game_modes_title">Modalità di gioco</string>
+    <string name="game__player_perspectives_title">Prospettiva</string>
+    <string name="game__storyline_title">Trama</string>
     <string name="game__details_release_date">Data di rilascio</string>
     <string name="game__details_developers">Sviluppatori</string>
     <string name="game__details_publishers">Editori</string>
+    <string name="game__keywords_title">Parole chiave e Tag</string>
+    <string name="game__alternative_names_title">Titoli alternativi</string>
+    <string name="game__multiplayer_title">Dettagli Multiplayer e Co-op</string>
+    <string name="game__age_ratings_title">Classificazione per età</string>
+    <string name="game__details_platforms">Piattaforme</string>
+    <string name="game__details_engines">Motori grafici</string>
+    <string name="game__details_franchise">Franchise</string>
+    <string name="game__details_collection">Collezione</string>
+    <string name="game__details_parent_game">Gioco base</string>
+    <string name="game__websites_title">Link e risorse</string>
+    <string name="game__dlcs_expansions_title">DLC ed espansioni</string>
+    <string name="game__details_status">Stato del gioco</string>
+    <string name="game__details_type">Tipo di gioco</string>
+    <string name="game__details_languages">Lingue supportate</string>
+    <string name="game__languages_count">%1$d lingue</string>
+    <string name="game__languages_audio">Audio</string>
+    <string name="game__languages_subtitles">Sottotitoli</string>
+    <string name="game__languages_interface">Interfaccia</string>
+    <string name="game__bundles_title">Bundle</string>
+    <string name="game__ports_title">Porting</string>
+    <string name="game__standalone_expansions_title">Espansioni Standalone</string>
+    <string name="game__expanded_games_title">Versioni Espanse</string>
+    <string name="game__parent_games_title">Giochi Originali / Base</string>
+    <string name="game__collections_carousel_title">Collezioni</string>
+    <string name="game__franchises_title">Franchise</string>
+    <string name="game__similar_games_title">Giochi simili</string>
+    <string name="game__remakes_remasters_title">Remake e Remaster</string>
+
+    <!-- Game Modes -->
+    <string name="game_mode__single_player">Giocatore singolo</string>
+    <string name="game_mode__multiplayer">Multigiocatore</string>
+    <string name="game_mode__cooperative">Cooperativa</string>
+    <string name="game_mode__split_screen">Schermo condiviso</string>
+    <string name="game_mode__mmo">MMO (Massively Multiplayer Online)</string>
+    <string name="game_mode__battle_royale">Battle Royale</string>
+    <string name="game_mode__unknown">Modalità di gioco sconosciuta</string>
+
+    <!-- Player Perspectives -->
+    <string name="player_perspective__first_person">Prima persona</string>
+    <string name="player_perspective__third_person">Terza persona</string>
+    <string name="player_perspective__isometric">Vista dall\'alto / Isometrica</string>
+    <string name="player_perspective__side_view">Vista a scorrimento (Side view)</string>
+    <string name="player_perspective__text">Testuale</string>
+    <string name="player_perspective__auditory">Audio / Uditiva</string>
+    <string name="player_perspective__virtual_reality">Realtà Virtuale (VR)</string>
+    <string name="player_perspective__unknown">Prospettiva sconosciuta</string>
+
+    <!-- Game Statuses -->
+    <string name="game_status__released">Rilasciato</string>
+    <string name="game_status__alpha">Alpha</string>
+    <string name="game_status__beta">Beta</string>
+    <string name="game_status__early_access">Accesso Anticipato</string>
+    <string name="game_status__offline">Offline</string>
+    <string name="game_status__cancelled">Cancellato</string>
+    <string name="game_status__rumored">Incerti / Rumor</string>
+    <string name="game_status__delisted">Fuori catalogo (Delisted)</string>
+    <string name="game_status__unknown">Stato sconosciuto</string>
+
+    <!-- Game Categories -->
+    <string name="game_category__main_game">Gioco principale</string>
+    <string name="game_category__dlc">DLC</string>
+    <string name="game_category__expansion">Espansione</string>
+    <string name="game_category__bundle">Bundle</string>
+    <string name="game_category__standalone_expansion">Espansione Standalone</string>
+    <string name="game_category__mod">Mod</string>
+    <string name="game_category__episode">Episodio</string>
+    <string name="game_category__season">Stagione</string>
+    <string name="game_category__remake">Remake</string>
+    <string name="game_category__remaster">Remastered</string>
+    <string name="game_category__expanded_game">Versione Espansa</string>
+    <string name="game_category__port">Porting</string>
+    <string name="game_category__fork">Fork</string>
+    <string name="game_category__pack_addon">Pack / Addon</string>
+    <string name="game_category__update">Aggiornamento</string>
+    <string name="game_category__unknown">Tipo di gioco sconosciuto</string>
 
     <!-- Regions -->
     <string name="region__europe">Europa</string>

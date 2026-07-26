@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__not_found
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
@@ -39,7 +40,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun GameDetailScreen(
     gameId: Int,
-    viewModel: GameDetailViewModel = GameDetailViewModel.inject(gameId)
+    viewModel: GameDetailViewModel = GameDetailViewModel.inject(gameId),
+    onGameClick: ((Game) -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -59,7 +61,7 @@ fun GameDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (uiState.game != null) {
-                    gameDetailContent(uiState.game!!)
+                    gameDetailContent(uiState.game!!, onGameClick = onGameClick)
                 } else if (uiState.isLoading) {
                     item {
                         Box(Modifier.fillMaxSize().animateItem(), contentAlignment = Alignment.Center) {
