@@ -17,7 +17,7 @@ interface LibraryEntrySchema {
     @Attr val status: GameLibraryStatus
     @Attr val completionStatus: CompletionStatus?
     @Attr val owned: Boolean
-    @Attr val editionId: Int?
+    @Attr val editionsIds: List<Int>
     @Attr val platformsIds: List<Int>
     @Attr val startDate: String?
     @Attr val endDate: String?

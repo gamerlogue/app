@@ -78,7 +78,7 @@ fun GameAddEditLibrarySheet(
         ) {
             statusSection(game.name, viewModel, isEditing)
             item { OwnedSwitch(viewModel.owned, onOwnedChange = { viewModel.owned = it }) }
-            item { EditionSection() }
+            item { EditionSection(game, viewModel) }
             item { PlatformSection(game, viewModel) }
             if (!isBacklog) {
                 item {

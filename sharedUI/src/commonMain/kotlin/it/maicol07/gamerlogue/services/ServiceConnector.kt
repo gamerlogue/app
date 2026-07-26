@@ -169,6 +169,26 @@ abstract class ServiceConnector(
     }
 }
 
+// IGDB platform ids for PC stores (Steam/GOG/Epic/Ubisoft): platform_family is null for these
+// AND for several unrelated platforms (Android, iOS, Web, DOS, Arcade, …), so an explicit allowlist
+// is used instead of "family == null" to avoid tagging a cross-platform title with a mobile/web id.
+private val PcPlatformIds = setOf(6, 3, 14) // PC (Windows), Linux, Mac
+
+/**
+ * IGDB platform ids [game] releases on, restricted to [ServiceConnector.platformFamily] (or, for PC
+ * stores with a null family, to [PcPlatformIds]) — used to auto-fill `LibraryEntry.platformsIds` on
+ * import, since a store [ExternalGameRef] carries no platform info of its own.
+ */
+fun ServiceConnector.platformIdsFor(game: Game): List<Int> {
+    val family = platformFamily
+    return game.platforms
+        .filter { platform ->
+            if (family == null) platform.id.toInt() in PcPlatformIds
+            else platform.platform_family?.id?.toInt() == family
+        }
+        .map { it.id.toInt() }
+}
+
 /** JSON array literal of the refs' uids, e.g. `["12","34"]`, for embedding in an injected script. */
 internal fun List<ExternalGameRef>.uidJsonArray(): String =
     joinToString(prefix = "[", postfix = "]") { "\"${it.uid.replace("\"", "")}\"" }

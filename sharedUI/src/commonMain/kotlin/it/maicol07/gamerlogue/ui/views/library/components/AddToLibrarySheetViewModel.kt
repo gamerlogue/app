@@ -6,8 +6,11 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+import at.released.igdbclient.IgdbClient
+import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.Platform
+import com.github.michaelbull.result.get
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__error_select_status
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
@@ -29,15 +32,24 @@ class AddToLibrarySheetViewModel(
     @InjectedParam private val existingEntry: LibraryEntry?
 ) : BaseViewModel() {
     private val authTokenProvider by inject<AuthTokenProvider>()
+    private val igdb by inject<IgdbClient>()
 
     // States
     var selectedStatus by mutableStateOf(existingEntry?.status)
     var completionStatus by mutableStateOf(existingEntry?.completionStatus)
     var owned by mutableStateOf(existingEntry?.owned ?: false)
-    var selectedEdition by mutableStateOf(existingEntry?.editionId)
+    // editionsIds/platformsIds throw NoSuchElementException on a never-set attribute (older entries
+    // predating this feature) rather than defaulting to an empty list, so guard the read. A brand-new
+    // entry defaults to the standard edition (the base game itself) preselected.
+    val selectedEditions = mutableStateListOf<Int>().apply {
+        val existingIds = runCatching { existingEntry?.editionsIds }.getOrNull() ?: emptyList()
+        addAll(if (existingEntry == null) listOf(game.id.toInt()) else existingIds)
+    }
+    var editions by mutableStateOf<List<Game>>(emptyList())
+    var editionsLoading by mutableStateOf(true)
     val selectedPlatforms = mutableStateListOf<Platform>().apply {
         addAll(
-            existingEntry?.platformsIds?.mapNotNull { platformId ->
+            runCatching { existingEntry?.platformsIds }.getOrNull()?.mapNotNull { platformId ->
                 game.platforms.find { it.id.toInt() == platformId }
             } ?: emptyList()
         )
@@ -52,11 +64,33 @@ class AddToLibrarySheetViewModel(
     var deleteLoading by mutableStateOf(false)
     var error by mutableStateOf<StringResource?>(null)
 
+    init {
+        viewModelScope.launch {
+            val result = safeRequest {
+                igdb.getGames {
+                    where("version_parent = ${game.id}")
+                    fields("id", "name", "version_title", "cover.image_id")
+                    limit(EDITIONS_LIMIT)
+                }
+            }
+            editions = result.get()?.games.orEmpty()
+            editionsLoading = false
+        }
+    }
+
     fun togglePlatformSelection(platform: Platform) {
         if (selectedPlatforms.contains(platform)) {
             selectedPlatforms.remove(platform)
         } else {
             selectedPlatforms.add(platform)
+        }
+    }
+
+    fun toggleEditionSelection(editionId: Int) {
+        if (selectedEditions.contains(editionId)) {
+            selectedEditions.remove(editionId)
+        } else {
+            selectedEditions.add(editionId)
         }
     }
 
@@ -98,7 +132,7 @@ class AddToLibrarySheetViewModel(
         entry.status = selectedStatus!!
         entry.completionStatus = completionStatus
         entry.owned = owned
-        entry.editionId = selectedEdition
+        entry.editionsIds = selectedEditions.toList()
         entry.platformsIds = selectedPlatforms.map { it.id.toInt() }
         entry.startDate = if (isBacklog) null else startDate?.format(DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET)
         entry.endDate = if (isBacklog || isPlayingOrPaused) {
@@ -111,5 +145,9 @@ class AddToLibrarySheetViewModel(
         entry.review = if (isBacklog || isPlayingOrPaused) "" else review.text.toString()
 
         return entry
+    }
+
+    private companion object {
+        const val EDITIONS_LIMIT = 50
     }
 }

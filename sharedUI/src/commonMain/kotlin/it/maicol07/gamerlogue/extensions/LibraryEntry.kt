@@ -69,16 +69,25 @@ suspend fun Scope<LibraryEntry>.allPages(): List<LibraryEntry> {
 
 /**
  * Build (without persisting) a quick library entry for [game] with [status], owned by [user].
- * Reuses [existing] when present so an update keeps the same id.
+ * Reuses [existing] when present so an update keeps the same id. [platformsIds] (derived from the
+ * store connector) is applied only when the entry has none yet, so a re-import never clobbers a
+ * platform selection the user made by hand in the add/edit sheet.
  */
 fun LibraryEntry.Companion.quickDraft(
     game: Game,
     status: GameLibraryStatus,
     user: User?,
     existing: LibraryEntry? = null,
+    platformsIds: List<Int> = emptyList(),
 ): LibraryEntry = (existing ?: LibraryEntry()).apply {
     gameId = game.id.toInt()
     owned = false
     this.user = user
     this.status = status
+    // platformsIds throws NoSuchElementException on a never-set attribute rather than defaulting
+    // to an empty list, so treat "not found" the same as "empty" here.
+    val hasPlatforms = runCatching { this.platformsIds.isNotEmpty() }.getOrDefault(false)
+    if (platformsIds.isNotEmpty() && !hasPlatforms) {
+        this.platformsIds = platformsIds
+    }
 }

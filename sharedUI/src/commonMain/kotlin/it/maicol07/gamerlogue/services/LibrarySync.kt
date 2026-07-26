@@ -48,8 +48,9 @@ class LibrarySync(
     )
 
     /** Persist confirmed IGDB [games] as owned. Existing entries keep their status/ratings and only
-     *  gain `owned=true`; new ones become owned backlog items. Returns how many saved successfully. */
-    suspend fun importOwned(games: List<Game>): Int {
+     *  gain `owned=true`; new ones become owned backlog items. [connector] derives `platformsIds`
+     *  (see [platformIdsFor]) for newly created entries. Returns how many saved successfully. */
+    suspend fun importOwned(connector: ServiceConnector, games: List<Game>): Int {
         val existing = allEntries().associateBy { it.gameId }
         return persistEach(games) { game ->
             LibraryEntry.quickDraft(
@@ -57,15 +58,22 @@ class LibrarySync(
                 existing[game.id.toInt()]?.status ?: GameLibraryStatus.BACKLOG,
                 authProvider.currentUser,
                 existing = existing[game.id.toInt()],
+                platformsIds = connector.platformIdsFor(game),
             ).apply { owned = true }
         }
     }
 
-    /** Persist confirmed wishlisted [games] as BACKLOG (owned=false), skipping games already tracked. */
-    suspend fun importWishlist(games: List<Game>): Int {
+    /** Persist confirmed wishlisted [games] as BACKLOG (owned=false), skipping games already tracked.
+     *  [connector] derives `platformsIds` (see [platformIdsFor]) for the new entries. */
+    suspend fun importWishlist(connector: ServiceConnector, games: List<Game>): Int {
         val existingIds = allEntries().mapTo(mutableSetOf()) { it.gameId }
         return persistEach(games.filter { it.id.toInt() !in existingIds }) { game ->
-            LibraryEntry.quickDraft(game, GameLibraryStatus.BACKLOG, authProvider.currentUser)
+            LibraryEntry.quickDraft(
+                game,
+                GameLibraryStatus.BACKLOG,
+                authProvider.currentUser,
+                platformsIds = connector.platformIdsFor(game),
+            )
         }
     }
 
@@ -126,7 +134,7 @@ class LibrarySync(
      */
     suspend fun pullWishlist(connector: ServiceConnector, serviceWishlist: List<ExternalGameRef>): WishlistResult {
         val matches = matcher.match(connector, serviceWishlist)
-        val added = importWishlist(matches.mapNotNull { it.game })
+        val added = importWishlist(connector, matches.mapNotNull { it.game })
         return WishlistResult(added, computeWishlistPush(connector, serviceWishlist))
     }
 

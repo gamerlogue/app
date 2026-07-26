@@ -42,7 +42,10 @@ class GameMatcher(
         val confident: Boolean,
     )
 
-    private val externalFields = arrayOf("url", "uid", "game.id", "game.name", "game.cover.image_id")
+    private val externalFields = arrayOf(
+        "url", "uid", "game.id", "game.name", "game.cover.image_id",
+        "game.platforms.id", "game.platforms.platform_family",
+    )
 
     /**
      * Match [refs] of [service] to IGDB games. Tries the `external_games` store-id mapping first; for
@@ -117,7 +120,7 @@ class GameMatcher(
                     val q = ref.name.sanitizeForSearch()
                     query(IgdbEndpoint.GAME, "q$i") {
                         if (useSearch) search(q) else where("name ~ *\"$q\"*")
-                        fields("id", "name", "cover.image_id")
+                        fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family")
                         limit(NAME_FALLBACK_LIMIT)
                     }
                 }
@@ -263,7 +266,7 @@ class GameMatcher(
         return igdbCall("name search failed") {
             igdb.getGames {
                 search(q)
-                fields("id", "name", "cover.image_id")
+                fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family")
                 limit(limit)
             }
         }?.games.orEmpty()

@@ -133,6 +133,7 @@
     <string name="library__edition">Edition</string>
     <string name="library__select_edition">Select edition</string>
     <string name="library__no_edition">No specific edition</string>
+    <string name="library__standard_edition">Standard Edition</string>
     <string name="library__platforms">Platforms</string>
     <string name="library__dates">Dates</string>
     <string name="library__start_date">Start Date</string>

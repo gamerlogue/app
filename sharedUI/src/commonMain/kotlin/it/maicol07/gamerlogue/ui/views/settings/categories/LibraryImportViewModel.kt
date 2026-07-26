@@ -161,8 +161,8 @@ class LibraryImportViewModel(
         update { copy(importing = true) }
         val games = state.rows.filter { it.included }.mapNotNull { it.game }
         val count = when (mode) {
-            ImportMode.OWNED -> librarySync.importOwned(games)
-            ImportMode.WISHLIST -> librarySync.importWishlist(games)
+            ImportMode.OWNED -> librarySync.importOwned(connector, games)
+            ImportMode.WISHLIST -> librarySync.importWishlist(connector, games)
         }
         update { copy(importing = false, importedCount = count) }
     }

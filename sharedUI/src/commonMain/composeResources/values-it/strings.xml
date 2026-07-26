@@ -131,6 +131,7 @@
     <string name="library__edition">Edizione</string>
     <string name="library__select_edition">Seleziona edizione</string>
     <string name="library__no_edition">Nessuna edizione specifica</string>
+    <string name="library__standard_edition">Edizione standard</string>
     <string name="library__platforms">Piattaforme</string>
     <string name="library__dates">Date</string>
     <string name="library__start_date">Data d\'inizio</string>
