@@ -244,10 +244,10 @@ symbolCraft {
         "publish",
         "quiz",
         "rate_review", "refresh", "rocket",
-        "school", "search", "settings", "skeleton", "simulation", "sports_and_outdoors",
+        "schedule", "school", "search", "settings", "skeleton", "simulation", "sports_and_outdoors",
         "sports_martial_arts", "sports_baseball", "sports_motorsports", "stadium", "star",
         "star_shine", "strategy", "style", "swords", "sword_rose", "sync",
-        "tactic", "theater_comedy", "toys_and_games", "trophy",
+        "tactic", "theater_comedy", "timer", "toys_and_games", "trophy",
         "upcoming",
         "wand_stars", "web_traffic"
     )

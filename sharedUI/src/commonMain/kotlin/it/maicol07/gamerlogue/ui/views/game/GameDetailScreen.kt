@@ -61,7 +61,7 @@ fun GameDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (uiState.game != null) {
-                    gameDetailContent(uiState.game!!, onGameClick = onGameClick)
+                    gameDetailContent(uiState.game!!, timeToBeat = uiState.timeToBeat, onGameClick = onGameClick)
                 } else if (uiState.isLoading) {
                     item {
                         Box(Modifier.fillMaxSize().animateItem(), contentAlignment = Alignment.Center) {

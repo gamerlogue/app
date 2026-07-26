@@ -42,6 +42,11 @@
     <string name="game__alternative_names_title">Titoli alternativi</string>
     <string name="game__multiplayer_title">Dettagli Multiplayer e Co-op</string>
     <string name="game__age_ratings_title">Classificazione per età</string>
+    <string name="game_time_to_beat">Tempo di gioco (Time to Beat)</string>
+    <string name="game__time_to_beat_main">Storia principale</string>
+    <string name="game__time_to_beat_main_extra">Principale + Extra</string>
+    <string name="game__time_to_beat_completionist">Completista (100%)</string>
+    <string name="game__time_to_beat_hastly">Veloce / Speedrun</string>
     <string name="game__details_platforms">Piattaforme</string>
     <string name="game__details_engines">Motori grafici</string>
     <string name="game__details_franchise">Franchise</string>

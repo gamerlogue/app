@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Artwork
 import at.released.igdbclient.model.Game
+import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.model.GameVideo
 import at.released.igdbclient.model.ReleaseDate
 import at.released.igdbclient.model.Screenshot
@@ -75,6 +76,10 @@ import gamerlogue.sharedui.generated.resources.game__similar_games_title
 import gamerlogue.sharedui.generated.resources.game__standalone_expansions_title
 import gamerlogue.sharedui.generated.resources.game__storyline_title
 import gamerlogue.sharedui.generated.resources.game__themes_title
+import gamerlogue.sharedui.generated.resources.game_time_to_beat
+import gamerlogue.sharedui.generated.resources.game__time_to_beat_completionist
+import gamerlogue.sharedui.generated.resources.game__time_to_beat_hastly
+import gamerlogue.sharedui.generated.resources.game__time_to_beat_main
 import gamerlogue.sharedui.generated.resources.game__websites_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Book4W500Rounded
@@ -90,6 +95,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Ope
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ScheduleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarShineW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WebTrafficW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons as SimpleIconsRoot
@@ -134,11 +140,13 @@ const val Ratio169 = 16f / 9f
 )
 internal fun LazyListScope.gameDetailContent(
     game: Game,
+    timeToBeat: GameTimeToBeat? = null,
     onGameClick: ((Game) -> Unit)? = null
 ) {
     item { GameHeader(game) }
     item { GameRatings(game) }
     item { GameAgeRatings(game) }
+    item { GameTimeToBeatSection(timeToBeat) }
     item { GameGenresAndThemes(game) }
     item { GameMultiplayerDetails(game) }
     item { GameMedia(game) }
@@ -274,6 +282,95 @@ private fun GameAgeRatings(game: Game) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GameTimeToBeatSection(timeToBeat: GameTimeToBeat?) {
+    if (timeToBeat == null) return
+    val normally = formatTimeToBeat(timeToBeat.normally?.toInt())
+    val completely = formatTimeToBeat(timeToBeat.completely?.toInt())
+    val hastily = formatTimeToBeat(timeToBeat.hastily?.toInt())
+
+    if (normally == null && completely == null && hastily == null) return
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)
+    ) {
+        Text(
+            text = stringResource(Res.string.game_time_to_beat),
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (normally != null) {
+                TimeToBeatCard(
+                    label = stringResource(Res.string.game__time_to_beat_main),
+                    value = normally
+                )
+            }
+            if (completely != null) {
+                TimeToBeatCard(
+                    label = stringResource(Res.string.game__time_to_beat_completionist),
+                    value = completely
+                )
+            }
+            if (hastily != null) {
+                TimeToBeatCard(
+                    label = stringResource(Res.string.game__time_to_beat_hastly),
+                    value = hastily
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeToBeatCard(label: String, value: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.ScheduleW500Rounded,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Column {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+private fun formatTimeToBeat(valNum: Int?): String? {
+    if (valNum == null || valNum <= 0) return null
+    return if (valNum > 300) {
+        val hrs = valNum / 3600
+        val mins = (valNum % 3600) / 60
+        if (hrs > 0 && mins > 0) "${hrs}h ${mins}m" else if (hrs > 0) "${hrs}h" else "${mins}m"
+    } else {
+        "${valNum}h"
     }
 }
 

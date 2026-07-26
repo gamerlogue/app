@@ -44,6 +44,11 @@
     <string name="game__alternative_names_title">Alternative Titles</string>
     <string name="game__multiplayer_title">Multiplayer &amp; Co-Op Details</string>
     <string name="game__age_ratings_title">Age Ratings</string>
+    <string name="game_time_to_beat">Time to Beat</string>
+    <string name="game__time_to_beat_main">Main Story</string>
+    <string name="game__time_to_beat_main_extra">Main + Extra</string>
+    <string name="game__time_to_beat_completionist">Completionist (100%)</string>
+    <string name="game__time_to_beat_hastly">Rushed</string>
     <string name="game__details_platforms">Platforms</string>
     <string name="game__details_engines">Game Engines</string>
     <string name="game__details_franchise">Franchise</string>
