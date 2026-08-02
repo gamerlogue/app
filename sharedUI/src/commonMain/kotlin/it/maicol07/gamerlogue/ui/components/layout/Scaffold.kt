@@ -45,17 +45,21 @@ fun AppScaffold(
  * Per-screen chrome: an [AppTopBar] (with title, back button and the shared network-error action)
  * above the screen content. Wrap a destination's content in the nav layer so screens stay
  * navigation-free and each adaptive pane gets its own top bar.
+ *
+ * Pass [topBar] to replace the default bar entirely (e.g. with a search bar); [title] and
+ * [actions] are then ignored.
  */
 @Composable
 fun ScreenScaffold(
     title: StringResource?,
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
+    topBar: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { AppTopBar(title, actions = actions) },
+        topBar = { topBar?.invoke() ?: AppTopBar(title, actions = actions) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) { content() }
