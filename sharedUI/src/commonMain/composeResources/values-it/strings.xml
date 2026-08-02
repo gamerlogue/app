@@ -376,11 +376,11 @@
     <string name="gamelist__filter_franchises">Franchise</string>
     <string name="gamelist__filter_engines">Motori di gioco</string>
     <string name="gamelist__filter_keywords">Parole chiave</string>
-    <string name="gamelist__search_companies">Cerca un'azienda…</string>
+    <string name="gamelist__search_companies">Cerca un\'azienda…</string>
     <string name="gamelist__search_franchises">Cerca un franchise…</string>
     <string name="gamelist__search_engines">Cerca un motore…</string>
     <string name="gamelist__search_keywords">Cerca una parola chiave…</string>
-    <string name="gamelist__sort_disabled_search">L'ordinamento non è disponibile durante la ricerca</string>
+    <string name="gamelist__sort_disabled_search">L\'ordinamento non è disponibile durante la ricerca</string>
     <string name="gamelist__filter_time_to_beat">Tempo di completamento</string>
     <string name="gamelist__hours_range">%1$d–%2$d h</string>
     <string name="gamelist__hours_range_open">Oltre %1$d h</string>
