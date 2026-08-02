@@ -4,7 +4,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +38,9 @@ fun <T> ConnectedButtonGroup(
     toggleButtonModifier: (T) -> Modifier = { Modifier },
     rowModifier: Modifier = Modifier,
     multiple: Boolean = false,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    /** Arbitrary leading content (e.g. a remote logo); takes precedence over [toggleButtonIcon]. */
+    toggleButtonLeading: (@Composable (T) -> Unit)? = null
 ) {
     FlowRow(
         modifier = rowModifier,
@@ -69,13 +73,17 @@ fun <T> ConnectedButtonGroup(
                     }
                 }
 
-                val icon = toggleButtonIcon(type)
-                if (icon != null) {
-                    ButtonIcon(
-                        icon,
-                        spacing = ToggleButtonDefaults.IconSpacing,
-                        size = ToggleButtonDefaults.IconSize
-                    )
+                if (toggleButtonLeading != null) {
+                    toggleButtonLeading(type)
+                    Spacer(Modifier.width(ToggleButtonDefaults.IconSpacing))
+                } else {
+                    toggleButtonIcon(type)?.let { icon ->
+                        ButtonIcon(
+                            icon,
+                            spacing = ToggleButtonDefaults.IconSpacing,
+                            size = ToggleButtonDefaults.IconSize
+                        )
+                    }
                 }
 
                 Text(toggleButtonText(type))
