@@ -15,7 +15,6 @@ import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__linked_services
 import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
 import it.maicol07.gamerlogue.services.ExternalService
-import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
 import kotlinx.serialization.Serializable
@@ -100,18 +99,11 @@ object NavKeys {
         val service: ExternalService,
         val mode: ImportMode = ImportMode.OWNED,
     ) : NavKeyWithMeta() {
-        // Custom getters (no backing field) so only the data fields are serialized — see GameList.
+        // Custom getters (no backing field) so only the data fields are serialized.
         override val title: StringResource? get() = when (mode) {
             ImportMode.OWNED -> Res.string.settings__import_library_title
             ImportMode.WISHLIST -> Res.string.settings__wishlist_preview_title
         }
-        override val showBottomBar: Boolean get() = false
-    }
-
-    @Serializable
-    data class GameList(val section: DiscoverSection) : NavKeyWithMeta() {
-        // Custom getters (no backing field) so only `section` is serialized.
-        override val title: StringResource? get() = section.sectionTitle
         override val showBottomBar: Boolean get() = false
     }
 
@@ -131,7 +123,6 @@ object NavKeys {
                 key<Appearance>()
                 key<Login>()
                 key<GameDetail>()
-                key<GameList>()
                 key<LibraryImportPreview>()
                 key<ServiceSync>()
             }

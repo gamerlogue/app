@@ -339,4 +339,50 @@
 
     <!-- Library extras -->
     <string name="library__error_select_status">Seleziona uno stato.</string>
+
+    <!-- GameList Filter & Grid -->
+    <string name="gamelist__filter_title">Filtri e Griglia</string>
+    <string name="gamelist__grid_columns">Dimensione Griglia</string>
+    <string name="gamelist__columns_count">%1$d Colonne</string>
+    <string name="gamelist__sort_field">Ordina Per</string>
+    <string name="gamelist__sort_direction">Ordine</string>
+    <string name="gamelist__sort_field_popularity">Popolarità</string>
+    <string name="gamelist__sort_field_user_rating">Voto Utenti</string>
+    <string name="gamelist__sort_field_critics_rating">Voto Critica</string>
+    <string name="gamelist__sort_field_release_date">Data di Rilascio</string>
+    <string name="gamelist__sort_field_name">Nome</string>
+    <string name="gamelist__sort_dir_desc">Decrescente (↓)</string>
+    <string name="gamelist__sort_dir_asc">Crescente (↑)</string>
+    <string name="gamelist__user_rating">Valutazione Utenti</string>
+    <string name="gamelist__critics_rating">Valutazione Critica</string>
+    <string name="gamelist__release_status">Stato di Uscita</string>
+    <string name="gamelist__release_year">Anno di Uscita</string>
+    <string name="gamelist__year_any">Tutti gli anni</string>
+    <string name="gamelist__filter_platforms">Piattaforme</string>
+    <string name="gamelist__filter_player_perspectives">Prospettiva</string>
+    <string name="gamelist__filter_categories">Categoria Gioco</string>
+    <string name="gamelist__filter_status">Stato Sviluppo</string>
+    <string name="gamelist__release_all">Tutti</string>
+    <string name="gamelist__release_released">Già rilasciati</string>
+    <string name="gamelist__release_upcoming">In arrivo</string>
+    <string name="gamelist__reset">Ripristina</string>
+    <string name="search__global_hint">Cerca un gioco…</string>
+    <string name="gamelist__filter_companies">Sviluppatore / Publisher</string>
+    <string name="gamelist__filter_company_roles">Ruolo di %1$s</string>
+    <string name="gamelist__company_role_developer">Sviluppatore</string>
+    <string name="gamelist__company_role_publisher">Publisher</string>
+    <string name="gamelist__company_role_porting">Porting</string>
+    <string name="gamelist__company_role_supporting">Supporto</string>
+    <string name="gamelist__filter_franchises">Franchise</string>
+    <string name="gamelist__filter_engines">Motori di gioco</string>
+    <string name="gamelist__filter_keywords">Parole chiave</string>
+    <string name="gamelist__search_companies">Cerca un'azienda…</string>
+    <string name="gamelist__search_franchises">Cerca un franchise…</string>
+    <string name="gamelist__search_engines">Cerca un motore…</string>
+    <string name="gamelist__search_keywords">Cerca una parola chiave…</string>
+    <string name="gamelist__sort_disabled_search">L'ordinamento non è disponibile durante la ricerca</string>
+    <string name="gamelist__filter_time_to_beat">Tempo di completamento</string>
+    <string name="gamelist__hours_range">%1$d–%2$d h</string>
+    <string name="gamelist__hours_range_open">Oltre %1$d h</string>
+    <string name="gamelist__filter_type_to_search">Digita per cercare</string>
 </resources>
