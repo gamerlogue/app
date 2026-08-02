@@ -35,20 +35,28 @@ private fun Modifier.sharedGameElement(key: Any?): Modifier {
     return with(scope) { sharedElement(rememberSharedContentState(key), animatedScope) }
 }
 
+/** Intrinsic cover size, used when the caller does not size the image itself. */
+val CoverWidth = 150.dp
+val CoverHeight = 200.dp
+
+/**
+ * A game cover. Pass [sizeModifier] to let the parent drive the size (e.g. a grid cell that must
+ * fill its column); the default keeps the intrinsic [CoverWidth] x [CoverHeight].
+ */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun Game.CoverImage(modifier: Modifier = Modifier) = RemoteImage(
+fun Game.CoverImage(
+    modifier: Modifier = Modifier,
+    sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight)
+) = RemoteImage(
     cover?.let { igdbImageUrl(cover!!.image_id, IgdbImageSize.COVER_BIG) }
         ?: "https://placehold.net/default.png",
     contentDescription = name,
     modifier = Modifier
         .sharedGameElement("cover-$id")
         .then(modifier)
-        .width(150.dp)
-        .height(200.dp),
-    loadingModifier = Modifier
-        .width(150.dp)
-        .height(200.dp)
+        .then(sizeModifier),
+    loadingModifier = sizeModifier
 )
 
 @OptIn(ExperimentalSharedTransitionApi::class)

@@ -3,8 +3,11 @@ package it.maicol07.gamerlogue.ui.components.game
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,11 +35,18 @@ fun GameCoverCard(
     metadata: String?,
     showTitle: Boolean,
     modifier: Modifier = Modifier,
+    sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight),
     onClick: (Game) -> Unit
 ) {
-    Box(contentAlignment = Alignment.BottomStart) {
-        val coverModifier = if (showTitle) modifier.bottomScrim() else modifier
-        game.CoverImage(coverModifier.clickable { onClick(game) })
+    Box(
+        modifier = modifier
+            .then(sizeModifier)
+            .clickable { onClick(game) },
+        contentAlignment = Alignment.BottomStart
+    ) {
+        val coverModifier = if (showTitle) Modifier.bottomScrim() else Modifier
+        // The cover fills the card so the overlaid title is clipped to the card, not to 150.dp.
+        game.CoverImage(coverModifier, sizeModifier = Modifier.fillMaxSize())
 
         if (metadata != null) {
             Surface(
@@ -53,7 +63,10 @@ fun GameCoverCard(
             }
         }
 
-        AnimatedVisibility(showTitle) {
+        AnimatedVisibility(
+            visible = showTitle,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(
                 text = game.name,
                 overflow = TextOverflow.Ellipsis,
