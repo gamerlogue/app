@@ -14,11 +14,11 @@ fun ApicalypseQueryBuilder.sort(field: IgdbRequestField<*>, order: SortOrder) {
 }
 
 fun ApicalypseQueryBuilder.where(whereBuilder: ApicalypseQueryBuilderWhereBuilder.() -> Unit) {
-    this.where(
-        ApicalypseQueryBuilderWhereBuilder()
-            .apply { whereBuilder() }
-            .build()
-    )
+    val clause = ApicalypseQueryBuilderWhereBuilder()
+        .apply { whereBuilder() }
+        .build()
+    // An empty `where ;` is a syntax error on IGDB, so only emit the clause when there is one.
+    if (clause.isNotEmpty()) this.where(clause)
 }
 
 @Suppress("TooManyFunctions", "unused")
@@ -26,6 +26,12 @@ class ApicalypseQueryBuilderWhereBuilder {
     private val wheres = mutableListOf<String>()
 
     fun build(): String = wheres.joinToString(" & ")
+
+    /** Adds a pre-built clause verbatim, for shapes the operators don't cover (e.g. an OR group). */
+    fun raw(clause: String) = wheres.add(clause)
+
+    /** Apicalypse rejects a bare string operand: `name ~ *foo*` is a syntax error, `name ~ *"foo"*` is not. */
+    private fun String.quoted() = "\"${replace("\"", "")}\""
 
     fun or(other: ApicalypseQueryBuilderWhereBuilder.() -> Unit) {
         val otherWheres = ApicalypseQueryBuilderWhereBuilder()
@@ -57,22 +63,22 @@ class ApicalypseQueryBuilderWhereBuilder {
     infix fun String.lessThanOrEqual(value: Number) = wheres.add("$this <= $value")
 
     /** Prefix: Exact match on the beginning of the string, can end with anything. (Case insensitive). */
-    infix fun String.startsWith(value: String) = wheres.add("$this ~ $value*")
+    infix fun String.startsWith(value: String) = wheres.add("$this ~ ${value.quoted()}*")
 
     /** Prefix: Exact match on the beginning of the string, can end with anything. (Case sensitive). */
-    infix fun String.startsWithCaseSensitive(value: String) = wheres.add("$this = $value*")
+    infix fun String.startsWithCaseSensitive(value: String) = wheres.add("$this = ${value.quoted()}*")
 
     /** Postfix: Exact match on the end of the string, can start with anything. (Case insensitive). */
-    infix fun String.endsWith(value: String) = wheres.add("$this ~ *$value")
+    infix fun String.endsWith(value: String) = wheres.add("$this ~ *${value.quoted()}")
 
     /** Postfix: Exact match on the end of the string, can start with anything. (Case sensitive). */
-    infix fun String.endsWithCaseSensitive(value: String) = wheres.add("$this = *$value")
+    infix fun String.endsWithCaseSensitive(value: String) = wheres.add("$this = *${value.quoted()}")
 
     /** Infix: Exact match anywhere in the string. (Case insensitive). */
-    infix fun String.contains(value: String) = wheres.add("$this ~ *$value*")
+    infix fun String.contains(value: String) = wheres.add("$this ~ *${value.quoted()}*")
 
     /** Infix: Exact match anywhere in the string. (Case sensitive). */
-    infix fun String.containsCaseSensitive(value: String) = wheres.add("$this = *$value*")
+    infix fun String.containsCaseSensitive(value: String) = wheres.add("$this = *${value.quoted()}*")
 
     /** The value is null. */
     fun String.isNull() = wheres.add("$this = null")
