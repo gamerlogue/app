@@ -230,7 +230,7 @@ symbolCraft {
         "calendar_month", "category", "celebration", "check", "check_circle", "close", "code", "comedy_mask", "content_copy", "contrast",
         "conversion_path", "date_range", "delete", "devices",
         "edit", "error", "explosion", "explore",
-        "family_star", "flutter_dash",
+        "family_star", "filter_list", "flutter_dash",
         "grid_4x4",
         "history", "home", "hourglass",
         "info", "inventory_2",
@@ -244,10 +244,11 @@ symbolCraft {
         "publish",
         "quiz",
         "rate_review", "refresh", "rocket",
-        "schedule", "school", "search", "settings", "skeleton", "simulation", "sports_and_outdoors",
+        "schedule", "school", "search", "settings", "skeleton", "simulation", "sort", "sports_and_outdoors",
         "sports_martial_arts", "sports_baseball", "sports_motorsports", "stadium", "star",
         "star_shine", "strategy", "style", "swords", "sword_rose", "sync",
-        "tactic", "theater_comedy", "timer", "toys_and_games", "trophy",
+        "tactic", "theater_comedy", "timer", "toys_and_games", "trophy", "tune",
+        "arrow_downward", "arrow_upward", "domain",
         "upcoming",
         "wand_stars", "web_traffic"
     )
