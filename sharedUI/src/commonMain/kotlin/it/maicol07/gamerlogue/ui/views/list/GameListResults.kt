@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,14 +28,12 @@ import androidx.compose.ui.text.style.TextAlign
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.home__empty_section
-import it.maicol07.gamerlogue.ui.components.game.CoverHeight
-import it.maicol07.gamerlogue.ui.components.game.CoverWidth
+import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
+import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.discover.cardMetadata
 import org.jetbrains.compose.resources.stringResource
-
-private val CoverAspectRatio = CoverWidth / CoverHeight
 
 /**
  * The paginated cover grid shown inside the expanded search bar, plus its filter sheet.
@@ -72,7 +71,7 @@ fun GameListResults(
                 items(uiState.games, key = { it.id }) { game ->
                     GameCoverCard(
                         game = game,
-                        metadata = uiState.section?.cardMetadata(game),
+                        metadata = listOfNotNull(uiState.section?.cardMetadata(game)),
                         showTitle = true,
                         modifier = Modifier.clip(MaterialTheme.shapes.large),
                         sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
@@ -90,6 +89,7 @@ fun GameListResults(
                     }
                 }
             }
+            AppVerticalScrollbar(gridState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         }
 
         if (uiState.showFilterSheet) {

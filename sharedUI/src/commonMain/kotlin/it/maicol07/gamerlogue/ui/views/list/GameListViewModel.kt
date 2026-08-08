@@ -131,7 +131,6 @@ data class GameListFilterState(
 class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
     /** Immutable state of the search results pane. */
     data class UiState(
-        val expanded: Boolean = false,
         val section: DiscoverSection? = null,
         val games: List<Game> = emptyList(),
         val loading: Boolean = false,
@@ -157,27 +156,21 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
 
     private val igdb: IgdbClient by inject()
     private var offset = 0
+    private var started = false
     private val filterSearchJobs = mutableMapOf<FilterSearchTarget, Job>()
     private var defaultOptionsJob: Job? = null
     private var loadJob: Job? = null
 
-    /** Opens the results pane on a Discover section, paginating the carousel's own query. */
-    fun showSection(section: DiscoverSection) {
-        update {
-            copy(
-                expanded = true,
-                section = section,
-                filterState = GameListFilterState(),
-                filterSearches = emptyMap(),
-            )
-        }
+    /**
+     * Loads the first page, optionally scoped to a Discover section so "see all" paginates exactly
+     * the query that carousel previewed. Idempotent: the destination re-runs it on every recomposition
+     * after a configuration change or a trip to the game detail, which must not reset the list.
+     */
+    fun start(section: DiscoverSection?) {
+        if (started) return
+        started = true
+        update { copy(section = section) }
         load(reset = true)
-    }
-
-    fun setExpanded(expanded: Boolean) {
-        val wasExpanded = state.expanded
-        update { copy(expanded = expanded) }
-        if (expanded && !wasExpanded && state.games.isEmpty()) load(reset = true)
     }
 
     fun setColumnCount(count: Int) {

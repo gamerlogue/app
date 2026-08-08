@@ -23,6 +23,7 @@ import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -49,7 +50,8 @@ import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
-import it.maicol07.gamerlogue.ui.components.search.GameSearchBar
+import it.maicol07.gamerlogue.ui.components.search.GameListSearchBar
+import it.maicol07.gamerlogue.ui.components.search.GameSearchButton
 import it.maicol07.gamerlogue.ui.views.auth.LoginView
 import it.maicol07.gamerlogue.ui.views.calendar.Calendar
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverScreen
@@ -131,56 +133,64 @@ fun AppNavDisplay(
                         }
                     ),
                     topBar = {
+                        GameSearchButton(
+                            placeholder = stringResource(Res.string.search__global_hint),
+                            onClick = { backStack.add(NavKeys.GameList()) }
+                        )
+                    }
+                ) {
+                    DiscoverScreen(
+                        onGameClick = navigateToGame,
+                        onSeeAllClick = { backStack.add(NavKeys.GameList(it)) }
+                    )
+                }
+                screen<NavKeys.GameList>(
+                    metadata = ListDetailSceneStrategy.listPane(),
+                    topBar = { navKey ->
                         // Same NavEntry ViewModelStore as the content below, so both share one instance.
                         val viewModel = koinViewModel<GameListViewModel>()
                         val uiState by viewModel.uiState.collectAsState()
-                        GameSearchBar(
+                        GameListSearchBar(
                             placeholder = stringResource(Res.string.search__global_hint),
-                            expanded = uiState.expanded,
-                            onExpandedChange = viewModel::setExpanded,
-                            onSearch = viewModel::setSearchQuery,
                             query = uiState.filterState.searchQuery,
+                            onSearch = viewModel::setSearchQuery,
+                            onBack = { backStack.removeLastOrNull() },
+                            // Arriving on a Discover section is a browse intent, not a typing one.
+                            autoFocus = navKey.section == null,
                             trailingActions = {
-                                // Only meaningful once the results pane is open, which is what it filters.
-                                if (uiState.expanded) {
-                                    // Anchored on the button, not the icon, so the dot sits on the
-                                    // button's corner instead of overlapping the glyph.
-                                    BadgedBox(
-                                        badge = {
-                                            if (uiState.filterState.hasActiveFilters) {
-                                                Badge(
-                                                    // Badge's own dot is 6.dp; a fixed size wins
-                                                    // over its internal defaultMinSize. The offset
-                                                    // pulls it in from the button's corner towards
-                                                    // the icon (mirrored automatically in RTL).
-                                                    modifier = Modifier
-                                                        .offset(x = -FilterBadgeInset, y = FilterBadgeInset)
-                                                        .size(FilterBadgeSize),
-                                                    containerColor = MaterialTheme.colorScheme.primary,
-                                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                                )
-                                            }
-                                        }
-                                    ) {
-                                        IconButton(onClick = { viewModel.toggleFilterSheet(true) }) {
-                                            Icon(
-                                                Icons.TuneW500Rounded,
-                                                contentDescription = stringResource(Res.string.gamelist__filter_title)
+                                // Anchored on the button, not the icon, so the dot sits on the
+                                // button's corner instead of overlapping the glyph.
+                                BadgedBox(
+                                    badge = {
+                                        if (uiState.filterState.hasActiveFilters) {
+                                            Badge(
+                                                // Badge's own dot is 6.dp; a fixed size wins over its
+                                                // internal defaultMinSize. The offset pulls it in from
+                                                // the button's corner towards the icon (mirrored
+                                                // automatically in RTL).
+                                                modifier = Modifier
+                                                    .offset(x = -FilterBadgeInset, y = FilterBadgeInset)
+                                                    .size(FilterBadgeSize),
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary
                                             )
                                         }
                                     }
+                                ) {
+                                    IconButton(onClick = { viewModel.toggleFilterSheet(true) }) {
+                                        Icon(
+                                            Icons.TuneW500Rounded,
+                                            contentDescription = stringResource(Res.string.gamelist__filter_title)
+                                        )
+                                    }
                                 }
                             }
-                        ) {
-                            GameListResults(viewModel = viewModel, onGameClick = navigateToGame)
-                        }
+                        )
                     }
-                ) {
+                ) { navKey ->
                     val viewModel = koinViewModel<GameListViewModel>()
-                    DiscoverScreen(
-                        onGameClick = navigateToGame,
-                        onSeeAllClick = viewModel::showSection
-                    )
+                    LaunchedEffect(navKey) { viewModel.start(navKey.section) }
+                    GameListResults(viewModel = viewModel, onGameClick = navigateToGame)
                 }
                 screen<NavKeys.Library>(metadata = ListDetailSceneStrategy.listPane()) {
                     if (authProvider.accessToken == null) {

@@ -15,6 +15,7 @@ import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__linked_services
 import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
 import kotlinx.serialization.Serializable
@@ -84,6 +85,16 @@ object NavKeys {
         override val showBottomBar: Boolean = false
     }
 
+    /**
+     * The searchable/filterable game grid. A real destination rather than an overlay so covers can
+     * share their transition with [GameDetail] and the back stack keeps the list's scroll position.
+     */
+    @Serializable
+    data class GameList(val section: DiscoverSection? = null) : NavKeyWithMeta() {
+        // Custom getter (no backing field) so only `section` is serialized.
+        override val title: StringResource? get() = section?.sectionTitle
+    }
+
     @Serializable
     data class ServiceSync(
         val service: ExternalService,
@@ -123,6 +134,7 @@ object NavKeys {
                 key<Appearance>()
                 key<Login>()
                 key<GameDetail>()
+                key<GameList>()
                 key<LibraryImportPreview>()
                 key<ServiceSync>()
             }
