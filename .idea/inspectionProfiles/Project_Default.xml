@@ -1,7 +1,6 @@
 <component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
-    <inspection_tool class="ApplicationIssue" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="ComposePreviewDimensionRespectsLimit" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="composableFile" value="true" />
     </inspection_tool>
@@ -118,9 +117,6 @@
       </option>
       <option name="myCustomValuesEnabled" value="true" />
     </inspection_tool>
-    <inspection_tool class="KoinApplicationValidation" enabled="true" level="ERROR" enabled_by_default="true" />
-    <inspection_tool class="KoinConfigurationValidation" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="KoinJsr330Validation" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="MethodShouldBeFinalInspection" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="MultiplatformPreviewAnnotationInFunctionWithParameters" enabled="true" level="ERROR" enabled_by_default="true">
       <option name="composableFile" value="true" />
@@ -164,7 +160,6 @@
     <inspection_tool class="PreviewPickerAnnotation" enabled="true" level="ERROR" enabled_by_default="true">
       <option name="composableFile" value="true" />
     </inspection_tool>
-    <inspection_tool class="ScopeArchetypeValidation" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="SecurityAdvisoriesInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="optionConfiguration">
         <list>
@@ -221,7 +216,5 @@
       </option>
     </inspection_tool>
     <inspection_tool class="StringCurlyInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
-    <inspection_tool class="UndeclaredKoinUsage" enabled="true" level="ERROR" enabled_by_default="true" />
-    <inspection_tool class="UnusedKoinDeclaration" enabled="true" level="INFO" enabled_by_default="true" />
   </profile>
 </component>
