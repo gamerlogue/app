@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -31,8 +30,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,6 +118,7 @@ import it.maicol07.gamerlogue.extensions.igdb.displayTitle
 import it.maicol07.gamerlogue.extensions.igdb.formattedCoverUrl
 import it.maicol07.gamerlogue.extensions.igdb.icon
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
+import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.ConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
@@ -503,14 +501,10 @@ private fun GameMedia(game: Game) {
     var initialViewerIndex by remember { mutableStateOf(0) }
     val uriHandler = LocalUriHandler.current
 
-    HorizontalMultiBrowseCarousel(
-        state = rememberCarouselState { items.count() },
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
+    GameCoverCarousel(
+        itemCount = items.count(),
         preferredItemWidth = 200.dp,
-        itemSpacing = 12.dp,
-        contentPadding = PaddingValues(horizontal = Dimens.ScreenPadding)
+        modifier = Modifier.wrapContentHeight()
     ) { i ->
         val item = items[i]
         val itemModifier = Modifier
@@ -758,18 +752,16 @@ private fun GameRelatedCarousels(
                     )
                 }
 
-                HorizontalMultiBrowseCarousel(
-                    state = rememberCarouselState { gamesList.size },
-                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                GameCoverCarousel(
+                    itemCount = gamesList.size,
                     preferredItemWidth = 120.dp,
-                    itemSpacing = 12.dp,
-                    contentPadding = PaddingValues(horizontal = Dimens.ScreenPadding)
+                    modifier = Modifier.height(180.dp)
                 ) { index ->
                     val relatedGame = gamesList[index]
                     val metadata = ReleaseDate(date = relatedGame.first_release_date).displayDate()
                     GameCoverCard(
                         game = relatedGame,
-                        metadata = metadata,
+                        metadata = listOfNotNull(metadata),
                         showTitle = true,
                         modifier = Modifier.maskClip(MaterialTheme.shapes.large),
                         onClick = { onGameClick?.invoke(it) }

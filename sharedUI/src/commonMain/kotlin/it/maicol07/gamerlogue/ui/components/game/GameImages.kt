@@ -39,6 +39,9 @@ private fun Modifier.sharedGameElement(key: Any?): Modifier {
 val CoverWidth = 150.dp
 val CoverHeight = 200.dp
 
+/** Aspect ratio of a cover, for grid cells that size themselves off their column width. */
+val CoverAspectRatio = CoverWidth / CoverHeight
+
 /**
  * A game cover. Pass [sizeModifier] to let the parent drive the size (e.g. a grid cell that must
  * fill its column); the default keeps the intrinsic [CoverWidth] x [CoverHeight].

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -25,8 +27,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.carousel.CarouselItemScope
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,10 +46,12 @@ import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__see_all
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
+import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.game.bottomScrim
+import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -66,20 +68,25 @@ fun DiscoverScreen(
     onSeeAllClick: (DiscoverSection) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        contentPadding = PaddingValues(vertical = 16.dp)
-    ) {
-        DiscoverSection.entries.forEachIndexed { index, section ->
-            val sectionState = uiState.sections[section] ?: DiscoverViewModel.SectionUiState()
-            discoverSection(
-                section = section,
-                state = sectionState,
-                hero = index == 0,
-                onGameClick = onGameClick,
-                onSeeAllClick = { onSeeAllClick(section) }
-            )
+    val listState = rememberLazyListState()
+    Box {
+        LazyColumn(
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            contentPadding = PaddingValues(vertical = 16.dp)
+        ) {
+            DiscoverSection.entries.forEachIndexed { index, section ->
+                val sectionState = uiState.sections[section] ?: DiscoverViewModel.SectionUiState()
+                discoverSection(
+                    section = section,
+                    state = sectionState,
+                    hero = index == 0,
+                    onGameClick = onGameClick,
+                    onSeeAllClick = { onSeeAllClick(section) }
+                )
+            }
         }
+        AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }
 }
 
@@ -133,12 +140,10 @@ private fun SectionHeader(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HeroCarousel(games: List<Game>, onGameClick: (Game) -> Unit) {
-    HorizontalMultiBrowseCarousel(
-        state = rememberCarouselState { games.count() },
-        modifier = Modifier.fillMaxWidth().height(HeroHeight),
+    GameCoverCarousel(
+        itemCount = games.count(),
         preferredItemWidth = HeroWidth,
-        itemSpacing = 12.dp,
-        contentPadding = PaddingValues(horizontal = 16.dp)
+        modifier = Modifier.height(HeroHeight)
     ) { i ->
         HeroItem(games[i], onGameClick)
     }
@@ -183,17 +188,15 @@ private fun CarouselItemScope.HeroItem(game: Game, onItemClick: (Game) -> Unit) 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun GameCarousel(section: DiscoverSection, games: List<Game>, onGameClick: (Game) -> Unit) {
-    HorizontalMultiBrowseCarousel(
-        state = rememberCarouselState { games.count() },
-        modifier = Modifier.fillMaxWidth().height(CardHeight),
+    GameCoverCarousel(
+        itemCount = games.count(),
         preferredItemWidth = CardWidth,
-        itemSpacing = 12.dp,
-        contentPadding = PaddingValues(horizontal = 16.dp)
+        modifier = Modifier.height(CardHeight)
     ) { i ->
         val game = games[i]
         GameCoverCard(
             game = game,
-            metadata = section.cardMetadata(game),
+            metadata = listOfNotNull(section.cardMetadata(game)),
             showTitle = carouselItemDrawInfo.size > CardTitleThreshold,
             modifier = Modifier.maskClip(MaterialTheme.shapes.large),
             onClick = onGameClick

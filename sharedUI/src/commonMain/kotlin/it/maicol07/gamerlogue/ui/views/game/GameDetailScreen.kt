@@ -3,9 +3,11 @@ package it.maicol07.gamerlogue.ui.views.game
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
@@ -27,6 +29,7 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__not_found
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
 import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
+import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.views.game.components.GameToolbar
 import it.maicol07.gamerlogue.ui.views.game.components.gameDetailContent
 import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibrarySheet
@@ -49,9 +52,11 @@ fun GameDetailScreen(
 
     Box(contentAlignment = Alignment.TopStart) {
         var expanded by remember { mutableStateOf(true) }
+        val listState = rememberLazyListState()
         CompositionLocalProvider(LocalGameTopBarOverlayMode provides mutableStateOf(true)) {
             GameTopBar(uiState.game?.name)
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize()
                     .floatingToolbarVerticalNestedScroll(
                         expanded = expanded,
@@ -82,6 +87,7 @@ fun GameDetailScreen(
                 }
             }
         }
+        AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
 
         if (uiState.game != null) {
             GameToolbar(

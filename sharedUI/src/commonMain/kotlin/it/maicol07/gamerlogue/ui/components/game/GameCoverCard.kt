@@ -2,7 +2,9 @@ package it.maicol07.gamerlogue.ui.components.game
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,7 +34,7 @@ import at.released.igdbclient.model.Game
 @Composable
 fun GameCoverCard(
     game: Game,
-    metadata: String?,
+    metadata: List<String>,
     showTitle: Boolean,
     modifier: Modifier = Modifier,
     sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight),
@@ -48,18 +50,22 @@ fun GameCoverCard(
         // The cover fills the card so the overlaid title is clipped to the card, not to 150.dp.
         game.CoverImage(coverModifier, sizeModifier = Modifier.fillMaxSize())
 
-        if (metadata != null) {
-            Surface(
-                color = Color.Black.copy(alpha = MetadataScrimAlpha),
-                contentColor = Color.White,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
-            ) {
-                Text(
-                    text = metadata,
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
+        Column(
+            modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            for (badge in metadata) {
+                Surface(
+                    color = Color.Black.copy(alpha = MetadataScrimAlpha),
+                    contentColor = Color.White,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = badge,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
 
