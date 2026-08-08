@@ -27,7 +27,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,7 @@ import it.maicol07.gamerlogue.ui.components.ButtonProgress
 import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -73,7 +76,15 @@ fun GameAddEditLibrarySheet(
     val isPlayingOrPaused = status == GameLibraryStatus.PLAYING || status == GameLibraryStatus.PAUSED
     val isEditing = existingData != null
 
-    ModalBottomSheet(onDismiss) {
+    // Dismissing by dropping the sheet out of composition skips the slide-out; every programmatic
+    // close (cancel, save, delete) has to animate first and only then let the caller remove it.
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    val dismiss: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+    }
+
+    ModalBottomSheet(onDismiss, sheetState = sheetState) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -128,17 +139,17 @@ fun GameAddEditLibrarySheet(
                     saveLoading = viewModel.saveLoading,
                     deleteLoading = viewModel.deleteLoading,
                     isEditing = isEditing,
-                    onDismiss = onDismiss,
+                    onDismiss = dismiss,
                     onDelete = {
                         viewModel.deleteEntry {
                             onDelete()
-                            onDismiss()
+                            dismiss()
                         }
                     },
                     onSave = {
                         viewModel.saveEntry {
                             onSave(it)
-                            onDismiss()
+                            dismiss()
                         }
                     }
                 )
