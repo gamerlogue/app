@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,7 +48,7 @@ fun BoxScope.GameToolbar(
     onPlayingButtonClick: (Boolean) -> Unit,
     onAddToLibraryBottomSheetOpenChange: () -> Unit,
 ) = HorizontalFloatingToolbar(
-    modifier = Modifier.align(Alignment.BottomCenter).offset(y = -ScreenOffset),
+    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().offset(y = -ScreenOffset),
     expanded = expanded,
     leadingContent = {
         GameToolbarToggleIconButton(
