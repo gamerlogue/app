@@ -39,19 +39,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Artwork
+import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.Screenshot
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.events__empty
+import gamerlogue.sharedui.generated.resources.events__past
+import gamerlogue.sharedui.generated.resources.events__upcoming
 import gamerlogue.sharedui.generated.resources.home__empty_section
+import gamerlogue.sharedui.generated.resources.home__events
 import gamerlogue.sharedui.generated.resources.home__see_all
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CelebrationW500Rounded
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
+import it.maicol07.gamerlogue.ui.components.event.EventCard
+import it.maicol07.gamerlogue.ui.components.event.EventCardHeight
+import it.maicol07.gamerlogue.ui.components.event.EventCardWidth
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.game.bottomScrim
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
+import it.maicol07.gamerlogue.ui.views.events.EventsViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -64,10 +74,14 @@ private val HeroHeight = 200.dp
 @Composable
 fun DiscoverScreen(
     viewModel: DiscoverViewModel = koinViewModel(),
+    eventsViewModel: EventsViewModel = koinViewModel(),
     onGameClick: (Game) -> Unit,
     onSeeAllClick: (DiscoverSection) -> Unit = {},
+    onEventClick: (Event) -> Unit = {},
+    onSeeAllEventsClick: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val eventsState by eventsViewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     Box {
         LazyColumn(
@@ -85,6 +99,7 @@ fun DiscoverScreen(
                     onSeeAllClick = { onSeeAllClick(section) }
                 )
             }
+            eventsSection(eventsState, onEventClick, onSeeAllEventsClick)
         }
         AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }
@@ -107,6 +122,55 @@ private fun LazyListScope.discoverSection(
                 else -> GameCarousel(section, state.games, onGameClick)
             }
         }
+    }
+}
+
+/**
+ * The events section: one carousel for the upcoming events and one for the previous ones.
+ *
+ * Events are not games, so they live outside [DiscoverSection] (whose queries and nav key are typed
+ * against games) and are appended as their own item.
+ */
+private fun LazyListScope.eventsSection(
+    state: EventsViewModel.UiState,
+    onEventClick: (Event) -> Unit,
+    onSeeAllClick: () -> Unit
+) {
+    item(key = "EVENTS") {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SectionHeader(Res.string.home__events, Icons.CelebrationW500Rounded, onSeeAllClick)
+            when {
+                state.loading -> CarouselLoading(EventCardWidth, EventCardHeight)
+                state.upcoming.isEmpty() && state.past.isEmpty() -> EmptySection(Res.string.events__empty)
+                else -> {
+                    EventBucket(Res.string.events__upcoming, state.upcoming, onEventClick)
+                    EventBucket(Res.string.events__past, state.past, onEventClick)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EventBucket(label: StringResource, events: List<Event>, onEventClick: (Event) -> Unit) {
+    if (events.isEmpty()) return
+    Text(
+        text = stringResource(label),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
+    GameCoverCarousel(
+        itemCount = events.count(),
+        preferredItemWidth = EventCardWidth,
+        modifier = Modifier.height(EventCardHeight)
+    ) { i ->
+        EventCard(
+            event = events[i],
+            modifier = Modifier.maskClip(MaterialTheme.shapes.large),
+            onClick = onEventClick
+        )
     }
 }
 
@@ -208,7 +272,7 @@ private const val CardTitleThreshold = 200
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun CarouselLoading(itemWidth: Dp) {
+private fun CarouselLoading(itemWidth: Dp, itemHeight: Dp = CardHeight) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.padding(horizontal = 16.dp)
@@ -217,7 +281,7 @@ private fun CarouselLoading(itemWidth: Dp) {
             Surface(
                 shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.width(itemWidth).height(CardHeight)
+                modifier = Modifier.width(itemWidth).height(itemHeight)
             ) {
                 Box(contentAlignment = Alignment.Center) { LoadingIndicator() }
             }
@@ -226,9 +290,9 @@ private fun CarouselLoading(itemWidth: Dp) {
 }
 
 @Composable
-private fun EmptySection() {
+private fun EmptySection(text: StringResource = Res.string.home__empty_section) {
     Text(
-        text = stringResource(Res.string.home__empty_section),
+        text = stringResource(text),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 16.dp)

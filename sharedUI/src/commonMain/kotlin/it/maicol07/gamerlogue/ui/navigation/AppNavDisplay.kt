@@ -37,6 +37,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.gamelist__filter_title
@@ -50,11 +51,13 @@ import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.components.event.EventHeader
 import it.maicol07.gamerlogue.ui.components.search.GameListSearchBar
 import it.maicol07.gamerlogue.ui.components.search.GameSearchButton
 import it.maicol07.gamerlogue.ui.views.auth.LoginView
 import it.maicol07.gamerlogue.ui.views.calendar.Calendar
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverScreen
+import it.maicol07.gamerlogue.ui.views.events.EventListScreen
 import it.maicol07.gamerlogue.ui.views.game.GameDetailScreen
 import it.maicol07.gamerlogue.ui.views.game.GameHandoff
 import it.maicol07.gamerlogue.ui.views.library.Library
@@ -114,6 +117,9 @@ fun AppNavDisplay(
     }
     val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(directive = directive)
     val navigateToGame: (Game) -> Unit = { game -> GameHandoff.put(game); backStack.add(NavKeys.GameDetail(game.id.toInt())) }
+    val navigateToEventGames: (Event) -> Unit = { event ->
+        backStack.add(NavKeys.GameList(eventId = event.id.toInt(), eventName = event.name))
+    }
 
     SharedTransitionLayout {
         val sharedScope = this
@@ -141,8 +147,13 @@ fun AppNavDisplay(
                 ) {
                     DiscoverScreen(
                         onGameClick = navigateToGame,
-                        onSeeAllClick = { backStack.add(NavKeys.GameList(it)) }
+                        onSeeAllClick = { backStack.add(NavKeys.GameList(it)) },
+                        onEventClick = navigateToEventGames,
+                        onSeeAllEventsClick = { backStack.add(NavKeys.EventList) }
                     )
+                }
+                screen<NavKeys.EventList>(metadata = ListDetailSceneStrategy.listPane()) {
+                    EventListScreen(onEventClick = navigateToEventGames)
                 }
                 screen<NavKeys.GameList>(
                     metadata = ListDetailSceneStrategy.listPane(),
@@ -151,12 +162,13 @@ fun AppNavDisplay(
                         val viewModel = koinViewModel<GameListViewModel>()
                         val uiState by viewModel.uiState.collectAsState()
                         GameListSearchBar(
-                            placeholder = stringResource(Res.string.search__global_hint),
+                            // In event scope the event's name identifies the list; there is no title bar.
+                            placeholder = navKey.eventName ?: stringResource(Res.string.search__global_hint),
                             query = uiState.filterState.searchQuery,
                             onSearch = viewModel::setSearchQuery,
                             onBack = { backStack.removeLastOrNull() },
-                            // Arriving on a Discover section is a browse intent, not a typing one.
-                            autoFocus = navKey.section == null,
+                            // Arriving on a Discover section or an event is a browse intent, not a typing one.
+                            autoFocus = navKey.section == null && navKey.eventId == null,
                             trailingActions = {
                                 // Anchored on the button, not the icon, so the dot sits on the
                                 // button's corner instead of overlapping the glyph.
@@ -189,8 +201,13 @@ fun AppNavDisplay(
                     }
                 ) { navKey ->
                     val viewModel = koinViewModel<GameListViewModel>()
-                    LaunchedEffect(navKey) { viewModel.start(navKey.section) }
-                    GameListResults(viewModel = viewModel, onGameClick = navigateToGame)
+                    val uiState by viewModel.uiState.collectAsState()
+                    LaunchedEffect(navKey) { viewModel.start(navKey.section, navKey.eventId) }
+                    GameListResults(
+                        viewModel = viewModel,
+                        onGameClick = navigateToGame,
+                        header = uiState.event?.let { event -> { EventHeader(event) } }
+                    )
                 }
                 screen<NavKeys.Library>(metadata = ListDetailSceneStrategy.listPane()) {
                     if (authProvider.accessToken == null) {

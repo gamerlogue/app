@@ -6,6 +6,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
 import gamerlogue.sharedui.generated.resources.nav__calendar
 import gamerlogue.sharedui.generated.resources.nav__discover
+import gamerlogue.sharedui.generated.resources.nav__events
 import gamerlogue.sharedui.generated.resources.nav__library
 import gamerlogue.sharedui.generated.resources.nav__profile
 import gamerlogue.sharedui.generated.resources.nav__settings
@@ -90,8 +91,21 @@ object NavKeys {
      * share their transition with [GameDetail] and the back stack keeps the list's scroll position.
      */
     @Serializable
-    data class GameList(val section: DiscoverSection? = null) : NavKeyWithMeta() {
-        // Custom getter (no backing field) so only `section` is serialized.
+    data object EventList : NavKeyWithMeta() {
+        override val title = Res.string.nav__events
+    }
+
+    /**
+     * The searchable/filterable game grid. [eventId] scopes it to the games of an IGDB event, with
+     * [eventName] shown as the search bar placeholder so the event is identifiable.
+     */
+    @Serializable
+    data class GameList(
+        val section: DiscoverSection? = null,
+        val eventId: Int? = null,
+        val eventName: String? = null,
+    ) : NavKeyWithMeta() {
+        // Custom getter (no backing field) so only the data fields are serialized.
         override val title: StringResource? get() = section?.sectionTitle
     }
 
@@ -135,6 +149,7 @@ object NavKeys {
                 key<Login>()
                 key<GameDetail>()
                 key<GameList>()
+                key<EventList>()
                 key<LibraryImportPreview>()
                 key<ServiceSync>()
             }

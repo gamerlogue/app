@@ -39,7 +39,8 @@ import org.jetbrains.compose.resources.stringResource
  * The paginated cover grid shown inside the expanded search bar, plus its filter sheet.
  *
  * The [viewModel] is the one the search bar drives, so the query typed above and the filters
- * applied here narrow the same list.
+ * applied here narrow the same list. Pass [header] to prepend a full-width block that scrolls with
+ * the grid (e.g. the details of the event the list is scoped to).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -47,6 +48,7 @@ fun GameListResults(
     viewModel: GameListViewModel,
     onGameClick: (Game) -> Unit,
     modifier: Modifier = Modifier,
+    header: (@Composable () -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -57,40 +59,43 @@ fun GameListResults(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (!uiState.loading && uiState.games.isEmpty()) {
-            EmptyState()
-        } else {
-            LazyVerticalGrid(
-                state = gridState,
-                columns = GridCells.Fixed(uiState.columnCount),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(Dimens.ScreenPadding),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.CardGap),
-                verticalArrangement = Arrangement.spacedBy(Dimens.CardGap)
-            ) {
-                items(uiState.games, key = { it.id }) { game ->
-                    GameCoverCard(
-                        game = game,
-                        metadata = listOfNotNull(uiState.section?.cardMetadata(game)),
-                        showTitle = true,
-                        modifier = Modifier.clip(MaterialTheme.shapes.large),
-                        sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
-                        onClick = onGameClick
-                    )
-                }
-                if (uiState.loading) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(Dimens.ScreenPadding),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            LoadingIndicator()
-                        }
+        LazyVerticalGrid(
+            state = gridState,
+            columns = GridCells.Fixed(uiState.columnCount),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(Dimens.ScreenPadding),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.CardGap),
+            verticalArrangement = Arrangement.spacedBy(Dimens.CardGap)
+        ) {
+            // The header spans the grid and scrolls with it, so it stays visible even when the scope
+            // has no games at all (an event whose line-up IGDB has not filled in yet).
+            header?.let { content ->
+                item(key = "header", span = { GridItemSpan(maxLineSpan) }) { content() }
+            }
+            items(uiState.games, key = { it.id }) { game ->
+                GameCoverCard(
+                    game = game,
+                    metadata = listOfNotNull(uiState.section?.cardMetadata(game)),
+                    showTitle = true,
+                    modifier = Modifier.clip(MaterialTheme.shapes.large),
+                    sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
+                    onClick = onGameClick
+                )
+            }
+            if (uiState.loading) {
+                item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(Dimens.ScreenPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LoadingIndicator()
                     }
                 }
+            } else if (uiState.games.isEmpty()) {
+                item(key = "empty", span = { GridItemSpan(maxLineSpan) }) { EmptyState() }
             }
-            AppVerticalScrollbar(gridState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         }
+        AppVerticalScrollbar(gridState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
 
         if (uiState.showFilterSheet) {
             GameListFilterSheet(
@@ -109,7 +114,7 @@ fun GameListResults(
 }
 
 @Composable
-private fun EmptyState() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+private fun EmptyState() = Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Text(
         text = stringResource(Res.string.home__empty_section),
         style = MaterialTheme.typography.bodyLarge,

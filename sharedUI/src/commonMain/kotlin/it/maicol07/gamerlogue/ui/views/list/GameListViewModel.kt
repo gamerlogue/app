@@ -7,12 +7,14 @@ import at.released.igdbclient.apicalypse.ApicalypseQueryBuilder
 import at.released.igdbclient.apicalypse.SortOrder
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.getCompanies
+import at.released.igdbclient.getEvents
 import at.released.igdbclient.getFranchises
 import at.released.igdbclient.getGameEngines
 import at.released.igdbclient.getGames
 import at.released.igdbclient.getGameTimeToBeat
 import at.released.igdbclient.getKeywords
 import at.released.igdbclient.model.Company
+import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.Franchise
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameEngine
@@ -132,6 +134,10 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
     /** Immutable state of the search results pane. */
     data class UiState(
         val section: DiscoverSection? = null,
+        /** When set, the list is scoped to the games of this IGDB event. */
+        val eventId: Int? = null,
+        /** The scoped event with its full details, once loaded; backs the list header. */
+        val event: Event? = null,
         val games: List<Game> = emptyList(),
         val loading: Boolean = false,
         val endReached: Boolean = false,
@@ -161,15 +167,19 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
     private var defaultOptionsJob: Job? = null
     private var loadJob: Job? = null
 
+    /** The event's game ids, fetched once per event scope; see [fetchEventGameIds]. */
+    private var eventGameIds: List<Int>? = null
+
     /**
      * Loads the first page, optionally scoped to a Discover section so "see all" paginates exactly
-     * the query that carousel previewed. Idempotent: the destination re-runs it on every recomposition
-     * after a configuration change or a trip to the game detail, which must not reset the list.
+     * the query that carousel previewed, or to an event's games. Idempotent: the destination re-runs
+     * it on every recomposition after a configuration change or a trip to the game detail, which
+     * must not reset the list.
      */
-    fun start(section: DiscoverSection?) {
+    fun start(section: DiscoverSection?, eventId: Int? = null) {
         if (started) return
         started = true
-        update { copy(section = section) }
+        update { copy(section = section, eventId = eventId) }
         load(reset = true)
     }
 
@@ -376,12 +386,16 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
     private suspend fun fetchPage(offset: Int): Page {
         val filter = state.filterState
         val section = state.section
+        val eventId = state.eventId
         val isCustomFilterActive = filter.isActive
 
         // Time to beat lives on its own endpoint keyed by game_id, so when it is filtered it takes
         // over pagination from the section's popularity query — the two cannot both drive it.
         val popscoreQuery = if (!isCustomFilterActive) section?.popscoreQuery else null
+        // In event scope the event's own game ids drive pagination and win over the other id
+        // sources, so the time-to-beat filter is inert there.
         val gameIds = when {
+            eventId != null -> eventGameIdPage(eventId, offset)
             filter.hasTimeToBeatFilter -> fetchTimeToBeatGameIds(filter, offset)
             popscoreQuery != null -> fetchPopScoreGameIds(section!!, popscoreQuery, offset)
             else -> null
@@ -510,6 +524,43 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         }
         val games = if (result.isOk) result.unwrap().games else emptyList()
         return Page(games, sourceFull = sourceFull ?: (games.size >= PageSize))
+    }
+
+    /**
+     * One page of the event's game ids.
+     *
+     * IGDB returns the whole `games` array on the event (verified up to ~500 entries), so the ids
+     * are fetched once — together with the details the header shows — and paged client-side.
+     * ponytail: no cap handling — if an event ever exceeds what IGDB expands, the tail is missing.
+     */
+    private suspend fun eventGameIdPage(eventId: Int, offset: Int): List<Int> {
+        val ids = eventGameIds ?: fetchEvent(eventId).also { eventGameIds = it }
+        return ids.drop(offset).take(PageSize)
+    }
+
+    /** Loads the event, publishes it for the header and returns its game ids. */
+    private suspend fun fetchEvent(eventId: Int): List<Int> {
+        val result = safeRequest {
+            igdb.getEvents {
+                fields(
+                    Event.field.name,
+                    Event.field.description,
+                    Event.field.start_time,
+                    Event.field.end_time,
+                    Event.field.time_zone,
+                    Event.field.live_stream_url,
+                    Event.field.event_logo.image_id,
+                    Event.field.event_networks.url,
+                    Event.field.event_networks.network_type.name,
+                    Event.field.games.id,
+                )
+                where { Event.field.id equalTo eventId.toString() }
+            }
+        }
+        if (result.isErr) return emptyList()
+        val event = result.unwrap().events.firstOrNull() ?: return emptyList()
+        update { copy(event = event) }
+        return event.games.map { it.id.toInt() }
     }
 
     private suspend fun fetchTimeToBeatGameIds(filter: GameListFilterState, offset: Int): List<Int> {

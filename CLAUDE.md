@@ -13,7 +13,7 @@ Gamerlogue is a Kotlin Multiplatform + Compose Multiplatform game-library tracke
 - Android APK: `./gradlew :androidApp:assembleDebug` → `androidApp/build/outputs/apk/debug/`
 - Desktop: `./gradlew :desktopApp:run` — hot reload: `./gradlew :desktopApp:hotRun --auto`
 - Web (JS): `./gradlew :webApp:jsBrowserDevelopmentRun`
-- Lint (detekt): `./gradlew detekt`
+- Lint: detekt runs through the IDE plugin against `detekt.yml`; there is no Gradle detekt task.
 - All tests: `./gradlew :sharedUI:jvmTest`
 - Single test class: `./gradlew :sharedUI:jvmTest --tests "it.maicol07.gamerlogue.services.WebResultTest"`
 

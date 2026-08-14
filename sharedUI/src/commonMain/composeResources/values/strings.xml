@@ -27,6 +27,15 @@
     <string name="home__see_all">See all</string>
     <string name="home__empty_section">No games to show</string>
 
+    <!-- Events -->
+    <string name="nav__events">Events</string>
+    <string name="home__events">Events</string>
+    <string name="events__upcoming">Upcoming</string>
+    <string name="events__past">Previous</string>
+    <string name="events__empty">No events to show</string>
+    <string name="events__logo">Logo of %1$s</string>
+    <string name="events__live_stream">Live stream</string>
+
     <!-- Game details -->
     <string name="game__release_dates_title">Release dates by platform</string>
     <string name="game__ratings_title">Ratings</string>
