@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -24,8 +25,15 @@ private object KoinApp
 
 @OptIn(KoinExperimentalAPI::class)
 @Composable
-fun App(authCallbackUri: String? = null) {
+fun App(
+    authCallbackUri: String? = null,
+    onNavigationBarContrastEnforcedChange: (Boolean) -> Unit = {}
+) {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
+    val showBottomBar = (backStack.last() as? NavKeys.NavKeyWithMeta)?.showBottomBar ?: true
+    LaunchedEffect(showBottomBar) {
+        onNavigationBarContrastEnforcedChange(!showBottomBar)
+    }
 
     KoinApplication(koinConfiguration<KoinApp>()) {
         CompositionLocalProvider(LocalNavBackStack provides backStack) {
