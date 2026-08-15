@@ -12,6 +12,10 @@ import it.maicol07.gamerlogue.extensions.allPages
 import it.maicol07.gamerlogue.extensions.currentUserEntries
 import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.koin.core.annotation.Single
 
 /**
@@ -26,6 +30,11 @@ class LibrarySync(
     private val authProvider: AuthTokenProvider,
     private val exceptionReporter: ExceptionReporter,
 ) {
+    private companion object {
+        /** Parallel save requests during an import. */
+        const val MaxConcurrentSaves = 4
+    }
+
     /** [added] = entries created in Gamerlogue; [toPush] = backlog games to add to the store wishlist. */
     data class WishlistResult(val added: Int, val toPush: List<OutgoingGame>)
 
@@ -56,7 +65,7 @@ class LibrarySync(
             LibraryEntry.quickDraft(
                 game,
                 existing[game.id.toInt()]?.status ?: GameLibraryStatus.BACKLOG,
-                authProvider.currentUser,
+                authProvider.currentUser.value,
                 existing = existing[game.id.toInt()],
                 platformsIds = connector.platformIdsFor(game),
             ).apply { owned = true }
@@ -65,31 +74,45 @@ class LibrarySync(
 
     /** Persist confirmed wishlisted [games] as BACKLOG (owned=false), skipping games already tracked.
      *  [connector] derives `platformsIds` (see [platformIdsFor]) for the new entries. */
-    suspend fun importWishlist(connector: ServiceConnector, games: List<Game>): Int {
-        val existingIds = allEntries().mapTo(mutableSetOf()) { it.gameId }
+    suspend fun importWishlist(connector: ServiceConnector, games: List<Game>): Int =
+        importWishlist(connector, games, allEntries())
+
+    private suspend fun importWishlist(
+        connector: ServiceConnector,
+        games: List<Game>,
+        entries: List<LibraryEntry>,
+    ): Int {
+        val existingIds = entries.mapTo(mutableSetOf()) { it.gameId }
         return persistEach(games.filter { it.id.toInt() !in existingIds }) { game ->
             LibraryEntry.quickDraft(
                 game,
                 GameLibraryStatus.BACKLOG,
-                authProvider.currentUser,
+                authProvider.currentUser.value,
                 platformsIds = connector.platformIdsFor(game),
             )
         }
     }
 
-    private suspend fun persistEach(games: List<Game>, draft: (Game) -> LibraryEntry): Int {
-        var saved = 0
+    private suspend fun persistEach(games: List<Game>, draft: (Game) -> LibraryEntry): Int = coroutineScope {
         // Distinct by id: several store entries (game + demo/DLC) can map to one IGDB game; saving the
         // same gameId twice would create a duplicate / be rejected, leaving fewer entries than expected.
-        games.distinctBy { it.id }.forEach { game ->
-            val result = exceptionReporter.safeRequest { draft(game).save() }
-            if (result.get() != null) {
-                saved++
-            } else {
-                Logger.w(tag = "LibrarySync", throwable = result.getError()) { "import failed: ${game.name} (${game.id})" }
+        val distinct = games.distinctBy { it.id }
+        // An import is one request per game; running them strictly one at a time makes a few hundred
+        // games a few hundred serial round-trips. The semaphore keeps the backend from seeing a burst.
+        val inFlight = Semaphore(MaxConcurrentSaves)
+        distinct.map { game ->
+            async {
+                val result = inFlight.withPermit { exceptionReporter.safeRequest { draft(game).save() } }
+                if (result.get() != null) {
+                    true
+                } else {
+                    Logger.w(tag = "LibrarySync", throwable = result.getError()) {
+                        "import failed: ${game.name} (${game.id})"
+                    }
+                    false
+                }
             }
-        }
-        return saved
+        }.count { it.await() }
     }
 
     /**
@@ -97,9 +120,18 @@ class LibrarySync(
      * connector's store URL (from IGDB `external_games.url`) for the outgoing preview and push.
      * "Already on the wishlist" is decided by IGDB id (so it works whether the store gave uids or names).
      */
-    suspend fun computeWishlistPush(connector: ServiceConnector, storeWishlist: List<ExternalGameRef>): List<OutgoingGame> {
+    suspend fun computeWishlistPush(
+        connector: ServiceConnector,
+        storeWishlist: List<ExternalGameRef>,
+    ): List<OutgoingGame> = computeWishlistPush(connector, storeWishlist, allEntries())
+
+    private suspend fun computeWishlistPush(
+        connector: ServiceConnector,
+        storeWishlist: List<ExternalGameRef>,
+        entries: List<LibraryEntry>,
+    ): List<OutgoingGame> {
         // Only un-owned backlog games belong on a wishlist — an owned game isn't "wished for".
-        val backlogIds = allEntries().filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
+        val backlogIds = entries.filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
         if (backlogIds.isEmpty()) return emptyList()
         val onWishlistIds = matcher.match(connector, storeWishlist).mapNotNull { it.game?.id?.toInt() }.toSet()
 
@@ -134,8 +166,11 @@ class LibrarySync(
      */
     suspend fun pullWishlist(connector: ServiceConnector, serviceWishlist: List<ExternalGameRef>): WishlistResult {
         val matches = matcher.match(connector, serviceWishlist)
-        val added = importWishlist(connector, matches.mapNotNull { it.game })
-        return WishlistResult(added, computeWishlistPush(connector, serviceWishlist))
+        val added = importWishlist(connector, matches.mapNotNull { it.game }, allEntries())
+        // Re-read: the push preview must also list the entries the import just created (flagged as
+        // already on the store wishlist), which the pre-import snapshot does not contain.
+        return computeWishlistPush(connector, serviceWishlist, allEntries())
+            .let { WishlistResult(added, it) }
     }
 
     /**
