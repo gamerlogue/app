@@ -1,6 +1,8 @@
 {
   "name": "Gamerlogue",
   "short_name": "Gamerlogue",
+  "start_url": "./",
+  "scope": "./",
   "icons": [
     {
       "src": "./android-chrome-192x192.png",
@@ -10,10 +12,11 @@
     {
       "src": "./android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#FAFAEF",
+  "background_color": "#FAFAEF",
   "display": "standalone"
 }
