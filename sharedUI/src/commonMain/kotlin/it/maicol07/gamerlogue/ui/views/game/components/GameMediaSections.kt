@@ -95,12 +95,12 @@ private val RelatedCarouselHeight = 180.dp
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun GameMedia(game: Game) {
-    val items = remember(game) {
-        buildList {
-            addAll(game.videos)
-            addAll(game.artworks)
-            addAll(game.screenshots)
-        }
+    // IGDB's video, artwork and screenshot models share no supertype, so they are wrapped to keep
+    // the carousel over a typed list instead of Any.
+    val items: List<MediaItem> = remember(game) {
+        game.videos.map(MediaItem::Video) +
+            game.artworks.map(MediaItem::Picture) +
+            game.screenshots.map(MediaItem::Shot)
     }
     if (items.isEmpty()) return
 
@@ -123,12 +123,11 @@ internal fun GameMedia(game: Game) {
             showViewer = true
         }
         when (item) {
-            is Artwork -> item.Image(itemModifier.clickable(onClick = openViewer))
-            is Screenshot -> item.Image(itemModifier.clickable(onClick = openViewer))
-            is GameVideo -> VideoThumbnail(item, game, itemModifier) { videoId ->
+            is MediaItem.Picture -> item.artwork.Image(itemModifier.clickable(onClick = openViewer))
+            is MediaItem.Shot -> item.screenshot.Image(itemModifier.clickable(onClick = openViewer))
+            is MediaItem.Video -> VideoThumbnail(item.video, game, itemModifier) { videoId ->
                 runCatching { uriHandler.openUri("https://www.youtube.com/watch?v=$videoId") }
             }
-            else -> {}
         }
     }
 
@@ -143,12 +142,20 @@ internal fun GameMedia(game: Game) {
     }
 }
 
+/** One entry of the media carousel; IGDB gives each kind its own unrelated model. */
+private sealed interface MediaItem {
+    data class Picture(val artwork: Artwork) : MediaItem
+    data class Shot(val screenshot: Screenshot) : MediaItem
+    data class Video(val video: GameVideo) : MediaItem
+}
+
+/** Renders the still images; a video has no fullscreen page of its own. */
 @Composable
-private fun MediaImage(item: Any, modifier: Modifier) {
+private fun MediaImage(item: MediaItem, modifier: Modifier) {
     when (item) {
-        is Artwork -> item.Image(modifier.aspectRatio(Ratio169))
-        is Screenshot -> item.Image(modifier.aspectRatio(Ratio169))
-        else -> {}
+        is MediaItem.Picture -> item.artwork.Image(modifier.aspectRatio(Ratio169))
+        is MediaItem.Shot -> item.screenshot.Image(modifier.aspectRatio(Ratio169))
+        is MediaItem.Video -> {}
     }
 }
 

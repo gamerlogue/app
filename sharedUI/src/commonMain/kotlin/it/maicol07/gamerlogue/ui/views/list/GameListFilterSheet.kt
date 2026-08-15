@@ -515,7 +515,16 @@ fun GameListFilterSheet(
                 selected = filterState.companyIds,
                 showLogos = true,
                 onFilterSearch = onFilterSearch,
-                onSelectedChange = { onFilterChange(filterState.copy(companyIds = it)) }
+                onSelectedChange = { ids ->
+                    // Drop the roles of a deselected company: a leftover entry (even an empty role
+                    // set) would keep the filter looking active while matching nothing.
+                    onFilterChange(
+                        filterState.copy(
+                            companyIds = ids,
+                            companyRoles = filterState.companyRoles.filterKeys { it in ids }
+                        )
+                    )
+                }
             ) { selectedCompanies ->
                 // One role group per selected company: the role applies to that company alone.
                 selectedCompanies.forEach { company ->
@@ -531,9 +540,14 @@ fun GameListFilterSheet(
                             checked = { role -> roles.contains(role) },
                             onCheckedChange = { role, isChecked ->
                                 val updated = if (isChecked) roles + role else roles - role
-                                onFilterChange(
-                                    filterState.copy(companyRoles = filterState.companyRoles + (company.id to updated))
-                                )
+                                // An empty set means "any role"; storing it would leave the filter
+                                // looking active with nothing selected.
+                                val companyRoles = if (updated.isEmpty()) {
+                                    filterState.companyRoles - company.id
+                                } else {
+                                    filterState.companyRoles + (company.id to updated)
+                                }
+                                onFilterChange(filterState.copy(companyRoles = companyRoles))
                             },
                             toggleButtonText = { role -> stringResource(role.label) },
                             showChecks = true,

@@ -2,12 +2,17 @@ package it.maicol07.gamerlogue.ui.views.list
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * [isActive] is what decides whether the list replays a Discover section's query or runs a filtered
  * one, and it is derived from the default instance — these cover that every kind of field
  * participates, so the derivation cannot silently stop covering one.
  */
+@OptIn(ExperimentalTime::class)
 class GameListFilterStateTest : StringSpec({
     "a pristine filter is not active" {
         GameListFilterState().isActive shouldBe false
@@ -54,7 +59,13 @@ class GameListFilterStateTest : StringSpec({
         GameListFilterState(maxHoursToBeat = MaxHoursToBeat - 5f).hasTimeToBeatFilter shouldBe true
     }
 
-    "the release year range ends no earlier than the current year" {
-        (MaxReleaseYear > MinReleaseYear) shouldBe true
+    "an empty role map does not count as a filter" {
+        // Selecting a company and clearing its roles again must not leave the filter looking active
+        // while companiesClause() has nothing to add.
+        GameListFilterState(companyRoles = emptyMap()).hasActiveFilters shouldBe false
+    }
+
+    "the release year range follows the clock" {
+        MaxReleaseYear shouldBe Clock.System.now().toLocalDateTime(TimeZone.UTC).year + 1
     }
 })
