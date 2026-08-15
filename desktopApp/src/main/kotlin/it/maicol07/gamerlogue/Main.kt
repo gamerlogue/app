@@ -1,5 +1,7 @@
 package it.maicol07.gamerlogue
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -13,10 +15,14 @@ private const val WindowMinHeight = 200
 fun main() = application {
     Window(
         title = "Gamerlogue",
-        state = rememberWindowState(width = 800.dp, height = 1200.dp),
+        icon = painterResource("AppIcon.png"),
+        state = rememberWindowState(width = 800.dp, height = 900.dp),
         onCloseRequest = ::exitApplication,
     ) {
-        window.minimumSize = Dimension(WindowMinWidth, WindowMinHeight)
+        // Window is an AWT object, not composable state: size it once instead of on every recomposition.
+        LaunchedEffect(window) {
+            window.minimumSize = Dimension(WindowMinWidth, WindowMinHeight)
+        }
         window.setWindowsAdaptiveTitleBar()
         App()
     }

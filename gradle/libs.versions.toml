@@ -11,6 +11,7 @@ composeWebview = "1.9.0"
 countriesCore = "0.2.0"
 flagpackCompose = "1.0.0"
 git-semantic-versioning = "5.0.17"
+git-semantic-versioning-base = "7.0.20"
 igdbclientKtor = "0.8"
 kermit = "2.1.0"
 kotlin = "2.4.10"
@@ -120,6 +121,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 compose-hot-reload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
 git-semantic-versioning = { id = "io.github.andreabrighi.android-git-sensitive-semantic-versioning-gradle-plugin", version.ref = "git-semantic-versioning" }
+git-semantic-versioning-base = { id = "org.danilopianini.git-sensitive-semantic-versioning", version.ref = "git-semantic-versioning-base" }
 koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
