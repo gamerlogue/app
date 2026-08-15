@@ -23,13 +23,13 @@ import at.released.igdbclient.model.GameEngine
 import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.model.Keyword
 import at.released.igdbclient.model.PopularityPrimitive
-import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder
 import it.maicol07.gamerlogue.extensions.alreadyReleased
 import it.maicol07.gamerlogue.extensions.notYetReleased
+import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
@@ -530,10 +530,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
             }
         }
         if (result.isErr) return emptyList()
-
-        @Suppress("UNCHECKED_CAST")
-        val responseList = result.unwrap() as? List<UnpackedMultiQueryResult<PopularityPrimitive>>
-        return responseList?.firstOrNull()?.results?.map { it.game_id } ?: emptyList()
+        return result.unwrap().multiqueryResults<PopularityPrimitive>(section.name).map { it.game_id }
     }
 }
 

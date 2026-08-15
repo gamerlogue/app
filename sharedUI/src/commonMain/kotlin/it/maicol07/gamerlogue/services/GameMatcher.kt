@@ -6,13 +6,13 @@ import at.released.igdbclient.getExternalGames
 import at.released.igdbclient.getGames
 import at.released.igdbclient.getWebsites
 import at.released.igdbclient.model.Game
-import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.safeRequest
+import it.maicol07.gamerlogue.extensions.multiqueryResults
 import kotlinx.coroutines.delay
 import org.koin.core.annotation.Single
 
@@ -126,13 +126,12 @@ class GameMatcher(
                 }
             }
         }
-        @Suppress("UNCHECKED_CAST")
-        val responses = result as? List<UnpackedMultiQueryResult<Game>> ?: return emptyMap()
+        val responses = result.orEmpty()
         val byUid = mutableMapOf<String, List<Game>>()
         responses.forEach { response ->
             val i = response.name.removePrefix("q").toIntOrNull() ?: return@forEach
             val ref = batch.getOrNull(i) ?: return@forEach
-            byUid[ref.uid] = response.results.orEmpty()
+            byUid[ref.uid] = responses.multiqueryResults(response.name)
         }
         return byUid
     }

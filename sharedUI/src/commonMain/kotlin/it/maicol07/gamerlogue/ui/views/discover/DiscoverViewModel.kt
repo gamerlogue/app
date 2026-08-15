@@ -6,10 +6,10 @@ import at.released.igdbclient.IgdbEndpoint
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.PopularityPrimitive
-import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
@@ -70,12 +70,11 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
         }
 
         if (result.isOk) {
-            @Suppress("UNCHECKED_CAST")
-            val responseList = result.unwrap() as? List<UnpackedMultiQueryResult<Game>>
-            for (response in (responseList ?: emptyList())) {
-                response.results?.let { games ->
-                    val section = DiscoverSection.valueOf(response.name)
-                    updateSection(section) { it.copy(games = games, loading = false) }
+            val responses = result.unwrap()
+            for (response in responses) {
+                val section = DiscoverSection.valueOf(response.name)
+                updateSection(section) {
+                    it.copy(games = responses.multiqueryResults(response.name), loading = false)
                 }
             }
         } else {
@@ -83,7 +82,7 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
         }
     }
 
-    suspend fun loadPopScores(): Map<DiscoverSection, List<Int>> {
+    private suspend fun loadPopScores(): Map<DiscoverSection, List<Int>> {
         val sectionsWithPopscore = DiscoverSection.entries.filter { it.popscoreQuery != null }
 
         val popScoreResults = safeRequest {
@@ -98,21 +97,13 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
             }
         }
 
-        val popScores = mutableMapOf<DiscoverSection, List<Int>>()
+        if (popScoreResults.isErr) return emptyMap()
 
-        if (popScoreResults.isOk) {
-            @Suppress("UNCHECKED_CAST")
-            val responseList = popScoreResults.unwrap() as? List<UnpackedMultiQueryResult<PopularityPrimitive>>
-            for (response in (responseList ?: emptyList())) {
-                response.results?.let {
-                    val section = DiscoverSection.valueOf(response.name)
-                    val ids = it.map { primitive -> primitive.game_id }
-                    popScores[section] = ids
-                }
-            }
+        val responses = popScoreResults.unwrap()
+        return responses.associate { response ->
+            val ids = responses.multiqueryResults<PopularityPrimitive>(response.name).map { it.game_id }
+            DiscoverSection.valueOf(response.name) to ids
         }
-
-        return popScores
     }
 
     private fun setAllLoading(loading: Boolean) = update {
