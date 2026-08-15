@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.core.annotation.KoinViewModel
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -140,6 +141,8 @@ class LinkedServicesViewModel(
             if (result.toPush.isNotEmpty()) pushWishlist(connector, session, result.toPush)
             setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
             update { copy(message = "wishlist:${result.added}:${result.toPush.size}") }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.e(e) { "Wishlist sync failed for $service" }
             update { copy(message = "error") }
