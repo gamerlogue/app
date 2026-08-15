@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cleartext to the emulator host alias is a debug-only affordance: keeping the config out of src/main means release
+     builds cannot opt into cleartext at all. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+
+</manifest>

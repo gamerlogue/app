@@ -6,7 +6,8 @@ import android.content.Context
 
 class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
     private val accountManager: AccountManager = AccountManager.get(context)
-    private val accountType = "it.maicol07.gamerlogue"
+    // Mirrors res/xml/authenticator.xml, whose account type is the applicationId (debug builds carry a .dev suffix).
+    private val accountType = context.packageName
     private val authTokenType = "Bearer"
     private val accountName = "Gamerlogue"
     private val userIdKey = "user_id"
@@ -15,8 +16,9 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
         restore()
     }
 
+    // getAccountsByType only returns accounts owned by this app, so it needs no GET_ACCOUNTS permission.
     private fun getOrCreateAccount(): Account {
-        val existing = accountManager.accounts.find { it.type == accountType }
+        val existing = accountManager.getAccountsByType(accountType).firstOrNull()
         if (existing != null) return existing
 
         val account = Account(accountName, accountType)
@@ -26,7 +28,7 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
     }
 
     override fun loadToken(): String? {
-        val account = accountManager.accounts.find { it.type == accountType } ?: return null
+        val account = accountManager.getAccountsByType(accountType).firstOrNull() ?: return null
         return accountManager.peekAuthToken(account, authTokenType)
     }
 
@@ -41,7 +43,7 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
     }
 
     override fun loadUserId(): String? {
-        val account = accountManager.accounts.find { it.type == accountType } ?: return null
+        val account = accountManager.getAccountsByType(accountType).firstOrNull() ?: return null
         return accountManager.getUserData(account, userIdKey)
     }
 

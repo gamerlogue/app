@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Approximates the light surface of the app theme; the runtime surface is dynamic-color driven on Android 12+. -->
+    <color name="window_background">#FAFAEF</color>
+</resources>

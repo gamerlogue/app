@@ -25,6 +25,15 @@ android {
         versionCode = androidGitSemVer.computeVersionCode()
         versionName = androidGitSemVer.computeVersion()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
+        // The AccountManager account type must follow the applicationId, otherwise a debug build cannot own accounts
+        // already registered by a release build signed with a different key.
+        resValue("string", "account_type", appPackageName)
+    }
+
+    buildFeatures {
+        // Needed for the generated account_type string; AGP 9 disables resValue support by default.
+        resValues = true
     }
 
     compileOptions {
@@ -46,10 +55,17 @@ android {
         }
     }
 
+    // Compose Resources `values/strings.xml` files are also valid Android resources: exposing them as an Android res
+    // directory is what lets platform-only XML resolve shared strings. Required today by res/xml/authenticator.xml,
+    // which references @string/app_name (declared only in sharedUI's composeResources). Removing this line breaks
+    // resource linking with "resource string/app_name not found".
     sourceSets.getByName("main").res.directories.add("../sharedUI/src/commonMain/composeResources")
 
     packaging {
         resources {
+            // Both rules come from the Compose Multiplatform project template and are currently inert: beta debug and
+            // release both merge java resources and package without them. Kept as a guard against duplicate license
+            // files (the excludes) and duplicate `values*` java resources (the merges) appearing via new dependencies.
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             merges += "values**"
         }
@@ -91,6 +107,9 @@ android {
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "account_type", "$appPackageName.dev")
         }
     }
 }
