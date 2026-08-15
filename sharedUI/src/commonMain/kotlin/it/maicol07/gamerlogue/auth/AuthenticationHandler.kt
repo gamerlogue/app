@@ -26,13 +26,14 @@ abstract class AuthenticationHandler(protected val authProvider: AuthTokenProvid
 
         fun parseAuthData(url: String, decode: (String) -> String? = { it }): AuthData {
             val query = if (url.contains("?")) url.substringAfter("?") else url
+            // limit = 2: a base64 value keeps its '=' padding instead of being dropped as a malformed pair.
             val params = query.split("&").associate {
-                val split = it.split("=")
-                if (split.size == 2) split[0] to split[1] else split[0] to ""
+                val split = it.split("=", limit = 2)
+                split[0] to (split.getOrNull(1) ?: "")
             }
 
             val token = params["token"]?.let(decode)
-            val userId = params["user_id"]
+            val userId = params["user_id"]?.let(decode)
 
             return AuthData(token, userId)
         }

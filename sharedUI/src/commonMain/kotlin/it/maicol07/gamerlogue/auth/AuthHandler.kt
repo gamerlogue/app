@@ -2,7 +2,8 @@ package it.maicol07.gamerlogue.auth
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.github.michaelbull.result.unwrap
@@ -19,7 +20,7 @@ import org.koin.compose.koinInject
 internal fun AuthHandler(authCallbackUri: String?) {
     val authProvider = koinInject<AuthTokenProvider>()
     val authHandler = rememberAuthenticationHandler()
-    val userStore = remember { UserStore() }
+    val userStore = koinInject<UserStore>()
     val exceptionReporter = koinInject<ExceptionReporter>()
 
     // Handle the login callback here, inside the Koin composition, so the token lands on the
@@ -45,25 +46,26 @@ internal fun AuthHandler(authCallbackUri: String?) {
             Logger.setMinSeverity(Severity.Verbose)
             Logger.i("Running in LOCAL environment")
         }
-        val savedUser = userStore.getUser()
-        if (savedUser != null) {
-            authProvider.currentUser = savedUser
-        }
+        userStore.getUser()?.let(authProvider::updateCurrentUser)
     }
 
-    LaunchedEffect(authProvider.accessToken, authProvider.currentUserId) {
-        Logger.d("AuthState changed: token=${authProvider.accessToken}, userId=${authProvider.currentUserId}")
-        if (authProvider.accessToken != null) {
-            if (authProvider.currentUser == null && authProvider.currentUserId != null) {
-                val result = exceptionReporter.safeRequest { User.find(authProvider.currentUserId!!).data }
+    val accessToken by authProvider.accessToken.collectAsState()
+    val currentUserId by authProvider.currentUserId.collectAsState()
+
+    LaunchedEffect(accessToken, currentUserId) {
+        // The token itself is never logged: this runs in release builds too.
+        Logger.d("AuthState changed: authenticated=${accessToken != null}, userId=$currentUserId")
+        if (accessToken != null) {
+            if (authProvider.currentUser.value == null && currentUserId != null) {
+                val result = exceptionReporter.safeRequest { User.find(currentUserId!!).data }
                 if (result.isOk) {
                     val user = result.unwrap()
-                    authProvider.currentUser = user
+                    authProvider.updateCurrentUser(user)
                     userStore.saveUser(user)
                 }
             }
         } else {
-            authProvider.currentUser = null
+            authProvider.updateCurrentUser(null)
             authProvider.updateUserId(null)
             userStore.clear()
         }

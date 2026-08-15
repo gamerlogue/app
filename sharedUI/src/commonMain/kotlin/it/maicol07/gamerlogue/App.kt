@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -42,7 +44,8 @@ fun App(authCallbackUri: String? = null) {
                         AppNavDisplay(backStack)
 
                         val reporter = koinInject<ExceptionReporter>()
-                        if (reporter.sheetOpen) {
+                        val sheetOpen by reporter.sheetOpen.collectAsState()
+                        if (sheetOpen) {
                             GlobalExceptionBottomSheet()
                         }
                     }

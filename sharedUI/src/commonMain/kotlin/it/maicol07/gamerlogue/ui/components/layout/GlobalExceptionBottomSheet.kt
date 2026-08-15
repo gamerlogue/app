@@ -99,8 +99,9 @@ fun GlobalExceptionBottomSheet() {
 
     fun dismiss() = scope.launch { sheetState.hide(); reporter.dismissSheet() }
 
-    LaunchedEffect(reporter.dismissRequested) {
-        if (reporter.dismissRequested) {
+    val dismissRequested by reporter.dismissRequested.collectAsStateWithLifecycle()
+    LaunchedEffect(dismissRequested) {
+        if (dismissRequested) {
             sheetState.hide()
             reporter.clearError()
         }

@@ -1,10 +1,12 @@
 package it.maicol07.gamerlogue.data
 
-import com.russhwolf.settings.Settings
+import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.set
 import it.maicol07.spraypaintkt.JsonApiSingleResponse
+import org.koin.core.annotation.Single
 
-class UserStore(private val settings: Settings = Settings()) {
+@Single
+class UserStore(private val settings: ObservableSettings) {
     companion object {
         private const val USER_KEY = "user_data"
     }

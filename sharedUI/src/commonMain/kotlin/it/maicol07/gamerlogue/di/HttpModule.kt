@@ -16,6 +16,7 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.accept
 import io.ktor.http.contentType
+import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.services.EpicApi
@@ -39,15 +40,19 @@ private val ktorHttpClientConfig: HttpClientConfig<*>.() -> Unit = {
                 co.touchlab.kermit.Logger.v(tag = "HTTP Client") { message }
             }
         }
-        level = LogLevel.HEADERS
+        // HEADERS logs the Authorization header, so it stays out of anything but a local build.
+        level = if (BuildConfig.APP_ENV == AppEnvironment.LOCAL) LogLevel.HEADERS else LogLevel.NONE
     }
     install(HttpRequestRetry) {
         maxRetries = 3
         retryIf { _, response ->
-            response.status.value in 500..599
+            response.status.value in ServerErrorRange
         }
+        exponentialDelay()
     }
 }
+
+private val ServerErrorRange = 500..599
 
 @Suppress("unused")
 @Module
@@ -84,8 +89,12 @@ object HttpModule {
         ktorHttpClientConfig()
         install(Auth) {
             bearer {
+                // Ktor caches loadTokens by default and only drops it on an explicit clearToken(), so a
+                // logout followed by a login would keep sending the previous session's token. The provider
+                // is an in-memory read, so re-reading it per request is cheaper than tracking the cache.
+                cacheTokens = false
                 loadTokens {
-                    authTokenProvider.accessToken?.let { BearerTokens(it, "") }
+                    authTokenProvider.accessToken.value?.let { BearerTokens(it, "") }
                 }
             }
         }

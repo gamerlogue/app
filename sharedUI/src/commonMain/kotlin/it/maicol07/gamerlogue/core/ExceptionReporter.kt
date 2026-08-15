@@ -1,44 +1,48 @@
 package it.maicol07.gamerlogue.core
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.annotation.Single
 
+/**
+ * The globally reported request failure and the state of the sheet showing it.
+ *
+ * Reported from ViewModels and services, so the state is a [StateFlow] the UI collects rather than
+ * Compose state a non-composable would have to write into.
+ */
 @Single
 class ExceptionReporter {
     val exception: StateFlow<Throwable?>
         field = MutableStateFlow<Throwable?>(null)
 
-    var sheetOpen by mutableStateOf(false)
-        private set
+    val sheetOpen: StateFlow<Boolean>
+        field = MutableStateFlow(false)
 
-    // Set when a successful retry should animate the sheet closed.
-    var dismissRequested by mutableStateOf(false)
-        private set
+    /** Set when a successful retry should animate the sheet closed. */
+    val dismissRequested: StateFlow<Boolean>
+        field = MutableStateFlow(false)
 
     fun report(t: Throwable) {
-        exception.value = t; sheetOpen = true
+        exception.value = t
+        sheetOpen.value = true
     }
 
     fun show() {
-        sheetOpen = true
+        sheetOpen.value = true
     }
 
     fun dismissSheet() {
-        sheetOpen = false
+        sheetOpen.value = false
     }
 
     fun clearError() {
         exception.value = null
-        sheetOpen = false
-        dismissRequested = false
+        sheetOpen.value = false
+        dismissRequested.value = false
     }
 
-    // Triggers animated close if the sheet is open; no-op otherwise.
+    /** Triggers an animated close if the sheet is open; no-op otherwise. */
     fun requestDismiss() {
-        if (sheetOpen) dismissRequested = true
+        if (sheetOpen.value) dismissRequested.value = true
     }
 }

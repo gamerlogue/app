@@ -128,7 +128,7 @@ class AddToLibrarySheetViewModel(
         val entry = existingEntry ?: LibraryEntry()
 
         entry.gameId = game.id.toInt()
-        entry.user = authTokenProvider.currentUser
+        entry.user = authTokenProvider.currentUser.value
         entry.status = selectedStatus!!
         entry.completionStatus = completionStatus
         entry.owned = owned
