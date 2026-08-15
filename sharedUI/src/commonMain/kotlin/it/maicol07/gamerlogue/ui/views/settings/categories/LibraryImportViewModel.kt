@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.model.Game
+import it.maicol07.gamerlogue.core.NavHandoff
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
@@ -19,12 +20,14 @@ enum class ImportMode { OWNED, WISHLIST }
 
 /**
  * Hands the games list read from a store's WebView to the import-preview screen, which is in a
- * different nav entry. ponytail: plain read-once map, like [it.maicol07.gamerlogue.ui.views.game.GameHandoff].
+ * different nav entry.
  */
 object ImportHandoff {
-    private val pending = mutableMapOf<ExternalService, List<ExternalGameRef>>()
-    fun put(service: ExternalService, refs: List<ExternalGameRef>) { pending[service] = refs }
-    fun take(service: ExternalService): List<ExternalGameRef> = pending.remove(service).orEmpty()
+    private val pending = NavHandoff<ExternalService, List<ExternalGameRef>>()
+
+    fun put(service: ExternalService, refs: List<ExternalGameRef>) = pending.put(service, refs)
+
+    fun take(service: ExternalService): List<ExternalGameRef> = pending.take(service).orEmpty()
 }
 
 /**
