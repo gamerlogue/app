@@ -13,6 +13,15 @@ fun ApicalypseQueryBuilder.sort(field: IgdbRequestField<*>, order: SortOrder) {
     this.sort(field.igdbFullName, order)
 }
 
+/**
+ * The nested object itself (e.g. `release_dates.release_region`) instead of one of its own fields.
+ *
+ * The generated DSL exposes a nested object as a builder whose [IgdbRequestFieldDsl.all] is its
+ * wildcard; the field that names the object is that wildcard's parent. Requesting it returns the id,
+ * which is all the app needs for the ids it maps to its own enums.
+ */
+val IgdbRequestFieldDsl<*, *>.self: IgdbRequestField<*> get() = all.parent ?: all
+
 fun ApicalypseQueryBuilder.where(whereBuilder: ApicalypseQueryBuilderWhereBuilder.() -> Unit) {
     val clause = ApicalypseQueryBuilderWhereBuilder()
         .apply { whereBuilder() }

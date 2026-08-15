@@ -4,16 +4,22 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.IgdbEndpoint
+import at.released.igdbclient.dsl.field.GameFieldDsl
+import at.released.igdbclient.dsl.field.IgdbRequestField
+import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.NavHandoff
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
 import it.maicol07.gamerlogue.extensions.quickDraft
-import it.maicol07.gamerlogue.ui.views.game.GameHandoff.take
+import it.maicol07.gamerlogue.extensions.multiqueryResults
+import it.maicol07.gamerlogue.extensions.self
+import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -24,18 +30,103 @@ import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
 /**
- * In-memory handoff of the [Game] already loaded by a list screen to the detail screen, so the
- * detail can render its hero instantly instead of waiting for [GameDetailViewModel.loadGameDetails].
- * ponytail: plain map, single-entry-per-id, read-once. Cleared on [take]; survives only until the
- * detail VM is created. Good enough for navigation handoff — no caching layer needed.
+ * Handoff of the [Game] already loaded by a list screen to the detail screen, so the detail can
+ * render its hero instantly instead of waiting for [GameDetailViewModel.loadGameDetails].
  */
 object GameHandoff {
-    private val pending = mutableMapOf<Int, Game>()
-    fun put(game: Game) {
-        pending[game.id.toInt()] = game
-    }
+    private val pending = NavHandoff<Int, Game>()
 
-    fun take(gameId: Int): Game? = pending.remove(gameId)
+    fun put(game: Game) = pending.put(game.id.toInt(), game)
+
+    fun take(gameId: Int): Game? = pending.take(gameId)
+}
+
+/** Cover, title and release date of a game shown in one of the detail screen's carousels. */
+private fun GameFieldDsl.relatedGameFields(): Array<IgdbRequestField<*>> = arrayOf(
+    id, name, cover.image_id, rating, first_release_date
+)
+
+/**
+ * Everything the detail screen renders, in one request.
+ *
+ * Written with the generated field DSL rather than raw strings: a field renamed or dropped by IGDB
+ * fails to compile here instead of silently returning nothing at runtime.
+ */
+internal val DetailFields: Array<IgdbRequestField<*>> = with(Game.field) {
+    arrayOf<IgdbRequestField<*>>(
+        name,
+        summary,
+        storyline,
+        category,
+        status,
+        rating,
+        rating_count,
+        first_release_date,
+        cover.image_id,
+        screenshots.image_id,
+        videos.name,
+        videos.video_id,
+        genres.name,
+        themes.name,
+        keywords.name,
+        game_modes.name,
+        player_perspectives.name,
+        game_engines.name,
+        franchise.name,
+        franchises.name,
+        collections.name,
+        platforms.id,
+        platforms.name,
+        platforms.platform_logo.image_id,
+        release_dates.date,
+        release_dates.platform.self,
+        release_dates.release_region.self,
+        release_dates.status.name,
+        involved_companies.company.name,
+        involved_companies.developer,
+        involved_companies.publisher,
+        age_ratings.category,
+        age_ratings.rating,
+        age_ratings.rating_cover_url,
+        alternative_names.name,
+        alternative_names.comment,
+        language_supports.language.name,
+        language_supports.language_support_type.name,
+        multiplayer_modes.campaigncoop,
+        multiplayer_modes.dropin,
+        multiplayer_modes.lancoop,
+        multiplayer_modes.offlinecoop,
+        multiplayer_modes.offlinecoopmax,
+        multiplayer_modes.offlinemax,
+        multiplayer_modes.onlinecoop,
+        multiplayer_modes.onlinecoopmax,
+        multiplayer_modes.onlinemax,
+        multiplayer_modes.splitscreen,
+        websites.category,
+        websites.url,
+        websites.trusted,
+        remakes.id,
+        remakes.name,
+        remakes.cover.image_id,
+        remasters.id,
+        remasters.name,
+        *similar_games.relatedGameFields(),
+        *dlcs.relatedGameFields(),
+        *expansions.relatedGameFields(),
+        *standalone_expansions.relatedGameFields(),
+        *expanded_games.relatedGameFields(),
+        *bundles.relatedGameFields(),
+        *ports.relatedGameFields(),
+        *collections.games.relatedGameFields(),
+        parent_game.id,
+        parent_game.name,
+        parent_game.cover.image_id,
+        parent_game.first_release_date,
+        version_parent.id,
+        version_parent.name,
+        version_parent.cover.image_id,
+        version_parent.first_release_date,
+    )
 }
 
 @KoinViewModel
@@ -45,7 +136,6 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val game: Game? = null,
         val timeToBeat: GameTimeToBeat? = null,
         val libraryEntry: LibraryEntry? = null,
-        val errorMessage: String? = null,
         val isLoading: Boolean = true,
         val isPlayingButtonLoading: Boolean = false,
         val isBacklogButtonLoading: Boolean = false,
@@ -55,6 +145,10 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
     private val authTokenProvider by inject<AuthTokenProvider>()
 
     companion object {
+        /** Sub-query names of the detail multiquery; they pick the results apart again below. */
+        private const val GameQuery = "game"
+        private const val TimeToBeatQuery = "ttb"
+
         @Composable
         fun inject(gameId: Int): GameDetailViewModel = koinViewModel(parameters = { parametersOf(gameId) })
 
@@ -76,142 +170,28 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         update { copy(isLoading = true) }
         val result = safeRequest {
             igdb.multiquery {
-                query(IgdbEndpoint.GAME, "game") {
-                    fields(
-                        "cover.image_id",
-                        "first_release_date",
-                        "genres.name",
-                        "involved_companies.company.name",
-                        "involved_companies.developer",
-                        "involved_companies.publisher",
-                        "name",
-                        "platforms.id",
-                        "platforms.name",
-                        "platforms.platform_logo.image_id",
-                        "rating",
-                        "rating_count",
-                        "release_dates.date",
-                        "release_dates.platform",
-                        "release_dates.release_region",
-                        "release_dates.status.name",
-                        "screenshots.image_id",
-                        "themes.name",
-                        "summary",
-                        "storyline",
-                        "game_modes.name",
-                        "player_perspectives.name",
-                        "game_engines.name",
-                        "franchises.name",
-                        "franchise.name",
-                        "collections.name",
-                        "videos.name",
-                        "videos.video_id",
-                        "websites.category",
-                        "websites.url",
-                        "websites.trusted",
-                        "similar_games.id",
-                        "similar_games.name",
-                        "similar_games.cover.image_id",
-                        "similar_games.rating",
-                        "similar_games.first_release_date",
-                        "dlcs.id",
-                        "dlcs.name",
-                        "dlcs.cover.image_id",
-                        "dlcs.rating",
-                        "dlcs.first_release_date",
-                        "expansions.id",
-                        "expansions.name",
-                        "expansions.cover.image_id",
-                        "expansions.rating",
-                        "expansions.first_release_date",
-                        "parent_game.id",
-                        "parent_game.name",
-                        "parent_game.cover.image_id",
-                        "parent_game.first_release_date",
-                        "remakes.id",
-                        "remakes.name",
-                        "remakes.cover.image_id",
-                        "remasters.id",
-                        "remasters.name",
-                        "age_ratings.category",
-                        "age_ratings.rating",
-                        "age_ratings.rating_cover_url",
-                        "keywords.name",
-                        "alternative_names.name",
-                        "alternative_names.comment",
-                        "multiplayer_modes.campaigncoop",
-                        "multiplayer_modes.dropin",
-                        "multiplayer_modes.lancoop",
-                        "multiplayer_modes.offlinecoop",
-                        "multiplayer_modes.offlinecoopmax",
-                        "multiplayer_modes.offlinemax",
-                        "multiplayer_modes.onlinecoop",
-                        "multiplayer_modes.onlinecoopmax",
-                        "multiplayer_modes.onlinemax",
-                        "multiplayer_modes.splitscreen",
-                        "category",
-                        "status",
-                        "language_supports.language.name",
-                        "language_supports.language_support_type.name",
-                        "bundles.id",
-                        "bundles.name",
-                        "bundles.cover.image_id",
-                        "bundles.rating",
-                        "bundles.first_release_date",
-                        "ports.id",
-                        "ports.name",
-                        "ports.cover.image_id",
-                        "ports.rating",
-                        "ports.first_release_date",
-                        "standalone_expansions.id",
-                        "standalone_expansions.name",
-                        "standalone_expansions.cover.image_id",
-                        "standalone_expansions.rating",
-                        "standalone_expansions.first_release_date",
-                        "expanded_games.id",
-                        "expanded_games.name",
-                        "expanded_games.cover.image_id",
-                        "expanded_games.rating",
-                        "expanded_games.first_release_date",
-                        "collections.games.id",
-                        "collections.games.name",
-                        "collections.games.cover.image_id",
-                        "collections.games.rating",
-                        "collections.games.first_release_date",
-                        "version_parent.id",
-                        "version_parent.name",
-                        "version_parent.cover.image_id",
-                        "version_parent.first_release_date"
-                    )
-                    where("id = $gameId")
+                query(IgdbEndpoint.GAME, GameQuery) {
+                    fields(*DetailFields)
+                    where { Game.field.id equalTo gameId.toString() }
                     limit(1)
                 }
-                query(IgdbEndpoint.GAME_TIME_TO_BEAT, "ttb") {
+                query(IgdbEndpoint.GAME_TIME_TO_BEAT, TimeToBeatQuery) {
                     fields(
-                        "completely",
-                        "hastily",
-                        "normally",
-                        "game_id"
+                        GameTimeToBeat.field.completely,
+                        GameTimeToBeat.field.hastily,
+                        GameTimeToBeat.field.normally,
+                        GameTimeToBeat.field.game_id,
                     )
-                    where("game_id = $gameId")
+                    where { GameTimeToBeat.field.game_id equalTo gameId.toString() }
                     limit(1)
                 }
             }
         }
 
         if (result.isOk) {
-            var fetchedGame: Game? = null
-            var fetchedTtb: GameTimeToBeat? = null
-            for (response in result.unwrap()) {
-                when (response.name) {
-                    "game" -> @Suppress("UNCHECKED_CAST") {
-                        fetchedGame = (response.results as? List<Game>)?.firstOrNull()
-                    }
-                    "ttb" -> @Suppress("UNCHECKED_CAST") {
-                        fetchedTtb = (response.results as? List<GameTimeToBeat>)?.firstOrNull()
-                    }
-                }
-            }
+            val responses = result.unwrap()
+            val fetchedGame = responses.multiqueryResults<Game>(GameQuery).firstOrNull()
+            val fetchedTtb = responses.multiqueryResults<GameTimeToBeat>(TimeToBeatQuery).firstOrNull()
             update { copy(game = fetchedGame ?: state.game, timeToBeat = fetchedTtb, isLoading = false) }
         } else {
             update { copy(isLoading = false) }
@@ -223,50 +203,48 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         update { copy(libraryEntry = if (result.isOk) result.unwrap() else null) }
     }
 
-    fun toggleGamePlaying() = viewModelScope.launch {
-        update { copy(isPlayingButtonLoading = true) }
-        try {
-            if (state.libraryEntry?.status == GameLibraryStatus.PLAYING) {
-                removeGameLibraryEntry()
-            } else {
-                applyStatus(GameLibraryStatus.PLAYING)
-            }
-        } catch (e: Exception) {
-            update { copy(errorMessage = e.message) }
-        }
-        update { copy(isPlayingButtonLoading = false) }
-    }
+    fun toggleGamePlaying() = toggleStatus(GameLibraryStatus.PLAYING) { copy(isPlayingButtonLoading = it) }
 
-    fun toggleGameBacklog() = viewModelScope.launch {
-        update { copy(isBacklogButtonLoading = true) }
-        try {
-            if (state.libraryEntry?.status == GameLibraryStatus.BACKLOG) {
-                removeGameLibraryEntry()
-            } else {
-                applyStatus(GameLibraryStatus.BACKLOG)
-            }
-        } catch (e: Exception) {
-            update { copy(errorMessage = e.message) }
+    fun toggleGameBacklog() = toggleStatus(GameLibraryStatus.BACKLOG) { copy(isBacklogButtonLoading = it) }
+
+    /**
+     * Applies [status] to the library entry, or removes the entry when it already has that status.
+     *
+     * [setLoading] flips the button's own spinner, which is the only thing that differs between the
+     * two toggles. Failures are reported by [safeRequest] and leave the state untouched.
+     */
+    private fun toggleStatus(
+        status: GameLibraryStatus,
+        setLoading: UiState.(Boolean) -> UiState,
+    ) = viewModelScope.launch {
+        update { setLoading(true) }
+        if (state.libraryEntry?.status == status) {
+            removeGameLibraryEntry()
+        } else {
+            applyStatus(status)
         }
-        update { copy(isBacklogButtonLoading = false) }
+        update { setLoading(false) }
     }
 
     private suspend fun applyStatus(status: GameLibraryStatus) {
         val game = state.game ?: return
-        val current = state.libraryEntry
         val draft = LibraryEntry.quickDraft(
             game = game,
             status = status,
             user = null,
-            existing = current
+            existing = state.libraryEntry
         )
-        draft.save()
-        update { copy(libraryEntry = draft) }
+        val result = safeRequest { draft.save() }
+        if (result.isOk) {
+            update { copy(libraryEntry = draft) }
+        }
     }
 
     private suspend fun removeGameLibraryEntry() {
         val current = state.libraryEntry ?: return
-        current.destroy()
-        update { copy(libraryEntry = null) }
+        val result = safeRequest { current.destroy() }
+        if (result.isOk) {
+            update { copy(libraryEntry = null) }
+        }
     }
 }
