@@ -13,9 +13,11 @@ suspend fun <T> ExceptionReporter.safeRequest(request: suspend () -> T) = runCat
         requestDismiss()
         return@also
     }
-    // runCatching catches Throwable, cancellation included. Swallowing it would let a cancelled caller
-    // keep running (and write stale state), so it goes back out instead of being reported as a failure.
-    if (error is CancellationException) throw error
+    // Client libraries may wrap cancellation, but it must still escape instead of being reported.
+    generateSequence(error) { it.cause }
+        .filterIsInstance<CancellationException>()
+        .firstOrNull()
+        ?.let { throw it }
     when (error) {
         is IgdbException, is JsonApiException -> report(error)
     }
