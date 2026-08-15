@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,6 +20,16 @@ actual fun SystemBarsVisible(visible: Boolean) {
     LaunchedEffect(visible) {
         tweaker.tweakStatusBarVisibility(visible)
         tweaker.tweakNavigationBarVisibility(visible)
+    }
+}
+
+@Composable
+actual fun NavigationBarContrastEnforced(enforced: Boolean) {
+    val window = LocalActivity.current?.window
+    LaunchedEffect(window, enforced) {
+        if (window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = enforced
+        }
     }
 }
 

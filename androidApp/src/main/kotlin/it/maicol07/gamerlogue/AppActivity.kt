@@ -2,7 +2,6 @@ package it.maicol07.gamerlogue
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+private const val AuthCallbackUriPrefix = "gamerlogue://auth/callback"
+
 class AppActivity : ComponentActivity() {
     // Observed by setContent: updated by onCreate/onNewIntent so the callback reaches App().
     private var authCallbackUri by mutableStateOf<String?>(null)
@@ -18,20 +19,10 @@ class AppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
 
         captureLoginDeepLink(intent)
         setContent {
-            App(
-                authCallbackUri = authCallbackUri,
-                onNavigationBarContrastEnforcedChange = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        window.isNavigationBarContrastEnforced = it
-                    }
-                }
-            )
+            App(authCallbackUri = authCallbackUri)
         }
     }
 
@@ -42,7 +33,7 @@ class AppActivity : ComponentActivity() {
 
     private fun captureLoginDeepLink(intent: Intent) {
         val data: Uri? = intent.data
-        if (data != null && data.toString().startsWith("gamerlogue://auth/callback")) {
+        if (data != null && data.toString().startsWith(AuthCallbackUriPrefix)) {
             authCallbackUri = data.toString()
         }
     }

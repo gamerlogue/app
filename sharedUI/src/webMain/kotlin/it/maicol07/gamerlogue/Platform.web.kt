@@ -10,6 +10,11 @@ actual fun SystemBarsVisible(visible: Boolean) {
     // No-op on web
 }
 
+@Composable
+actual fun NavigationBarContrastEnforced(enforced: Boolean) {
+    // No-op on web
+}
+
 @JsModule("date-fns/locale/en-US")
 external object DateFnsLocaleEn
 

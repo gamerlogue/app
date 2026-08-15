@@ -11,6 +11,11 @@ actual fun SystemBarsVisible(visible: Boolean) {
 }
 
 @Composable
+actual fun NavigationBarContrastEnforced(enforced: Boolean) {
+    // No-op on JVM
+}
+
+@Composable
 actual fun appLanguageSettingsOpener(): () -> Unit = {}
 
 @OptIn(ExperimentalComposeUiApi::class)
