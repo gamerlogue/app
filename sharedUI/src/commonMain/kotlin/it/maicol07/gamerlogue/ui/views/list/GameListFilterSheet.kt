@@ -154,6 +154,35 @@ private val CompanyRole.label: StringResource
         CompanyRole.SUPPORTING -> Res.string.gamelist__company_role_supporting
     }
 
+/** Slider stops of both rating sliders: one every 5 points across 0..[MaxRating]. */
+private const val RatingSteps = 19
+
+/** IGDB ids of the option sets that are fixed rather than looked up. */
+private val PlayerPerspectiveIds = 1..7
+private val GenreIds = listOf(4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 25, 31, 32, 33, 34, 35, 36)
+private val ThemeIds = listOf(1, 17, 18, 19, 20, 21, 22, 23, 27, 33, 35, 38, 39, 43, 44)
+private val GameModeIds = 1..6
+
+private val FilterCategories = listOf(
+    GameCategoryEnum.MAIN_GAME,
+    GameCategoryEnum.DLC_ADDON,
+    GameCategoryEnum.EXPANSION,
+    GameCategoryEnum.REMAKE,
+    GameCategoryEnum.REMASTER,
+    GameCategoryEnum.BUNDLE,
+    GameCategoryEnum.STANDALONE_EXPANSION,
+    GameCategoryEnum.MOD,
+)
+
+private val FilterStatuses = listOf(
+    GameStatusEnum.RELEASED,
+    GameStatusEnum.EARLY_ACCESS,
+    GameStatusEnum.ALPHA,
+    GameStatusEnum.BETA,
+    GameStatusEnum.DELISTED,
+    GameStatusEnum.CANCELLED,
+)
+
 private data class FilterPlatform(val id: Int, val name: String, val icon: ImageVector?)
 
 private val popularPlatforms = listOf(
@@ -310,92 +339,70 @@ fun GameListFilterSheet(
                 }
             }
 
-            // User Rating Range Slider
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.StarW500Rounded,
-                    title = Res.string.gamelist__user_rating,
-                    trailingText = "★ ${filterState.minUserRating.toInt()} – ${filterState.maxUserRating.toInt()}"
-                )
-                RangeSlider(
-                    value = filterState.minUserRating..filterState.maxUserRating,
-                    onValueChange = { range ->
-                        onFilterChange(filterState.copy(minUserRating = range.start, maxUserRating = range.endInclusive))
-                    },
-                    valueRange = 0f..100f,
-                    steps = 19,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            RangeFilterSection(
+                icon = Icons.StarW500Rounded,
+                title = Res.string.gamelist__user_rating,
+                trailingText = "★ ${filterState.minUserRating.toInt()} – ${filterState.maxUserRating.toInt()}",
+                value = filterState.minUserRating..filterState.maxUserRating,
+                valueRange = 0f..MaxRating,
+                steps = RatingSteps,
+                onValueChange = { range ->
+                    onFilterChange(filterState.copy(minUserRating = range.start, maxUserRating = range.endInclusive))
+                }
+            )
 
-            // Critics Rating Range Slider
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.WandStarsW500Rounded,
-                    title = Res.string.gamelist__critics_rating,
-                    trailingText = "★ ${filterState.minCriticsRating.toInt()} – ${filterState.maxCriticsRating.toInt()}"
-                )
-                RangeSlider(
-                    value = filterState.minCriticsRating..filterState.maxCriticsRating,
-                    onValueChange = { range ->
-                        onFilterChange(filterState.copy(minCriticsRating = range.start, maxCriticsRating = range.endInclusive))
-                    },
-                    valueRange = 0f..100f,
-                    steps = 19,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            RangeFilterSection(
+                icon = Icons.WandStarsW500Rounded,
+                title = Res.string.gamelist__critics_rating,
+                trailingText = "★ ${filterState.minCriticsRating.toInt()} – ${filterState.maxCriticsRating.toInt()}",
+                value = filterState.minCriticsRating..filterState.maxCriticsRating,
+                valueRange = 0f..MaxRating,
+                steps = RatingSteps,
+                onValueChange = { range ->
+                    onFilterChange(
+                        filterState.copy(minCriticsRating = range.start, maxCriticsRating = range.endInclusive)
+                    )
+                }
+            )
 
-            // Release Year Range Slider
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.HistoryW500Rounded,
-                    title = Res.string.gamelist__release_year,
-                    trailingText = "${filterState.minReleaseYear} – ${filterState.maxReleaseYear}"
-                )
-                RangeSlider(
-                    value = filterState.minReleaseYear.toFloat()..filterState.maxReleaseYear.toFloat(),
-                    onValueChange = { range ->
-                        onFilterChange(
-                            filterState.copy(
-                                minReleaseYear = range.start.toInt(),
-                                maxReleaseYear = range.endInclusive.toInt()
-                            )
+            RangeFilterSection(
+                icon = Icons.HistoryW500Rounded,
+                title = Res.string.gamelist__release_year,
+                trailingText = "${filterState.minReleaseYear} – ${filterState.maxReleaseYear}",
+                value = filterState.minReleaseYear.toFloat()..filterState.maxReleaseYear.toFloat(),
+                valueRange = MinReleaseYear.toFloat()..MaxReleaseYear.toFloat(),
+                // One stop per year, both ends included.
+                steps = MaxReleaseYear - MinReleaseYear - 1,
+                onValueChange = { range ->
+                    onFilterChange(
+                        filterState.copy(
+                            minReleaseYear = range.start.toInt(),
+                            maxReleaseYear = range.endInclusive.toInt()
                         )
-                    },
-                    valueRange = 1970f..2026f,
-                    steps = 55,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                    )
+                }
+            )
 
-            // Time to Beat Range Slider (hours of the "normally" completion time)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.HourglassW500Rounded,
-                    title = Res.string.gamelist__filter_time_to_beat,
-                    trailingText = if (filterState.maxHoursToBeat >= MaxHoursToBeat) {
-                        stringResource(Res.string.gamelist__hours_range_open, filterState.minHoursToBeat.toInt())
-                    } else {
-                        stringResource(
-                            Res.string.gamelist__hours_range,
-                            filterState.minHoursToBeat.toInt(),
-                            filterState.maxHoursToBeat.toInt()
-                        )
-                    }
-                )
-                RangeSlider(
-                    value = filterState.minHoursToBeat..filterState.maxHoursToBeat,
-                    onValueChange = { range ->
-                        onFilterChange(
-                            filterState.copy(minHoursToBeat = range.start, maxHoursToBeat = range.endInclusive)
-                        )
-                    },
-                    valueRange = 0f..MaxHoursToBeat,
-                    steps = HoursToBeatSteps,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            // Hours of the "normally" completion time.
+            RangeFilterSection(
+                icon = Icons.HourglassW500Rounded,
+                title = Res.string.gamelist__filter_time_to_beat,
+                trailingText = if (filterState.maxHoursToBeat >= MaxHoursToBeat) {
+                    stringResource(Res.string.gamelist__hours_range_open, filterState.minHoursToBeat.toInt())
+                } else {
+                    stringResource(
+                        Res.string.gamelist__hours_range,
+                        filterState.minHoursToBeat.toInt(),
+                        filterState.maxHoursToBeat.toInt()
+                    )
+                },
+                value = filterState.minHoursToBeat..filterState.maxHoursToBeat,
+                valueRange = 0f..MaxHoursToBeat,
+                steps = HoursToBeatSteps,
+                onValueChange = { range ->
+                    onFilterChange(filterState.copy(minHoursToBeat = range.start, maxHoursToBeat = range.endInclusive))
+                }
+            )
 
             // Release Status Filter
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -422,162 +429,80 @@ fun GameListFilterSheet(
                 )
             }
 
-            // Platforms Filter (Multi-select)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.DevicesW500Rounded,
-                    title = Res.string.gamelist__filter_platforms
-                )
-                ConnectedButtonGroup(
-                    options = popularPlatforms,
-                    checked = { platform -> filterState.platformIds.contains(platform.id) },
-                    onCheckedChange = { platform, isChecked ->
-                        onFilterChange(filterState.copy(platformIds = filterState.platformIds.toggle(platform.id, isChecked)))
-                    },
-                    toggleButtonText = { platform -> platform.name },
-                    toggleButtonIcon = { platform -> platform.icon },
-                    showChecks = true,
-                    multiple = true
-                )
-            }
+            MultiSelectFilterSection(
+                icon = Icons.DevicesW500Rounded,
+                title = Res.string.gamelist__filter_platforms,
+                options = popularPlatforms,
+                idOf = FilterPlatform::id,
+                selected = filterState.platformIds,
+                onSelectedChange = { onFilterChange(filterState.copy(platformIds = it)) },
+                label = { it.name },
+                optionIcon = { it.icon }
+            )
 
-            // Player Perspective Filter (Multi-select)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.ExploreW500Rounded,
-                    title = Res.string.gamelist__filter_player_perspectives
-                )
-                val perspectiveList = (1..7).map { PlayerPerspective(it.toLong()) }
-                ConnectedButtonGroup(
-                    options = perspectiveList,
-                    checked = { perspective -> filterState.playerPerspectiveIds.contains(perspective.id.toInt()) },
-                    onCheckedChange = { perspective, isChecked ->
-                        onFilterChange(
-                            filterState.copy(
-                                playerPerspectiveIds = filterState.playerPerspectiveIds.toggle(perspective.id.toInt(), isChecked)
-                            )
-                        )
-                    },
-                    toggleButtonText = { perspective -> perspective.localizedName },
-                    toggleButtonIcon = { perspective -> perspective.icon },
-                    showChecks = true,
-                    multiple = true
-                )
-            }
+            MultiSelectFilterSection(
+                icon = Icons.ExploreW500Rounded,
+                title = Res.string.gamelist__filter_player_perspectives,
+                options = PlayerPerspectiveIds.map { PlayerPerspective(it.toLong()) },
+                idOf = { it.id.toInt() },
+                selected = filterState.playerPerspectiveIds,
+                onSelectedChange = { onFilterChange(filterState.copy(playerPerspectiveIds = it)) },
+                label = { it.localizedName },
+                optionIcon = { it.icon }
+            )
 
-            // Game Category Filter (Multi-select)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.LayersW500Rounded,
-                    title = Res.string.gamelist__filter_categories
-                )
-                val categoryList = listOf(
-                    GameCategoryEnum.MAIN_GAME,
-                    GameCategoryEnum.DLC_ADDON,
-                    GameCategoryEnum.EXPANSION,
-                    GameCategoryEnum.REMAKE,
-                    GameCategoryEnum.REMASTER,
-                    GameCategoryEnum.BUNDLE,
-                    GameCategoryEnum.STANDALONE_EXPANSION,
-                    GameCategoryEnum.MOD
-                )
-                ConnectedButtonGroup(
-                    options = categoryList,
-                    checked = { category -> filterState.categoryIds.contains(category.ordinal) },
-                    onCheckedChange = { category, isChecked ->
-                        onFilterChange(filterState.copy(categoryIds = filterState.categoryIds.toggle(category.ordinal, isChecked)))
-                    },
-                    toggleButtonText = { category -> category.localizedName },
-                    showChecks = true,
-                    multiple = true
-                )
-            }
+            MultiSelectFilterSection(
+                icon = Icons.LayersW500Rounded,
+                title = Res.string.gamelist__filter_categories,
+                options = FilterCategories,
+                idOf = GameCategoryEnum::ordinal,
+                selected = filterState.categoryIds,
+                onSelectedChange = { onFilterChange(filterState.copy(categoryIds = it)) },
+                label = { it.localizedName }
+            )
 
-            // Development Status Filter (Multi-select)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.InfoW500Rounded,
-                    title = Res.string.gamelist__filter_status
-                )
-                val statusList = listOf(
-                    GameStatusEnum.RELEASED,
-                    GameStatusEnum.EARLY_ACCESS,
-                    GameStatusEnum.ALPHA,
-                    GameStatusEnum.BETA,
-                    GameStatusEnum.DELISTED,
-                    GameStatusEnum.CANCELLED
-                )
-                ConnectedButtonGroup(
-                    options = statusList,
-                    checked = { status -> filterState.statusIds.contains(status.ordinal) },
-                    onCheckedChange = { status, isChecked ->
-                        onFilterChange(filterState.copy(statusIds = filterState.statusIds.toggle(status.ordinal, isChecked)))
-                    },
-                    toggleButtonText = { status -> status.localizedName },
-                    showChecks = true,
-                    multiple = true
-                )
-            }
+            MultiSelectFilterSection(
+                icon = Icons.InfoW500Rounded,
+                title = Res.string.gamelist__filter_status,
+                options = FilterStatuses,
+                idOf = GameStatusEnum::ordinal,
+                selected = filterState.statusIds,
+                onSelectedChange = { onFilterChange(filterState.copy(statusIds = it)) },
+                label = { it.localizedName }
+            )
 
-            // Genres Filter (Multi-select)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.CategoryW500Rounded,
-                    title = Res.string.game__genres_title
-                )
-                val genreList = listOf(4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 25, 31, 32, 33, 34, 35, 36).map { Genre(it.toLong()) }
-                ConnectedButtonGroup(
-                    options = genreList,
-                    checked = { genre -> filterState.genreIds.contains(genre.id.toInt()) },
-                    onCheckedChange = { genre, isChecked ->
-                        onFilterChange(filterState.copy(genreIds = filterState.genreIds.toggle(genre.id.toInt(), isChecked)))
-                    },
-                    toggleButtonText = { genre -> genre.localizedName },
-                    toggleButtonIcon = { genre -> genre.icon },
-                    showChecks = true,
-                    multiple = true
-                )
-            }
+            MultiSelectFilterSection(
+                icon = Icons.CategoryW500Rounded,
+                title = Res.string.game__genres_title,
+                options = GenreIds.map { Genre(it.toLong()) },
+                idOf = { it.id.toInt() },
+                selected = filterState.genreIds,
+                onSelectedChange = { onFilterChange(filterState.copy(genreIds = it)) },
+                label = { it.localizedName },
+                optionIcon = { it.icon }
+            )
 
-            // Themes Filter (Multi-select)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.PaletteW500Rounded,
-                    title = Res.string.game__themes_title
-                )
-                val themeList = listOf(1, 17, 18, 19, 20, 21, 22, 23, 27, 33, 35, 38, 39, 43, 44).map { Theme(it.toLong()) }
-                ConnectedButtonGroup(
-                    options = themeList,
-                    checked = { theme -> filterState.themeIds.contains(theme.id.toInt()) },
-                    onCheckedChange = { theme, isChecked ->
-                        onFilterChange(filterState.copy(themeIds = filterState.themeIds.toggle(theme.id.toInt(), isChecked)))
-                    },
-                    toggleButtonText = { theme -> theme.localizedName },
-                    toggleButtonIcon = { theme -> theme.icon },
-                    showChecks = true,
-                    multiple = true
-                )
-            }
+            MultiSelectFilterSection(
+                icon = Icons.PaletteW500Rounded,
+                title = Res.string.game__themes_title,
+                options = ThemeIds.map { Theme(it.toLong()) },
+                idOf = { it.id.toInt() },
+                selected = filterState.themeIds,
+                onSelectedChange = { onFilterChange(filterState.copy(themeIds = it)) },
+                label = { it.localizedName },
+                optionIcon = { it.icon }
+            )
 
-            // Game Modes Filter (Multi-select)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.JoystickW500Rounded,
-                    title = Res.string.game__game_modes_title
-                )
-                val gameModeList = (1..6).map { GameMode(it.toLong()) }
-                ConnectedButtonGroup(
-                    options = gameModeList,
-                    checked = { mode -> filterState.gameModeIds.contains(mode.id.toInt()) },
-                    onCheckedChange = { mode, isChecked ->
-                        onFilterChange(filterState.copy(gameModeIds = filterState.gameModeIds.toggle(mode.id.toInt(), isChecked)))
-                    },
-                    toggleButtonText = { mode -> mode.localizedName },
-                    toggleButtonIcon = { mode -> mode.icon },
-                    showChecks = true,
-                    multiple = true
-                )
-            }
+            MultiSelectFilterSection(
+                icon = Icons.JoystickW500Rounded,
+                title = Res.string.game__game_modes_title,
+                options = GameModeIds.map { GameMode(it.toLong()) },
+                idOf = { it.id.toInt() },
+                selected = filterState.gameModeIds,
+                onSelectedChange = { onFilterChange(filterState.copy(gameModeIds = it)) },
+                label = { it.localizedName },
+                optionIcon = { it.icon }
+            )
 
             // Developer / Publisher, with the role the company had on the game
             SearchableFilterSection(
@@ -659,6 +584,60 @@ fun GameListFilterSheet(
 }
 
 private fun Set<Int>.toggle(id: Int, isChecked: Boolean) = if (isChecked) this + id else this - id
+
+/**
+ * A filter section over a fixed option set: header plus a multi-select button group.
+ *
+ * [idOf] maps an option to the id stored in [GameListFilterState] — IGDB enums are stored by ordinal,
+ * entities by their own id.
+ */
+@Composable
+private fun <T> MultiSelectFilterSection(
+    icon: ImageVector,
+    title: StringResource,
+    options: List<T>,
+    idOf: (T) -> Int,
+    selected: Set<Int>,
+    onSelectedChange: (Set<Int>) -> Unit,
+    label: @Composable (T) -> String,
+    optionIcon: (T) -> ImageVector? = { null },
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterSectionHeader(icon = icon, title = title)
+        ConnectedButtonGroup(
+            options = options,
+            checked = { option -> selected.contains(idOf(option)) },
+            onCheckedChange = { option, isChecked -> onSelectedChange(selected.toggle(idOf(option), isChecked)) },
+            toggleButtonText = label,
+            toggleButtonIcon = optionIcon,
+            showChecks = true,
+            multiple = true
+        )
+    }
+}
+
+/** A filter section over a numeric range: header with the current span plus a range slider. */
+@Composable
+private fun RangeFilterSection(
+    icon: ImageVector,
+    title: StringResource,
+    trailingText: String,
+    value: ClosedFloatingPointRange<Float>,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        FilterSectionHeader(icon = icon, title = title, trailingText = trailingText)
+        RangeSlider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            steps = steps,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
 
 /**
  * A filter section whose options come from IGDB: a search field plus a button group listing the

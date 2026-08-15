@@ -5,6 +5,8 @@ import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.IgdbEndpoint
 import at.released.igdbclient.apicalypse.ApicalypseQueryBuilder
 import at.released.igdbclient.apicalypse.SortOrder
+import at.released.igdbclient.dsl.field.IgdbRequestField
+import at.released.igdbclient.dsl.field.IgdbRequestFieldDsl
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.getCompanies
 import at.released.igdbclient.getEvents
@@ -25,6 +27,7 @@ import at.released.igdbclient.model.UnpackedMultiQueryResult
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder
 import it.maicol07.gamerlogue.extensions.alreadyReleased
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
@@ -36,6 +39,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 
@@ -45,6 +51,16 @@ const val MaxColumns = 10
 
 /** Upper bound of the "time to beat" slider, in hours; at the maximum the filter is off. */
 const val MaxHoursToBeat = 100f
+
+/** Upper bound of both rating sliders; at the maximum the filter is off. */
+const val MaxRating = 100f
+
+/** Bounds of the release-year range. The upper bound follows the clock so next year's announced
+ *  games stay selectable; both ends are shared by the filter state, the query and the slider. */
+const val MinReleaseYear = 1970
+
+@OptIn(ExperimentalTime::class)
+val MaxReleaseYear = Clock.System.now().toLocalDateTime(TimeZone.UTC).year + 1
 
 enum class ReleaseStatusFilter {
     ALL,
@@ -99,11 +115,11 @@ data class GameListFilterState(
     val sortField: SortField = SortField.POPULARITY,
     val sortDirection: SortDirection = SortDirection.DESC,
     val minUserRating: Float = 0f,
-    val maxUserRating: Float = 100f,
+    val maxUserRating: Float = MaxRating,
     val minCriticsRating: Float = 0f,
-    val maxCriticsRating: Float = 100f,
-    val minReleaseYear: Int = 1970,
-    val maxReleaseYear: Int = 2026,
+    val maxCriticsRating: Float = MaxRating,
+    val minReleaseYear: Int = MinReleaseYear,
+    val maxReleaseYear: Int = MaxReleaseYear,
     val releaseStatus: ReleaseStatusFilter = ReleaseStatusFilter.ALL,
     val platformIds: Set<Int> = emptySet(),
     val playerPerspectiveIds: Set<Int> = emptySet(),
@@ -382,7 +398,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
      */
     private data class Page(val games: List<Game>, val sourceFull: Boolean)
 
-    @Suppress("CyclomaticComplexMethod", "LongMethod", "ReturnCount")
+    @Suppress("ReturnCount")
     private suspend fun fetchPage(offset: Int): Page {
         val filter = state.filterState
         val section = state.section
@@ -424,99 +440,13 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                     if (!isCustomFilterActive) {
                         section?.baseQuery?.invoke(this@getGames)
                     }
-
-                    if (filter.minUserRating > 0f) {
-                        Game.field.rating greaterThanOrEqual filter.minUserRating.toDouble()
-                    }
-                    if (filter.maxUserRating < 100f) {
-                        Game.field.rating lessThanOrEqual filter.maxUserRating.toDouble()
-                    }
-
-                    if (filter.minCriticsRating > 0f) {
-                        Game.field.aggregated_rating greaterThanOrEqual filter.minCriticsRating.toDouble()
-                    }
-                    if (filter.maxCriticsRating < 100f) {
-                        Game.field.aggregated_rating lessThanOrEqual filter.maxCriticsRating.toDouble()
-                    }
-
-                    when (filter.releaseStatus) {
-                        ReleaseStatusFilter.RELEASED -> alreadyReleased()
-                        ReleaseStatusFilter.UPCOMING -> notYetReleased()
-                        ReleaseStatusFilter.ALL -> {}
-                    }
-
-                    if (filter.minReleaseYear > 1970) {
-                        val startEpoch = LocalDateTime(filter.minReleaseYear, 1, 1, 0, 0).toInstant(TimeZone.UTC).epochSeconds
-                        Game.field.first_release_date greaterThanOrEqual startEpoch
-                    }
-                    if (filter.maxReleaseYear < 2026) {
-                        val endEpoch = LocalDateTime(filter.maxReleaseYear, 12, 31, 23, 59, 59).toInstant(TimeZone.UTC).epochSeconds
-                        Game.field.first_release_date lessThanOrEqual endEpoch
-                    }
-
-                    if (filter.platformIds.isNotEmpty()) {
-                        Game.field.platforms inAny filter.platformIds.map(Int::toString)
-                    }
-
-                    if (filter.playerPerspectiveIds.isNotEmpty()) {
-                        Game.field.player_perspectives inAny filter.playerPerspectiveIds.map(Int::toString)
-                    }
-
-                    if (filter.categoryIds.isNotEmpty()) {
-                        Game.field.category inAny filter.categoryIds.map(Int::toString)
-                    }
-
-                    if (filter.statusIds.isNotEmpty()) {
-                        Game.field.status inAny filter.statusIds.map(Int::toString)
-                    }
-
-                    if (filter.genreIds.isNotEmpty()) {
-                        Game.field.genres inAny filter.genreIds.map(Int::toString)
-                    }
-
-                    if (filter.themeIds.isNotEmpty()) {
-                        Game.field.themes inAny filter.themeIds.map(Int::toString)
-                    }
-
-                    if (filter.gameModeIds.isNotEmpty()) {
-                        Game.field.game_modes inAny filter.gameModeIds.map(Int::toString)
-                    }
-
-                    filter.companiesClause()?.let { raw(it) }
-
-                    if (filter.franchiseIds.isNotEmpty()) {
-                        Game.field.franchises inAny filter.franchiseIds.map(Int::toString)
-                    }
-
-                    if (filter.gameEngineIds.isNotEmpty()) {
-                        Game.field.game_engines inAny filter.gameEngineIds.map(Int::toString)
-                    }
-
-                    if (filter.keywordIds.isNotEmpty()) {
-                        Game.field.keywords inAny filter.keywordIds.map(Int::toString)
-                    }
+                    applyFilters(filter)
                 }
 
                 // With an id source the page is already chosen upstream: sorting and offsetting
                 // here would reshuffle and skip within that page.
                 if (gameIds == null) {
-                    val order = if (filter.sortDirection == SortDirection.DESC) SortOrder.DESC else SortOrder.ASC
-                    // IGDB rejects a query carrying both `search` and `sort`: search results are relevancy-ordered.
-                    when (if (filter.searchQuery.isNotBlank()) null else filter.sortField) {
-                        null -> {}
-                        SortField.USER_RATING -> sort(Game.field.rating, order)
-                        SortField.CRITICS_RATING -> sort(Game.field.aggregated_rating, order)
-                        SortField.RELEASE_DATE -> sort(Game.field.first_release_date, order)
-                        SortField.NAME -> sort(Game.field.name, order)
-                        SortField.POPULARITY -> {
-                            if (isCustomFilterActive) {
-                                sort(Game.field.rating, order)
-                            } else {
-                                section?.baseQuery?.invoke(this@getGames)
-                            }
-                        }
-                    }
-
+                    applySort(filter, isCustomFilterActive, section)
                     offset(offset)
                 }
                 limit(PageSize)
@@ -607,28 +537,95 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
     }
 }
 
-/** True when anything beyond the section's own default query is set. */
+/** The `where` clauses of every filter the user can set, ordered as they appear in the filter sheet. */
+@Suppress("CyclomaticComplexMethod")
+private fun ApicalypseQueryBuilderWhereBuilder.applyFilters(filter: GameListFilterState) {
+    if (filter.minUserRating > 0f) {
+        Game.field.rating greaterThanOrEqual filter.minUserRating.toDouble()
+    }
+    if (filter.maxUserRating < MaxRating) {
+        Game.field.rating lessThanOrEqual filter.maxUserRating.toDouble()
+    }
+
+    if (filter.minCriticsRating > 0f) {
+        Game.field.aggregated_rating greaterThanOrEqual filter.minCriticsRating.toDouble()
+    }
+    if (filter.maxCriticsRating < MaxRating) {
+        Game.field.aggregated_rating lessThanOrEqual filter.maxCriticsRating.toDouble()
+    }
+
+    when (filter.releaseStatus) {
+        ReleaseStatusFilter.RELEASED -> alreadyReleased()
+        ReleaseStatusFilter.UPCOMING -> notYetReleased()
+        ReleaseStatusFilter.ALL -> {}
+    }
+
+    if (filter.minReleaseYear > MinReleaseYear) {
+        val startEpoch = LocalDateTime(filter.minReleaseYear, 1, 1, 0, 0).toInstant(TimeZone.UTC).epochSeconds
+        Game.field.first_release_date greaterThanOrEqual startEpoch
+    }
+    if (filter.maxReleaseYear < MaxReleaseYear) {
+        val endEpoch = LocalDateTime(filter.maxReleaseYear, 12, 31, 23, 59, 59).toInstant(TimeZone.UTC).epochSeconds
+        Game.field.first_release_date lessThanOrEqual endEpoch
+    }
+
+    anyOf(Game.field.platforms, filter.platformIds)
+    anyOf(Game.field.player_perspectives, filter.playerPerspectiveIds)
+    anyOf(Game.field.category, filter.categoryIds)
+    anyOf(Game.field.status, filter.statusIds)
+    anyOf(Game.field.genres, filter.genreIds)
+    anyOf(Game.field.themes, filter.themeIds)
+    anyOf(Game.field.game_modes, filter.gameModeIds)
+    anyOf(Game.field.franchises, filter.franchiseIds)
+    anyOf(Game.field.game_engines, filter.gameEngineIds)
+    anyOf(Game.field.keywords, filter.keywordIds)
+
+    filter.companiesClause()?.let { raw(it) }
+}
+
+/** `inAny` over an id set, skipped when the set is empty (an empty `= ()` is an IGDB syntax error). */
+private fun ApicalypseQueryBuilderWhereBuilder.anyOf(field: IgdbRequestField<*>, ids: Set<Int>) {
+    if (ids.isNotEmpty()) field inAny ids.map(Int::toString)
+}
+
+private fun ApicalypseQueryBuilderWhereBuilder.anyOf(field: IgdbRequestFieldDsl<*, *>, ids: Set<Int>) {
+    if (ids.isNotEmpty()) field inAny ids.map(Int::toString)
+}
+
+/** Sort clause, or the section's own ordering when no custom filter replaces it. */
+private fun ApicalypseQueryBuilder.applySort(
+    filter: GameListFilterState,
+    isCustomFilterActive: Boolean,
+    section: DiscoverSection?,
+) {
+    val order = if (filter.sortDirection == SortDirection.DESC) SortOrder.DESC else SortOrder.ASC
+    // IGDB rejects a query carrying both `search` and `sort`: search results are relevancy-ordered.
+    when (if (filter.searchQuery.isNotBlank()) null else filter.sortField) {
+        null -> {}
+        SortField.USER_RATING -> sort(Game.field.rating, order)
+        SortField.CRITICS_RATING -> sort(Game.field.aggregated_rating, order)
+        SortField.RELEASE_DATE -> sort(Game.field.first_release_date, order)
+        SortField.NAME -> sort(Game.field.name, order)
+        SortField.POPULARITY -> {
+            if (isCustomFilterActive) {
+                sort(Game.field.rating, order)
+            } else {
+                section?.baseQuery?.invoke(this)
+            }
+        }
+    }
+}
+
+private val DefaultFilterState = GameListFilterState()
+
+/**
+ * True when anything beyond the section's own default query is set.
+ *
+ * Compared against the default instance rather than field by field: a new filter is covered the
+ * moment it is added to [GameListFilterState], with no second list to keep in sync.
+ */
 val GameListFilterState.isActive: Boolean
-    get() = searchQuery.isNotBlank() ||
-        sortField != SortField.POPULARITY ||
-        sortDirection != SortDirection.DESC ||
-        minUserRating > 0f || maxUserRating < 100f ||
-        minCriticsRating > 0f || maxCriticsRating < 100f ||
-        minReleaseYear > 1970 || maxReleaseYear < 2026 ||
-        releaseStatus != ReleaseStatusFilter.ALL ||
-        platformIds.isNotEmpty() ||
-        playerPerspectiveIds.isNotEmpty() ||
-        categoryIds.isNotEmpty() ||
-        statusIds.isNotEmpty() ||
-        genreIds.isNotEmpty() ||
-        themeIds.isNotEmpty() ||
-        gameModeIds.isNotEmpty() ||
-        companyIds.isNotEmpty() ||
-        companyRoles.values.any { it.isNotEmpty() } ||
-        franchiseIds.isNotEmpty() ||
-        gameEngineIds.isNotEmpty() ||
-        keywordIds.isNotEmpty() ||
-        hasTimeToBeatFilter
+    get() = this != DefaultFilterState
 
 /**
  * True when a filter other than the search bar query is set.
