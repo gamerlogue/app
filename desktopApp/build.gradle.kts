@@ -18,6 +18,7 @@ val distributionVersion = version.toString().substringBefore('-').substringBefor
 
 dependencies {
     implementation(project(":sharedUI"))
+    implementation(libs.compose.resources)
 }
 
 compose.desktop {
@@ -31,7 +32,7 @@ compose.desktop {
             packageVersion = distributionVersion
 
             linux {
-                iconFile.set(project.file("src/main/resources/AppIcon.png"))
+                iconFile.set(project.file("src/main/composeResources/drawable/app_icon.png"))
             }
             windows {
                 iconFile.set(project.file("src/main/resources/AppIcon.ico"))
