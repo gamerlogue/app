@@ -30,7 +30,6 @@ import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
-import it.maicol07.gamerlogue.ui.views.game.GameHandoff
 
 /**
  * The app's [SharedTransitionScope], provided around the [NavDisplay] so any screen can opt a
@@ -76,8 +75,13 @@ fun AppNavDisplay(
     }
     val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(directive = directive)
     val navigateToGame: (Game) -> Unit = { game ->
-        GameHandoff.put(game)
-        backStack.add(NavKeys.GameDetail(game.id.toInt()))
+        backStack.add(
+            NavKeys.GameDetail(
+                gameId = game.id.toInt(),
+                coverImageId = game.cover?.image_id,
+                gameName = game.name,
+            )
+        )
     }
     val navigateToEventGames: (Event) -> Unit = { event ->
         backStack.add(NavKeys.GameList(eventId = event.id.toInt(), eventName = event.name))

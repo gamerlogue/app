@@ -213,6 +213,11 @@ internal fun EntryProviderScope<NavKey>.settingsEntries(backStack: NavBackStack)
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal fun EntryProviderScope<NavKey>.gameEntries(navigateToGame: (Game) -> Unit) {
     entry<NavKeys.GameDetail>(metadata = ListDetailSceneStrategy.detailPane()) { navKey ->
-        GameDetailScreen(gameId = navKey.gameId, onGameClick = navigateToGame)
+        GameDetailScreen(
+            gameId = navKey.gameId,
+            coverImageId = navKey.coverImageId,
+            gameName = navKey.gameName,
+            onGameClick = navigateToGame,
+        )
     }
 }

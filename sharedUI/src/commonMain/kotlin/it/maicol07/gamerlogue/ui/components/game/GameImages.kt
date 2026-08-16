@@ -51,12 +51,22 @@ val CoverAspectRatio = CoverWidth / CoverHeight
 fun Game.CoverImage(
     modifier: Modifier = Modifier,
     sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight)
+) = GameCoverImage(id.toInt(), cover?.image_id, name, modifier, sizeModifier)
+
+/** A cover preview that only needs the small values carried by the detail route. */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun GameCoverImage(
+    gameId: Int,
+    coverImageId: String?,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight),
 ) = RemoteImage(
-    cover?.let { igdbImageUrl(cover!!.image_id, IgdbImageSize.COVER_BIG) }
-        ?: "https://placehold.net/default.png",
-    contentDescription = name,
+    coverImageId?.let { igdbImageUrl(it, IgdbImageSize.COVER_BIG) } ?: "https://placehold.net/default.png",
+    contentDescription = contentDescription,
     modifier = Modifier
-        .sharedGameElement("cover-$id")
+        .sharedGameElement("cover-$gameId")
         .then(modifier)
         .then(sizeModifier),
     loadingModifier = sizeModifier

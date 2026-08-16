@@ -38,6 +38,7 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.Screenshot
 import it.maicol07.gamerlogue.extensions.isVisible
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
+import it.maicol07.gamerlogue.ui.components.game.GameCoverImage
 import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
 import it.maicol07.gamerlogue.ui.components.game.Image
 
@@ -58,11 +59,7 @@ fun LazyItemScope.GameHeader(
     Box(modifier = Modifier.animateItem().fillMaxWidth(), contentAlignment = Alignment.BottomStart) {
         GameBanner(game)
         game.CoverImage(
-            Modifier
-                .padding(start = 16.dp)
-                .offset(y = CoverOverlap)
-                .dropShadow(MaterialTheme.shapes.large, CoverDropShadow)
-                .clip(MaterialTheme.shapes.large)
+            Modifier.detailCover()
                 .clickable {
 //                    showViewer = true
                 }
@@ -93,6 +90,24 @@ fun LazyItemScope.GameHeader(
     // Add spacer to compensate for the overlap of the cover image
     Spacer(Modifier.height(CoverOverlap))
 }
+
+@Composable
+fun GameDetailLoadingCover(gameId: Int, coverImageId: String?, contentDescription: String) {
+    Box(Modifier.fillMaxWidth().height(BannerHeight), contentAlignment = Alignment.BottomStart) {
+        GameCoverImage(
+            gameId = gameId,
+            coverImageId = coverImageId,
+            contentDescription = contentDescription,
+            modifier = Modifier.detailCover(),
+        )
+    }
+}
+
+@Composable
+private fun Modifier.detailCover() = padding(start = 16.dp)
+    .offset(y = CoverOverlap)
+    .dropShadow(MaterialTheme.shapes.large, CoverDropShadow)
+    .clip(MaterialTheme.shapes.large)
 
 @Composable
 private fun GameBanner(game: Game) {

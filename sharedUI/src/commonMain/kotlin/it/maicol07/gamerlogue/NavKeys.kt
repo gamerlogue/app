@@ -81,8 +81,13 @@ object NavKeys {
         override val title: StringResource? = null
     }
 
+    /** [coverImageId] and [gameName] keep the cover transition alive while the detail request loads. */
     @Serializable
-    data class GameDetail(val gameId: Int) : NavKeyWithMeta() {
+    data class GameDetail(
+        val gameId: Int,
+        val coverImageId: String? = null,
+        val gameName: String? = null,
+    ) : NavKeyWithMeta() {
         override val showBottomBar: Boolean = false
     }
 
