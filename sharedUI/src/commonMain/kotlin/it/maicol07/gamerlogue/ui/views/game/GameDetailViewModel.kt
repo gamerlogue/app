@@ -12,7 +12,6 @@ import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
-import it.maicol07.gamerlogue.core.NavHandoff
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
@@ -28,18 +27,6 @@ import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
-
-/**
- * Handoff of the [Game] already loaded by a list screen to the detail screen, so the detail can
- * render its hero instantly instead of waiting for [GameDetailViewModel.loadGameDetails].
- */
-object GameHandoff {
-    private val pending = NavHandoff<Int, Game>()
-
-    fun put(game: Game) = pending.put(game.id.toInt(), game)
-
-    fun take(gameId: Int): Game? = pending.take(gameId)
-}
 
 /** Cover, title and release date of a game shown in one of the detail screen's carousels. */
 private fun GameFieldDsl.relatedGameFields(): Array<IgdbRequestField<*>> = arrayOf(
@@ -152,16 +139,9 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         @Composable
         fun inject(gameId: Int): GameDetailViewModel = koinViewModel(parameters = { parametersOf(gameId) })
 
-        @Suppress("unused")
-        @Composable
-        fun inject(game: Game): GameDetailViewModel = inject(game.id.toInt())
     }
 
     init {
-        // Seed with the Game already loaded by the originating list so the hero (cover + banner)
-        // renders from the first frame — required for the shared-element transition to have a
-        // target while the full detail query is still in flight.
-        GameHandoff.take(gameId)?.let { seed -> update { copy(game = seed) } }
         viewModelScope.launch { loadGameDetails() }
         loadLibraryEntry()
     }

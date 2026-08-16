@@ -2,7 +2,6 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.model.Game
-import it.maicol07.gamerlogue.core.NavHandoff
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
@@ -23,11 +22,13 @@ enum class ImportMode { OWNED, WISHLIST }
  * different nav entry.
  */
 object ImportHandoff {
-    private val pending = NavHandoff<ExternalService, List<ExternalGameRef>>()
+    private val pending = mutableMapOf<ExternalService, List<ExternalGameRef>>()
 
-    fun put(service: ExternalService, refs: List<ExternalGameRef>) = pending.put(service, refs)
+    fun put(service: ExternalService, refs: List<ExternalGameRef>) {
+        pending[service] = refs
+    }
 
-    fun take(service: ExternalService): List<ExternalGameRef> = pending.take(service).orEmpty()
+    fun take(service: ExternalService): List<ExternalGameRef> = pending.remove(service).orEmpty()
 }
 
 /**
