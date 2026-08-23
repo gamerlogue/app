@@ -33,11 +33,11 @@ class GamerlogueAuthenticator(private val context: Context) : AbstractAccountAut
         val authToken = accountManager.peekAuthToken(account, authTokenType)
 
         if (!authToken.isNullOrEmpty()) {
-            val result = Bundle()
-            result.putString(AccountManager.KEY_ACCOUNT_NAME, account?.name)
-            result.putString(AccountManager.KEY_ACCOUNT_TYPE, account?.type)
-            result.putString(AccountManager.KEY_AUTHTOKEN, authToken)
-            return result
+            return Bundle().apply {
+                putString(AccountManager.KEY_ACCOUNT_NAME, account?.name)
+                putString(AccountManager.KEY_ACCOUNT_TYPE, account?.type)
+                putString(AccountManager.KEY_AUTHTOKEN, authToken)
+            }
         }
 
         return Bundle()
