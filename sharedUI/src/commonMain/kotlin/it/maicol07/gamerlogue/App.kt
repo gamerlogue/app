@@ -18,13 +18,11 @@ import it.maicol07.gamerlogue.ui.theme.AppTheme
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.core.annotation.KoinApplication
-import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.plugin.module.dsl.koinConfiguration
 
 @KoinApplication
 private object KoinApp
 
-@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun App(authCallbackUri: String? = null) {
     val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
