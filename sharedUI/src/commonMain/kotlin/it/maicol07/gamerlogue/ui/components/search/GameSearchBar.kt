@@ -20,8 +20,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -101,6 +103,7 @@ fun GameSearchButton(
 fun GameListSearchBar(
     placeholder: String,
     query: String,
+    onQueryChange: (String) -> Unit,
     onSearch: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -112,9 +115,21 @@ fun GameListSearchBar(
     val focusRequester = remember { FocusRequester() }
     var focusedOnce by rememberSaveable { mutableStateOf(false) }
 
-    // Keeps the field in sync when the owner drops the query behind our back (e.g. "reset filters").
+    // The owner debounces, so its query lags the field: writing every incoming value back would eat
+    // the characters typed meanwhile. Only genuinely external changes (e.g. "reset filters") win.
+    var lastEmitted by remember { mutableStateOf(query) }
     LaunchedEffect(query) {
-        if (textFieldState.text.toString() != query) textFieldState.edit { replace(0, length, query) }
+        if (query != lastEmitted && textFieldState.text.toString() != query) {
+            textFieldState.edit { replace(0, length, query) }
+        }
+    }
+    // Search-as-you-type.
+    val currentOnQueryChange by rememberUpdatedState(onQueryChange)
+    LaunchedEffect(textFieldState) {
+        snapshotFlow { textFieldState.text.toString() }.collect {
+            lastEmitted = it
+            currentOnQueryChange(it)
+        }
     }
     LaunchedEffect(Unit) {
         if (autoFocus && !focusedOnce) {

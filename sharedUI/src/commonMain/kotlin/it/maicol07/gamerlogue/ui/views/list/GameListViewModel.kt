@@ -182,6 +182,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
     private val filterSearchJobs = mutableMapOf<FilterSearchTarget, Job>()
     private var defaultOptionsJob: Job? = null
     private var loadJob: Job? = null
+    private var searchJob: Job? = null
 
     /** The event's game ids, fetched once per event scope; see [fetchEventGameIds]. */
     private var eventGameIds: List<Int>? = null
@@ -265,8 +266,22 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
             .take(DefaultOptionsPerTarget)
             .mapNotNull { entry -> firstNotNullOfOrNull { game -> extract(game).firstOrNull { it.id == entry.key } } }
 
-    /** Applies the query typed in the search bar; no-op when it did not change. */
+    /**
+     * Applies the query typed in the search bar after [DebounceMillis], so a burst of keystrokes
+     * costs one IGDB request instead of one per character. Use [submitSearchQuery] to skip the wait.
+     */
     fun setSearchQuery(query: String) {
+        searchJob?.cancel()
+        if (state.filterState.searchQuery == query) return
+        searchJob = viewModelScope.launch {
+            delay(DebounceMillis)
+            updateFilter(state.filterState.copy(searchQuery = query))
+        }
+    }
+
+    /** Applies the query right away, for the deliberate gestures: the IME search action and clear. */
+    fun submitSearchQuery(query: String) {
+        searchJob?.cancel()
         if (state.filterState.searchQuery == query) return
         updateFilter(state.filterState.copy(searchQuery = query))
     }

@@ -111,7 +111,8 @@ private fun GameListTopBar(navKey: NavKeys.GameList, backStack: NavBackStack) {
         // In event scope the event's name identifies the list; there is no title bar.
         placeholder = navKey.eventName ?: stringResource(Res.string.search__global_hint),
         query = uiState.filterState.searchQuery,
-        onSearch = viewModel::setSearchQuery,
+        onQueryChange = viewModel::setSearchQuery,
+        onSearch = viewModel::submitSearchQuery,
         onBack = { backStack.removeLastOrNull() },
         // Arriving on a Discover section or an event is a browse intent, not a typing one.
         autoFocus = navKey.section == null && navKey.eventId == null,
