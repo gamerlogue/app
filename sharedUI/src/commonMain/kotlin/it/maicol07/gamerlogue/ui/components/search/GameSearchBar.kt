@@ -124,35 +124,31 @@ fun GameListSearchBar(
     }
 
     SearchBarShell(modifier) { barModifier ->
-        SearchBar(
-            state = searchBarState,
-            modifier = barModifier,
-            inputField = {
-                SearchBarDefaults.InputField(
-                    searchBarState = searchBarState,
-                    textFieldState = textFieldState,
-                    onSearch = onSearch,
-                    modifier = Modifier.focusRequester(focusRequester),
-                    placeholder = { Text(placeholder) },
-                    leadingIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.ArrowBackW500Rounded, contentDescription = null)
-                        }
-                    },
-                    trailingIcon = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (textFieldState.text.isNotEmpty()) {
-                                IconButton(onClick = {
-                                    textFieldState.clearText()
-                                    onSearch("")
-                                }) {
-                                    Icon(Icons.CloseW500Rounded, contentDescription = null)
-                                }
-                            }
-                            trailingActions()
+        // No collapsed SearchBar wrapper here: it applies InterceptPlatformTextInput to keep the
+        // soft keyboard for its expanded counterpart, which this always-editable bar never shows.
+        SearchBarDefaults.InputField(
+            searchBarState = searchBarState,
+            textFieldState = textFieldState,
+            onSearch = onSearch,
+            modifier = barModifier.fillMaxWidth().focusRequester(focusRequester),
+            placeholder = { Text(placeholder) },
+            leadingIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.ArrowBackW500Rounded, contentDescription = null)
+                }
+            },
+            trailingIcon = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (textFieldState.text.isNotEmpty()) {
+                        IconButton(onClick = {
+                            textFieldState.clearText()
+                            onSearch("")
+                        }) {
+                            Icon(Icons.CloseW500Rounded, contentDescription = null)
                         }
                     }
-                )
+                    trailingActions()
+                }
             }
         )
     }
