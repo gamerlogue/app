@@ -276,8 +276,14 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         load(reset = true)
     }
 
+    /** Clears every filter but the query: that one has its own affordance, the search bar. */
     fun resetFilter() {
-        update { copy(filterState = GameListFilterState(), filterSearches = emptyMap()) }
+        update {
+            copy(
+                filterState = GameListFilterState(searchQuery = filterState.searchQuery),
+                filterSearches = emptyMap()
+            )
+        }
         load(reset = true)
     }
 
