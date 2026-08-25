@@ -1,10 +1,10 @@
 [versions]
-agp = "9.3.1"
+agp = "9.3.2"
 androidx-activityCompose = "1.13.0"
 androidx-uiTest = "1.12.0"
 browser = "1.10.0"
 buildConfig = "6.0.10"
-compose-multiplatform = "1.12.0-rc01"
+compose-multiplatform = "1.12.0"
 compose-hot-reload = "1.2.0"
 compose-settings = "3.1.0"
 composeWebview = "1.9.0"
