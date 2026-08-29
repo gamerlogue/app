@@ -6,6 +6,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
@@ -15,6 +16,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.accept
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
@@ -31,9 +33,15 @@ import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import kotlin.coroutines.cancellation.CancellationException
 
+/**
+ * Shared across every client. Deliberately **without** `HttpCache`: Ktor keys the cache on the URL and
+ * ignores the `Authorization` header, so on a per-user endpoint a response fetched under one token is
+ * replayed under the next one (see `HttpCacheAuthTest`). Only the IGDB client, whose credentials are
+ * the app's rather than the user's, installs it.
+ */
 private val ktorHttpClientConfig: HttpClientConfig<*>.() -> Unit = {
-    install(HttpCache)
     install(Logging) {
         logger = object : Logger {
             override fun log(message: String) {
@@ -43,16 +51,30 @@ private val ktorHttpClientConfig: HttpClientConfig<*>.() -> Unit = {
         // HEADERS logs the Authorization header, so it stays out of anything but a local build.
         level = if (BuildConfig.APP_ENV == AppEnvironment.LOCAL) LogLevel.HEADERS else LogLevel.NONE
     }
+    install(HttpTimeout) {
+        requestTimeoutMillis = RequestTimeoutMillis
+        connectTimeoutMillis = ConnectTimeoutMillis
+        socketTimeoutMillis = SocketTimeoutMillis
+    }
     install(HttpRequestRetry) {
         maxRetries = 3
         retryIf { _, response ->
-            response.status.value in ServerErrorRange
+            response.status.value in ServerErrorRange || response.status == HttpStatusCode.TooManyRequests
         }
+        // Without this a dropped connection fails the call outright; cancellation must still propagate.
+        retryOnExceptionIf { _, cause -> cause !is CancellationException }
+        // Honours Retry-After, which is what makes the 429 branch above worth having.
         exponentialDelay()
     }
 }
 
 private val ServerErrorRange = 500..599
+
+// Generous enough for a cold backend, short enough that a dead connection surfaces as an error
+// instead of an indefinite spinner.
+private const val RequestTimeoutMillis = 30_000L
+private const val ConnectTimeoutMillis = 15_000L
+private const val SocketTimeoutMillis = 30_000L
 
 @Suppress("unused")
 @Module
@@ -75,6 +97,9 @@ object HttpModule {
         httpClient {
             this.httpClient = HttpClient {
                 ktorHttpClientConfig()
+                // Safe here, unlike on the user-scoped clients: IGDB responses are the same for every
+                // user, so a URL-keyed cache cannot leak one user's data to another.
+                install(HttpCache)
             }
         }
     }
