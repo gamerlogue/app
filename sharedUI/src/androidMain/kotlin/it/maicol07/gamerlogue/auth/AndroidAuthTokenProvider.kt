@@ -33,13 +33,14 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
     }
 
     override fun saveToken(token: String?) {
-        val account = getOrCreateAccount()
-        if (token != null) {
-            accountManager.setAuthToken(account, authTokenType, token)
-        } else {
-            // Clear the auth token
-            accountManager.invalidateAuthToken(accountType, accountManager.peekAuthToken(account, authTokenType))
+        if (token == null) {
+            // invalidateAuthToken only drops the token from the cache — it means "this token is stale",
+            // not "forget it", and no-ops when peekAuthToken returns null. Removing the account is the
+            // unambiguous way to end a session; the next login recreates it through getOrCreateAccount.
+            accountManager.getAccountsByType(accountType).forEach(accountManager::removeAccountExplicitly)
+            return
         }
+        accountManager.setAuthToken(getOrCreateAccount(), authTokenType, token)
     }
 
     override fun loadUserId(): String? {
@@ -48,7 +49,13 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
     }
 
     override fun saveUserId(userId: String?) {
-        val account = getOrCreateAccount()
+        // No getOrCreateAccount on the null path: logout clears the token first, which removes the
+        // account, and recreating an empty one here would leave a stray account behind.
+        val account = if (userId == null) {
+            accountManager.getAccountsByType(accountType).firstOrNull() ?: return
+        } else {
+            getOrCreateAccount()
+        }
         accountManager.setUserData(account, userIdKey, userId)
     }
 }
