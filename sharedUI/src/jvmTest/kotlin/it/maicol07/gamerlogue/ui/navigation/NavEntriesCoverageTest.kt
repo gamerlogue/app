@@ -14,6 +14,7 @@ import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
 import kotlinx.serialization.serializer
+import kotlin.reflect.KClass
 
 /** One instance per [AppNavKey] subclass; the second test is what keeps it exhaustive. */
 private val Samples = listOf<AppNavKey>(
@@ -32,10 +33,11 @@ private val Samples = listOf<AppNavKey>(
 )
 
 /**
- * Keys with no entry on purpose. [NavKeys.Login] is never pushed onto the back stack — LoginView is
- * rendered inline by the authenticated destinations — so pushing it would hit the fallback.
+ * Every leaf of the [AppNavKey] hierarchy. [KClass.sealedSubclasses] is direct-only, so an intermediate
+ * sealed layer would silently shrink what the exhaustiveness check below covers.
  */
-private val Unregistered = setOf(NavKeys.Login::class)
+private fun KClass<*>.allLeafSubclasses(): Set<KClass<*>> =
+    sealedSubclasses.flatMap { if (it.isSealed) it.allLeafSubclasses() else listOf(it) }.toSet()
 
 /**
  * Adding a destination means adding a key and registering its entry; forgetting the second half
@@ -55,8 +57,9 @@ class NavEntriesCoverageTest : StringSpec({
         Samples.forEach { key -> shouldNotThrowAny { provider(key) } }
     }
 
-    "every AppNavKey subclass is either sampled or explicitly unregistered" {
-        Samples.map { it::class }.toSet() + Unregistered shouldBe AppNavKey::class.sealedSubclasses.toSet()
+    // No exemption list: every destination has an entry, so a new key that forgets one fails here.
+    "every AppNavKey subclass is sampled" {
+        Samples.map { it::class }.toSet() shouldBe AppNavKey::class.allLeafSubclasses()
     }
 
     // Closed polymorphism replaced a hand-written SerializersModule; a regression here would only

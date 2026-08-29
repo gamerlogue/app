@@ -30,18 +30,28 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Per
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500RoundedFill
 import it.maicol07.gamerlogue.AppNavKey
 import it.maicol07.gamerlogue.LocalNavBackStack
-import it.maicol07.gamerlogue.NavBackStack
+import it.maicol07.gamerlogue.AppNavBackStack
 import it.maicol07.gamerlogue.NavKeys
+import it.maicol07.gamerlogue.NavigationBarContrastEnforced
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * The bottom bar reads the current destination itself instead of receiving it: it is the only global
+ * chrome that depends on it, so the snapshot read stays scoped here and a navigation does not
+ * invalidate the whole app shell.
+ */
 @Composable
 fun AppNavigationBar(
-    currentNavKey: AppNavKey,
-    backStack: NavBackStack = LocalNavBackStack.current
+    backStack: AppNavBackStack = LocalNavBackStack.current
 ) {
+    val currentNavKey = backStack.lastOrNull()
+    val showBottomBar = currentNavKey?.showBottomBar ?: true
+    // The system scrim behind a transparent navigation bar follows the bar's own visibility.
+    NavigationBarContrastEnforced(!showBottomBar)
+
     AnimatedVisibility(
-        currentNavKey.showBottomBar,
+        showBottomBar,
         enter = slideInVertically { it } + fadeIn(),
         exit = slideOutVertically(tween(200, easing = FastOutLinearInEasing)) { it } + fadeOut(tween(200))
     ) {

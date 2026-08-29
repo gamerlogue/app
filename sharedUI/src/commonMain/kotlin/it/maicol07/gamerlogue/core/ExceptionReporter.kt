@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.core
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import org.koin.core.annotation.Single
 
 /**
@@ -9,40 +10,41 @@ import org.koin.core.annotation.Single
  *
  * Reported from ViewModels and services, so the state is a [StateFlow] the UI collects rather than
  * Compose state a non-composable would have to write into.
+ *
+ * One nullable value instead of three independent flags: the sheet cannot be open without an error to
+ * show, and a dismissal cannot be pending without a sheet, so neither combination is representable.
  */
 @Single
 class ExceptionReporter {
-    val exception: StateFlow<Throwable?>
-        field = MutableStateFlow<Throwable?>(null)
+    /**
+     * @param sheetOpen whether the sheet is showing; false means the error is still reachable from the
+     *   top bar indicator.
+     * @param dismissRequested set when a successful retry should animate the sheet closed.
+     */
+    data class ErrorState(
+        val error: Throwable,
+        val sheetOpen: Boolean = true,
+        val dismissRequested: Boolean = false,
+    )
 
-    val sheetOpen: StateFlow<Boolean>
-        field = MutableStateFlow(false)
-
-    /** Set when a successful retry should animate the sheet closed. */
-    val dismissRequested: StateFlow<Boolean>
-        field = MutableStateFlow(false)
+    val state: StateFlow<ErrorState?>
+        field = MutableStateFlow<ErrorState?>(null)
 
     fun report(t: Throwable) {
-        exception.value = t
-        sheetOpen.value = true
+        state.value = ErrorState(t)
     }
 
-    fun show() {
-        sheetOpen.value = true
-    }
+    /** Reopens the sheet for the error already reported; no-op when there is none. */
+    fun show() = state.update { it?.copy(sheetOpen = true) }
 
-    fun dismissSheet() {
-        sheetOpen.value = false
-    }
+    fun dismissSheet() = state.update { it?.copy(sheetOpen = false) }
 
     fun clearError() {
-        exception.value = null
-        sheetOpen.value = false
-        dismissRequested.value = false
+        state.value = null
     }
 
     /** Triggers an animated close if the sheet is open; no-op otherwise. */
-    fun requestDismiss() {
-        if (sheetOpen.value) dismissRequested.value = true
+    fun requestDismiss() = state.update {
+        if (it?.sheetOpen == true) it.copy(dismissRequested = true) else it
     }
 }

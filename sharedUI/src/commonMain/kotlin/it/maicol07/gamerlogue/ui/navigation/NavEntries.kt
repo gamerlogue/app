@@ -28,7 +28,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SettingsW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TuneW500Rounded
 import it.maicol07.gamerlogue.AppNavKey
-import it.maicol07.gamerlogue.NavBackStack
+import it.maicol07.gamerlogue.AppNavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.ui.components.event.EventHeader
@@ -62,7 +62,7 @@ private val FilterBadgeInset = 4.dp
 /** Browse destinations: the Discover carousels, the event list and the paginated game list. */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal fun EntryProviderScope<AppNavKey>.browseEntries(
-    backStack: NavBackStack,
+    backStack: AppNavBackStack,
     navigateToGame: (Game) -> Unit,
     navigateToEventGames: (Event) -> Unit,
 ) {
@@ -103,7 +103,7 @@ internal fun EntryProviderScope<AppNavKey>.browseEntries(
 }
 
 @Composable
-private fun GameListTopBar(navKey: NavKeys.GameList, backStack: NavBackStack) {
+private fun GameListTopBar(navKey: NavKeys.GameList, backStack: AppNavBackStack) {
     // Same NavEntry ViewModelStore as the content below, so both share one instance.
     val viewModel = koinViewModel<GameListViewModel>()
     val uiState by viewModel.uiState.collectAsState()
@@ -149,7 +149,7 @@ private fun GameListTopBar(navKey: NavKeys.GameList, backStack: NavBackStack) {
 /** Signed-in destinations: they fall back to the login view while there is no session. */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal fun EntryProviderScope<AppNavKey>.accountEntries(
-    backStack: NavBackStack,
+    backStack: AppNavBackStack,
     navigateToGame: (Game) -> Unit,
 ) {
     screen<NavKeys.Library>(metadata = ListDetailSceneStrategy.listPane()) {
@@ -177,7 +177,7 @@ private fun AuthenticatedContent(content: @Composable () -> Unit) {
 
 /** Settings and everything reachable from it, including the linked-services sync flow. */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
-internal fun EntryProviderScope<AppNavKey>.settingsEntries(backStack: NavBackStack) {
+internal fun EntryProviderScope<AppNavKey>.settingsEntries(backStack: AppNavBackStack) {
     screen<NavKeys.Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
         SettingsScreen(navigateTo = { backStack.add(it) })
     }

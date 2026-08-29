@@ -14,7 +14,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import it.maicol07.gamerlogue.AppNavKey
+import it.maicol07.gamerlogue.LocalNavBackStack
 import org.jetbrains.compose.resources.StringResource
 
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
@@ -24,16 +24,18 @@ val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
 /**
  * App shell: owns only the genuinely global chrome — the bottom navigation bar and the snackbar host.
  * Each screen renders its own top bar (see [ScreenScaffold]).
+ *
+ * It takes no current destination on purpose: [AppNavigationBar] reads it from [LocalNavBackStack], so
+ * a navigation invalidates the bottom bar alone instead of everything above it.
  */
 @Composable
 fun AppScaffold(
-    currentNavKey: AppNavKey,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
         Scaffold(
-            bottomBar = { AppNavigationBar(currentNavKey) },
+            bottomBar = { AppNavigationBar() },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             content = content,
             contentWindowInsets = WindowInsets(0, 0, 0, 0)

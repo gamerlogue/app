@@ -27,7 +27,7 @@ import androidx.navigation3.ui.NavDisplay
 import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.AppNavKey
-import it.maicol07.gamerlogue.NavBackStack
+import it.maicol07.gamerlogue.AppNavBackStack
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 
@@ -63,7 +63,7 @@ internal inline fun <reified K : AppNavKey> EntryProviderScope<AppNavKey>.screen
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun AppNavDisplay(
-    backStack: NavBackStack,
+    backStack: AppNavBackStack,
     modifier: Modifier = Modifier,
 ) {
     // Override the defaults so that there isn't a horizontal space between the panes.

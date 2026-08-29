@@ -18,7 +18,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import it.maicol07.gamerlogue.LocalNavBackStack
-import it.maicol07.gamerlogue.NavBackStack
+import it.maicol07.gamerlogue.AppNavBackStack
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -29,7 +29,7 @@ import org.koin.compose.koinInject
 fun AppTopBar(
     title: StringResource?,
     modifier: Modifier = Modifier,
-    backStack: NavBackStack = LocalNavBackStack.current,
+    backStack: AppNavBackStack = LocalNavBackStack.current,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
@@ -56,8 +56,8 @@ fun AppTopBar(
 @Composable
 fun NetworkErrorAction() {
     val reporter = koinInject<ExceptionReporter>()
-    val exception by reporter.exception.collectAsStateWithLifecycle()
-    AnimatedVisibility(exception != null) {
+    val errorState by reporter.state.collectAsStateWithLifecycle()
+    AnimatedVisibility(errorState != null) {
         IconButton(onClick = { reporter.show() }) {
             Icon(
                 Icons.AndroidWifi3BarAlertW500Rounded,

@@ -72,8 +72,8 @@ import org.koin.compose.koinInject
 @Composable
 fun GlobalExceptionBottomSheet() {
     val reporter = koinInject<ExceptionReporter>()
-    val exception by reporter.exception.collectAsStateWithLifecycle()
-    val e = exception ?: return
+    val errorState by reporter.state.collectAsStateWithLifecycle()
+    val e = errorState?.error ?: return
 
     val fallbackMessage = stringResource(Res.string.exception__fallback_message)
     val message = e.message ?: fallbackMessage
@@ -99,7 +99,7 @@ fun GlobalExceptionBottomSheet() {
 
     fun dismiss() = scope.launch { sheetState.hide(); reporter.dismissSheet() }
 
-    val dismissRequested by reporter.dismissRequested.collectAsStateWithLifecycle()
+    val dismissRequested = errorState?.dismissRequested == true
     LaunchedEffect(dismissRequested) {
         if (dismissRequested) {
             sheetState.hide()

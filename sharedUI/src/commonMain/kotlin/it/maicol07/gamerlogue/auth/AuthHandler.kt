@@ -17,7 +17,10 @@ import it.maicol07.gamerlogue.data.UserStore
 import org.koin.compose.koinInject
 
 @Composable
-internal fun AuthHandler(authCallbackUri: String?) {
+internal fun AuthHandler(
+    authCallbackUri: String?,
+    onAuthCallbackHandled: () -> Unit = {},
+) {
     val authProvider = koinInject<AuthTokenProvider>()
     val authHandler = rememberAuthenticationHandler()
     val userStore = koinInject<UserStore>()
@@ -38,6 +41,8 @@ internal fun AuthHandler(authCallbackUri: String?) {
                 }
                 value
             }
+            // One-shot: tells the host to drop the URI so a recomposition does not replay it.
+            onAuthCallbackHandled()
         }
     }
 

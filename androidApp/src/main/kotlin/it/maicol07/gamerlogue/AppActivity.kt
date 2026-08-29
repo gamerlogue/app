@@ -22,7 +22,12 @@ class AppActivity : ComponentActivity() {
 
         captureLoginDeepLink(intent)
         setContent {
-            App(authCallbackUri = authCallbackUri)
+            App(
+                authCallbackUri = authCallbackUri,
+                // A login callback is a one-shot event. Without clearing it, recreating the composition
+                // replays the same URI through AuthHandler and re-applies the same token.
+                onAuthCallbackHandled = { authCallbackUri = null },
+            )
         }
     }
 

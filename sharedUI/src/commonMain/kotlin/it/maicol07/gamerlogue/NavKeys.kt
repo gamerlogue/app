@@ -21,10 +21,15 @@ import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
 
-typealias NavBackStack = NavBackStack<AppNavKey>
+/**
+ * The app's back stack type. Named `App…` rather than shadowing [NavBackStack]: a typealias with the
+ * same name as the class it aliases means the identifier denotes different things depending on which
+ * imports a file happens to have.
+ */
+typealias AppNavBackStack = NavBackStack<AppNavKey>
 
 /** The single app back stack, provided down the composition instead of via DI. */
-val LocalNavBackStack = staticCompositionLocalOf<NavBackStack<AppNavKey>> {
+val LocalNavBackStack = staticCompositionLocalOf<AppNavBackStack> {
     error("LocalNavBackStack not provided")
 }
 
@@ -78,9 +83,6 @@ object NavKeys {
         override val title get() = Res.string.settings__appearance
         override val showBottomBar get() = false
     }
-
-    @Serializable
-    data object Login : AppNavKey
 
     /** [coverImageId] and [gameName] keep the cover transition alive while the detail request loads. */
     @Serializable
