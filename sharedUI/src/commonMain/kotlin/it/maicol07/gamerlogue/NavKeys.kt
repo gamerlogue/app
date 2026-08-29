@@ -3,7 +3,6 @@ package it.maicol07.gamerlogue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
-import androidx.savedstate.serialization.SavedStateConfiguration
 import gamerlogue.sharedui.generated.resources.nav__calendar
 import gamerlogue.sharedui.generated.resources.nav__discover
 import gamerlogue.sharedui.generated.resources.nav__events
@@ -20,66 +19,68 @@ import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.modules.PolymorphicModuleBuilder
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.serializer
 import org.jetbrains.compose.resources.StringResource
 
-typealias NavBackStack = NavBackStack<NavKey>
+typealias NavBackStack = NavBackStack<AppNavKey>
 
 /** The single app back stack, provided down the composition instead of via DI. */
-val LocalNavBackStack = staticCompositionLocalOf<NavBackStack<NavKey>> {
+val LocalNavBackStack = staticCompositionLocalOf<NavBackStack<AppNavKey>> {
     error("LocalNavBackStack not provided")
 }
 
+/**
+ * Base of every destination. Being `sealed` gives kotlinx.serialization closed polymorphism, so the
+ * back stack serializes without a hand-maintained `polymorphic { subclass(...) }` registry.
+ *
+ * Overrides must use custom getters (no backing field), otherwise serialization would pull [title]
+ * in and demand a serializer for [StringResource].
+ */
+@Serializable
+sealed interface AppNavKey : NavKey {
+    val title: StringResource? get() = null
+    val showBottomBar: Boolean get() = true
+}
+
 object NavKeys {
-    abstract class NavKeyWithMeta : NavKey {
-        open val title: StringResource? = null
-        open val showBottomBar: Boolean = true
+    @Serializable
+    data object Discover : AppNavKey {
+        override val title get() = Res.string.nav__discover
     }
 
     @Serializable
-    data object Discover : NavKeyWithMeta() {
-        override val title = Res.string.nav__discover
+    data object Library : AppNavKey {
+        override val title get() = Res.string.nav__library
     }
 
     @Serializable
-    data object Library : NavKeyWithMeta() {
-        override val title = Res.string.nav__library
+    data object Calendar : AppNavKey {
+        override val title get() = Res.string.nav__calendar
     }
 
     @Serializable
-    data object Calendar : NavKeyWithMeta() {
-        override val title = Res.string.nav__calendar
+    data object Profile : AppNavKey {
+        override val title get() = Res.string.nav__profile
     }
 
     @Serializable
-    data object Profile : NavKeyWithMeta() {
-        override val title = Res.string.nav__profile
+    data object Settings : AppNavKey {
+        override val title get() = Res.string.nav__settings
     }
 
     @Serializable
-    data object Settings : NavKeyWithMeta() {
-        override val title = Res.string.nav__settings
+    data object LinkedServices : AppNavKey {
+        override val title get() = Res.string.settings__linked_services
+        override val showBottomBar get() = false
     }
 
     @Serializable
-    data object LinkedServices : NavKeyWithMeta() {
-        override val title = Res.string.settings__linked_services
-        override val showBottomBar: Boolean = false
+    data object Appearance : AppNavKey {
+        override val title get() = Res.string.settings__appearance
+        override val showBottomBar get() = false
     }
 
     @Serializable
-    data object Appearance : NavKeyWithMeta() {
-        override val title = Res.string.settings__appearance
-        override val showBottomBar: Boolean = false
-    }
-
-    @Serializable
-    data object Login : NavKeyWithMeta() {
-        override val title: StringResource? = null
-    }
+    data object Login : AppNavKey
 
     /** [coverImageId] and [gameName] keep the cover transition alive while the detail request loads. */
     @Serializable
@@ -87,8 +88,8 @@ object NavKeys {
         val gameId: Int,
         val coverImageId: String? = null,
         val gameName: String? = null,
-    ) : NavKeyWithMeta() {
-        override val showBottomBar: Boolean = false
+    ) : AppNavKey {
+        override val showBottomBar get() = false
     }
 
     /**
@@ -96,8 +97,8 @@ object NavKeys {
      * share their transition with [GameDetail] and the back stack keeps the list's scroll position.
      */
     @Serializable
-    data object EventList : NavKeyWithMeta() {
-        override val title = Res.string.nav__events
+    data object EventList : AppNavKey {
+        override val title get() = Res.string.nav__events
     }
 
     /**
@@ -109,8 +110,7 @@ object NavKeys {
         val section: DiscoverSection? = null,
         val eventId: Int? = null,
         val eventName: String? = null,
-    ) : NavKeyWithMeta() {
-        // Custom getter (no backing field) so only the data fields are serialized.
+    ) : AppNavKey {
         override val title: StringResource? get() = section?.sectionTitle
     }
 
@@ -118,46 +118,20 @@ object NavKeys {
     data class ServiceSync(
         val service: ExternalService,
         val action: ServiceSyncAction,
-    ) : NavKeyWithMeta() {
+    ) : AppNavKey {
         // Draws its own chrome (a BottomSheetScaffold), so no top-bar title and no bottom bar.
-        override val title: StringResource? get() = null
-        override val showBottomBar: Boolean get() = false
+        override val showBottomBar get() = false
     }
 
     @Serializable
     data class LibraryImportPreview(
         val service: ExternalService,
         val mode: ImportMode = ImportMode.OWNED,
-    ) : NavKeyWithMeta() {
-        // Custom getters (no backing field) so only the data fields are serialized.
+    ) : AppNavKey {
         override val title: StringResource? get() = when (mode) {
             ImportMode.OWNED -> Res.string.settings__import_library_title
             ImportMode.WISHLIST -> Res.string.settings__wishlist_preview_title
         }
-        override val showBottomBar: Boolean get() = false
-    }
-
-    // Reified helper so each key is registered once, avoiding the subclass(A::class, B.serializer()) mismatch footgun.
-    private inline fun <reified T : NavKey> PolymorphicModuleBuilder<NavKey>.key() =
-        subclass(T::class, serializer<T>())
-
-    val savedStateConfiguration = SavedStateConfiguration {
-        serializersModule = SerializersModule {
-            polymorphic(NavKey::class) {
-                key<Discover>()
-                key<Library>()
-                key<Calendar>()
-                key<Profile>()
-                key<Settings>()
-                key<LinkedServices>()
-                key<Appearance>()
-                key<Login>()
-                key<GameDetail>()
-                key<GameList>()
-                key<EventList>()
-                key<LibraryImportPreview>()
-                key<ServiceSync>()
-            }
-        }
+        override val showBottomBar get() = false
     }
 }

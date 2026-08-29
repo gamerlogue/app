@@ -8,7 +8,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.compose.runtime.saveable.rememberSerializable
+import androidx.navigation3.runtime.NavBackStack
+import kotlinx.serialization.serializer
 import it.maicol07.gamerlogue.auth.AuthHandler
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
@@ -25,8 +27,11 @@ private object KoinApp
 
 @Composable
 fun App(authCallbackUri: String? = null) {
-    val backStack = rememberNavBackStack(NavKeys.savedStateConfiguration, NavKeys.Discover)
-    val showBottomBar = (backStack.last() as? NavKeys.NavKeyWithMeta)?.showBottomBar ?: true
+    // Closed polymorphism: AppNavKey is sealed, so no SerializersModule registration is needed.
+    val backStack = rememberSerializable(serializer = serializer<NavBackStack<AppNavKey>>()) {
+        NavBackStack(NavKeys.Discover)
+    }
+    val showBottomBar = backStack.last().showBottomBar
     NavigationBarContrastEnforced(!showBottomBar)
 
     KoinApplication(koinConfiguration<KoinApp>()) {

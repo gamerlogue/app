@@ -33,9 +33,10 @@ Unit tests run on the JVM only (Kotest + JUnit Platform, in `sharedUI/src/jvmTes
 - **ViewModels** extend `StateViewModel<S>(initial)` (in `core/`), which wraps a private `MutableStateFlow`. Read via `state`, mutate via `update { copy(...) }`. ViewModels hold **no navigation** — screens pass nav as callbacks.
 
 ### Navigation
-- **Navigation 3** (`androidx.navigation3`), not the old Compose Navigation. Destinations are `@Serializable` objects/classes in `NavKeys` (top-level `NavKeys.kt`), extending `NavKeyWithMeta` (`title`, `showBottomBar`). The back stack is a single Koin-provided `NavBackStack` singleton.
+- **Navigation 3** (`androidx.navigation3`), not the old Compose Navigation. Destinations are `@Serializable` objects/classes in `NavKeys` (top-level `NavKeys.kt`), implementing the sealed `AppNavKey` (`title`, `showBottomBar`). The back stack is created in `App.kt` with `rememberSerializable` and handed down the composition via `LocalNavBackStack` — it is not in DI.
 - `AppNavDisplay` registers one entry per key and uses the **adaptive list-detail** scene strategy (`ListDetailSceneStrategy.listPane()/detailPane()`). The `screen<K>{}` helper wraps content in `ScreenScaffold`; use plain `entry<K>{}` for screens that draw their own bar (e.g. game detail).
-- New `@Serializable` keys with backing-field properties must register a `subclass(...)` in `NavKeys.savedStateConfiguration`. Use custom getters (no backing field) for derived properties so only data fields serialize (see `GameList`, `LibraryImportPreview`).
+- `AppNavKey` is sealed, so kotlinx.serialization resolves the back stack through closed polymorphism — there is no `SerializersModule` to register keys in. Overrides of `title`/`showBottomBar` **must** use custom getters (no backing field), or serialization pulls them in and demands a serializer for `StringResource`.
+- A new destination needs its key **and** an entry in `NavEntries.kt`; `NavEntriesCoverageTest` (jvmTest) fails the build if one is missing.
 
 ### Data layer (two APIs)
 - **Gamerlogue backend**: JSON:API via **SprayPaintKT**. Schemas are `@ResourceSchema` interfaces in `data/` (e.g. `LibraryEntrySchema`) annotated with `@Attr`/`@Relation`; KSP generates the concrete models (`LibraryEntry`, `User`). `AppJsonApiConfig` is the `@DefaultInstance`. Auth is bearer-token (Laravel Sanctum) via the `JsonApiHttpClient`-qualified Ktor client in `httpModule`.

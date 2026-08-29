@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
 import com.alorma.compose.settings.ui.expressive.SettingsMenuLink
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.auth__logout
@@ -22,6 +21,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkedServicesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LogoutW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PaletteW500Rounded
+import it.maicol07.gamerlogue.AppNavKey
 import it.maicol07.gamerlogue.NavKeys
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import org.jetbrains.compose.resources.stringResource
@@ -30,7 +30,7 @@ import org.koin.compose.koinInject
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(
-    navigateTo: (NavKey) -> Unit,
+    navigateTo: (AppNavKey) -> Unit,
     viewModel: SettingsViewModel = koinInject()
 ) = Column(
     verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),

@@ -14,7 +14,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.navigation3.runtime.NavKey
+import it.maicol07.gamerlogue.AppNavKey
 import org.jetbrains.compose.resources.StringResource
 
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
@@ -27,7 +27,7 @@ val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
  */
 @Composable
 fun AppScaffold(
-    currentNavKey: NavKey,
+    currentNavKey: AppNavKey,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }

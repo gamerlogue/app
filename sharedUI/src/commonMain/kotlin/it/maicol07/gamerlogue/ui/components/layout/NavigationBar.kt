@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation3.runtime.NavKey
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.nav__calendar
 import gamerlogue.sharedui.generated.resources.nav__discover
@@ -29,6 +28,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.New
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500RoundedFill
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500RoundedFill
+import it.maicol07.gamerlogue.AppNavKey
 import it.maicol07.gamerlogue.LocalNavBackStack
 import it.maicol07.gamerlogue.NavBackStack
 import it.maicol07.gamerlogue.NavKeys
@@ -37,11 +37,11 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AppNavigationBar(
-    currentNavKey: NavKey,
+    currentNavKey: AppNavKey,
     backStack: NavBackStack = LocalNavBackStack.current
 ) {
     AnimatedVisibility(
-        (currentNavKey as? NavKeys.NavKeyWithMeta)?.showBottomBar ?: true,
+        currentNavKey.showBottomBar,
         enter = slideInVertically { it } + fadeIn(),
         exit = slideOutVertically(tween(200, easing = FastOutLinearInEasing)) { it } + fadeOut(tween(200))
     ) {
@@ -76,7 +76,7 @@ fun AppNavigationBar(
 }
 
 enum class NavBarItems(
-    val navKey: NavKey,
+    val navKey: AppNavKey,
     val icon: ImageVector,
     val iconSelected: ImageVector,
     val title: StringResource? = null
