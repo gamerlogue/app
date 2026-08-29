@@ -26,12 +26,14 @@ import org.koin.compose.koinInject
 fun AppTheme(content: @Composable () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     val settings = koinInject<ObservableSettings>()
+
     val isDarkSetting by remember {
         settings.getBooleanOrNullStateFlow(
             coroutineScope,
             SettingsKeys.IS_DARK_THEME.name
         )
     }.collectAsState()
+
     val isDarkTheme = when {
         isDarkSetting != null -> isDarkSetting!!
         else -> isSystemInDarkMode()
