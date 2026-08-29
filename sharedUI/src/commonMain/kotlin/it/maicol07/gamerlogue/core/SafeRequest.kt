@@ -1,9 +1,8 @@
 package it.maicol07.gamerlogue.core
 
-import at.released.igdbclient.error.IgdbException
+import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.getError
 import com.github.michaelbull.result.runCatching
-import it.maicol07.spraypaintkt.JsonApiException
 import kotlin.coroutines.cancellation.CancellationException
 
 suspend fun <T> ExceptionReporter.safeRequest(request: suspend () -> T) = runCatching {
@@ -18,8 +17,8 @@ suspend fun <T> ExceptionReporter.safeRequest(request: suspend () -> T) = runCat
         .filterIsInstance<CancellationException>()
         .firstOrNull()
         ?.let { throw it }
-    when (error) {
-        is IgdbException, is JsonApiException -> report(error)
-    }
-    error.printStackTrace()
+    // Every remaining failure is surfaced, not just the two library exception types: a timeout or a
+    // deserialization error is exactly the kind of thing that used to disappear here.
+    Logger.e(error) { "Request failed" }
+    report(error)
 }
