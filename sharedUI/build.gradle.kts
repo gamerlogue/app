@@ -125,6 +125,7 @@ kotlin {
             implementation(libs.kotest.runner.junit5)
             implementation(libs.kotest.assertions.core)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
             // sealedSubclasses needs kotlin-reflect on the JVM (NavEntriesCoverageTest).
             implementation(kotlin("reflect"))
         }
@@ -147,6 +148,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.logback.classic)
+            // OS credential store for the desktop session token (Windows Credential Manager,
+            // macOS Keychain, Linux Secret Service). JVM-only by design: Android has AccountManager.
+            implementation(libs.java.keyring)
         }
 
         webMain.dependencies {

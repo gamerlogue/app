@@ -13,6 +13,7 @@ flagpackCompose = "1.0.0"
 git-semantic-versioning = "5.0.17"
 git-semantic-versioning-base = "7.0.23"
 igdbclientKtor = "0.8"
+javaKeyring = "1.0.4"
 kermit = "2.1.0"
 kotlin = "2.4.10"
 kotlinResult = "2.3.1"
@@ -69,6 +70,7 @@ igdbclient-ktor = { module = "at.released.igdbclient:igdbclient-ktor", version.r
 composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-tiles", version.ref = "compose-settings" }
 composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
 composeSettings-ui-expressive = { group = "com.github.alorma.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
+java-keyring = { module = "com.github.javakeyring:java-keyring", version.ref = "javaKeyring" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin" }
@@ -85,6 +87,7 @@ kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-
 kotlinx_datetime_ext = { module = "com.raedghazal:kotlinx_datetime_ext", version.ref = "kotlinx_datetime_ext" }
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-serialization = { module = "io.ktor:ktor-client-serialization", version.ref = "ktor" }
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
