@@ -41,5 +41,5 @@ class SettingsViewModel(
     }
     fun setUseDynamicColors(use: Boolean) = settings.putBoolean(SettingsKeys.USE_DYNAMIC_COLORS.name, use)
 
-    fun logout() = authTokenProvider.updateToken(null)
+    fun logout() = authTokenProvider.clearSession()
 }

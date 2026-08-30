@@ -3,8 +3,10 @@
     <string name="common_cancel">Cancel</string>
     <string name="common_clear">Clear</string>
     <string name="common_select">Select</string>
+    <string name="common__back">Back</string>
     <string name="nav__discover">Discover</string>
     <string name="exception__title">Something went wrong</string>
+    <string name="exception__action_show">Show error details</string>
 
     <!-- Error bottom sheet -->
     <string name="exception__type_label">%1$s</string>

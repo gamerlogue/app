@@ -10,6 +10,7 @@ private const val KeyringDomain = "it.maicol07.gamerlogue"
 private const val TokenAccount = "auth_token"
 private const val LegacyTokenKey = "auth_token"
 private const val UserIdKey = "auth_user_id"
+private const val ExpiresAtKey = "auth_expires_at_epoch_millis"
 
 /**
  * Desktop session storage.
@@ -81,5 +82,11 @@ class JvmAuthTokenProvider : AuthTokenProvider() {
 
     override fun saveUserId(userId: String?) {
         if (userId == null) prefs.remove(UserIdKey) else prefs.put(UserIdKey, userId)
+    }
+
+    override fun loadExpiresAtEpochMillis(): Long? = prefs.getLong(ExpiresAtKey, 0).takeIf { it > 0 }
+
+    override fun saveExpiresAtEpochMillis(value: Long?) {
+        if (value == null) prefs.remove(ExpiresAtKey) else prefs.putLong(ExpiresAtKey, value)
     }
 }

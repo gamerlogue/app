@@ -25,11 +25,28 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Legacy fallback while the verified App Link is being deployed. PKCE makes an intercepted
+                 authorization code unusable, but remove this filter after the https link is verified. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="gamerlogue" android:host="auth" android:path="/callback" />
+            </intent-filter>
+
+            <!-- Verified App Link for the official instance. The native login requests this callback;
+                 Android opens it directly only after assetlinks.json verifies the installed package.
+
+                 The host is hardcoded on purpose. `autoVerify` is resolved at install time against the
+                 hosts declared here, so a verified App Link can never cover a user-configured backend —
+                 self-hosted instances need a loopback redirect (RFC 8252) instead, which is what the
+                 desktop handler already does. Deriving this from a build property would only couple the
+                 official app's identity to whoever compiles it. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="gamerlogue.maicol07.it" android:path="/auth/callback" />
             </intent-filter>
         </activity>
 

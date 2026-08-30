@@ -65,7 +65,7 @@ class LibrarySync(
             LibraryEntry.quickDraft(
                 game,
                 existing[game.id.toInt()]?.status ?: GameLibraryStatus.BACKLOG,
-                authProvider.currentUser.value,
+                authProvider.session.value.user,
                 existing = existing[game.id.toInt()],
                 platformsIds = connector.platformIdsFor(game),
             ).apply { owned = true }
@@ -87,7 +87,7 @@ class LibrarySync(
             LibraryEntry.quickDraft(
                 game,
                 GameLibraryStatus.BACKLOG,
-                authProvider.currentUser.value,
+                authProvider.session.value.user,
                 platformsIds = connector.platformIdsFor(game),
             )
         }

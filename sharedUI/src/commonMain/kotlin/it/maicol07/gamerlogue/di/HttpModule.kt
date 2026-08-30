@@ -10,17 +10,23 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.cache.HttpCache
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.accept
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.auth.configurePlatformSession
 import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.UbisoftApi
@@ -33,6 +39,7 @@ import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import kotlinx.serialization.json.Json
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -76,6 +83,10 @@ private const val RequestTimeoutMillis = 30_000L
 private const val ConnectTimeoutMillis = 15_000L
 private const val SocketTimeoutMillis = 30_000L
 
+private val PlatformSession = createClientPlugin("PlatformSession") {
+    onRequest { request, _ -> request.configurePlatformSession() }
+}
+
 @Suppress("unused")
 @Module
 @Configuration
@@ -108,10 +119,23 @@ object HttpModule {
     @Named("JsonApiHttpClient")
     fun provideJsonApiHttpClient(authTokenProvider: AuthTokenProvider) = HttpClient {
         defaultRequest {
+            authTokenProvider.clearIfExpired()
             accept(VndApiJson)
             contentType(VndApiJson)
         }
+        install(PlatformSession)
         ktorHttpClientConfig()
+        HttpResponseValidator {
+            validateResponse { response ->
+                val current = authTokenProvider.session.value
+                val requestBearer = response.call.request.headers[HttpHeaders.Authorization]
+                val belongsToCurrentSession = current.cookieBased ||
+                    current.accessToken?.let { requestBearer == "Bearer $it" } == true
+                if (response.status == HttpStatusCode.Unauthorized && belongsToCurrentSession) {
+                    authTokenProvider.clearSession()
+                }
+            }
+        }
         install(Auth) {
             bearer {
                 // Ktor caches loadTokens by default and only drops it on an explicit clearToken(), so a
@@ -119,9 +143,24 @@ object HttpModule {
                 // is an in-memory read, so re-reading it per request is cheaper than tracking the cache.
                 cacheTokens = false
                 loadTokens {
-                    authTokenProvider.accessToken.value?.let { BearerTokens(it, "") }
+                    authTokenProvider.session.value.accessToken?.let { BearerTokens(it, "") }
                 }
             }
+        }
+    }
+
+    @Single
+    @Named("AuthHttpClient")
+    fun provideAuthHttpClient() = HttpClient {
+        expectSuccess = true
+        install(PlatformSession)
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = RequestTimeoutMillis
+            connectTimeoutMillis = ConnectTimeoutMillis
+            socketTimeoutMillis = SocketTimeoutMillis
         }
     }
 

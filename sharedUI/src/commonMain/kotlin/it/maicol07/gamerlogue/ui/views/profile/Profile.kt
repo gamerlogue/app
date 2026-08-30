@@ -36,7 +36,7 @@ fun Profile() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Button(onClick = {
-            authTokenProvider.updateToken(null)
+            authTokenProvider.clearSession()
         }) {
             Text(stringResource(Res.string.auth__logout))
         }

@@ -8,10 +8,7 @@ import kotlin.coroutines.cancellation.CancellationException
 suspend fun <T> ExceptionReporter.safeRequest(request: suspend () -> T) = runCatching {
     request()
 }.also {
-    val error = it.getError() ?: run {
-        requestDismiss()
-        return@also
-    }
+    val error = it.getError() ?: return@also
     // Client libraries may wrap cancellation, but it must still escape instead of being reported.
     generateSequence(error) { it.cause }
         .filterIsInstance<CancellationException>()

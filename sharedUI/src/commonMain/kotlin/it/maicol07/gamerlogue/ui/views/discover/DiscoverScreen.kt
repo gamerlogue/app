@@ -28,7 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.carousel.CarouselItemScope
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,8 +80,8 @@ fun DiscoverScreen(
     onEventClick: (Event) -> Unit = {},
     onSeeAllEventsClick: () -> Unit = {},
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val eventsState by eventsViewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val eventsState by eventsViewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     Box {
         LazyColumn(
@@ -298,4 +298,3 @@ private fun EmptySection(text: StringResource = Res.string.home__empty_section) 
         modifier = Modifier.padding(horizontal = 16.dp)
     )
 }
-

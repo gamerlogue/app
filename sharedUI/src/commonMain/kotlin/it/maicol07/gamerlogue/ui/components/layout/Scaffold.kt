@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import it.maicol07.gamerlogue.LocalNavBackStack
+import it.maicol07.gamerlogue.LocalNavigationState
+import it.maicol07.gamerlogue.NavigationBarContrastEnforced
 import org.jetbrains.compose.resources.StringResource
 
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
@@ -22,29 +26,39 @@ val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
 }
 
 /**
- * App shell: owns only the genuinely global chrome — the bottom navigation bar and the snackbar host.
+ * App shell: owns only the genuinely global chrome — adaptive navigation and the snackbar host.
  * Each screen renders its own top bar (see [ScreenScaffold]).
  *
- * It takes no current destination on purpose: [AppNavigationBar] reads it from [LocalNavBackStack], so
- * a navigation invalidates the bottom bar alone instead of everything above it.
+ * Navigation state is read here so changes invalidate only the shell below the Koin root.
  */
 @Composable
 fun AppScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val navigationState = LocalNavigationState.current
+    val showNavigation = navigationState.backStack.lastOrNull()?.showBottomBar ?: true
+    val navigationSuiteState = rememberNavigationSuiteScaffoldState()
     val snackbarHostState = remember { SnackbarHostState() }
-    CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
-        Scaffold(
-            bottomBar = { AppNavigationBar() },
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            content = content,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0)
-        )
+    NavigationBarContrastEnforced(!showNavigation)
+    LaunchedEffect(showNavigation) {
+        if (showNavigation) navigationSuiteState.show() else navigationSuiteState.hide()
+    }
+    NavigationSuiteScaffold(
+        navigationSuiteItems = { appNavigationItems(navigationState) },
+        state = navigationSuiteState,
+    ) {
+        CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
+            Scaffold(
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                content = content,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            )
+        }
     }
 }
 
 /**
- * Per-screen chrome: an [AppTopBar] (with title, back button and the shared network-error action)
+ * Per-screen chrome: an [AppTopBar] (with title, back button and the shared global-error action)
  * above the screen content. Wrap a destination's content in the nav layer so screens stay
  * navigation-free and each adaptive pane gets its own top bar.
  *

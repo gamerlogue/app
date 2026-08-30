@@ -10,7 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-private const val AuthCallbackUriPrefix = "gamerlogue://auth/callback"
+private const val AuthCallbackHost = "gamerlogue.maicol07.it"
+private const val AuthCallbackPath = "/auth/callback"
 
 class AppActivity : ComponentActivity() {
     // Observed by setContent: updated by onCreate/onNewIntent so the callback reaches App().
@@ -38,7 +39,9 @@ class AppActivity : ComponentActivity() {
 
     private fun captureLoginDeepLink(intent: Intent) {
         val data: Uri? = intent.data
-        if (data != null && data.toString().startsWith(AuthCallbackUriPrefix)) {
+        val isAppLink = data?.scheme == "https" && data.host == AuthCallbackHost && data.path == AuthCallbackPath
+        val isLegacyLink = data?.scheme == "gamerlogue" && data.host == "auth" && data.path == AuthCallbackPath
+        if (isAppLink || isLegacyLink) {
             authCallbackUri = data.toString()
         }
     }

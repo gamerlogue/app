@@ -11,7 +11,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,8 +53,8 @@ const val TotalItems = 3
 fun AppearanceScreen(
     viewModel: SettingsViewModel = koinInject()
 ) {
-    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
-    val useDynamicColors by viewModel.useDynamicColors.collectAsState()
+    val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
+    val useDynamicColors by viewModel.useDynamicColors.collectAsStateWithLifecycle()
 
     val currentTheme by remember {
         derivedStateOf {

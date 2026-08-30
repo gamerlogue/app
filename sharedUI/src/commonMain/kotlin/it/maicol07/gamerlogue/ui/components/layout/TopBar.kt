@@ -14,11 +14,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.common__back
+import gamerlogue.sharedui.generated.resources.exception__action_show
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
-import it.maicol07.gamerlogue.LocalNavBackStack
-import it.maicol07.gamerlogue.AppNavBackStack
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
+import it.maicol07.gamerlogue.AppNavigationState
+import it.maicol07.gamerlogue.LocalNavigationState
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -29,39 +32,38 @@ import org.koin.compose.koinInject
 fun AppTopBar(
     title: StringResource?,
     modifier: Modifier = Modifier,
-    backStack: AppNavBackStack = LocalNavBackStack.current,
+    navigationState: AppNavigationState = LocalNavigationState.current,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
         title = { title?.let { Text(stringResource(it)) } },
         modifier = modifier,
         navigationIcon = {
-            if (backStack.size > 1) {
+            if (navigationState.backStack.size > 1) {
                 IconButton(
-                    onClick = { backStack.removeAt(backStack.lastIndex) },
+                    onClick = navigationState::navigateBack,
                     shapes = IconButtonDefaults.shapes()
                 ) {
-                    Icon(Icons.ArrowBackW500Rounded, contentDescription = null)
+                    Icon(Icons.ArrowBackW500Rounded, stringResource(Res.string.common__back))
                 }
             }
         },
         actions = {
             actions()
-            NetworkErrorAction()
+            GlobalErrorAction()
         }
     )
 }
 
-/** Network-error indicator shared by every top bar; opens the exception bottom sheet when tapped. */
 @Composable
-fun NetworkErrorAction() {
+fun GlobalErrorAction() {
     val reporter = koinInject<ExceptionReporter>()
     val errorState by reporter.state.collectAsStateWithLifecycle()
     AnimatedVisibility(errorState != null) {
         IconButton(onClick = { reporter.show() }) {
             Icon(
-                Icons.AndroidWifi3BarAlertW500Rounded,
-                contentDescription = null,
+                Icons.ErrorW500Rounded,
+                contentDescription = stringResource(Res.string.exception__action_show),
                 tint = MaterialTheme.colorScheme.error
             )
         }

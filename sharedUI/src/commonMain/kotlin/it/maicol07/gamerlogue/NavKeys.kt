@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue
 
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -28,9 +29,33 @@ import org.jetbrains.compose.resources.StringResource
  */
 typealias AppNavBackStack = NavBackStack<AppNavKey>
 
-/** The single app back stack, provided down the composition instead of via DI. */
-val LocalNavBackStack = staticCompositionLocalOf<AppNavBackStack> {
-    error("LocalNavBackStack not provided")
+val TopLevelNavKeys: List<AppNavKey> =
+    listOf(NavKeys.Discover, NavKeys.Library, NavKeys.Calendar, NavKeys.Profile)
+
+class AppNavigationState(
+    private val selectedRootIndex: MutableIntState,
+    private val backStacks: List<AppNavBackStack>,
+) {
+    val currentRoot: AppNavKey get() = TopLevelNavKeys[selectedRootIndex.intValue]
+    val backStack: AppNavBackStack get() = backStacks[selectedRootIndex.intValue]
+
+    fun selectRoot(root: AppNavKey) {
+        val index = TopLevelNavKeys.indexOf(root)
+        require(index >= 0) { "Not a top-level destination: $root" }
+        if (index == selectedRootIndex.intValue) {
+            while (backStack.size > 1) backStack.removeLast()
+        } else {
+            selectedRootIndex.intValue = index
+        }
+    }
+
+    fun navigateBack() {
+        if (backStack.size > 1) backStack.removeLast()
+    }
+}
+
+val LocalNavigationState = staticCompositionLocalOf<AppNavigationState> {
+    error("LocalNavigationState not provided")
 }
 
 /**

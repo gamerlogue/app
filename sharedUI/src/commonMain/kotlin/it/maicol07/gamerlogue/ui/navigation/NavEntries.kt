@@ -12,8 +12,8 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
@@ -92,7 +92,7 @@ internal fun EntryProviderScope<AppNavKey>.browseEntries(
         topBar = { navKey -> GameListTopBar(navKey, backStack) }
     ) { navKey ->
         val viewModel = koinViewModel<GameListViewModel>()
-        val uiState by viewModel.uiState.collectAsState()
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         LaunchedEffect(navKey) { viewModel.start(navKey.section, navKey.eventId) }
         GameListResults(
             viewModel = viewModel,
@@ -106,7 +106,7 @@ internal fun EntryProviderScope<AppNavKey>.browseEntries(
 private fun GameListTopBar(navKey: NavKeys.GameList, backStack: AppNavBackStack) {
     // Same NavEntry ViewModelStore as the content below, so both share one instance.
     val viewModel = koinViewModel<GameListViewModel>()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     GameListSearchBar(
         // In event scope the event's name identifies the list; there is no title bar.
         placeholder = navKey.eventName ?: stringResource(Res.string.search__global_hint),
@@ -171,8 +171,8 @@ internal fun EntryProviderScope<AppNavKey>.accountEntries(
 @Composable
 private fun AuthenticatedContent(content: @Composable () -> Unit) {
     val authProvider = koinInject<AuthTokenProvider>()
-    val accessToken by authProvider.accessToken.collectAsState()
-    if (accessToken == null) LoginView() else content()
+    val session by authProvider.session.collectAsStateWithLifecycle()
+    if (!session.isAuthenticated) LoginView() else content()
 }
 
 /** Settings and everything reachable from it, including the linked-services sync flow. */

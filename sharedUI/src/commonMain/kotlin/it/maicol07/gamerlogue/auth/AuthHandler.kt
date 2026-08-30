@@ -2,12 +2,11 @@ package it.maicol07.gamerlogue.auth
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.github.michaelbull.result.unwrap
-import io.ktor.http.decodeURLQueryComponent
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.core.ExceptionReporter
@@ -22,7 +21,7 @@ internal fun AuthHandler(
     onAuthCallbackHandled: () -> Unit = {},
 ) {
     val authProvider = koinInject<AuthTokenProvider>()
-    val authHandler = rememberAuthenticationHandler()
+    val authHandler = LocalAuthenticationHandler.current
     val userStore = koinInject<UserStore>()
     val exceptionReporter = koinInject<ExceptionReporter>()
 
@@ -30,17 +29,7 @@ internal fun AuthHandler(
     // same AuthTokenProvider singleton the Ktor client reads (the Activity has its own Koin-less scope).
     LaunchedEffect(authCallbackUri) {
         if (authCallbackUri != null) {
-            // Backend double-URL-encodes the token, so Sanctum's "id|hash" arrives as "id%257Chash".
-            // ponytail: fully decode (safe: token has no literal '%'); single decode if the backend stops double-encoding.
-            authHandler.handleCallback(authCallbackUri) { raw ->
-                var value = raw
-                while (true) {
-                    val decoded = value.decodeURLQueryComponent(plusIsSpace = true)
-                    if (decoded == value) break
-                    value = decoded
-                }
-                value
-            }
+            exceptionReporter.safeRequest { authHandler.handleCallback(authCallbackUri) }
             // One-shot: tells the host to drop the URI so a recomposition does not replay it.
             onAuthCallbackHandled()
         }
@@ -51,27 +40,26 @@ internal fun AuthHandler(
             Logger.setMinSeverity(Severity.Verbose)
             Logger.i("Running in LOCAL environment")
         }
-        userStore.getUser()?.let(authProvider::updateCurrentUser)
+        val restoreResult = exceptionReporter.safeRequest { authHandler.restoreSession() }
+        if (restoreResult.isErr) return@LaunchedEffect
+        val session = authProvider.session.value
+        val cachedUser = userStore.getUser()?.takeIf { it.id == session.userId }
+        if (session.isAuthenticated) authProvider.updateUser(cachedUser, session) else userStore.clear()
     }
 
-    val accessToken by authProvider.accessToken.collectAsState()
-    val currentUserId by authProvider.currentUserId.collectAsState()
+    val session by authProvider.session.collectAsStateWithLifecycle()
 
-    LaunchedEffect(accessToken, currentUserId) {
+    LaunchedEffect(session.accessToken, session.userId) {
         // The token itself is never logged: this runs in release builds too.
-        Logger.d("AuthState changed: authenticated=${accessToken != null}, userId=$currentUserId")
-        if (accessToken != null) {
-            if (authProvider.currentUser.value == null && currentUserId != null) {
-                val result = exceptionReporter.safeRequest { User.find(currentUserId!!).data }
-                if (result.isOk) {
-                    val user = result.unwrap()
-                    authProvider.updateCurrentUser(user)
-                    userStore.saveUser(user)
-                }
+        Logger.d("AuthState changed: authenticated=${session.isAuthenticated}, userId=${session.userId}")
+        if (session.isAuthenticated && session.user == null) {
+            val result = exceptionReporter.safeRequest { User.find(session.userId!!).data }
+            if (result.isOk) {
+                val user = result.unwrap()
+                authProvider.updateUser(user, session)
+                if (authProvider.session.value.user === user) userStore.saveUser(user)
             }
-        } else {
-            authProvider.updateCurrentUser(null)
-            authProvider.updateUserId(null)
+        } else if (!session.isAuthenticated) {
             userStore.clear()
         }
     }

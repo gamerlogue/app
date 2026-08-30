@@ -2,8 +2,10 @@
     <string name="common_cancel">Annulla</string>
     <string name="common_clear">Cancella</string>
     <string name="common_select">Seleziona</string>
+    <string name="common__back">Indietro</string>
     <string name="nav__discover">Scopri</string>
     <string name="exception__title">Qualcosa è andato storto</string>
+    <string name="exception__action_show">Mostra dettagli errore</string>
 
     <!-- Error bottom sheet -->
     <string name="exception__hint_network">Suggerimento: controlla la tua connessione Internet e riprova.</string>

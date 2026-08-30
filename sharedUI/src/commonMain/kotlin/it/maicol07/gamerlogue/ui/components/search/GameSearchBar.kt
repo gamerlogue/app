@@ -33,7 +33,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchW500Rounded
-import it.maicol07.gamerlogue.ui.components.layout.NetworkErrorAction
+import it.maicol07.gamerlogue.ui.components.layout.GlobalErrorAction
 
 private val BarHorizontalPadding = 8.dp
 private val BarVerticalPadding = 4.dp
@@ -52,7 +52,7 @@ private fun SearchBarShell(modifier: Modifier, bar: @Composable (Modifier) -> Un
     verticalAlignment = Alignment.CenterVertically
 ) {
     bar(Modifier.weight(1f))
-    NetworkErrorAction()
+    GlobalErrorAction()
 }
 
 /**

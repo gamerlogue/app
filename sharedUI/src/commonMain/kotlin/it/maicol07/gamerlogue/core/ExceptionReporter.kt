@@ -16,15 +16,10 @@ import org.koin.core.annotation.Single
  */
 @Single
 class ExceptionReporter {
-    /**
-     * @param sheetOpen whether the sheet is showing; false means the error is still reachable from the
-     *   top bar indicator.
-     * @param dismissRequested set when a successful retry should animate the sheet closed.
-     */
+    /** @param sheetOpen false when the error is only reachable from the top bar indicator. */
     data class ErrorState(
         val error: Throwable,
         val sheetOpen: Boolean = true,
-        val dismissRequested: Boolean = false,
     )
 
     val state: StateFlow<ErrorState?>
@@ -43,8 +38,4 @@ class ExceptionReporter {
         state.value = null
     }
 
-    /** Triggers an animated close if the sheet is open; no-op otherwise. */
-    fun requestDismiss() = state.update {
-        if (it?.sheetOpen == true) it.copy(dismissRequested = true) else it
-    }
 }

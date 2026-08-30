@@ -4,33 +4,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import co.touchlab.kermit.Logger
 import com.sun.net.httpserver.HttpServer
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.ResponseException
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.SerializationException
 import org.koin.compose.koinInject
+import org.koin.core.qualifier.named
 import java.awt.Desktop
 import java.io.IOException
-import java.io.UnsupportedEncodingException
 import java.net.InetSocketAddress
 import java.net.URI
 import java.net.URISyntaxException
-import java.net.URLDecoder
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/** How long the loopback listener waits for the browser before giving up. */
 private const val LoginTimeoutMinutes = 5L
-
-/** Grace period so the success page reaches the browser before the listener goes down. */
 private const val ServerStopDelaySeconds = 1L
 
-class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : AuthenticationHandler(authProvider) {
-    /**
-     * The in-flight login, if any. Everything about the loopback listener is torn down through
-     * [stopFlow]: the previous implementation stopped the server only from inside the request
-     * handler, so abandoning the login left the listener — and its executor's non-daemon thread —
-     * alive for the rest of the process, one more per click on "login".
-     */
-    private class Flow(val server: HttpServer, val executor: ExecutorService)
+class JvmAuthenticationHandler(
+    authProvider: AuthTokenProvider,
+    authClient: HttpClient,
+) : AuthenticationHandler(authProvider, authClient) {
+    private class Flow(
+        val server: HttpServer,
+        val executor: ExecutorService,
+    )
 
     private var flow: Flow? = null
 
@@ -43,8 +45,7 @@ class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : Authentication
     }
 
     @Synchronized
-    private fun startFlow(): Int {
-        // One flow at a time: a second login attempt replaces the first instead of stacking on it.
+    private fun startFlow(proof: LoginProof): Int {
         stopFlow()
         val server = HttpServer.create(InetSocketAddress("localhost", 0), 0)
         val executor = Executors.newSingleThreadExecutor { runnable ->
@@ -52,48 +53,57 @@ class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : Authentication
         }
 
         server.createContext("/callback") { exchange ->
+            val query = exchange.requestURI.query
+            val belongsToFlow = query != null && callbackMatchesState(query, proof.state)
+            val success = if (belongsToFlow) {
+                try {
+                    runBlocking { exchangeCallback(query, proof) }
+                } catch (e: ResponseException) {
+                    Logger.e(e) { "Token exchange failed with HTTP ${e.response.status.value}" }
+                    false
+                } catch (e: SerializationException) {
+                    Logger.e(e) { "Token exchange returned an invalid response" }
+                    false
+                } catch (e: IllegalArgumentException) {
+                    Logger.e(e) { "Token exchange returned invalid session data" }
+                    false
+                } catch (e: IOException) {
+                    Logger.e(e) { "Token exchange could not reach the server" }
+                    false
+                }
+            } else {
+                false
+            }
+
+            val response = if (success) {
+                "Login successful. You can close this window."
+            } else {
+                "Login failed. The callback is invalid or expired."
+            }
+            val responseCode = if (success) HttpStatusCode.OK else HttpStatusCode.BadRequest
+
             try {
-                val query = exchange.requestURI.query
-                val success = query != null && handleCallback(query) {
-                    try {
-                        URLDecoder.decode(it, "UTF-8")
-                    } catch (e: UnsupportedEncodingException) {
-                        Logger.e(e) { "Error decoding callback query parameter" }
-                        null
-                    }
-                }
-
-                val response = if (success) {
-                    "Login successful! You can close this window."
-                } else {
-                    "Login failed! Token not found."
-                }
-                val responseCode = if (success) HttpStatusCode.OK else HttpStatusCode.BadRequest
-
-                exchange.sendResponseHeaders(responseCode.value, response.length.toLong())
-                exchange.responseBody.use { it.write(response.toByteArray()) }
+                exchange.sendResponseHeaders(responseCode.value, response.encodeToByteArray().size.toLong())
+                exchange.responseBody.use { it.write(response.encodeToByteArray()) }
             } catch (e: IOException) {
-                Logger.e(e) { "Error handling authentication callback" }
+                Logger.e(e) { "Error writing the authentication callback response" }
             } finally {
-                stopFlow(delaySeconds = ServerStopDelaySeconds)
+                if (belongsToFlow) stopFlow(delaySeconds = ServerStopDelaySeconds)
             }
         }
 
         server.executor = executor
         server.start()
         flow = Flow(server, executor)
-
-        // Watchdog: the browser may never come back (user closed the tab, cancelled the login).
         watchdog.schedule({ stopFlow() }, LoginTimeoutMinutes, TimeUnit.MINUTES)
-
         return server.address.port
     }
 
     override fun login() {
         try {
-            val port = startFlow()
-            val redirectUri = "http://localhost:$port/callback"
-            val authUrl = getAuthUrl(redirectUri)
+            val proof = generateLoginProof()
+            val port = startFlow(proof)
+            val authUrl = getAuthUrl("http://localhost:$port/callback", proof)
 
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(URI(authUrl))
@@ -110,16 +120,27 @@ class JvmAuthenticationHandler(authProvider: AuthTokenProvider) : Authentication
         }
     }
 
+    override suspend fun handleCallback(query: String): Boolean = false
+
     private companion object {
-        /** Daemon so a pending timeout never keeps the JVM alive. */
         val watchdog = Executors.newSingleThreadScheduledExecutor { runnable ->
             Thread(runnable, "auth-timeout").apply { isDaemon = true }
         }
     }
 }
 
+private fun generateLoginProof(): LoginProof {
+    val random = SecureRandom()
+    return createLoginProof(
+        verifierEntropy = ByteArray(32).also(random::nextBytes),
+        stateEntropy = ByteArray(32).also(random::nextBytes),
+        sha256 = { MessageDigest.getInstance("SHA-256").digest(it) },
+    )
+}
+
 @Composable
 actual fun rememberAuthenticationHandler(): AuthenticationHandler {
     val authProvider = koinInject<AuthTokenProvider>()
-    return remember(authProvider) { JvmAuthenticationHandler(authProvider) }
+    val authClient = koinInject<HttpClient>(qualifier = named("AuthHttpClient"))
+    return remember(authProvider, authClient) { JvmAuthenticationHandler(authProvider, authClient) }
 }

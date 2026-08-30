@@ -32,7 +32,6 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +45,6 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.exception__action_close
 import gamerlogue.sharedui.generated.resources.exception__details_copy
@@ -62,6 +60,8 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Err
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LightbulbW500Rounded
 import it.maicol07.gamerlogue.clipEntryFor
+import it.maicol07.gamerlogue.AppEnvironment
+import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
 import kotlinx.coroutines.launch
@@ -70,15 +70,18 @@ import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun GlobalExceptionBottomSheet() {
-    val reporter = koinInject<ExceptionReporter>()
-    val errorState by reporter.state.collectAsStateWithLifecycle()
-    val e = errorState?.error ?: return
+fun GlobalExceptionBottomSheet(
+    errorState: ExceptionReporter.ErrorState,
+    reporter: ExceptionReporter = koinInject(),
+) {
+    val e = errorState.error
+    val showTechnicalDetails = BuildConfig.APP_ENV == AppEnvironment.LOCAL
 
     val fallbackMessage = stringResource(Res.string.exception__fallback_message)
-    val message = e.message ?: fallbackMessage
-    val errorType = e::class.simpleName ?: stringResource(Res.string.exception__generic_error)
-    val details = remember(e) { e.stackTraceToString() }
+    val genericError = stringResource(Res.string.exception__generic_error)
+    val message = if (showTechnicalDetails) e.message ?: fallbackMessage else fallbackMessage
+    val errorType = if (showTechnicalDetails) e::class.simpleName ?: genericError else genericError
+    val details = if (showTechnicalDetails) remember(e) { e.stackTraceToString() } else ""
 
     val hint = run {
         val t = (e::class.simpleName.orEmpty() + " " + (e.message ?: ""))
@@ -97,15 +100,7 @@ fun GlobalExceptionBottomSheet() {
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
     val scope = rememberCoroutineScope()
 
-    fun dismiss() = scope.launch { sheetState.hide(); reporter.dismissSheet() }
-
-    val dismissRequested = errorState?.dismissRequested == true
-    LaunchedEffect(dismissRequested) {
-        if (dismissRequested) {
-            sheetState.hide()
-            reporter.clearError()
-        }
-    }
+    fun dismiss() = scope.launch { sheetState.hide(); reporter.clearError() }
 
     ModalBottomSheet({ reporter.dismissSheet() }, sheetState = sheetState) {
         Column(
@@ -178,7 +173,7 @@ fun GlobalExceptionBottomSheet() {
             }
 
             // Technical details
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (showTechnicalDetails) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

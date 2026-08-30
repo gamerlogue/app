@@ -22,7 +22,7 @@ import gamerlogue.sharedui.generated.resources.auth__login_required_message
 import gamerlogue.sharedui.generated.resources.auth__login_required_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LoginW500Rounded
-import it.maicol07.gamerlogue.auth.rememberAuthenticationHandler
+import it.maicol07.gamerlogue.auth.LocalAuthenticationHandler
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -32,7 +32,7 @@ fun LoginView() = Column(
     verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     horizontalAlignment = Alignment.CenterHorizontally
 ) {
-    val authHandler = rememberAuthenticationHandler()
+    val authHandler = LocalAuthenticationHandler.current
 
     Icon(
         modifier = Modifier.size(96.dp),

@@ -19,11 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
+import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.common__back
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
-import it.maicol07.gamerlogue.LocalNavBackStack
-import it.maicol07.gamerlogue.AppNavBackStack
-import it.maicol07.gamerlogue.ui.components.layout.NetworkErrorAction
+import it.maicol07.gamerlogue.AppNavigationState
+import it.maicol07.gamerlogue.LocalNavigationState
+import it.maicol07.gamerlogue.ui.components.layout.GlobalErrorAction
+import org.jetbrains.compose.resources.stringResource
 
 var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>> {
     error("No LocalGameTopBarOverlayMode provided")
@@ -34,9 +37,9 @@ var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>>
 fun GameTopBar(
     gameName: String?,
     modifier: Modifier = Modifier,
-    backStack: AppNavBackStack = LocalNavBackStack.current
+    navigationState: AppNavigationState = LocalNavigationState.current
 ) {
-    val canNavigateBack = backStack.size > 1
+    val canNavigateBack = navigationState.backStack.size > 1
     val isOverlayMode by LocalGameTopBarOverlayMode.current
     val containerColor by animateColorAsState(
         if (isOverlayMode) Color.Transparent
@@ -61,17 +64,17 @@ fun GameTopBar(
         navigationIcon = {
             if (canNavigateBack) {
                 FilledTonalIconButton(
-                    onClick = { backStack.removeLast() },
+                    onClick = navigationState::navigateBack,
                     shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.ArrowBackW500Rounded,
-                        contentDescription = null
+                        contentDescription = stringResource(Res.string.common__back)
                     )
                 }
             }
         },
-        actions = { NetworkErrorAction() },
+        actions = { GlobalErrorAction() },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = containerColor,
             titleContentColor = contentColor,

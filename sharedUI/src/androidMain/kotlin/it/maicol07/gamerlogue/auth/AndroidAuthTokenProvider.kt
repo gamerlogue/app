@@ -11,6 +11,7 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
     private val authTokenType = "Bearer"
     private val accountName = "Gamerlogue"
     private val userIdKey = "user_id"
+    private val expiresAtKey = "expires_at_epoch_millis"
 
     init {
         restore()
@@ -57,5 +58,19 @@ class AndroidAuthTokenProvider(context: Context) : AuthTokenProvider() {
             getOrCreateAccount()
         }
         accountManager.setUserData(account, userIdKey, userId)
+    }
+
+    override fun loadExpiresAtEpochMillis(): Long? {
+        val account = accountManager.getAccountsByType(accountType).firstOrNull() ?: return null
+        return accountManager.getUserData(account, expiresAtKey)?.toLongOrNull()
+    }
+
+    override fun saveExpiresAtEpochMillis(value: Long?) {
+        val account = if (value == null) {
+            accountManager.getAccountsByType(accountType).firstOrNull() ?: return
+        } else {
+            getOrCreateAccount()
+        }
+        accountManager.setUserData(account, expiresAtKey, value?.toString())
     }
 }

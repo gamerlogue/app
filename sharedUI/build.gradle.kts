@@ -66,13 +66,8 @@ kotlin {
             api(libs.compose.ui.tooling.preview)
             api(libs.compose.material3)
 
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
-            implementation(libs.compose.resources)
-            implementation(libs.compose.ui.tooling.preview)
             implementation(libs.compose.animation)
+            implementation(libs.compose.material3.adaptive.navigation.suite)
             implementation(libs.androidx.lifecycle.viewmodel.navigation3)
             implementation(libs.androidx.material3.adaptive.navigation3)
             implementation(libs.androidx.navigation3.ui)
@@ -117,7 +112,6 @@ kotlin {
 
         commonTest.dependencies {
             implementation(kotlin("test"))
-            implementation(libs.compose.ui.test)
         }
 
         // Unit tests run on the JVM (Kotest + JUnit Platform); kept off the JS target.
@@ -144,7 +138,6 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.compose.ui)
-            implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.logback.classic)
