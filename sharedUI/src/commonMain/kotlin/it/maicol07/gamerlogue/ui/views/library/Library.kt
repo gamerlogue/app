@@ -35,21 +35,40 @@ import gamerlogue.sharedui.generated.resources.library__empty_completed
 import gamerlogue.sharedui.generated.resources.library__empty_paused
 import gamerlogue.sharedui.generated.resources.library__empty_playing
 import gamerlogue.sharedui.generated.resources.library__section_all
+import gamerlogue.sharedui.generated.resources.nav__library
+import io.github.fopwoc.nav3ksp.annotation.Branch
+import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.ui.components.ConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
 import it.maicol07.gamerlogue.ui.components.game.CoverWidth
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
+import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.navigation.ListPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
+import it.maicol07.gamerlogue.ui.views.auth.AuthenticatedContent
 import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
+@Branch(RootTree::class, metadata = ListPaneMetadata::class)
+@Composable
+fun Library() {
+    val navigationState = LocalNavigationState.current
+    ScreenScaffold(title = Res.string.nav__library) {
+        AuthenticatedContent {
+            LibraryContent(onGameClick = { navigationState.backStack.add(it.detailNavKey) })
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun Library(
+private fun LibraryContent(
     viewModel: LibraryViewModel = koinViewModel(),
-    onGameClick: (Game) -> Unit = {}
+    onGameClick: (Game) -> Unit
 ) = Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {

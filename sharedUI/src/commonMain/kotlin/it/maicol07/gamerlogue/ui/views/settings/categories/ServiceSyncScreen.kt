@@ -61,6 +61,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_title
+import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
@@ -75,6 +76,10 @@ import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.label
 import it.maicol07.gamerlogue.ui.components.rememberServiceWebViewHost
+import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.RootTree
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -85,14 +90,19 @@ import org.koin.compose.viewmodel.koinViewModel
  * outgoing push checklist, or a completion state. Import/preview flows hand off to the preview screen.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
-fun ServiceSyncScreen(
+fun ServiceSyncView(
     service: ExternalService,
     action: ServiceSyncAction,
-    onFinish: () -> Unit,
-    navigateToImportPreview: (ExternalService, ImportMode) -> Unit,
     viewModel: LinkedServicesViewModel = koinViewModel(),
 ) {
+    val navigationState = LocalNavigationState.current
+    val onFinish: () -> Unit = { navigationState.backStack.removeLastOrNull() }
+    val navigateToImportPreview = { importService: ExternalService, mode: ImportMode ->
+        navigationState.backStack.removeLastOrNull()
+        navigationState.backStack.add(RootNavTree.LibraryImportPreview(importService, mode))
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val connector = remember(service) { viewModel.connector(service) }
 

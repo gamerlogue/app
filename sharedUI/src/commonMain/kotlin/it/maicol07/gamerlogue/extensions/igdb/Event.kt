@@ -3,6 +3,7 @@ package it.maicol07.gamerlogue.extensions.igdb
 import androidx.compose.ui.text.intl.Locale
 import at.released.igdbclient.model.Event
 import com.raedghazal.kotlinx_datetime_ext.LocalDateTimeFormatter
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
@@ -31,6 +32,10 @@ fun Event.dateTimeRangeLabel(locale: Locale = Locale.current): String {
     val end = end_time?.let { format(it.getEpochSecond(), DateTimePattern, TimeZone.currentSystemDefault(), locale) }
     return if (end == null) start else "$start - $end"
 }
+
+/** The game list destination scoped to this event. */
+val Event.gamesNavKey: RootNavTree.GameList
+    get() = RootNavTree.GameList(section = null, eventId = id.toInt(), eventName = name)
 
 private const val DatePattern = "dd/MM/yyyy"
 private const val DateTimePattern = "dd/MM/yyyy HH:mm"

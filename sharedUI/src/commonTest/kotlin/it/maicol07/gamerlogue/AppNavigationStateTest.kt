@@ -2,31 +2,41 @@ package it.maicol07.gamerlogue
 
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
+import it.maicol07.gamerlogue.ui.navigation.TopLevelNavKeys
+import it.maicol07.gamerlogue.ui.navigation.showsNavigationSuite
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class AppNavigationStateTest {
     @Test
+    fun navigationSuiteVisibilityFollowsDestination() {
+        assertTrue(RootNavTree.Discover.showsNavigationSuite)
+        assertFalse(RootNavTree.LinkedServices.showsNavigationSuite)
+        assertFalse(RootNavTree.GameDetail(1, null, null).showsNavigationSuite)
+    }
+
+    @Test
     fun eachTopLevelDestinationKeepsItsBackStack() {
-        val discover = NavBackStack<AppNavKey>(NavKeys.Discover)
-        val library = NavBackStack<AppNavKey>(NavKeys.Library)
+        val backStacks = TopLevelNavKeys.associateWith { NavBackStack<NavKey>(it) }
+        val discover = backStacks.getValue(RootNavTree.Discover)
+        val library = backStacks.getValue(RootNavTree.Library)
         val state = AppNavigationState(
             mutableIntStateOf(0),
-            listOf(
-                discover,
-                library,
-                NavBackStack(NavKeys.Calendar),
-                NavBackStack(NavKeys.Profile),
-            ),
+            backStacks,
         )
 
-        discover.add(NavKeys.Settings)
-        state.selectRoot(NavKeys.Library)
-        library.add(NavKeys.Settings)
-        state.selectRoot(NavKeys.Discover)
+        discover.add(RootNavTree.Settings)
+        state.selectRoot(RootNavTree.Library)
+        library.add(RootNavTree.Settings)
+        state.selectRoot(RootNavTree.Discover)
 
-        assertEquals(NavKeys.Settings, state.backStack.last())
-        state.selectRoot(NavKeys.Discover)
-        assertEquals(listOf(NavKeys.Discover), state.backStack.toList())
+        assertEquals(RootNavTree.Settings, state.backStack.last())
+        state.selectRoot(RootNavTree.Discover)
+        assertEquals(listOf(RootNavTree.Discover), state.backStack.toList())
     }
 }

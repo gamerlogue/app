@@ -65,6 +65,9 @@ import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__import_source
 import gamerlogue.sharedui.generated.resources.settings__open_store
+import gamerlogue.sharedui.generated.resources.settings__import_library_title
+import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
+import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
@@ -73,14 +76,35 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.RootTree
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+@Branch(RootTree::class, metadata = DetailPaneMetadata::class)
+@Composable
+fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
+    val navigationState = LocalNavigationState.current
+    val title = when (mode) {
+        ImportMode.OWNED -> Res.string.settings__import_library_title
+        ImportMode.WISHLIST -> Res.string.settings__wishlist_preview_title
+    }
+    ScreenScaffold(title = title) {
+        LibraryImportPreviewContent(
+            service = service,
+            mode = mode,
+            onDone = { navigationState.backStack.removeLastOrNull() }
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun LibraryImportPreviewScreen(
+private fun LibraryImportPreviewContent(
     service: ExternalService,
     mode: ImportMode,
     onDone: () -> Unit,

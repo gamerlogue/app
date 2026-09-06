@@ -26,13 +26,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_loading
 import gamerlogue.sharedui.generated.resources.game__not_found
+import io.github.fopwoc.nav3ksp.annotation.Branch
+import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
 import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
+import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.views.game.components.GameDetailLoadingCover
 import it.maicol07.gamerlogue.ui.views.game.components.GameToolbar
 import it.maicol07.gamerlogue.ui.views.game.components.gameDetailContent
@@ -44,14 +48,15 @@ import org.jetbrains.compose.resources.stringResource
     ExperimentalMaterial3ExpressiveApi::class,
     ExperimentalMaterial3Api::class
 )
+@Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
-fun GameDetailScreen(
+fun GameDetailView(
     gameId: Int,
     coverImageId: String? = null,
     gameName: String? = null,
     viewModel: GameDetailViewModel = GameDetailViewModel.inject(gameId),
-    onGameClick: ((Game) -> Unit)? = null
 ) {
+    val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var addToLibraryBottomSheetOpen by remember { mutableStateOf(false) }
@@ -73,7 +78,11 @@ fun GameDetailScreen(
                         ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    gameDetailContent(uiState.game!!, timeToBeat = uiState.timeToBeat, onGameClick = onGameClick)
+                    gameDetailContent(
+                        uiState.game!!,
+                        timeToBeat = uiState.timeToBeat,
+                        onGameClick = { navigationState.backStack.add(it.detailNavKey) }
+                    )
                 }
             } else if (uiState.isLoading) {
                 Box(Modifier.fillMaxSize()) {

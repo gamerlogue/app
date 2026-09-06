@@ -72,6 +72,8 @@ kotlin {
             implementation(libs.androidx.material3.adaptive.navigation3)
             implementation(libs.androidx.navigation3.ui)
             implementation(libs.androidx.navigation3.runtime)
+            implementation(libs.nav3ksp)
+            implementation(libs.nav3ksp.annotation)
             api(libs.kermit)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
@@ -174,6 +176,7 @@ kotlin {
 dependencies {
     androidRuntimeClasspath(libs.compose.ui.tooling)
     add("kspCommonMainMetadata", libs.spraypaintkt.processor)
+    add("kspCommonMainMetadata", libs.nav3ksp.processor)
 }
 
 // Kotest's JUnit5 runner needs the JUnit Platform on the JVM test task.

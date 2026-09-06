@@ -4,6 +4,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation3.runtime.NavKey
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.nav__calendar
 import gamerlogue.sharedui.generated.resources.nav__discover
@@ -18,9 +19,8 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.New
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500RoundedFill
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PersonW500RoundedFill
-import it.maicol07.gamerlogue.AppNavKey
-import it.maicol07.gamerlogue.AppNavigationState
-import it.maicol07.gamerlogue.NavKeys
+import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -37,18 +37,18 @@ fun NavigationSuiteScope.appNavigationItems(navigationState: AppNavigationState)
 }
 
 private enum class NavBarItem(
-    val navKey: AppNavKey,
+    val navKey: NavKey,
     val icon: ImageVector,
     val iconSelected: ImageVector,
     val title: StringResource,
 ) {
-    Discover(NavKeys.Discover, Icons.ExploreW500Rounded, Icons.ExploreW500RoundedFill, Res.string.nav__discover),
-    Library(NavKeys.Library, Icons.NewsstandW500Rounded, Icons.NewsstandW500RoundedFill, Res.string.nav__library),
+    Discover(RootNavTree.Discover, Icons.ExploreW500Rounded, Icons.ExploreW500RoundedFill, Res.string.nav__discover),
+    Library(RootNavTree.Library, Icons.NewsstandW500Rounded, Icons.NewsstandW500RoundedFill, Res.string.nav__library),
     Calendar(
-        NavKeys.Calendar,
+        RootNavTree.Calendar,
         Icons.CalendarMonthW500Rounded,
         Icons.CalendarMonthW500RoundedFill,
         Res.string.nav__calendar,
     ),
-    Profile(NavKeys.Profile, Icons.PersonW500Rounded, Icons.PersonW500RoundedFill, Res.string.nav__profile),
+    Profile(RootNavTree.Profile, Icons.PersonW500Rounded, Icons.PersonW500RoundedFill, Res.string.nav__profile),
 }

@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__linked_services_disclaimer
+import gamerlogue.sharedui.generated.resources.settings__linked_services
 import gamerlogue.sharedui.generated.resources.settings__service_connect
 import gamerlogue.sharedui.generated.resources.settings__service_disconnect
 import gamerlogue.sharedui.generated.resources.settings__service_epic
@@ -54,6 +55,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_sync_wishlist
 import gamerlogue.sharedui.generated.resources.settings__service_ubisoft
 import gamerlogue.sharedui.generated.resources.settings__service_web_unsupported
 import gamerlogue.sharedui.generated.resources.settings__service_xbox
+import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
@@ -71,17 +73,37 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
+import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.RootTree
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
-fun LinkedServicesScreen(
-    navigateToSync: (ExternalService, ServiceSyncAction) -> Unit,
+fun LinkedServicesView(
     viewModel: LinkedServicesViewModel = koinViewModel(),
+) {
+    val navigationState = LocalNavigationState.current
+    ScreenScaffold(title = Res.string.settings__linked_services) {
+        LinkedServicesContent(
+            viewModel = viewModel,
+            navigateToSync = { service, action ->
+                navigationState.backStack.add(RootNavTree.ServiceSync(service, action))
+            }
+        )
+    }
+}
+
+@Composable
+private fun LinkedServicesContent(
+    viewModel: LinkedServicesViewModel,
+    navigateToSync: (ExternalService, ServiceSyncAction) -> Unit,
 ) {
     if (!isServiceSyncSupported()) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {

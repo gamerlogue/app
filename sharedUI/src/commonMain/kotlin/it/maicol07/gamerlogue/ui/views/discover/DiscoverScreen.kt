@@ -49,9 +49,14 @@ import gamerlogue.sharedui.generated.resources.events__upcoming
 import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__events
 import gamerlogue.sharedui.generated.resources.home__see_all
+import gamerlogue.sharedui.generated.resources.nav__discover
+import gamerlogue.sharedui.generated.resources.search__global_hint
+import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CelebrationW500Rounded
+import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
+import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.event.EventCard
 import it.maicol07.gamerlogue.ui.components.event.EventCardHeight
@@ -61,6 +66,12 @@ import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.game.bottomScrim
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
+import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.components.search.GameSearchButton
+import it.maicol07.gamerlogue.ui.navigation.DiscoverPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.RootTree
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.views.events.EventsViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -71,37 +82,49 @@ private val CardHeight = 200.dp
 private val HeroWidth = 340.dp
 private val HeroHeight = 200.dp
 
+@Branch(RootTree::class, metadata = DiscoverPaneMetadata::class)
 @Composable
-fun DiscoverScreen(
+fun DiscoverView(
     viewModel: DiscoverViewModel = koinViewModel(),
     eventsViewModel: EventsViewModel = koinViewModel(),
-    onGameClick: (Game) -> Unit,
-    onSeeAllClick: (DiscoverSection) -> Unit = {},
-    onEventClick: (Event) -> Unit = {},
-    onSeeAllEventsClick: () -> Unit = {},
 ) {
+    val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val eventsState by eventsViewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    Box {
-        LazyColumn(
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            DiscoverSection.entries.forEachIndexed { index, section ->
-                val sectionState = uiState.sections[section] ?: DiscoverViewModel.SectionUiState()
-                discoverSection(
-                    section = section,
-                    state = sectionState,
-                    hero = index == 0,
-                    onGameClick = onGameClick,
-                    onSeeAllClick = { onSeeAllClick(section) }
+    ScreenScaffold(
+        title = Res.string.nav__discover,
+        topBar = {
+            GameSearchButton(
+                placeholder = stringResource(Res.string.search__global_hint),
+                onClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null)) }
+            )
+        }
+    ) {
+        Box {
+            LazyColumn(
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                DiscoverSection.entries.forEachIndexed { index, section ->
+                    val sectionState = uiState.sections[section] ?: DiscoverViewModel.SectionUiState()
+                    discoverSection(
+                        section = section,
+                        state = sectionState,
+                        hero = index == 0,
+                        onGameClick = { navigationState.backStack.add(it.detailNavKey) },
+                        onSeeAllClick = { navigationState.backStack.add(RootNavTree.GameList(section, null, null)) }
+                    )
+                }
+                eventsSection(
+                    eventsState,
+                    { navigationState.backStack.add(it.gamesNavKey) },
+                    onSeeAllClick = { navigationState.backStack.add(RootNavTree.EventList) }
                 )
             }
-            eventsSection(eventsState, onEventClick, onSeeAllEventsClick)
+            AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         }
-        AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }
 }
 

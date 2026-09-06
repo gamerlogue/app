@@ -27,8 +27,10 @@ import com.alorma.compose.settings.ui.expressive.SettingsMenuLink
 import com.alorma.compose.settings.ui.expressive.SettingsSwitch
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__dynamic_colors
+import gamerlogue.sharedui.generated.resources.settings__appearance
 import gamerlogue.sharedui.generated.resources.settings__language
 import gamerlogue.sharedui.generated.resources.settings__theme
+import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kdroidfilter.platformtools.getPlatform
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ContrastW500Rounded
@@ -41,6 +43,9 @@ import it.maicol07.gamerlogue.extensions.getDisplayLanguage
 import it.maicol07.gamerlogue.extensions.getFlag
 import it.maicol07.gamerlogue.extensions.supportsDeviceColors
 import it.maicol07.gamerlogue.extensions.supportsSystemAppLanguage
+import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.views.settings.AppTheme
 import it.maicol07.gamerlogue.ui.views.settings.SettingsViewModel
 import it.maicol07.gamerlogue.ui.views.settings.components.SingleChoiceAlertDialog
@@ -49,8 +54,9 @@ import org.koin.compose.koinInject
 
 const val TotalItems = 3
 
+@Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
-fun AppearanceScreen(
+fun AppearanceView(
     viewModel: SettingsViewModel = koinInject()
 ) {
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
@@ -66,20 +72,22 @@ fun AppearanceScreen(
         }
     }
 
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        ThemeSection(
-            theme = currentTheme,
-            onThemeSelected = viewModel::setTheme
-        )
-
-        if (getPlatform().supportsDeviceColors()) {
-            DynamicColorsSwitch(
-                useDynamicColors = useDynamicColors ?: true,
-                onDynamicColorsToggled = viewModel::setUseDynamicColors
+    ScreenScaffold(title = Res.string.settings__appearance) {
+        Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            ThemeSection(
+                theme = currentTheme,
+                onThemeSelected = viewModel::setTheme
             )
-        }
 
-        LanguageSection(viewModel::setLanguage)
+            if (getPlatform().supportsDeviceColors()) {
+                DynamicColorsSwitch(
+                    useDynamicColors = useDynamicColors ?: true,
+                    onDynamicColorsToggled = viewModel::setUseDynamicColors
+                )
+            }
+
+            LanguageSection(viewModel::setLanguage)
+        }
     }
 }
 

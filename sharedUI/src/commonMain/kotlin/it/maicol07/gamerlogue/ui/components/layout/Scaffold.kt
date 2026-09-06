@@ -17,7 +17,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import it.maicol07.gamerlogue.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.showsNavigationSuite
 import it.maicol07.gamerlogue.NavigationBarContrastEnforced
 import org.jetbrains.compose.resources.StringResource
 
@@ -36,7 +37,7 @@ fun AppScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     val navigationState = LocalNavigationState.current
-    val showNavigation = navigationState.backStack.lastOrNull()?.showBottomBar ?: true
+    val showNavigation = navigationState.backStack.last().showsNavigationSuite
     val navigationSuiteState = rememberNavigationSuiteScaffoldState()
     val snackbarHostState = remember { SnackbarHostState() }
     NavigationBarContrastEnforced(!showNavigation)

@@ -20,8 +20,8 @@ import gamerlogue.sharedui.generated.resources.exception__action_show
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
-import it.maicol07.gamerlogue.AppNavigationState
-import it.maicol07.gamerlogue.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource

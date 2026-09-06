@@ -5,12 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.ui.Modifier
-import androidx.navigation3.runtime.NavBackStack
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.maicol07.gamerlogue.auth.AuthHandler
 import it.maicol07.gamerlogue.auth.LocalAuthenticationHandler
@@ -20,8 +15,9 @@ import it.maicol07.gamerlogue.di.KoinApp
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
 import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.navigation.AppNavDisplay
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.rememberAppNavigationState
 import it.maicol07.gamerlogue.ui.theme.AppTheme
-import kotlinx.serialization.serializer
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.plugin.module.dsl.koinConfiguration
@@ -37,32 +33,7 @@ fun App(
     authCallbackUri: String? = null,
     onAuthCallbackHandled: () -> Unit = {},
 ) {
-    // One saveable stack per top-level destination preserves nested navigation and screen state.
-    val discoverBackStack = rememberSerializable(serializer = serializer<NavBackStack<AppNavKey>>()) {
-        NavBackStack(NavKeys.Discover)
-    }
-    val libraryBackStack = rememberSerializable(serializer = serializer<NavBackStack<AppNavKey>>()) {
-        NavBackStack(NavKeys.Library)
-    }
-    val calendarBackStack = rememberSerializable(serializer = serializer<NavBackStack<AppNavKey>>()) {
-        NavBackStack(NavKeys.Calendar)
-    }
-    val profileBackStack = rememberSerializable(serializer = serializer<NavBackStack<AppNavKey>>()) {
-        NavBackStack(NavKeys.Profile)
-    }
-    val selectedRootIndex = rememberSaveable { mutableIntStateOf(0) }
-    val navigationState = remember(
-        selectedRootIndex,
-        discoverBackStack,
-        libraryBackStack,
-        calendarBackStack,
-        profileBackStack,
-    ) {
-        AppNavigationState(
-            selectedRootIndex,
-            listOf(discoverBackStack, libraryBackStack, calendarBackStack, profileBackStack),
-        )
-    }
+    val navigationState = rememberAppNavigationState()
 
     KoinApplication(koinConfiguration<KoinApp>()) {
         val authHandler = rememberAuthenticationHandler()

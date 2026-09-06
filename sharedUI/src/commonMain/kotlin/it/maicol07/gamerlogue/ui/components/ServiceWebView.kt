@@ -47,7 +47,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * The WebView is a single instance kept alive across the whole flow so its session/cookies and the
  * injected scripts survive login → work. It's created and hosted by [rememberServiceWebViewHost];
- * the caller (ServiceSyncScreen) reads the session's observable flags to decide when the WebView
+ * the caller (ServiceSyncView) reads the session's observable flags to decide when the WebView
  * needs to be interactive (login) versus visible-but-passive (working), and renders the WebView slot
  * wherever it wants (e.g. inside a bottom sheet). When the [flow] returns the host calls `onClose`.
  */

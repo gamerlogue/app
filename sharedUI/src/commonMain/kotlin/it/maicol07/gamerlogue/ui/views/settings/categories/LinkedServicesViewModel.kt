@@ -21,14 +21,14 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-/** A store flow that requires the WebView; carried by the [it.maicol07.gamerlogue.NavKeys.ServiceSync] key. */
+/** A store flow that requires the WebView; carried by the [it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree.ServiceSync] key. */
 @Serializable
 enum class ServiceSyncAction { CONNECT, REFRESH_PROFILE, SYNC_WISHLIST, PREVIEW_WISHLIST, IMPORT_LIBRARY }
 
 /**
  * State + actions for the Linked Services list.
  *
- * The store flows that need the WebView ([ServiceSyncAction]) run on the [ServiceSyncScreen], which
+ * The store flows that need the WebView ([ServiceSyncAction]) run on the [ServiceSyncView], which
  * shares this ViewModel type (its own instance) and calls the `run*` suspend functions here; they
  * combine the WebView session (read/write the store) with IGDB matching and Gamerlogue persistence
  * ([LibrarySync]). Library import only reads owned games here — matching and confirmation happen on
@@ -98,7 +98,7 @@ class LinkedServicesViewModel(
 
     fun consumeMessage() = update { copy(message = null) }
 
-    // --- WebView flows (called by the ServiceSyncScreen's WebView) ---
+    // --- WebView flows (called by the ServiceSyncView's WebView) ---
 
     suspend fun runConnect(service: ExternalService, session: WebSession) {
         val connector = connector(service)

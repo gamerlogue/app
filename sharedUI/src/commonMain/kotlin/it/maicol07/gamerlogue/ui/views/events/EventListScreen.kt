@@ -36,12 +36,19 @@ import gamerlogue.sharedui.generated.resources.events__empty
 import gamerlogue.sharedui.generated.resources.events__logo
 import gamerlogue.sharedui.generated.resources.events__past
 import gamerlogue.sharedui.generated.resources.events__upcoming
+import gamerlogue.sharedui.generated.resources.nav__events
+import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CelebrationW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.igdb.dateRangeLabel
+import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
+import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.navigation.ListPaneMetadata
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -56,11 +63,12 @@ private val ThumbHeight = 36.dp
  * game list scoped to that event's games.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Branch(RootTree::class, metadata = ListPaneMetadata::class)
 @Composable
-fun EventListScreen(
+fun EventListView(
     viewModel: EventsViewModel = koinViewModel(),
-    onEventClick: (Event) -> Unit,
 ) {
+    val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
@@ -69,36 +77,42 @@ fun EventListScreen(
         viewModel.onEndReached(lastVisible)
     }
 
-    when {
-        uiState.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
-        uiState.upcoming.isEmpty() && uiState.past.isEmpty() -> Box(
-            Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(Res.string.events__empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        else -> Box {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = Dimens.ScreenPadding, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+    ScreenScaffold(title = Res.string.nav__events) {
+        when {
+            uiState.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+            uiState.upcoming.isEmpty() && uiState.past.isEmpty() -> Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                eventGroup(Res.string.events__upcoming, uiState.upcoming, onEventClick)
-                eventGroup(Res.string.events__past, uiState.past, onEventClick)
-                if (uiState.loadingMorePast) {
-                    item(key = "loading-more") {
-                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            LoadingIndicator()
+                Text(
+                    text = stringResource(Res.string.events__empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            else -> Box {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = Dimens.ScreenPadding, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+                ) {
+                    eventGroup(Res.string.events__upcoming, uiState.upcoming) {
+                        navigationState.backStack.add(it.gamesNavKey)
+                    }
+                    eventGroup(Res.string.events__past, uiState.past) {
+                        navigationState.backStack.add(it.gamesNavKey)
+                    }
+                    if (uiState.loadingMorePast) {
+                        item(key = "loading-more") {
+                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                LoadingIndicator()
+                            }
                         }
                     }
                 }
+                AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
             }
-            AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         }
     }
 }

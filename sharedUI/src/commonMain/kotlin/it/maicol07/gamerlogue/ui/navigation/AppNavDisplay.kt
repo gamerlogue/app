@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
@@ -15,21 +14,17 @@ import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneSt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.EntryProviderScope
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import at.released.igdbclient.model.Event
-import at.released.igdbclient.model.Game
-import it.maicol07.gamerlogue.AppNavKey
-import it.maicol07.gamerlogue.AppNavigationState
-import it.maicol07.gamerlogue.NavKeys
-import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTreeBuilder
 
 /**
  * The app's [SharedTransitionScope], provided around the [NavDisplay] so any screen can opt a
@@ -38,27 +33,12 @@ import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
 
 /**
- * Like [entry], but wraps the destination's content in a [ScreenScaffold] whose title is taken from
- * [AppNavKey.title]. Use plain [entry] for destinations that draw their own bar (e.g. the game
- * detail screen with its collapsing overlay bar).
- */
-internal inline fun <reified K : AppNavKey> EntryProviderScope<AppNavKey>.screen(
-    metadata: Map<String, Any> = emptyMap(),
-    noinline actions: @Composable RowScope.(K) -> Unit = {},
-    noinline topBar: (@Composable (K) -> Unit)? = null,
-    noinline content: @Composable (K) -> Unit
-) = entry<K>(metadata = metadata) { key ->
-    ScreenScaffold(
-        title = key.title,
-        actions = { actions(key) },
-        topBar = topBar?.let { bar -> { bar(key) } }
-    ) { content(key) }
-}
-
-/**
- * Hosts the Navigation 3 display: builds the list-detail adaptive strategy, registers the entries of
- * each feature (see NavEntries.kt), and wires navigation as callbacks so the screens stay
- * navigation-free.
+ * Hosts the Navigation 3 display: builds the list-detail adaptive strategy and feeds it the entries
+ * nav3ksp generated from branches declared beside their feature screens.
+ *
+ * Deliberately not nav3ksp's own `NavDisplay` proxy: that one takes neither entry decorators (the
+ * per-entry ViewModelStore the game list relies on) nor the shared-transition scope, transition
+ * specs and `onBack` used here.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -66,7 +46,6 @@ fun AppNavDisplay(
     navigationState: AppNavigationState,
     modifier: Modifier = Modifier,
 ) {
-    val backStack = navigationState.backStack
     // Override the defaults so that there isn't a horizontal space between the panes.
     // See b/418201867
     val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
@@ -74,35 +53,27 @@ fun AppNavDisplay(
         calculatePaneScaffoldDirective(windowAdaptiveInfo)
             .copy(horizontalPartitionSpacerSize = 0.dp)
     }
-    val listDetailStrategy = rememberListDetailSceneStrategy<AppNavKey>(directive = directive)
-    val navigateToGame: (Game) -> Unit = { game ->
-        backStack.add(
-            NavKeys.GameDetail(
-                gameId = game.id.toInt(),
-                coverImageId = game.cover?.image_id,
-                gameName = game.name,
-            )
-        )
-    }
-    val navigateToEventGames: (Event) -> Unit = { event ->
-        backStack.add(NavKeys.GameList(eventId = event.id.toInt(), eventName = event.name))
-    }
+    val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(directive = directive)
 
     SharedTransitionLayout {
         val sharedScope = this
-        val entries = rememberDecoratedNavEntries(
-            backStack = backStack,
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator()
-            ),
-            entryProvider = entryProvider {
-                browseEntries(backStack, navigateToGame, navigateToEventGames)
-                accountEntries(backStack, navigateToGame)
-                settingsEntries(backStack)
-                gameEntries(navigateToGame)
+        val provider = entryProvider {
+            with(RootNavTreeBuilder) { buildTree() }
+        }
+        // Keep every stack's decorators alive when its tab is not displayed.
+        val entriesByStack = navigationState.backStacks.mapValues { (root, stack) ->
+            key(root) {
+                rememberDecoratedNavEntries(
+                    backStack = stack,
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator()
+                    ),
+                    entryProvider = provider
+                )
             }
-        )
+        }
+        val entries = entriesByStack.getValue(navigationState.currentRoot)
 
         CompositionLocalProvider(LocalSharedTransitionScope provides sharedScope) {
             NavDisplay(

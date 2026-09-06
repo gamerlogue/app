@@ -23,8 +23,8 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common__back
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
-import it.maicol07.gamerlogue.AppNavigationState
-import it.maicol07.gamerlogue.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.components.layout.GlobalErrorAction
 import org.jetbrains.compose.resources.stringResource
 
