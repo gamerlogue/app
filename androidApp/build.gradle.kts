@@ -109,6 +109,7 @@ android {
             isMinifyEnabled = false
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
+            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
             resValue("string", "account_type", "$appPackageName.dev")
         }
     }
