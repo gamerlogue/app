@@ -129,38 +129,44 @@ dependencies {
     coreLibraryDesugaring(libs.desugarJdkLibs)
 }
 
-// The emulator's virtual Wi-Fi does not forward the 10.0.2.2 magic host, so a debug build pointed at
-// http://localhost reaches the local backend only through an adb reverse tunnel. adb reverse does not
-// survive an emulator/adb restart, so re-establish it after every debug install. It targets the running
-// emulator-* device (a physical device reaches the backend over the LAN, not this tunnel); no emulator
-// running just skips it.
-abstract class AdbReverseTask : DefaultTask() {
+// ACCESS_LOCAL_NETWORK (declared in src/debug/AndroidManifest.xml) is a runtime permission, so a fresh debug install
+// starts without it and every request to a local backend on 10.0.2.2 times out. Granting it needs no user interaction
+// with adb, so hook it to every debug install instead of leaving it as a step to remember. Devices below API 36 do not
+// know the permission and fail the grant; that is expected, hence the ignored exit value.
+abstract class GrantLocalNetworkAccessTask : DefaultTask() {
     @get:Input
     abstract val adbPath: Property<String>
+
+    @get:Input
+    abstract val applicationId: Property<String>
 
     @get:Inject
     abstract val exec: ExecOperations
 
     @TaskAction
-    fun reverse() {
+    fun grant() {
         val devices = ByteArrayOutputStream()
         exec.exec {
             executable = adbPath.get()
             args = listOf("devices")
             standardOutput = devices
         }
-        val emulator = devices.toString()
+        // A wireless physical device is attached alongside the emulator often enough that a bare `adb shell`
+        // would just fail with "more than one device/emulator", and the ignored exit value would hide it.
+        val serials = devices.toString()
             .lineSequence()
-            .firstOrNull { it.startsWith("emulator-") }
-            ?.substringBefore('\t')
-        if (emulator == null) {
-            logger.lifecycle("adbReverseLocalhost: no emulator running, skipping")
-            return
-        }
-        exec.exec {
-            executable = adbPath.get()
-            args = listOf("-s", emulator, "reverse", "tcp:80", "tcp:80")
-            isIgnoreExitValue = true
+            .filter { it.endsWith("\tdevice") }
+            .map { it.substringBefore('\t') }
+            .toList()
+        serials.forEach { serial ->
+            exec.exec {
+                executable = adbPath.get()
+                args = listOf(
+                    "-s", serial,
+                    "shell", "pm", "grant", applicationId.get(), "android.permission.ACCESS_LOCAL_NETWORK",
+                )
+                isIgnoreExitValue = true
+            }
         }
     }
 }
@@ -169,13 +175,14 @@ val adbExecutable = extensions
     .getByType<com.android.build.api.variant.ApplicationAndroidComponentsExtension>()
     .sdkComponents.adb
 
-tasks.register<AdbReverseTask>("adbReverseLocalhost") {
-    description = "Tunnel emulator localhost:80 to host:80 for local backend access"
+tasks.register<GrantLocalNetworkAccessTask>("grantLocalNetworkAccess") {
+    description = "Grant ACCESS_LOCAL_NETWORK to the debug build so it can reach a backend on 10.0.2.2"
     adbPath.set(adbExecutable.map { it.asFile.absolutePath })
+    applicationId.set("$appPackageName.dev")
 }
 
 tasks.configureEach {
     if (name.startsWith("install") && name.endsWith("Debug")) {
-        finalizedBy("adbReverseLocalhost")
+        finalizedBy("grantLocalNetworkAccess")
     }
 }
