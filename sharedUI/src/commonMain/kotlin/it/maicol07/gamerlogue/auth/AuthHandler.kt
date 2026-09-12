@@ -21,7 +21,7 @@ internal fun AuthHandler(
     onAuthCallbackHandled: () -> Unit = {},
 ) {
     val authProvider = koinInject<AuthTokenProvider>()
-    val authHandler = LocalAuthenticationHandler.current
+    val authHandler = koinInject<AuthenticationHandler>()
     val userStore = koinInject<UserStore>()
     val exceptionReporter = koinInject<ExceptionReporter>()
 

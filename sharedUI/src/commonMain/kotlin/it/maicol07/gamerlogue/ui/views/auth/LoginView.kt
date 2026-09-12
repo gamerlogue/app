@@ -22,17 +22,17 @@ import gamerlogue.sharedui.generated.resources.auth__login_required_message
 import gamerlogue.sharedui.generated.resources.auth__login_required_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LoginW500Rounded
-import it.maicol07.gamerlogue.auth.LocalAuthenticationHandler
+import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoginView() = Column(
     Modifier.fillMaxSize().padding(horizontal = 16.dp),
     verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     horizontalAlignment = Alignment.CenterHorizontally
 ) {
-    val authHandler = LocalAuthenticationHandler.current
+    val authHandler = koinInject<AuthenticationHandler>()
 
     Icon(
         modifier = Modifier.size(96.dp),

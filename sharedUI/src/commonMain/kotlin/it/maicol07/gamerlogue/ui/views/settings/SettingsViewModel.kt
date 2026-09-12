@@ -7,15 +7,19 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.auth.AuthenticationHandler
+import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.ui.views.settings.utils.SettingsKeys
+import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 
 @OptIn(ExperimentalSettingsApi::class)
 @KoinViewModel
 class SettingsViewModel(
     private val settings: ObservableSettings,
-    private val authTokenProvider: AuthTokenProvider
+    private val authHandler: AuthenticationHandler,
+    private val exceptionReporter: ExceptionReporter
 ) : ViewModel() {
     val isDarkTheme = settings.getBooleanOrNullStateFlow(viewModelScope, SettingsKeys.IS_DARK_THEME.name)
     val language = settings.getStringOrNullStateFlow(viewModelScope, SettingsKeys.LANGUAGE.name)
@@ -41,5 +45,9 @@ class SettingsViewModel(
     }
     fun setUseDynamicColors(use: Boolean) = settings.putBoolean(SettingsKeys.USE_DYNAMIC_COLORS.name, use)
 
-    fun logout() = authTokenProvider.clearSession()
+    // Goes through the handler, not the token provider: a cookie-based session also has to be dropped
+    // server-side, or the next restore would sign the user straight back in.
+    fun logout() {
+        viewModelScope.launch { exceptionReporter.safeRequest { authHandler.logout() } }
+    }
 }

@@ -8,8 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.maicol07.gamerlogue.auth.AuthHandler
-import it.maicol07.gamerlogue.auth.LocalAuthenticationHandler
-import it.maicol07.gamerlogue.auth.rememberAuthenticationHandler
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.di.KoinApp
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
@@ -36,11 +34,7 @@ fun App(
     val navigationState = rememberAppNavigationState()
 
     KoinApplication(koinConfiguration<KoinApp>()) {
-        val authHandler = rememberAuthenticationHandler()
-        CompositionLocalProvider(
-            LocalNavigationState provides navigationState,
-            LocalAuthenticationHandler provides authHandler,
-        ) {
+        CompositionLocalProvider(LocalNavigationState provides navigationState) {
             AuthHandler(authCallbackUri, onAuthCallbackHandled)
 
             AppTheme {

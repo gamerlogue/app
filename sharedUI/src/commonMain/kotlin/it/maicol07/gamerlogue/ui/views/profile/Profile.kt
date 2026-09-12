@@ -7,19 +7,25 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.auth__logout
 import gamerlogue.sharedui.generated.resources.nav__profile
 import gamerlogue.sharedui.generated.resources.profile__subtitle
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.auth.AuthenticationHandler
+import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.safeRequest
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @Composable
 fun Profile() {
-    val authTokenProvider = koinInject<AuthTokenProvider>()
+    val authHandler = koinInject<AuthenticationHandler>()
+    val exceptionReporter = koinInject<ExceptionReporter>()
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -36,7 +42,7 @@ fun Profile() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Button(onClick = {
-            authTokenProvider.clearSession()
+            scope.launch { exceptionReporter.safeRequest { authHandler.logout() } }
         }) {
             Text(stringResource(Res.string.auth__logout))
         }

@@ -8,7 +8,7 @@ import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
-import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.AuthCircuitBreaker
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.cache.HttpCache
@@ -26,6 +26,7 @@ import io.ktor.serialization.kotlinx.json.json
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.auth.configurePlatformSession
 import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.PsnApi
@@ -117,9 +118,11 @@ object HttpModule {
 
     @Single
     @Named("JsonApiHttpClient")
-    fun provideJsonApiHttpClient(authTokenProvider: AuthTokenProvider) = HttpClient {
+    fun provideJsonApiHttpClient(
+        authTokenProvider: AuthTokenProvider,
+        authenticationHandler: AuthenticationHandler,
+    ) = HttpClient {
         defaultRequest {
-            authTokenProvider.clearIfExpired()
             accept(VndApiJson)
             contentType(VndApiJson)
         }
@@ -129,21 +132,26 @@ object HttpModule {
             validateResponse { response ->
                 val current = authTokenProvider.session.value
                 val requestBearer = response.call.request.headers[HttpHeaders.Authorization]
-                val belongsToCurrentSession = current.cookieBased ||
-                    current.accessToken?.let { requestBearer == "Bearer $it" } == true
-                if (response.status == HttpStatusCode.Unauthorized && belongsToCurrentSession) {
+                val bearerMatches = current.accessToken?.let { requestBearer == "Bearer $it" } == true
+                val belongsToCurrentSession = bearerMatches ||
+                    (current.isAuthenticated && current.accessToken == null)
+                val refreshAlreadyTried = response.call.request.attributes.contains(AuthCircuitBreaker)
+                if (response.status == HttpStatusCode.Unauthorized && belongsToCurrentSession &&
+                    (current.refreshToken == null || refreshAlreadyTried)
+                ) {
                     authTokenProvider.clearSession()
                 }
             }
         }
         install(Auth) {
             bearer {
-                // Ktor caches loadTokens by default and only drops it on an explicit clearToken(), so a
-                // logout followed by a login would keep sending the previous session's token. The provider
-                // is an in-memory read, so re-reading it per request is cheaper than tracking the cache.
                 cacheTokens = false
-                loadTokens {
-                    authTokenProvider.session.value.accessToken?.let { BearerTokens(it, "") }
+                nonCancellableRefresh = true
+                loadTokens { authenticationHandler.loadBearerTokens() }
+                refreshTokens {
+                    val requestToken = response.call.request.headers[HttpHeaders.Authorization]
+                        ?.removePrefix("Bearer ")
+                    authenticationHandler.refreshBearerTokens(requestToken)
                 }
             }
         }
@@ -161,6 +169,21 @@ object HttpModule {
             requestTimeoutMillis = RequestTimeoutMillis
             connectTimeoutMillis = ConnectTimeoutMillis
             socketTimeoutMillis = SocketTimeoutMillis
+        }
+        install(HttpRequestRetry) {
+            maxRetries = 1
+            retryIf { _, response ->
+                (response.status == HttpStatusCode.TooManyRequests).also { retry ->
+                    if (retry) co.touchlab.kermit.Logger.w { "Token endpoint rate limited; retrying after Retry-After" }
+                }
+            }
+            retryOnExceptionIf { request, cause ->
+                val retry = request.url.build().encodedPath.endsWith("/api/sanctum/token/refresh") &&
+                    cause !is CancellationException
+                if (retry) co.touchlab.kermit.Logger.w(cause) { "Token refresh transport failed; retrying once" }
+                retry
+            }
+            exponentialDelay()
         }
     }
 
