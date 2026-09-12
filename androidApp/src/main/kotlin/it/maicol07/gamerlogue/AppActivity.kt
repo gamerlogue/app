@@ -10,8 +10,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-private const val AuthCallbackHost = "gamerlogue.maicol07.it"
-private const val AuthCallbackPath = "/auth/callback"
+// One pair per intent-filter in the manifest: the private-use scheme carries the callback in
+// host + path (`gamerlogue://auth/callback`), so it does not share the App Link's path.
+private const val AppLinkHost = "gamerlogue.maicol07.it"
+private const val AppLinkPath = "/auth/callback"
+private const val LegacyCallbackHost = "auth"
+private const val LegacyCallbackPath = "/callback"
 
 class AppActivity : ComponentActivity() {
     // Observed by setContent: updated by onCreate/onNewIntent so the callback reaches App().
@@ -39,8 +43,10 @@ class AppActivity : ComponentActivity() {
 
     private fun captureLoginDeepLink(intent: Intent) {
         val data: Uri? = intent.data
-        val isAppLink = data?.scheme == "https" && data.host == AuthCallbackHost && data.path == AuthCallbackPath
-        val isLegacyLink = data?.scheme == "gamerlogue" && data.host == "auth" && data.path == AuthCallbackPath
+        val isAppLink = data?.scheme == "https" && data.host == AppLinkHost && data.path == AppLinkPath
+        val isLegacyLink = data?.scheme == "gamerlogue" &&
+            data.host == LegacyCallbackHost &&
+            data.path == LegacyCallbackPath
         if (isAppLink || isLegacyLink) {
             authCallbackUri = data.toString()
         }
