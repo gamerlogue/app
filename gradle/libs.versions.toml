@@ -36,6 +36,7 @@ multiplatformSettings = "1.3.0"
 nav3Core = "1.1.6"
 nav3Ui = "1.2.0-alpha02"
 nav3ksp = "1.1.4"
+okio = "3.17.0"
 platformtools = "0.7.5"
 sketch = "4.6.0"
 slf4jAndroid = "2.0.17-0"
@@ -106,6 +107,7 @@ nav3ksp-processor = { module = "io.github.fopwoc:nav3ksp-processor", version.ref
 multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatformSettings" }
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
 multiplatform-settings-make-observable = { module = "com.russhwolf:multiplatform-settings-make-observable", version.ref = "multiplatformSettings" }
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 platformtools-core = { module = "io.github.kdroidfilter:platformtools.core", version.ref = "platformtools" }
 platformtools-darkmodedetector = { module = "io.github.kdroidfilter:platformtools.darkmodedetector", version.ref = "platformtools" }
 sketch = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }

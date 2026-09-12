@@ -82,6 +82,7 @@ kotlin {
             implementation(libs.ktor.serialization.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
+            implementation(libs.okio)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
@@ -197,12 +198,14 @@ buildConfig {
     buildConfigField(
         "it.maicol07.gamerlogue.AppEnvironment",
         "APP_ENV",
-        "AppEnvironment.${(
-            localProperties.getOrDefault(
-                "APP_ENV",
-                "local"
-            ) as String
-            ).uppercase()}"
+        "AppEnvironment.${
+            (
+                localProperties.getOrDefault(
+                    "APP_ENV",
+                    "local"
+                ) as String
+                ).uppercase()
+        }"
     )
     buildConfigField("IGDB_API_URL", localProperties.getOrDefault("IGDB_API_URL", "https://api.igdb.com/v4/") as String)
     buildConfigField("GAMERLOGUE_URL", localProperties.getOrDefault("GAMERLOGUE_URL", "") as String)
@@ -227,32 +230,98 @@ symbolCraft {
     generatePreview = false
 
     val icons = listOf(
-        "add", "android_wifi_3_bar_alert", "arrow_back", "arrow_forward",
-        "book_4", "bookmark", "business_center",
-        "calendar_month", "category", "celebration", "check", "check_circle", "close", "code", "comedy_mask", "content_copy", "contrast",
-        "conversion_path", "date_range", "delete", "devices",
-        "edit", "error", "explosion", "explore",
-        "family_star", "filter_list", "flutter_dash",
+        "add",
+        "android_wifi_3_bar_alert",
+        "arrow_back",
+        "arrow_forward",
+        "book_4",
+        "bookmark",
+        "business_center",
+        "calendar_month",
+        "category",
+        "celebration",
+        "check",
+        "check_circle",
+        "close",
+        "code",
+        "comedy_mask",
+        "content_copy",
+        "contrast",
+        "conversion_path",
+        "date_range",
+        "delete",
+        "devices",
+        "edit",
+        "error",
+        "explosion",
+        "explore",
+        "family_star",
+        "filter_list",
+        "flutter_dash",
         "grid_4x4",
-        "history", "home", "hourglass",
-        "info", "inventory_2",
+        "history",
+        "home",
+        "hourglass",
+        "info",
+        "inventory_2",
         "joystick",
         "keyboard_arrow_right",
-        "layers", "language", "linked_services", "lips", "lightbulb", "local_fire_department", "login", "logout",
-        "music_note", "mystery",
+        "layers",
+        "language",
+        "linked_services",
+        "lips",
+        "lightbulb",
+        "local_fire_department",
+        "login",
+        "logout",
+        "music_note",
+        "mystery",
         "newsstand",
         "open_in_new",
-        "palette", "partner_heart", "pause_circle", "person", "person_heart", "playground", "play_circle", "playing_cards",
+        "palette",
+        "partner_heart",
+        "pause_circle",
+        "person",
+        "person_heart",
+        "playground",
+        "play_circle",
+        "playing_cards",
         "publish",
         "quiz",
-        "rate_review", "refresh", "rocket",
-        "schedule", "school", "search", "settings", "skeleton", "simulation", "sort", "sports_and_outdoors",
-        "sports_martial_arts", "sports_baseball", "sports_motorsports", "stadium", "star",
-        "star_shine", "strategy", "style", "swords", "sword_rose", "sync",
-        "tactic", "theater_comedy", "timer", "toys_and_games", "trophy", "tune",
-        "arrow_downward", "arrow_upward", "domain",
+        "rate_review",
+        "refresh",
+        "rocket",
+        "schedule",
+        "school",
+        "search",
+        "settings",
+        "skeleton",
+        "simulation",
+        "sort",
+        "sports_and_outdoors",
+        "sports_martial_arts",
+        "sports_baseball",
+        "sports_motorsports",
+        "stadium",
+        "star",
+        "star_shine",
+        "strategy",
+        "style",
+        "swords",
+        "sword_rose",
+        "sync",
+        "tactic",
+        "theater_comedy",
+        "timer",
+        "toys_and_games",
+        "trophy",
+        "tune",
+        "arrow_downward",
+        "arrow_upward",
+        "domain",
         "upcoming",
-        "wand_stars", "web_traffic"
+        "wand_stars",
+        "web_traffic"
     )
 
     @Suppress("SpreadOperator")
