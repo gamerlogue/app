@@ -37,6 +37,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Lan
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.appLanguageSettingsOpener
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.getDisplayLanguage
 import it.maicol07.gamerlogue.extensions.getFlag
@@ -46,7 +47,6 @@ import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.theme.AppTheme
-import it.maicol07.gamerlogue.ui.views.settings.SettingsViewModel
 import it.maicol07.gamerlogue.ui.views.settings.components.SingleChoiceAlertDialog
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -55,29 +55,28 @@ const val TotalItems = 3
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
-fun AppearanceView(
-    viewModel: SettingsViewModel = koinInject()
-) {
-    val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
-    val useDynamicColors by viewModel.useDynamicColors.collectAsStateWithLifecycle()
-
-    val currentTheme = AppTheme.of(isDarkTheme)
+fun AppearanceView() {
+    // Injected in the body, not as a parameter: nav3ksp turns @Branch parameters into nav key
+    // properties, and this is a dependency rather than a navigation argument.
+    val preferences = koinInject<AppPreferences>()
+    val theme by preferences.theme.collectAsStateWithLifecycle()
+    val useDynamicColors by preferences.useDynamicColors.collectAsStateWithLifecycle()
 
     ScreenScaffold(title = Res.string.settings__appearance) {
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             ThemeSection(
-                theme = currentTheme,
-                onThemeSelected = viewModel::setTheme
+                theme = theme,
+                onThemeSelected = preferences::setTheme
             )
 
             if (getPlatform().supportsDeviceColors()) {
                 DynamicColorsSwitch(
-                    useDynamicColors = useDynamicColors ?: true,
-                    onDynamicColorsToggled = viewModel::setUseDynamicColors
+                    useDynamicColors = useDynamicColors,
+                    onDynamicColorsToggled = preferences::setUseDynamicColors
                 )
             }
 
-            LanguageSection(viewModel::setLanguage)
+            LanguageSection(preferences::setLanguage)
         }
     }
 }

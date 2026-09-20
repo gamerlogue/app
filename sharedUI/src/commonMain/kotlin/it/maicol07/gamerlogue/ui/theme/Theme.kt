@@ -8,36 +8,22 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import com.materialkolor.DynamicMaterialExpressiveTheme
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicMaterialThemeState
-import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.ObservableSettings
-import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
 import io.github.kdroidfilter.platformtools.darkmodedetector.isSystemInDarkMode
-import it.maicol07.gamerlogue.ui.views.settings.utils.SettingsKeys
+import it.maicol07.gamerlogue.core.AppPreferences
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSettingsApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
-    val coroutineScope = rememberCoroutineScope()
-    val settings = koinInject<ObservableSettings>()
-
-    val isDarkSetting by remember {
-        settings.getBooleanOrNullStateFlow(
-            coroutineScope,
-            SettingsKeys.IS_DARK_THEME.name
-        )
-    }.collectAsState()
-
-    val isDarkTheme = isDarkSetting ?: isSystemInDarkMode()
+    val preferences = koinInject<AppPreferences>()
+    val theme by preferences.theme.collectAsState()
 
     val dynamicThemeState = rememberDynamicMaterialThemeState(
-        isDark = isDarkTheme,
+        isDark = theme.isDark ?: isSystemInDarkMode(),
         style = PaletteStyle.TonalSpot,
         specVersion = ColorSpec.SpecVersion.SPEC_2025,
         seedColor = SeedColor,
