@@ -35,3 +35,7 @@ actual fun clipEntryFor(string: String) = ClipEntry.withPlainText(string)
 
 @Composable
 actual fun deviceSeedColor(): Color? = null // No system palette on web
+
+actual fun applyAppLanguage(tag: String?) {
+    // No-op on web: the browser decides the language, as it does for the rest of the page.
+}

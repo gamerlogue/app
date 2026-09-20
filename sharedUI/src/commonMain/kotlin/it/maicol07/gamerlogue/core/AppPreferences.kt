@@ -5,6 +5,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
+import it.maicol07.gamerlogue.applyAppLanguage
 import it.maicol07.gamerlogue.ui.theme.AppTheme
 import it.maicol07.gamerlogue.ui.views.settings.utils.SettingsKeys
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +42,11 @@ class AppPreferences(private val settings: ObservableSettings) {
     val language: StateFlow<String?> =
         settings.getStringOrNullStateFlow(scope, SettingsKeys.LANGUAGE.name)
 
+    init {
+        // The stored language has to reach the platform before the first strings are resolved.
+        applyAppLanguage(language.value)
+    }
+
     fun setTheme(theme: AppTheme) {
         val isDark = theme.isDark
         if (isDark == null) {
@@ -60,6 +66,7 @@ class AppPreferences(private val settings: ObservableSettings) {
         } else {
             settings.putString(SettingsKeys.LANGUAGE.name, language.language)
         }
+        applyAppLanguage(language?.language)
     }
 
     private fun <T, R> StateFlow<T>.mapState(transform: (T) -> R): StateFlow<R> =

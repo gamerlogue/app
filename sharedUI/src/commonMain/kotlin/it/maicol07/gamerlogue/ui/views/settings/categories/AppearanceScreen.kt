@@ -61,6 +61,7 @@ fun AppearanceView() {
     val preferences = koinInject<AppPreferences>()
     val theme by preferences.theme.collectAsStateWithLifecycle()
     val useDynamicColors by preferences.useDynamicColors.collectAsStateWithLifecycle()
+    val language by preferences.language.collectAsStateWithLifecycle()
 
     ScreenScaffold(title = Res.string.settings__appearance) {
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -76,7 +77,7 @@ fun AppearanceView() {
                 )
             }
 
-            LanguageSection(preferences::setLanguage)
+            LanguageSection(language, preferences::setLanguage)
         }
     }
 }
@@ -100,7 +101,7 @@ private fun ThemeSection(theme: AppTheme, onThemeSelected: (AppTheme) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun LanguageSection(onLanguageSelected: (Locale?) -> Unit) {
+private fun LanguageSection(selectedLanguage: String?, onLanguageSelected: (Locale?) -> Unit) {
     var languageDialogOpen by remember { mutableStateOf(false) }
 
     val supportsSystemAppLanguage = getPlatform().supportsSystemAppLanguage()
@@ -126,8 +127,9 @@ private fun LanguageSection(onLanguageSelected: (Locale?) -> Unit) {
         SingleChoiceAlertDialog(
             dialogTitle = stringResource(Res.string.settings__language),
             items = BuildConfig.AVAILABLE_LANGUAGES.values.toList(),
+            // The stored override wins; with none, whatever the platform resolved is what is shown.
             selectedItem = BuildConfig.AVAILABLE_LANGUAGES.getOrElse(
-                Locale.current.language
+                selectedLanguage ?: Locale.current.language
             ) { BuildConfig.AVAILABLE_LANGUAGES["en"] },
             onItemSelected = {
                 onLanguageSelected(it)

@@ -122,6 +122,9 @@ kotlin {
 dependencies {
     implementation(project(":sharedUI"))
     implementation(libs.androidx.activityCompose)
+    // AppCompatDelegate.setApplicationLocales is the only way to apply a per-app language below
+    // API 33; it requires an AppCompatActivity and an AppCompat-derived theme.
+    implementation(libs.androidx.appcompat)
     implementation(libs.koin.android)
 
     androidTestImplementation(libs.androidx.uitest.junit4)

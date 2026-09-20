@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.maicol07.gamerlogue.auth.AuthHandler
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.di.KoinApp
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
@@ -37,12 +39,19 @@ fun App(
         CompositionLocalProvider(LocalNavigationState provides navigationState) {
             AuthHandler(authCallbackUri, onAuthCallbackHandled)
 
-            AppTheme {
-                AppScaffold {
-                    Box(Modifier.padding(it)) {
-                        AppNavDisplay(navigationState)
+            // Compose resources read the platform locale during composition, so an in-app language
+            // change is only picked up by composing the tree again. Keyed here rather than higher up
+            // so the Koin root survives; the cost is that navigation restarts at the root, which is
+            // also what Android does on its own when AppCompat recreates the activity.
+            val language by koinInject<AppPreferences>().language.collectAsStateWithLifecycle()
+            key(language) {
+                AppTheme {
+                    AppScaffold {
+                        Box(Modifier.padding(it)) {
+                            AppNavDisplay(navigationState)
 
-                        GlobalErrorHost()
+                            GlobalErrorHost()
+                        }
                     }
                 }
             }

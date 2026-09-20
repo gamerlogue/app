@@ -22,3 +22,14 @@ expect fun clipEntryFor(string: String): ClipEntry
  */
 @Composable
 expect fun deviceSeedColor(): Color?
+
+/**
+ * Applies the in-app language override; null restores the language the system picked.
+ *
+ * Compose resources resolve strings against `Locale.current`, which is platform state rather than a
+ * composition local, so the override has to be pushed down to the platform. No-op on web, where the
+ * browser owns the language.
+ *
+ * @param tag an IETF BCP 47 language tag, e.g. `it`.
+ */
+expect fun applyAppLanguage(tag: String?)

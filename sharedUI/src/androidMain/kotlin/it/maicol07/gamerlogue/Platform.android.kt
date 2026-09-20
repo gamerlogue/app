@@ -8,8 +8,10 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.core.os.LocaleListCompat
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -54,6 +56,14 @@ actual fun appLanguageSettingsOpener(): () -> Unit {
 }
 
 actual fun clipEntryFor(string: String) = ClipEntry(ClipData.newPlainText("Copied Text", string))
+
+// Handles both sides of API 33: above it AppCompat forwards to the system per-app language, below it
+// applies and persists the override itself.
+actual fun applyAppLanguage(tag: String?) {
+    AppCompatDelegate.setApplicationLocales(
+        if (tag == null) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(tag)
+    )
+}
 
 @Composable
 actual fun deviceSeedColor(): Color? {
