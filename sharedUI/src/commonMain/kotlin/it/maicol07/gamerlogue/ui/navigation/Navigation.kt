@@ -59,9 +59,10 @@ fun rememberAppNavigationState(): AppNavigationState {
     val backStacks = TopLevelNavKeys.associateWith { RootNavTreeLayout.rememberTreeBackStack(it) }
     val selectedRootIndex = rememberSaveable { mutableIntStateOf(0) }
 
-    return remember(selectedRootIndex, backStacks) {
-        AppNavigationState(selectedRootIndex, backStacks)
-    }
+    // Unkeyed on purpose: the back stacks themselves are remembered, and the map wrapping them is a
+    // fresh allocation each composition. Keying on it would hand a new AppNavigationState to the
+    // static LocalNavigationState and invalidate the whole tree — what App's KDoc sets out to avoid.
+    return remember { AppNavigationState(selectedRootIndex, backStacks) }
 }
 
 /**
