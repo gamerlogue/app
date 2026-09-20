@@ -10,7 +10,11 @@
     <!-- Error bottom sheet -->
     <string name="exception__hint_network">Suggerimento: controlla la tua connessione Internet e riprova.</string>
     <string name="exception__action_close">Chiudi</string>
-    <string name="exception__action_dismiss">Ignora errore</string>
+    <string name="exception__action_dismiss">Ignora tutti</string>
+    <plurals name="exception__count">
+        <item quantity="one">%1$d errore</item>
+        <item quantity="other">%1$d errori</item>
+    </plurals>
     <string name="exception__details_show">Mostra dettagli tecnici</string>
     <string name="exception__details_hide">Nascondi dettagli tecnici</string>
     <string name="exception__details_copy">Copia dettagli</string>

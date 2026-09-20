@@ -12,7 +12,11 @@
     <string name="exception__type_label">%1$s</string>
     <string name="exception__hint_network">Tip: check your Internet connection and try again.</string>
     <string name="exception__action_close">Close</string>
-    <string name="exception__action_dismiss">Dismiss error</string>
+    <string name="exception__action_dismiss">Dismiss all</string>
+    <plurals name="exception__count">
+        <item quantity="one">%1$d error</item>
+        <item quantity="other">%1$d errors</item>
+    </plurals>
     <string name="exception__details_show">Show technical details</string>
     <string name="exception__details_hide">Hide technical details</string>
     <string name="exception__details_copy">Copy details</string>

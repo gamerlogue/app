@@ -53,6 +53,7 @@ import gamerlogue.sharedui.generated.resources.exception__details_copy
 import gamerlogue.sharedui.generated.resources.exception__details_hide
 import gamerlogue.sharedui.generated.resources.exception__details_show
 import gamerlogue.sharedui.generated.resources.exception__fallback_message
+import gamerlogue.sharedui.generated.resources.exception__count
 import gamerlogue.sharedui.generated.resources.exception__generic_error
 import gamerlogue.sharedui.generated.resources.exception__hint_network
 import gamerlogue.sharedui.generated.resources.exception__title
@@ -67,6 +68,7 @@ import it.maicol07.gamerlogue.clipEntryFor
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -75,16 +77,21 @@ fun GlobalExceptionBottomSheet(
     errorState: ExceptionReporter.ErrorState,
     reporter: ExceptionReporter,
 ) {
-    val e = errorState.error
+    val errors = errorState.errors
     val showTechnicalDetails = BuildConfig.APP_ENV == AppEnvironment.LOCAL
 
-    val fallbackMessage = stringResource(Res.string.exception__fallback_message)
-    val genericError = stringResource(Res.string.exception__generic_error)
-    val message = if (showTechnicalDetails) e.message ?: fallbackMessage else fallbackMessage
-    val errorType = if (showTechnicalDetails) e::class.simpleName ?: genericError else genericError
-    val details = remember(e) { if (showTechnicalDetails) e.stackTraceToString() else "" }
+    val details = remember(errors) {
+        if (showTechnicalDetails) errors.joinToString("\n\n") { it.stackTraceToString() } else ""
+    }
 
-    val hint = if (e.looksLikeNetworkFailure()) stringResource(Res.string.exception__hint_network) else null
+    // A retrying request reports the same failure over and over; showing it N times says nothing the
+    // count does not. Most recent group first — groupBy keeps first-encounter order.
+    val grouped = remember(errors) {
+        errors.asReversed()
+            .groupBy { it::class.simpleName to it.message }
+            .map { (_, repeats) -> repeats.first() to repeats.size }
+    }
+    val showsNetworkHint = remember(errors) { errors.any { it.looksLikeNetworkFailure() } }
 
     var showDetails by remember { mutableStateOf(false) }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
@@ -128,21 +135,19 @@ fun GlobalExceptionBottomSheet(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = errorType,
+                        text = pluralStringResource(Res.plurals.exception__count, errors.size, errors.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Message
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-            )
+            grouped.forEach { (error, repeats) ->
+                ErrorEntry(error, repeats, showTechnicalDetails)
+            }
 
-            // Network hint
-            if (hint != null) {
+            // Once for the whole list: the advice does not get truer by repeating it per failure.
+            if (showsNetworkHint) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -159,7 +164,7 @@ fun GlobalExceptionBottomSheet(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = hint,
+                        text = stringResource(Res.string.exception__hint_network),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -259,6 +264,26 @@ fun GlobalExceptionBottomSheet(
                 }
             }
         }
+    }
+}
+
+/** One reported failure: its type, how many times it repeated, and what it said. */
+@Composable
+private fun ErrorEntry(error: Throwable, repeats: Int, showTechnicalDetails: Boolean) {
+    val fallbackMessage = stringResource(Res.string.exception__fallback_message)
+    val genericError = stringResource(Res.string.exception__generic_error)
+    val type = if (showTechnicalDetails) error::class.simpleName ?: genericError else genericError
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = if (repeats > 1) "$type ×$repeats" else type,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = if (showTechnicalDetails) error.message ?: fallbackMessage else fallbackMessage,
+            style = MaterialTheme.typography.bodyLarge,
+        )
     }
 }
 
