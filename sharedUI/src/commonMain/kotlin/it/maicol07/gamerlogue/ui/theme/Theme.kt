@@ -34,10 +34,7 @@ fun AppTheme(content: @Composable () -> Unit) {
         )
     }.collectAsState()
 
-    val isDarkTheme = when {
-        isDarkSetting != null -> isDarkSetting!!
-        else -> isSystemInDarkMode()
-    }
+    val isDarkTheme = isDarkSetting ?: isSystemInDarkMode()
 
     val dynamicThemeState = rememberDynamicMaterialThemeState(
         isDark = isDarkTheme,

@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +45,7 @@ import it.maicol07.gamerlogue.extensions.supportsSystemAppLanguage
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.RootTree
-import it.maicol07.gamerlogue.ui.views.settings.AppTheme
+import it.maicol07.gamerlogue.ui.theme.AppTheme
 import it.maicol07.gamerlogue.ui.views.settings.SettingsViewModel
 import it.maicol07.gamerlogue.ui.views.settings.components.SingleChoiceAlertDialog
 import org.jetbrains.compose.resources.stringResource
@@ -62,15 +61,7 @@ fun AppearanceView(
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
     val useDynamicColors by viewModel.useDynamicColors.collectAsStateWithLifecycle()
 
-    val currentTheme by remember {
-        derivedStateOf {
-            when (isDarkTheme) {
-                true -> AppTheme.DARK
-                false -> AppTheme.LIGHT
-                else -> AppTheme.SYSTEM
-            }
-        }
-    }
+    val currentTheme = AppTheme.of(isDarkTheme)
 
     ScreenScaffold(title = Res.string.settings__appearance) {
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -94,7 +85,7 @@ fun AppearanceView(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ThemeSection(theme: AppTheme, onThemeSelected: (AppTheme) -> Unit) {
-    val themeStrings = AppTheme.entries.associateWith { stringResource(it.text) }
+    val themeStrings = AppTheme.entries.associateWith { stringResource(it.label) }
 
     SettingsButtonGroup(
         title = { Text(stringResource(Res.string.settings__theme)) },

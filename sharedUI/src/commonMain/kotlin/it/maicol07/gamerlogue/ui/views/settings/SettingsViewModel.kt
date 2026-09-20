@@ -10,6 +10,7 @@ import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.safeRequest
+import it.maicol07.gamerlogue.ui.theme.AppTheme
 import it.maicol07.gamerlogue.ui.views.settings.utils.SettingsKeys
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
@@ -26,10 +27,11 @@ class SettingsViewModel(
     val useDynamicColors = settings.getBooleanOrNullStateFlow(viewModelScope, SettingsKeys.USE_DYNAMIC_COLORS.name)
 
     fun setTheme(theme: AppTheme) {
-        if (theme == AppTheme.SYSTEM) {
+        val isDark = theme.isDark
+        if (isDark == null) {
             settings.remove(SettingsKeys.IS_DARK_THEME.name)
         } else {
-            settings.putBoolean(SettingsKeys.IS_DARK_THEME.name, theme == AppTheme.DARK)
+            settings.putBoolean(SettingsKeys.IS_DARK_THEME.name, isDark)
         }
     }
 
