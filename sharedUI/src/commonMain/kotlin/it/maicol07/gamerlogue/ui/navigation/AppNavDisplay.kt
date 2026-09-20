@@ -13,9 +13,9 @@ import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -30,7 +30,7 @@ import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTreeBuilder
  * The app's [SharedTransitionScope], provided around the [NavDisplay] so any screen can opt a
  * composable into a shared-element transition (e.g. a game cover). Null outside the nav host.
  */
-val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
+val LocalSharedTransitionScope = staticCompositionLocalOf<SharedTransitionScope?> { null }
 
 /**
  * Hosts the Navigation 3 display: builds the list-detail adaptive strategy and feeds it the entries
@@ -54,11 +54,14 @@ fun AppNavDisplay(
             .copy(horizontalPartitionSpacerSize = 0.dp)
     }
     val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(directive = directive)
+    val fadeTransition = remember {
+        fadeIn(tween(TransitionMillis)) togetherWith fadeOut(tween(TransitionMillis))
+    }
 
     SharedTransitionLayout {
         val sharedScope = this
-        val provider = entryProvider {
-            with(RootNavTreeBuilder) { buildTree() }
+        val provider = remember {
+            entryProvider { with(RootNavTreeBuilder) { buildTree() } }
         }
         // Keep every stack's decorators alive when its tab is not displayed.
         val entriesByStack = navigationState.backStacks.mapValues { (root, stack) ->
@@ -80,11 +83,9 @@ fun AppNavDisplay(
                 entries = entries,
                 sceneStrategies = listOf(listDetailStrategy),
                 sharedTransitionScope = sharedScope,
-                transitionSpec = { fadeIn(tween(TransitionMillis)) togetherWith fadeOut(tween(TransitionMillis)) },
-                popTransitionSpec = { fadeIn(tween(TransitionMillis)) togetherWith fadeOut(tween(TransitionMillis)) },
-                predictivePopTransitionSpec = {
-                    fadeIn(tween(TransitionMillis)) togetherWith fadeOut(tween(TransitionMillis))
-                },
+                transitionSpec = { fadeTransition },
+                popTransitionSpec = { fadeTransition },
+                predictivePopTransitionSpec = { fadeTransition },
                 modifier = modifier.fillMaxSize(),
                 onBack = navigationState::navigateBack
             )
