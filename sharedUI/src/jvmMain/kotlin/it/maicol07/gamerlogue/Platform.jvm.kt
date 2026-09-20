@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import java.awt.datatransfer.StringSelection
 
@@ -20,3 +21,6 @@ actual fun appLanguageSettingsOpener(): () -> Unit = {}
 
 @OptIn(ExperimentalComposeUiApi::class)
 actual fun clipEntryFor(string: String) = ClipEntry(StringSelection(string))
+
+@Composable
+actual fun deviceSeedColor(): Color? = null // No system palette on JVM

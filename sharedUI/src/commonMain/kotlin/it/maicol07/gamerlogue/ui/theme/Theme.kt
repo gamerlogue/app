@@ -14,6 +14,7 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicMaterialThemeState
 import io.github.kdroidfilter.platformtools.darkmodedetector.isSystemInDarkMode
 import it.maicol07.gamerlogue.core.AppPreferences
+import it.maicol07.gamerlogue.deviceSeedColor
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -21,12 +22,14 @@ import org.koin.compose.koinInject
 fun AppTheme(content: @Composable () -> Unit) {
     val preferences = koinInject<AppPreferences>()
     val theme by preferences.theme.collectAsState()
+    val useDynamicColors by preferences.useDynamicColors.collectAsState()
 
+    val deviceSeedColor = deviceSeedColor()
     val dynamicThemeState = rememberDynamicMaterialThemeState(
         isDark = theme.isDark ?: isSystemInDarkMode(),
         style = PaletteStyle.TonalSpot,
         specVersion = ColorSpec.SpecVersion.SPEC_2025,
-        seedColor = SeedColor,
+        seedColor = deviceSeedColor.takeIf { useDynamicColors } ?: SeedColor,
     )
 
     DynamicMaterialExpressiveTheme(

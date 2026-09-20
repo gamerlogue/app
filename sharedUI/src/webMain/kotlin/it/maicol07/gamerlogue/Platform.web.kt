@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import com.raedghazal.kotlinx_datetime_ext.Locale
 import com.raedghazal.kotlinx_datetime_ext.initPlatformLocales
@@ -31,3 +32,6 @@ actual fun appLanguageSettingsOpener(): () -> Unit = {
 }
 
 actual fun clipEntryFor(string: String) = ClipEntry.withPlainText(string)
+
+@Composable
+actual fun deviceSeedColor(): Color? = null // No system palette on web

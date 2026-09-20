@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 
 @Composable
@@ -14,3 +15,10 @@ expect fun NavigationBarContrastEnforced(enforced: Boolean)
 expect fun appLanguageSettingsOpener(): () -> Unit
 
 expect fun clipEntryFor(string: String): ClipEntry
+
+/**
+ * The seed color derived from the system palette (Android 12+ wallpaper colors), or null where the
+ * platform has none — the app then falls back to its own brand seed.
+ */
+@Composable
+expect fun deviceSeedColor(): Color?

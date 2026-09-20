@@ -9,7 +9,10 @@ import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalContext
 import com.stoyanvuchev.systemuibarstweaker.rememberSystemUIBarsTweaker
@@ -51,3 +54,15 @@ actual fun appLanguageSettingsOpener(): () -> Unit {
 }
 
 actual fun clipEntryFor(string: String) = ClipEntry(ClipData.newPlainText("Copied Text", string))
+
+@Composable
+actual fun deviceSeedColor(): Color? {
+    val context = LocalContext.current
+    return remember(context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            dynamicLightColorScheme(context).primary
+        } else {
+            null
+        }
+    }
+}
