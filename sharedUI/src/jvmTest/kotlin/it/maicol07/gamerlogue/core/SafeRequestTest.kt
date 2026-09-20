@@ -25,7 +25,7 @@ class SafeRequestTest : StringSpec({
             finishSuccess.complete(Unit)
             success.await()
 
-            reporter.state.value?.error shouldBe failure
+            reporter.state.value?.errors shouldBe listOf(failure)
         }
     }
 
