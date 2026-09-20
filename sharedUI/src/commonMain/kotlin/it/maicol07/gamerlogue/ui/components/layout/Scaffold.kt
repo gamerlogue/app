@@ -17,9 +17,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import it.maicol07.gamerlogue.NavigationBarContrastEnforced
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.showsNavigationSuite
-import it.maicol07.gamerlogue.NavigationBarContrastEnforced
 import org.jetbrains.compose.resources.StringResource
 
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {

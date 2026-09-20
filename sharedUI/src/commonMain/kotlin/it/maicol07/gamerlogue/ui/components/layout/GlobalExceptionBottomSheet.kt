@@ -59,9 +59,9 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Con
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LightbulbW500Rounded
-import it.maicol07.gamerlogue.clipEntryFor
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
+import it.maicol07.gamerlogue.clipEntryFor
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
 import kotlinx.coroutines.launch
@@ -100,7 +100,10 @@ fun GlobalExceptionBottomSheet(
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
     val scope = rememberCoroutineScope()
 
-    fun dismiss() = scope.launch { sheetState.hide(); reporter.clearError() }
+    fun dismiss() = scope.launch {
+        sheetState.hide()
+        reporter.clearError()
+    }
 
     ModalBottomSheet({ reporter.dismissSheet() }, sheetState = sheetState) {
         Column(
@@ -173,66 +176,71 @@ fun GlobalExceptionBottomSheet(
             }
 
             // Technical details
-            if (showTechnicalDetails) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = { showDetails = !showDetails }
+            if (showTechnicalDetails) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val rotate by animateFloatAsState(
-                            if (showDetails) 90f else 0f,
-                            label = "RotateDetailsArrow"
-                        )
-                        ButtonIcon(
-                            imageVector = Icons.KeyboardArrowRightW500Rounded,
-                            contentDescription = null,
-                            modifier = Modifier.rotate(rotate)
-                        )
-                        Text(
-                            if (showDetails) stringResource(Res.string.exception__details_hide)
-                            else stringResource(Res.string.exception__details_show)
-                        )
-                    }
-
-                    AnimatedVisibility(showDetails) {
-                        TooltipBox(
-                            TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                            { PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) } },
-                            rememberTooltipState()
+                        TextButton(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = { showDetails = !showDetails }
                         ) {
-                            val clipboard = LocalClipboard.current
-                            val coroutineScope = rememberCoroutineScope()
-                            FilledIconButton(
-                                shapes = IconButtonDefaults.shapes(),
-                                onClick = {
-                                    coroutineScope.launch {
-                                        // TODO: multiplatform clipboard — https://youtrack.jetbrains.com/issue/CMP-7624
-                                        clipboard.setClipEntry(clipEntryFor(details))
-                                    }
+                            val rotate by animateFloatAsState(
+                                if (showDetails) 90f else 0f,
+                                label = "RotateDetailsArrow"
+                            )
+                            ButtonIcon(
+                                imageVector = Icons.KeyboardArrowRightW500Rounded,
+                                contentDescription = null,
+                                modifier = Modifier.rotate(rotate)
+                            )
+                            Text(
+                                if (showDetails) {
+                                    stringResource(Res.string.exception__details_hide)
+                                } else {
+                                    stringResource(Res.string.exception__details_show)
                                 }
+                            )
+                        }
+
+                        AnimatedVisibility(showDetails) {
+                            TooltipBox(
+                                TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+                                { PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) } },
+                                rememberTooltipState()
                             ) {
-                                Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))
+                                val clipboard = LocalClipboard.current
+                                val coroutineScope = rememberCoroutineScope()
+                                FilledIconButton(
+                                    shapes = IconButtonDefaults.shapes(),
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            // TODO: multiplatform clipboard — https://youtrack.jetbrains.com/issue/CMP-7624
+                                            clipboard.setClipEntry(clipEntryFor(details))
+                                        }
+                                    }
+                                ) {
+                                    Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))
+                                }
                             }
                         }
                     }
-                }
 
-                AnimatedVisibility(showDetails) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        SelectionContainer {
-                            Text(
-                                text = details,
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
-                            )
+                    AnimatedVisibility(showDetails) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = details,
+                                    modifier = Modifier.padding(12.dp),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                                )
+                            }
                         }
                     }
                 }
