@@ -49,7 +49,6 @@ import gamerlogue.sharedui.generated.resources.events__upcoming
 import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__events
 import gamerlogue.sharedui.generated.resources.home__see_all
-import gamerlogue.sharedui.generated.resources.nav__discover
 import gamerlogue.sharedui.generated.resources.search__global_hint
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -93,7 +92,6 @@ fun DiscoverView(
     val eventsState by eventsViewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     ScreenScaffold(
-        title = Res.string.nav__discover,
         topBar = {
             GameSearchButton(
                 placeholder = stringResource(Res.string.search__global_hint),

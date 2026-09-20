@@ -41,7 +41,6 @@ fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(section, eventId) { viewModel.start(section, eventId) }
     ScreenScaffold(
-        title = section?.sectionTitle,
         topBar = { GameListTopBar(viewModel, eventName, section == null && eventId == null) }
     ) {
         GameListResults(

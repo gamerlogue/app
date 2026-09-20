@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,7 +39,11 @@ fun AppScaffold(
 ) {
     val navigationState = LocalNavigationState.current
     val showNavigation = navigationState.backStack.last().showsNavigationSuite
-    val navigationSuiteState = rememberNavigationSuiteScaffoldState()
+    // Seeded from the current destination, otherwise the suite would animate out on a cold start
+    // landing on a destination that hides it.
+    val navigationSuiteState = rememberNavigationSuiteScaffoldState(
+        if (showNavigation) NavigationSuiteScaffoldValue.Visible else NavigationSuiteScaffoldValue.Hidden
+    )
     val snackbarHostState = remember { SnackbarHostState() }
     NavigationBarContrastEnforced(!showNavigation)
     LaunchedEffect(showNavigation) {
@@ -63,12 +68,12 @@ fun AppScaffold(
  * above the screen content. Wrap a destination's content in the nav layer so screens stay
  * navigation-free and each adaptive pane gets its own top bar.
  *
- * Pass [topBar] to replace the default bar entirely (e.g. with a search bar); [title] and
- * [actions] are then ignored.
+ * Pass [topBar] to replace the default bar entirely (e.g. with a search bar); it takes over from
+ * [title] and [actions], so leave those out when you pass one.
  */
 @Composable
 fun ScreenScaffold(
-    title: StringResource?,
+    title: StringResource? = null,
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
     topBar: (@Composable () -> Unit)? = null,
@@ -76,7 +81,7 @@ fun ScreenScaffold(
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { topBar?.invoke() ?: AppTopBar(title, actions = actions) },
+        topBar = topBar ?: { AppTopBar(title, actions = actions) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) { content() }
