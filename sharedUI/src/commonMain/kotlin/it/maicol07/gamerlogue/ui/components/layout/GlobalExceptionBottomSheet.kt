@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.exception__action_close
+import gamerlogue.sharedui.generated.resources.exception__action_dismiss
 import gamerlogue.sharedui.generated.resources.exception__details_copy
 import gamerlogue.sharedui.generated.resources.exception__details_hide
 import gamerlogue.sharedui.generated.resources.exception__details_show
@@ -66,13 +68,12 @@ import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GlobalExceptionBottomSheet(
     errorState: ExceptionReporter.ErrorState,
-    reporter: ExceptionReporter = koinInject(),
+    reporter: ExceptionReporter,
 ) {
     val e = errorState.error
     val showTechnicalDetails = BuildConfig.APP_ENV == AppEnvironment.LOCAL
@@ -81,28 +82,18 @@ fun GlobalExceptionBottomSheet(
     val genericError = stringResource(Res.string.exception__generic_error)
     val message = if (showTechnicalDetails) e.message ?: fallbackMessage else fallbackMessage
     val errorType = if (showTechnicalDetails) e::class.simpleName ?: genericError else genericError
-    val details = if (showTechnicalDetails) remember(e) { e.stackTraceToString() } else ""
+    val details = remember(e) { if (showTechnicalDetails) e.stackTraceToString() else "" }
 
-    val hint = run {
-        val t = (e::class.simpleName.orEmpty() + " " + (e.message ?: ""))
-        if (t.contains("timeout", ignoreCase = true) || t.contains("network", ignoreCase = true) || t.contains(
-                "connect",
-                ignoreCase = true
-            )
-        ) {
-            stringResource(Res.string.exception__hint_network)
-        } else {
-            null
-        }
-    }
+    val hint = if (e.looksLikeNetworkFailure()) stringResource(Res.string.exception__hint_network) else null
 
     var showDetails by remember { mutableStateOf(false) }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
     val scope = rememberCoroutineScope()
 
-    fun dismiss() = scope.launch {
+    /** Lets the sheet animate out before the reporter state changes and removes this composable. */
+    fun hideThen(onHidden: () -> Unit) = scope.launch {
         sheetState.hide()
-        reporter.clearError()
+        onHidden()
     }
 
     ModalBottomSheet({ reporter.dismissSheet() }, sheetState = sheetState) {
@@ -212,11 +203,10 @@ fun GlobalExceptionBottomSheet(
                                 rememberTooltipState()
                             ) {
                                 val clipboard = LocalClipboard.current
-                                val coroutineScope = rememberCoroutineScope()
                                 FilledIconButton(
                                     shapes = IconButtonDefaults.shapes(),
                                     onClick = {
-                                        coroutineScope.launch {
+                                        scope.launch {
                                             // TODO: multiplatform clipboard — https://youtrack.jetbrains.com/issue/CMP-7624
                                             clipboard.setClipEntry(clipEntryFor(details))
                                         }
@@ -246,18 +236,33 @@ fun GlobalExceptionBottomSheet(
                 }
             }
 
-            // Close action
-            Button(
-                shapes = ButtonDefaults.shapes(),
-                onClick = { dismiss() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
-            ) {
-                Text(stringResource(Res.string.exception__action_close))
+            // Actions: closing keeps the error reachable from the top bar, dismissing drops it.
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    shapes = ButtonDefaults.shapes(),
+                    onClick = { hideThen(reporter::dismissSheet) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(Res.string.exception__action_close))
+                }
+
+                Button(
+                    shapes = ButtonDefaults.shapes(),
+                    onClick = { hideThen(reporter::clearError) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(stringResource(Res.string.exception__action_dismiss))
+                }
             }
         }
     }
+}
+
+private fun Throwable.looksLikeNetworkFailure(): Boolean {
+    val text = "${this::class.simpleName.orEmpty()} ${message.orEmpty()}"
+    return listOf("timeout", "network", "connect").any { text.contains(it, ignoreCase = true) }
 }
