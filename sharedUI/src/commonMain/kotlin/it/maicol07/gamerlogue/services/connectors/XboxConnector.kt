@@ -39,8 +39,8 @@ class XboxConnector(private val api: XboxApi) :
     override suspend fun isLoggedIn(currentUrl: String) =
         currentUrl.contains("oauth20_desktop.srf") && !currentUrl.contains("authorize")
 
-    // No storeLoginUrl override: xbox.com SSOs silently from the MSA session, so we skip the manual
-    // store-login step and read the wishlist directly (readWishlist navigates xbox.com top-level).
+    // xbox.com SSOs silently from the MSA session, so no separate store sign-in is needed: the wishlist is
+    // read directly (readWishlist navigates xbox.com top-level).
 
     // MSA login (login.live.com) + the Microsoft/Xbox store origins that carry the signed-in session.
     override val sessionUrls = listOf(

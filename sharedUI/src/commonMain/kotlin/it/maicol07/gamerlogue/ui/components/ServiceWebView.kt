@@ -66,14 +66,6 @@ interface WebSession {
     suspend fun <T> read(source: DataSource<T>): T
 
     /**
-     * Navigate to [url] and reveal the WebView with a "Continue" button so the user can interactively
-     * sign into a second (store) origin whose first-party session the DOM ops need; suspends until they
-     * tap Continue. Used when [ServiceConnector.storeLoginUrl] is set (e.g. Xbox: the Microsoft Store
-     * wishlist origin, which the login.live.com token session doesn't cover).
-     */
-    suspend fun awaitStoreLogin(url: String)
-
-    /**
      * Show a checklist of [games] about to be pushed to the store wishlist and suspend until the user
      * picks which to send (empty if they skip). No-op (returns empty) when [games] is empty. Used to
      * preview the outgoing direction before writing to the store.
@@ -171,7 +163,7 @@ fun rememberServiceWebViewHost(
 
 /**
  * Backs [rememberServiceWebViewHost]: the [WebSession] implementation whose observable flags
- * ([loginRequired], [pendingConfirm], [awaitingManualLogin], [log]) drive the hosting screen.
+ * ([loginRequired], [pendingConfirm], [log]) drive the hosting screen.
  */
 class ServiceWebViewSession internal constructor(
     private val controller: WebViewController,
@@ -179,13 +171,10 @@ class ServiceWebViewSession internal constructor(
 ) : WebSession {
     private var pending: CompletableDeferred<String?>? = null
     private var confirm: CompletableDeferred<List<LibrarySync.OutgoingGame>>? = null
-    private var manualLogin: CompletableDeferred<Unit>? = null
 
     var loginDone by mutableStateOf(false)
         private set
     var pendingConfirm by mutableStateOf<List<LibrarySync.OutgoingGame>?>(null)
-        private set
-    var awaitingManualLogin by mutableStateOf(false)
         private set
     var awaitingLogin by mutableStateOf(false)
         private set
@@ -195,12 +184,12 @@ class ServiceWebViewSession internal constructor(
 
     /**
      * The WebView must be interactive while we're waiting for the user to sign in — the whole [awaitLogin]
-     * window (incl. 2FA / passkey "choose another method" pages) or a second store-origin login. It is NOT
+     * window (incl. 2FA / passkey "choose another method" pages). It is NOT
      * keyed off the URL: multi-step logins (e.g. Nintendo's 2FA) leave the "login"/"signin" path, which
      * used to flip the WebView to passive "working" mid-login and block the user from finishing sign-in.
      */
     val loginRequired: Boolean
-        get() = awaitingManualLogin || awaitingLogin
+        get() = awaitingLogin
 
     internal fun deliver(json: String?) {
         pending?.complete(json)
@@ -220,24 +209,6 @@ class ServiceWebViewSession internal constructor(
     /** Called by the checklist body with the user's selection. */
     fun resolveConfirm(selected: List<LibrarySync.OutgoingGame>) {
         confirm?.complete(selected)
-    }
-
-    override suspend fun awaitStoreLogin(url: String) {
-        Logger.i(tag = TAG) { "awaitStoreLogin: loadUrl $url" }
-        controller.loadUrl(url)
-        awaitLoaded()
-        val deferred = CompletableDeferred<Unit>()
-        manualLogin = deferred
-        awaitingManualLogin = true
-        deferred.await()
-        awaitingManualLogin = false
-        manualLogin = null
-        Logger.i(tag = TAG) { "awaitStoreLogin: continued at ${state.lastLoadedUrl}" }
-    }
-
-    /** Called by the Continue button once the user has signed into the store. */
-    fun resolveManualLogin() {
-        manualLogin?.complete(Unit)
     }
 
     override suspend fun awaitLogin(connector: ServiceConnector) {

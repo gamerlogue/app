@@ -108,17 +108,10 @@ abstract class ServiceConnector(
     /** Page where the user signs in (defaults to the store root). */
     open val loginUrl: String get() = "https://$host/"
 
-    /** A second, store-domain page the user must interactively sign into before DOM wishlist ops, or
-     *  null when the [loginUrl] session already covers them. Needed when the wishlist lives on a
-     *  different origin than [loginUrl] and cross-origin (third-party-cookie) SSO is blocked in the
-     *  WebView — a top-level sign-in here sets that origin's own first-party cookies (e.g. Xbox: the API
-     *  token comes from login.live.com, but the wishlist DOM is on the Microsoft Store). */
-    open val storeLoginUrl: String? get() = null
-
     /** Origins whose WebView cookies hold this store's authenticated session; cleared on disconnect so
-     *  the next connect starts logged out. Defaults to the login origin(s); override when the session
+     *  the next connect starts logged out. Defaults to the login origin; override when the session
      *  spans more hosts (e.g. Steam's community domain, PSN's Sony account domains). */
-    open val sessionUrls: List<String> get() = listOf(loginUrl) + listOfNotNull(storeLoginUrl)
+    open val sessionUrls: List<String> get() = listOf(loginUrl)
 
     /** True once the store session is established. Defaults to a URL check (on a store host, off any
      *  login page); override for stores where the URL alone is ambiguous and the session must be read

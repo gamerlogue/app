@@ -7,11 +7,13 @@ import androidx.compose.ui.platform.ClipEntry
 import java.awt.datatransfer.StringSelection
 import java.util.Locale
 
+@Suppress("EmptyMethod")
 @Composable
 actual fun SystemBarsVisible(visible: Boolean) {
     // No-op on JVM
 }
 
+@Suppress("EmptyMethod")
 @Composable
 actual fun NavigationBarContrastEnforced(enforced: Boolean) {
     // No-op on JVM

@@ -184,14 +184,6 @@ fun ServiceSyncView(
                         )
                     }
                 }
-                if (session.awaitingManualLogin) {
-                    Button(
-                        onClick = session::resolveManualLogin,
-                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
-                    ) {
-                        Text(stringResource(Res.string.settings__wishlist_push_confirm))
-                    }
-                }
             }
         },
     ) { padding ->

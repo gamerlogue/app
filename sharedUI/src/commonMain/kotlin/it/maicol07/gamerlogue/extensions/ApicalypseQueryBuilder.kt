@@ -30,7 +30,7 @@ fun ApicalypseQueryBuilder.where(whereBuilder: ApicalypseQueryBuilderWhereBuilde
     if (clause.isNotEmpty()) this.where(clause)
 }
 
-@Suppress("TooManyFunctions", "unused")
+@Suppress("TooManyFunctions")
 class ApicalypseQueryBuilderWhereBuilder {
     private val wheres = mutableListOf<String>()
 

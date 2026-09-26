@@ -11,7 +11,6 @@ import org.koin.core.annotation.Single
 import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
 
-@Suppress("unused")
 @Module
 @Configuration
 actual object PlatformModule {

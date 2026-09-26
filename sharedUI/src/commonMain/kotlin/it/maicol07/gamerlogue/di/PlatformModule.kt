@@ -6,7 +6,6 @@ import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
 import org.koin.core.scope.Scope
 
-@Suppress("unused")
 @Module
 @Configuration
 expect object PlatformModule {

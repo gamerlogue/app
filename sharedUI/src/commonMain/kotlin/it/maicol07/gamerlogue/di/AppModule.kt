@@ -22,7 +22,6 @@ import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
 
-@Suppress("unused")
 @ComponentScan("it.maicol07.gamerlogue")
 @Configuration
 @Module

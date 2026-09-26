@@ -84,7 +84,6 @@ private val PlatformSession = createClientPlugin("PlatformSession") {
     onRequest { request, _ -> request.configurePlatformSession() }
 }
 
-@Suppress("unused")
 @Module
 @Configuration
 object HttpModule {
