@@ -20,6 +20,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 
 class AuthenticationHandlerTest : StringSpec({
     "PKCE challenge matches RFC 7636" {
@@ -84,7 +85,7 @@ class AuthenticationHandlerTest : StringSpec({
         )
         val engine = MockEngine {
             calls.incrementAndGet()
-            delay(50)
+            delay(50.milliseconds)
             respond(
                 content = """{"access_token":"fresh-token","refresh_token":"fresh-refresh-token","user_id":"1",""" +
                     """"expires_at":"2099-01-01T00:00:00Z","refresh_expires_at":"2099-02-01T00:00:00Z"}""",

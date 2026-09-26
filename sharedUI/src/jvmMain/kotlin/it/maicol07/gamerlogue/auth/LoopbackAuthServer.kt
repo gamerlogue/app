@@ -10,6 +10,7 @@ import kotlinx.serialization.SerializationException
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 /** Owns the temporary localhost server used by the desktop PKCE callback. */
@@ -84,7 +85,7 @@ internal class LoopbackAuthServer(
         const val LOGIN_TIMEOUT_MINUTES = 5L
         const val SERVER_STOP_DELAY_SECONDS = 1L
 
-        val watchdog = Executors.newSingleThreadScheduledExecutor { runnable ->
+        val watchdog: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { runnable ->
             Thread(runnable, "auth-timeout").apply { isDaemon = true }
         }
     }

@@ -15,6 +15,6 @@ class GamerlogueAuthenticatorService : Service() {
         authenticator = GamerlogueAuthenticator(this)
     }
 
-    override fun onBind(intent: Intent?) = authenticator.iBinder
+    override fun onBind(intent: Intent?): IBinder? = authenticator.iBinder
 }
 
