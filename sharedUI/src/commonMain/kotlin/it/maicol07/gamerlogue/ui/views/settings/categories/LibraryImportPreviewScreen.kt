@@ -81,6 +81,7 @@ import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -124,7 +125,7 @@ private fun LibraryImportPreviewContent(
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(stringResource(Res.string.settings__import_done, count), style = MaterialTheme.typography.titleMedium)
+            Text(pluralStringResource(Res.plurals.settings__import_done, count, count), style = MaterialTheme.typography.titleMedium)
             Button(onClick = onDone) { Text(stringResource(Res.string.settings__import_finish)) }
         }
         return
@@ -145,7 +146,7 @@ private fun LibraryImportPreviewContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                stringResource(Res.string.settings__import_selected, selectedCount, uiState.rows.size),
+                pluralStringResource(Res.plurals.settings__import_selected, selectedCount, selectedCount, uiState.rows.size),
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.weight(1f),
             )

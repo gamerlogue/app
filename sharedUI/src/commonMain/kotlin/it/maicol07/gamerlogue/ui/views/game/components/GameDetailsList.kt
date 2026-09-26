@@ -54,6 +54,7 @@ import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -78,7 +79,7 @@ fun GameDetailsList(
     val languagesCount = remember(game.language_supports) {
         game.language_supports.mapNotNull { it.language?.name }.distinct().size
     }
-    val languagesText = stringResource(Res.string.game__languages_count, languagesCount)
+    val languagesText = pluralStringResource(Res.plurals.game__languages_count, languagesCount, languagesCount)
 
     val details = remember(game, onGameClick, franchiseNames, statusName, categoryName, languagesText) {
         val firstReleaseDate = ReleaseDate(date = game.first_release_date)

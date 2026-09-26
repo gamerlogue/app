@@ -133,6 +133,7 @@ import it.maicol07.gamerlogue.ui.components.ConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private val LogoSize = 18.dp
@@ -248,7 +249,7 @@ fun GameListFilterSheet(
                 FilterSectionHeader(
                     icon = Icons.Grid4x4W500Rounded,
                     title = Res.string.gamelist__grid_columns,
-                    trailingText = stringResource(Res.string.gamelist__columns_count, columnCount)
+                    trailingText = pluralStringResource(Res.plurals.gamelist__columns_count, columnCount, columnCount)
                 )
                 Slider(
                     value = columnCount.toFloat(),

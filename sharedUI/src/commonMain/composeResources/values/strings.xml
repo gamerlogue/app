@@ -83,7 +83,10 @@
     <string name="game__details_status">Game Status</string>
     <string name="game__details_type">Game Type</string>
     <string name="game__details_languages">Language Support</string>
-    <string name="game__languages_count">%1$d languages</string>
+    <plurals name="game__languages_count">
+        <item quantity="one">%1$d language</item>
+        <item quantity="other">%1$d languages</item>
+    </plurals>
     <string name="game__languages_audio">Audio</string>
     <string name="game__languages_subtitles">Subtitles</string>
     <string name="game__languages_interface">Interface</string>
@@ -332,11 +335,17 @@
     <string name="settings__wishlist_already_present">Already on wishlist</string>
     <string name="settings__import_confirm_match">Tap to confirm the match</string>
     <string name="settings__import_confirm">Import selected</string>
-    <string name="settings__import_done">Imported %1$d games</string>
+    <plurals name="settings__import_done">
+        <item quantity="one">Imported %1$d game</item>
+        <item quantity="other">Imported %1$d games</item>
+    </plurals>
     <string name="settings__import_finish">Done</string>
     <string name="settings__import_select_all">Select all</string>
     <string name="settings__import_deselect_all">Deselect all</string>
-    <string name="settings__import_selected">%1$d/%2$d selected</string>
+    <plurals name="settings__import_selected">
+        <item quantity="one">%1$d/%2$d selected</item>
+        <item quantity="other">%1$d/%2$d selected</item>
+    </plurals>
     <string name="settings__import_source">%1$s: %2$s</string>
     <string name="settings__import_group_to_import">To import (%1$d)</string>
     <string name="settings__import_group_to_review">To review (%1$d)</string>
@@ -372,7 +381,10 @@
     <!-- GameList Filter & Grid -->
     <string name="gamelist__filter_title">Filter &amp; Grid</string>
     <string name="gamelist__grid_columns">Grid Columns</string>
-    <string name="gamelist__columns_count">%1$d Columns</string>
+    <plurals name="gamelist__columns_count">
+        <item quantity="one">%1$d Column</item>
+        <item quantity="other">%1$d Columns</item>
+    </plurals>
     <string name="gamelist__sort_field">Sort Field</string>
     <string name="gamelist__sort_direction">Direction</string>
     <string name="gamelist__sort_field_popularity">Popularity</string>

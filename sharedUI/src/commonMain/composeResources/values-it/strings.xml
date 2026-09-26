@@ -13,7 +13,7 @@
     <string name="exception__action_dismiss">Ignora tutti</string>
     <plurals name="exception__count">
         <item quantity="one">%1$d errore</item>
-        <item quantity="other">%1$d errori</item>
+        <item quantity="many">%1$d errori</item>
     </plurals>
     <string name="exception__details_show">Mostra dettagli tecnici</string>
     <string name="exception__details_hide">Nascondi dettagli tecnici</string>
@@ -36,7 +36,7 @@
     <string name="home__release_tomorrow">Domani</string>
     <plurals name="home__release_in_days">
         <item quantity="one">Tra %1$d giorno</item>
-        <item quantity="other">Tra %1$d giorni</item>
+        <item quantity="many">Tra %1$d giorni</item>
     </plurals>
     <string name="events__next">Il prossimo</string>
 
@@ -81,7 +81,10 @@
     <string name="game__details_status">Stato del gioco</string>
     <string name="game__details_type">Tipo di gioco</string>
     <string name="game__details_languages">Lingue supportate</string>
-    <string name="game__languages_count">%1$d lingue</string>
+    <plurals name="game__languages_count">
+        <item quantity="one">%1$d lingua</item>
+        <item quantity="many">%1$d lingue</item>
+    </plurals>
     <string name="game__languages_audio">Audio</string>
     <string name="game__languages_subtitles">Sottotitoli</string>
     <string name="game__languages_interface">Interfaccia</string>
@@ -327,11 +330,19 @@
     <string name="settings__wishlist_already_present">Già nella wishlist</string>
     <string name="settings__import_confirm_match">Tocca per confermare il match</string>
     <string name="settings__import_confirm">Importa selezionati</string>
-    <string name="settings__import_done">Importati %1$d giochi</string>
+    <plurals name="settings__import_done">
+        <item quantity="one">Importato %1$d gioco</item>
+        <item quantity="many">Importati %1$d giochi</item>
+        <item quantity="other">Importati %1$d giochi</item>
+    </plurals>
     <string name="settings__import_finish">Fine</string>
     <string name="settings__import_select_all">Seleziona tutto</string>
     <string name="settings__import_deselect_all">Deseleziona tutto</string>
-    <string name="settings__import_selected">%1$d/%2$d selezionati</string>
+    <plurals name="settings__import_selected">
+        <item quantity="one">%1$d/%2$d selezionato</item>
+        <item quantity="many">%1$d/%2$d selezionati</item>
+        <item quantity="other">%1$d/%2$d selezionati</item>
+    </plurals>
     <string name="settings__import_source">%1$s: %2$s</string>
     <string name="settings__import_group_to_import">Da importare (%1$d)</string>
     <string name="settings__import_group_to_review">Da rivedere (%1$d)</string>
@@ -367,7 +378,11 @@
     <!-- GameList Filter & Grid -->
     <string name="gamelist__filter_title">Filtri e Griglia</string>
     <string name="gamelist__grid_columns">Dimensione Griglia</string>
-    <string name="gamelist__columns_count">%1$d Colonne</string>
+    <plurals name="gamelist__columns_count">
+        <item quantity="one">%1$d Colonna</item>
+        <item quantity="many">%1$d Colonne</item>
+        <item quantity="other">%1$d Colonne</item>
+    </plurals>
     <string name="gamelist__sort_field">Ordina Per</string>
     <string name="gamelist__sort_direction">Ordine</string>
     <string name="gamelist__sort_field_popularity">Popolarità</string>
