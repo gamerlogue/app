@@ -183,8 +183,11 @@ fun ServiceConnector.platformIdsFor(game: Game): List<Int> {
     val family = platformFamily
     return game.platforms
         .filter { platform ->
-            if (family == null) platform.id.toInt() in PcPlatformIds
-            else platform.platform_family?.id?.toInt() == family
+            if (family == null) {
+                platform.id.toInt() in PcPlatformIds
+            } else {
+                platform.platform_family?.id?.toInt() == family
+            }
         }
         .map { it.id.toInt() }
 }
@@ -193,7 +196,10 @@ fun ServiceConnector.platformIdsFor(game: Game): List<Int> {
 internal fun List<ExternalGameRef>.uidJsonArray(): String =
     joinToString(prefix = "[", postfix = "]") { "\"${it.uid.replace("\"", "")}\"" }
 
-private val resultJson = Json { ignoreUnknownKeys = true; isLenient = true }
+private val resultJson = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+}
 
 /** Unwrap one optional layer of JSON-string quoting some transports add around the bridge result. */
 internal fun cleanJsResult(raw: String?): String? {
