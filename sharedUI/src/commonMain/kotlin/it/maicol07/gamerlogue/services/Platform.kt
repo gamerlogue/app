@@ -26,4 +26,4 @@ expect fun configureServiceWebView(webView: WebView)
  * and only the leftover drag moves the sheet (keeping the sheet naturally draggable). No-op elsewhere.
  */
 @Composable
-expect fun webViewNestedScrollModifier(): Modifier
+expect fun Modifier.webViewNestedScrollModifier(): Modifier

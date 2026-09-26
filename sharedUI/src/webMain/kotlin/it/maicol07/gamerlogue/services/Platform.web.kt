@@ -12,4 +12,4 @@ actual fun configureServiceWebView(webView: WebView) = Unit
 
 // Feature unavailable on web; nothing to bridge.
 @Composable
-actual fun webViewNestedScrollModifier(): Modifier = Modifier
+actual fun Modifier.webViewNestedScrollModifier(): Modifier = Modifier

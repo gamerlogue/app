@@ -152,7 +152,7 @@ fun rememberServiceWebViewHost(
                 chromeClient = chromeClient,
                 onCreated = ::configureServiceWebView,
                 // Bridge nested scroll so the page scrolls within the sheet, which stays draggable.
-                modifier = Modifier.fillMaxSize().then(webViewNestedScrollModifier()),
+                modifier = Modifier.fillMaxSize().webViewNestedScrollModifier(),
             )
             // The WebView surface paints black until the page's first frame; cover it with a progress
             // indicator while it loads so the user sees progress instead of a black screen.

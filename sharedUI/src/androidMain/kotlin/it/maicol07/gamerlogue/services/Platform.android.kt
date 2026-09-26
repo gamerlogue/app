@@ -16,5 +16,5 @@ actual fun configureServiceWebView(webView: WebView) {
 }
 
 @Composable
-actual fun webViewNestedScrollModifier(): Modifier =
+actual fun Modifier.webViewNestedScrollModifier(): Modifier =
     Modifier.nestedScroll(rememberNestedScrollInteropConnection())
