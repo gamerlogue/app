@@ -14,7 +14,8 @@
         <option value="edit_text" />
       </set>
     </option>
-    <option name="port" value="8644" />
+    <option name="port" value="8643" />
     <option name="smoothScrollEnabled" value="true" />
+    <option name="staticPort" value="true" />
   </component>
 </project>
