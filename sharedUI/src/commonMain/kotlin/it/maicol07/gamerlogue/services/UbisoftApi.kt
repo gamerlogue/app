@@ -161,9 +161,9 @@ class UbisoftApi(private val http: HttpClient) {
         const val SESSIONS = "https://public-ubiservices.ubi.com/v3/profiles/sessions"
         const val SPACE_ID_BATCH_SIZE = 50
 
-        val GET_OWNED_GAMES_QUERY = """
-            query GetOwnedGames(${'$'}spaceIds: [String!]) {
-                games(spaceIds: ${'$'}spaceIds) {
+        val GET_OWNED_GAMES_QUERY = $$"""
+            query GetOwnedGames($spaceIds: [String!]) {
+                games(spaceIds: $spaceIds) {
                     id
                     spaceId
                     name
