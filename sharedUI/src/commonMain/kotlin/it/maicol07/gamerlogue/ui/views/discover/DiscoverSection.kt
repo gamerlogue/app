@@ -81,8 +81,11 @@ enum class DiscoverSection(
     ),
 }
 
+/** Score (0-10) with one decimal, or null when the game has no rating. */
+internal fun Game.ratingScore(): String? = rating.takeIf { it > 0.0 }?.let { "%.1f".sprintf(it / 10) }
+
 /** Star + score (0-10), or null when the game has no rating. */
-internal fun Game.ratingLabel(): String? = rating.takeIf { it > 0.0 }?.let { "★ %.1f".sprintf(it / 10) }
+internal fun Game.ratingLabel(): String? = ratingScore()?.let { "★ $it" }
 
 /** Per-section metadata badge shown on a cover card. */
 internal fun DiscoverSection.cardMetadata(game: Game): String? = when (this) {

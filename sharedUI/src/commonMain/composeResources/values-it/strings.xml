@@ -25,13 +25,20 @@
     <string name="nav__profile">Profilo</string>
 
     <!-- Home sections -->
-    <string name="home__popular_games">Giochi popolari</string>
-    <string name="home__most_loved_games">I più amati</string>
-    <string name="home__recently_released_games">Rilasciati di recente</string>
+    <string name="home__popular_games">Popolari</string>
+    <string name="home__most_loved_games">Più amati</string>
+    <string name="home__recently_released_games">Novità</string>
     <string name="home__upcoming_games">In arrivo</string>
     <string name="home__see_all">Vedi tutti</string>
     <string name="home__empty_section">Nessun gioco da mostrare</string>
     <string name="home__section_error">Impossibile caricare questa sezione</string>
+    <string name="home__release_today">Oggi</string>
+    <string name="home__release_tomorrow">Domani</string>
+    <plurals name="home__release_in_days">
+        <item quantity="one">Tra %1$d giorno</item>
+        <item quantity="other">Tra %1$d giorni</item>
+    </plurals>
+    <string name="events__next">Il prossimo</string>
 
     <!-- Eventi -->
     <string name="nav__events">Eventi</string>

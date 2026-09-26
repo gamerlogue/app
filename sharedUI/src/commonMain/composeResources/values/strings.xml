@@ -27,13 +27,20 @@
     <string name="nav__profile">Profile</string>
 
     <!-- Home sections -->
-    <string name="home__popular_games">Popular Games</string>
-    <string name="home__most_loved_games">Most Loved Games</string>
-    <string name="home__recently_released_games">Recently Released Games</string>
-    <string name="home__upcoming_games">Upcoming Games</string>
+    <string name="home__popular_games">Popular</string>
+    <string name="home__most_loved_games">Most loved</string>
+    <string name="home__recently_released_games">New releases</string>
+    <string name="home__upcoming_games">Coming soon</string>
     <string name="home__see_all">See all</string>
     <string name="home__empty_section">No games to show</string>
     <string name="home__section_error">Couldn\'t load this section</string>
+    <string name="home__release_today">Today</string>
+    <string name="home__release_tomorrow">Tomorrow</string>
+    <plurals name="home__release_in_days">
+        <item quantity="one">In %1$d day</item>
+        <item quantity="other">In %1$d days</item>
+    </plurals>
+    <string name="events__next">Next up</string>
 
     <!-- Events -->
     <string name="nav__events">Events</string>

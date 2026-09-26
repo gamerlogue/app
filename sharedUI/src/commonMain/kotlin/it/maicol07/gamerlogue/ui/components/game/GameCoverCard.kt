@@ -1,7 +1,9 @@
 package it.maicol07.gamerlogue.ui.components.game
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,12 +40,13 @@ fun GameCoverCard(
     showTitle: Boolean,
     modifier: Modifier = Modifier,
     sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight),
+    interactionSource: MutableInteractionSource? = null,
     onClick: (Game) -> Unit
 ) {
     Box(
         modifier = modifier
             .then(sizeModifier)
-            .clickable { onClick(game) },
+            .clickable(interactionSource = interactionSource, indication = LocalIndication.current) { onClick(game) },
         contentAlignment = Alignment.BottomStart
     ) {
         val coverModifier = if (showTitle) Modifier.bottomScrim() else Modifier

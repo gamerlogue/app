@@ -1,6 +1,8 @@
 package it.maicol07.gamerlogue.ui.components.event
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,12 +48,13 @@ fun EventCard(
     event: Event,
     modifier: Modifier = Modifier,
     sizeModifier: Modifier = Modifier.width(EventCardWidth).height(EventCardHeight),
+    interactionSource: MutableInteractionSource? = null,
     onClick: (Event) -> Unit
 ) {
     Box(
         modifier = modifier
             .then(sizeModifier)
-            .clickable { onClick(event) },
+            .clickable(interactionSource = interactionSource, indication = LocalIndication.current) { onClick(event) },
         contentAlignment = Alignment.BottomStart
     ) {
         EventLogo(event, Modifier.fillMaxSize())
