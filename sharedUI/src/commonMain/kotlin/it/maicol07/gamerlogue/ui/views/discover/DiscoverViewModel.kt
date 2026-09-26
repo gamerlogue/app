@@ -9,6 +9,7 @@ import at.released.igdbclient.model.PopularityPrimitive
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.igdb.sortedByIds
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
@@ -89,7 +90,10 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
         setSections(
             if (result.isOk) {
                 val responses = result.unwrap()
-                sections.associateWith { SectionUiState(games = responses.multiqueryResults(it.name)) }
+                sections.associateWith { section ->
+                    val games = responses.multiqueryResults<Game>(section.name)
+                    SectionUiState(games = gameIds[section]?.let(games::sortedByIds) ?: games)
+                }
             } else {
                 sections.associateWith { SectionUiState(error = true) }
             }

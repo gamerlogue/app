@@ -28,6 +28,7 @@ import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder
 import it.maicol07.gamerlogue.extensions.alreadyReleased
+import it.maicol07.gamerlogue.extensions.igdb.sortedByIds
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.sort
@@ -474,7 +475,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
             }
         }
         val games = if (result.isOk) result.unwrap().games else emptyList()
-        return Page(games, sourceFull = sourceFull ?: (games.size >= PageSize))
+        return Page(gameIds?.let(games::sortedByIds) ?: games, sourceFull = sourceFull ?: (games.size >= PageSize))
     }
 
     /**
