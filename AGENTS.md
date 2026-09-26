@@ -30,6 +30,8 @@ A local backend is reached from the emulator at `http://10.0.2.2` (the URLs are 
 ## Conventions (enforced)
 
 - **detekt**: new constants use Kotlin's `UPPER_SNAKE_CASE`; `constantPattern` still accepts legacy PascalCase constants until they are migrated. Max line length 150. Comments in English only.
+- **Kotlin 2.4**: use the current language features where they simplify the code — explicit backing fields (`val x: StateFlow<S> field = MutableStateFlow(…)`), guard conditions in `when`, `kotlin.time` `Clock`/`Instant` — rather than their older workarounds. Don't reach for them where they add nothing.
+- **Single-expression functions** whenever the body is one expression, composables included (`@Composable fun Label(…) = Text(…)`). Keep a block body when the expression would not be `Unit` — e.g. a `when` with a `?.let { … }` branch returns `Unit?`, and a composable with a return value loses restart/skipping.
 - Backend list endpoints are **page-based** (reject `page[offset]`); JSON:API queries scoped to the user pass a `current_user=true`-style param via the `currentUserEntries()` extension.
 - **Koin compiler plugin (1.1.0) quirks**, both of which fail confusingly:
   - It silently refuses to register a `KtorHttpClient` provider in a `@Module` — no diagnostic, the definition is just absent. `AppJsonApiConfig` builds that wrapper itself because of it; retry when the plugin is updated.
@@ -71,6 +73,7 @@ Client-side library/wishlist sync with external stores (Steam, PlayStation, Xbox
 
 #### UI conventions
 - Prefer Segmented Lists to plain ones
+- Design with **Material 3 Expressive** first: emphasized type (`titleLargeEmphasized`, …), `MaterialShapes` for decorative shapes, shape-morphing controls (`ButtonDefaults.shapes()`), `LoadingIndicator`/`ContainedLoadingIndicator` over circular spinners, and `MaterialTheme.motionScheme` specs for animations (they also snap when system animations are off). Keep at most one or two highlights per screen.
 
 # IDE
 If the AgentBridge MCP exists and is connected, you are running inside an IntelliJ IDEA plugin with IDE tools accessible via MCP. Follow the following best practices:
