@@ -33,6 +33,7 @@
     <string name="home__upcoming_games">Upcoming Games</string>
     <string name="home__see_all">See all</string>
     <string name="home__empty_section">No games to show</string>
+    <string name="home__section_error">Couldn\'t load this section</string>
 
     <!-- Events -->
     <string name="nav__events">Events</string>

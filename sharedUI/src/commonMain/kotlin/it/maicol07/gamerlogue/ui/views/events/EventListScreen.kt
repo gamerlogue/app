@@ -53,6 +53,7 @@ import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /** Thumbnail of an event logo in the list; 16:9 like the logo itself. */
 private val ThumbWidth = 64.dp
@@ -66,7 +67,7 @@ private val ThumbHeight = 36.dp
 @Branch(RootTree::class, metadata = ListPaneMetadata::class)
 @Composable
 fun EventListView(
-    viewModel: EventsViewModel = koinViewModel(),
+    viewModel: EventsViewModel = koinViewModel(parameters = { parametersOf(EventsViewModel.LIST_PAGE_SIZE) }),
 ) {
     val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

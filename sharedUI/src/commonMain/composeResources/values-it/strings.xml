@@ -31,6 +31,7 @@
     <string name="home__upcoming_games">In arrivo</string>
     <string name="home__see_all">Vedi tutti</string>
     <string name="home__empty_section">Nessun gioco da mostrare</string>
+    <string name="home__section_error">Impossibile caricare questa sezione</string>
 
     <!-- Eventi -->
     <string name="nav__events">Eventi</string>

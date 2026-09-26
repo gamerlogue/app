@@ -13,6 +13,7 @@ import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 import kotlin.time.Clock
@@ -23,10 +24,10 @@ import kotlin.time.ExperimentalTime
  * events list.
  *
  * Upcoming events are a handful, so they are loaded in one request; previous ones number in the
- * thousands and are paginated by [loadMorePast].
+ * thousands and are paginated by [onEndReached], [pageSize] at a time.
  */
 @KoinViewModel
-class EventsViewModel : StateViewModel<EventsViewModel.UiState>(UiState()) {
+class EventsViewModel(@InjectedParam private val pageSize: Int) : StateViewModel<EventsViewModel.UiState>(UiState()) {
     data class UiState(
         val upcoming: List<Event> = emptyList(),
         val past: List<Event> = emptyList(),
@@ -35,9 +36,14 @@ class EventsViewModel : StateViewModel<EventsViewModel.UiState>(UiState()) {
         val pastEndReached: Boolean = false,
     )
 
-    private companion object {
-        const val PageSize = 100
-        const val PrefetchThreshold = 6
+    companion object {
+        /** Page size of the full events list. */
+        const val LIST_PAGE_SIZE = 100
+
+        /** Page size of the Discover preview, which never paginates. */
+        const val PREVIEW_PAGE_SIZE = 20
+
+        private const val PrefetchThreshold = 6
     }
 
     private val igdb by inject<IgdbClient>()
@@ -71,7 +77,7 @@ class EventsViewModel : StateViewModel<EventsViewModel.UiState>(UiState()) {
                 upcoming = upcomingEvents,
                 past = pastEvents,
                 loading = false,
-                pastEndReached = pastEvents.size < PageSize,
+                pastEndReached = pastEvents.size < pageSize,
             )
         }
     }
@@ -90,7 +96,7 @@ class EventsViewModel : StateViewModel<EventsViewModel.UiState>(UiState()) {
                 copy(
                     past = past + page,
                     loadingMorePast = false,
-                    pastEndReached = page.size < PageSize,
+                    pastEndReached = page.size < pageSize,
                 )
             }
         }
@@ -125,7 +131,7 @@ class EventsViewModel : StateViewModel<EventsViewModel.UiState>(UiState()) {
                     Event.field.event_logo.image_id,
                 )
                 query()
-                limit(PageSize)
+                limit(pageSize)
             }
         }
         return if (result.isOk) result.unwrap().events else emptyList()

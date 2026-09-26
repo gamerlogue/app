@@ -72,28 +72,31 @@ fun GameCoverImage(
     loadingModifier = sizeModifier
 )
 
+/** A wide game image (artwork or screenshot) from its IGDB [imageId]. */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun Artwork.Image(
+fun GameBannerImage(
+    imageId: String,
     modifier: Modifier = Modifier,
     loadingModifier: Modifier = Modifier,
     sharedKey: Any? = null
 ) = RemoteImage(
-    igdbImageUrl(image_id, IgdbImageSize.SCREENSHOT_HUGE),
+    igdbImageUrl(imageId, IgdbImageSize.SCREENSHOT_HUGE),
     contentDescription = stringResource(Res.string.game__artwork_image),
     modifier = Modifier.sharedGameElement(sharedKey).then(modifier),
     loadingModifier = loadingModifier
 )
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun Artwork.Image(
+    modifier: Modifier = Modifier,
+    loadingModifier: Modifier = Modifier,
+    sharedKey: Any? = null
+) = GameBannerImage(image_id, modifier, loadingModifier, sharedKey)
+
 @Composable
 fun Screenshot.Image(
     modifier: Modifier = Modifier,
     loadingModifier: Modifier = Modifier,
     sharedKey: Any? = null
-) = RemoteImage(
-    igdbImageUrl(image_id, IgdbImageSize.SCREENSHOT_HUGE),
-    contentDescription = stringResource(Res.string.game__artwork_image),
-    modifier = Modifier.sharedGameElement(sharedKey).then(modifier),
-    loadingModifier = loadingModifier
-)
+) = GameBannerImage(image_id, modifier, loadingModifier, sharedKey)

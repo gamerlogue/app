@@ -14,11 +14,9 @@ import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
-import kotlin.time.ExperimentalTime
 
 const val SectionGameLimit = 50
 
-@OptIn(ExperimentalTime::class)
 @KoinViewModel
 class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
     /** Immutable state of the Discover screen, one entry per [DiscoverSection]. */
@@ -31,6 +29,7 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
     data class SectionUiState(
         val games: List<Game> = emptyList(),
         val loading: Boolean = false,
+        val error: Boolean = false,
     )
 
     private val igdb by inject<IgdbClient>()
@@ -39,14 +38,35 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
         loadGames()
     }
 
+    /**
+     * Sections ranked by popularity need their game ids first; the others don't wait for that
+     * round trip and load in parallel.
+     */
     fun loadGames() = viewModelScope.launch {
-        setAllLoading(true)
+        update { copy(sections = sections.mapValues { SectionUiState(loading = true) }) }
+        val (popscoreSections, plainSections) = DiscoverSection.entries.partition { it.popscoreQuery != null }
+        launch { loadSections(plainSections, gameIds = emptyMap()) }
+        launch { loadPopscoreSections(popscoreSections) }
+    }
 
-        val popScores = loadPopScores()
+    private suspend fun loadPopscoreSections(sections: List<DiscoverSection>) {
+        val gameIds = loadPopScores(sections)
+        if (gameIds == null) {
+            setSections(sections.associateWith { SectionUiState(error = true) })
+            return
+        }
+        // An empty `id = ()` is an IGDB syntax error that would fail the whole multiquery.
+        val (withIds, withoutIds) = sections.partition { gameIds[it].orEmpty().isNotEmpty() }
+        setSections(withoutIds.associateWith { SectionUiState() })
+        loadSections(withIds, gameIds)
+    }
 
+    /** Loads [sections] in one multiquery, restricting each to its [gameIds] entry when present. */
+    private suspend fun loadSections(sections: List<DiscoverSection>, gameIds: Map<DiscoverSection, List<Int>>) {
+        if (sections.isEmpty()) return
         val result = safeRequest {
             igdb.multiquery {
-                for (section in DiscoverSection.entries) {
+                for (section in sections) {
                     query(IgdbEndpoint.GAME, section.name) {
                         fields(
                             Game.field.name,
@@ -56,11 +76,8 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
                             Game.field.artworks.image_id,
                             Game.field.screenshots.image_id,
                         )
-                        if (popScores.containsKey(section)) {
-                            val ids = popScores[section] ?: emptyList()
-                            where {
-                                Game.field.id inAny ids.map(Int::toString)
-                            }
+                        gameIds[section]?.let { ids ->
+                            where { Game.field.id inAny ids.map(Int::toString) }
                         }
                         section.baseQuery(this)
                         limit(SectionGameLimit)
@@ -69,25 +86,21 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
             }
         }
 
-        if (result.isOk) {
-            val responses = result.unwrap()
-            for (response in responses) {
-                val section = DiscoverSection.valueOf(response.name)
-                updateSection(section) {
-                    it.copy(games = responses.multiqueryResults(response.name), loading = false)
-                }
+        setSections(
+            if (result.isOk) {
+                val responses = result.unwrap()
+                sections.associateWith { SectionUiState(games = responses.multiqueryResults(it.name)) }
+            } else {
+                sections.associateWith { SectionUiState(error = true) }
             }
-        } else {
-            setAllLoading(false)
-        }
+        )
     }
 
-    private suspend fun loadPopScores(): Map<DiscoverSection, List<Int>> {
-        val sectionsWithPopscore = DiscoverSection.entries.filter { it.popscoreQuery != null }
-
-        val popScoreResults = safeRequest {
+    /** Game ids ranked by popularity for each of [sections], or null when the request fails. */
+    private suspend fun loadPopScores(sections: List<DiscoverSection>): Map<DiscoverSection, List<Int>>? {
+        val result = safeRequest {
             igdb.multiquery {
-                for (section in sectionsWithPopscore) {
+                for (section in sections) {
                     query(IgdbEndpoint.POPULARITY_PRIMITIVE, section.name) {
                         fields(PopularityPrimitive.field.game_id)
                         section.popscoreQuery?.invoke(this)
@@ -96,21 +109,15 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
                 }
             }
         }
+        if (result.isErr) return null
 
-        if (popScoreResults.isErr) return emptyMap()
-
-        val responses = popScoreResults.unwrap()
-        return responses.associate { response ->
-            val ids = responses.multiqueryResults<PopularityPrimitive>(response.name).map { it.game_id }
-            DiscoverSection.valueOf(response.name) to ids
+        val responses = result.unwrap()
+        return sections.associateWith { section ->
+            responses.multiqueryResults<PopularityPrimitive>(section.name).map { it.game_id }
         }
     }
 
-    private fun setAllLoading(loading: Boolean) = update {
-        copy(sections = sections.mapValues { it.value.copy(loading = loading) })
-    }
-
-    private fun updateSection(section: DiscoverSection, transform: (SectionUiState) -> SectionUiState) = update {
-        copy(sections = sections + (section to transform(sections[section] ?: SectionUiState())))
+    private fun setSections(changed: Map<DiscoverSection, SectionUiState>) = update {
+        copy(sections = sections + changed)
     }
 }
