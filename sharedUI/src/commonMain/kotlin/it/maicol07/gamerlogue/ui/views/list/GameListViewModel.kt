@@ -45,6 +45,7 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Selectable range of grid columns, shared by the view model and the filter sheet's slider. */
 const val MinColumns = 1
@@ -275,7 +276,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         searchJob?.cancel()
         if (state.filterState.searchQuery == query) return
         searchJob = viewModelScope.launch {
-            delay(DebounceMillis)
+            delay(DebounceMillis.milliseconds)
             updateFilter(state.filterState.copy(searchQuery = query))
         }
     }
@@ -318,7 +319,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         }
 
         filterSearchJobs[target] = viewModelScope.launch {
-            delay(DebounceMillis)
+            delay(DebounceMillis.milliseconds)
             update { copy(filterSearches = filterSearches.with(target) { copy(loading = true) }) }
             val results = fetchFilterOptions(target, query)
             update { copy(filterSearches = filterSearches.with(target) { copy(results = results, loading = false) }) }

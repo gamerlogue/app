@@ -15,6 +15,7 @@ import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import kotlinx.coroutines.delay
 import org.koin.core.annotation.Single
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Maps games coming from an external store to IGDB games, reusing the app's [IgdbClient].
@@ -88,7 +89,7 @@ class GameMatcher(
         // Name fallback, batched via multiquery (≤10/request) + throttled to dodge IGDB's 429 limit.
         // These are guesses (confident = false) — the UI makes the user confirm one before selecting.
         unmatched.chunked(MULTIQUERY_CHUNK).forEachIndexed { batchIndex, batch ->
-            if (batchIndex > 0) delay(THROTTLE_MS)
+            if (batchIndex > 0) delay(THROTTLE_MS.milliseconds)
             val candidates = nameSearchBatch(batch)
             onBatch(batch.map { ref ->
                 val c = candidates[ref.uid].orEmpty()

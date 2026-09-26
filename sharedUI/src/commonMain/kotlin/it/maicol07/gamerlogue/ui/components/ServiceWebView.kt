@@ -234,7 +234,7 @@ class ServiceWebViewSession internal constructor(
                     controller.evaluateJavascript(trigger) {}
                     triggered = true
                 }
-                delay(POLL_INTERVAL)
+                delay(POLL_INTERVAL.milliseconds)
             }
             @Suppress("UNREACHABLE_CODE") false
         }
@@ -272,18 +272,18 @@ class ServiceWebViewSession internal constructor(
         awaitLoaded()
         controller.evaluateJavascript(step.script) {} // fire-and-forget; result via the bridge
         Logger.i(tag = TAG) { "run: injected script, awaiting bridge result…" }
-        val json = withTimeoutOrNull(SCRIPT_TIMEOUT) { deferred.await() }
+        val json = withTimeoutOrNull(SCRIPT_TIMEOUT.milliseconds) { deferred.await() }
         pending = null
         Logger.i(tag = TAG) { "run: got bridge result=${json != null}" }
         return json
     }
 
     private suspend fun awaitLoaded() {
-        delay(POLL_INTERVAL)
-        withTimeoutOrNull(LOAD_TIMEOUT) {
-            while (state.isLoading) delay(POLL_INTERVAL)
+        delay(POLL_INTERVAL.milliseconds)
+        withTimeoutOrNull(LOAD_TIMEOUT.milliseconds) {
+            while (state.isLoading) delay(POLL_INTERVAL.milliseconds)
         }
-        delay(SETTLE_DELAY)
+        delay(SETTLE_DELAY.milliseconds)
     }
 
     private companion object {
