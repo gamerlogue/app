@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
 
     <application
-        android:icon="${appIcon}"
+        android:icon="@mipmap/ic_launcher"
         android:label="Gamerlogue"
         android:theme="@style/AppTheme">
         <activity

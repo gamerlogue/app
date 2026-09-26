@@ -69,6 +69,7 @@ Client-side library/wishlist sync with external stores (Steam, PlayStation, Xbox
 
 ### UI
 - Compose Multiplatform Material 3 Expressive. Theme in `ui/theme/` (MaterialKolor dynamic color). Icons are generated at build time by **SymbolCraft** (Material Symbols + external SVG sets) — see the `symbolCraft { }` block in `sharedUI/build.gradle.kts`; add icon names there, don't hand-write icon code.
+- Android launcher icons (Icon Kitchen): each variant has plain `ic_launcher*` names in `androidApp/src/{main,alpha,beta,debug}/res`; the `debug` overlay wins over the flavor. Only `ic_launcher_background` lives in `main` alone and is shared. After regenerating, Icon Kitchen copies the raster foreground into `*_monochrome.png`: rebuild them with `python scripts/gen_monochrome_icons.py <res dirs…>`.
 - Screens live in `ui/views/<feature>/`, shared widgets in `ui/components/`. Localized strings via Compose resources (`Res.string.*`); available languages are auto-derived from `composeResources/values-*` dirs.
 
 #### UI conventions

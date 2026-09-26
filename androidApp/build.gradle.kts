@@ -25,7 +25,6 @@ android {
         versionCode = androidGitSemVer.computeVersionCode()
         versionName = androidGitSemVer.computeVersion()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
         // The AccountManager account type must follow the applicationId, otherwise a debug build cannot own accounts
         // already registered by a release build signed with a different key.
         resValue("string", "account_type", appPackageName)
@@ -44,14 +43,14 @@ android {
 
     flavorDimensions.add("default")
 
+    // Launcher icons live in src/{beta,alpha,debug}/res under the plain ic_launcher* names; the debug build type
+    // overlay takes precedence over the flavor one, so every debug build shows the dev icon.
     productFlavors {
         create("beta") {
             dimension = "default"
-            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_beta"
         }
         create("alpha") {
             dimension = "default"
-            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_alpha"
         }
     }
 
@@ -109,7 +108,6 @@ android {
             isMinifyEnabled = false
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
             resValue("string", "account_type", "$appPackageName.dev")
         }
     }
