@@ -25,6 +25,7 @@ actual fun appLanguageSettingsOpener(): () -> Unit = {}
 @OptIn(ExperimentalComposeUiApi::class)
 actual fun clipEntryFor(string: String) = ClipEntry(StringSelection(string))
 
+@Suppress("SameReturnValue")
 @Composable
 actual fun deviceSeedColor(): Color? = null // No system palette on JVM
 

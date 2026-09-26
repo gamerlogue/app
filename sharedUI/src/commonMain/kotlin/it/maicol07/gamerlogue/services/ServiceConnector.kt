@@ -122,6 +122,7 @@ abstract class ServiceConnector(
     /** JS injected once on the login landing page to kick off the store's sign-in flow (e.g. click the
      *  header sign-in button). Null (default) = the sign-in page is reached directly, no trigger needed.
      *  Fire-and-forget (no bridge result); must be a no-op when its target element isn't present. */
+    @Suppress("SameReturnValue")
     open val loginTriggerScript: String? get() = null
 
     /** Match IGDB `external_games` on the numeric `uid` field instead of `url` — for stores whose
@@ -146,13 +147,19 @@ abstract class ServiceConnector(
     abstract val ownedGames: DataSource<List<ExternalGameRef>>
 
     /** The user's store wishlist, or null if this store exposes none. */
-    open val wishlist: DataSource<List<ExternalGameRef>>? get() = null
+    open val wishlist: DataSource<List<ExternalGameRef>>?
+        @Suppress("SameReturnValue")
+        get() = null
 
     /** The signed-in user's profile, or null if this store exposes none. */
-    open val profile: DataSource<ServiceProfile?>? get() = null
+    open val profile: DataSource<ServiceProfile?>?
+        @Suppress("SameReturnValue")
+        get() = null
 
     /** How to push backlog games onto the store wishlist, or null if writes aren't supported. */
-    open val wishlistWrite: WishlistWrite? get() = null
+    open val wishlistWrite: WishlistWrite?
+        @Suppress("SameReturnValue")
+        get() = null
 
     /** Adjust an IGDB store URL before navigating to it for a push (e.g. strip the locale segment). */
     open fun normalizePushUrl(url: String): String = url
