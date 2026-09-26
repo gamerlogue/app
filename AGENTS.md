@@ -19,9 +19,8 @@ Gamerlogue is a Kotlin Multiplatform + Compose Multiplatform game-library tracke
 
 Unit tests run on the JVM (Kotest + JUnit Platform in `sharedUI/src/jvmTest`) and shared logic tests live in `commonTest`; the JS test target is excluded. There are **no golden screenshot tests**: the official Compose Preview Screenshot Testing plugin does not support KMP modules, so goldens would need instrumented Android tests on controlled emulators — don't add a harness that cannot run here.
 
-Two version warnings are expected and were left unresolved on purpose — do **not** add a `resolutionStrategy` for either:
+One version warning is expected and was left unresolved on purpose — do **not** add a `resolutionStrategy` for it:
 - Skiko: Sketch 4.6.0 / ZoomImage 1.6.0 declare `0.144.6`, Compose resolves `0.150.1`. Their current releases still declare the old one and the next line is alpha, so a forced downgrade is riskier than the mismatch.
-- The Koin compiler plugin names Kotlin 2.4.0 as its newest tested version while the project is on 2.4.10; 1.1.0 is the latest release and declares 2.4.x support.
 
 `local.properties` supplies build config via the `buildConfig` plugin: `APP_ENV` (LOCAL/…), `IGDB_API_URL`, `GAMERLOGUE_URL`. These surface as `BuildConfig.*`. SDK levels and `appPackageName` come from `gradle.properties`.
 
@@ -33,9 +32,9 @@ A local backend is reached from the emulator at `http://10.0.2.2` (the URLs are 
 - **Kotlin 2.4**: use the current language features where they simplify the code — explicit backing fields (`val x: StateFlow<S> field = MutableStateFlow(…)`), guard conditions in `when`, `kotlin.time` `Clock`/`Instant` — rather than their older workarounds. Don't reach for them where they add nothing.
 - **Single-expression functions** whenever the body is one expression, composables included (`@Composable fun Label(…) = Text(…)`). Keep a block body when the expression would not be `Unit` — e.g. a `when` with a `?.let { … }` branch returns `Unit?`, and a composable with a return value loses restart/skipping.
 - Backend list endpoints are **page-based** (reject `page[offset]`); JSON:API queries scoped to the user pass a `current_user=true`-style param via the `currentUserEntries()` extension.
-- **Koin compiler plugin (1.1.0) quirks**, both of which fail confusingly:
-  - It silently refuses to register a `KtorHttpClient` provider in a `@Module` — no diagnostic, the definition is just absent. `AppJsonApiConfig` builds that wrapper itself because of it; retry when the plugin is updated.
-  - Its compile-time checker ignores qualifiers, so `koin.get<T>(named(…))` in test code fails with a false `KOIN-D002`. Resolve off `scopeRegistry.rootScope` instead (needs `@OptIn(KoinInternalApi::class)`).
+- **Koin compiler plugin quirks**, both of which fail confusingly:
+  - (seen on 1.1.0) It silently refuses to register a `KtorHttpClient` provider in a `@Module` — no diagnostic, the definition is just absent. `AppJsonApiConfig` builds that wrapper itself because of it; retry when the plugin is updated.
+  - (1.2.x) A test compilation that calls `startKoin` gets call-site validation but cannot see main's definitions, so every `get<T>()` in tests fails with a false `KOIN-D002` ([koin-compiler-plugin#58](https://github.com/InsertKoinIO/koin-compiler-plugin/issues/58)). `sharedUI/build.gradle.kts` rewrites `compileSafety=false` on `compileTestKotlinJvm` only; main keeps the check. Remove it once #58 ships (milestone 1.2.2).
 
 ## Architecture
 
