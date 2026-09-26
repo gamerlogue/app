@@ -65,8 +65,8 @@ class HttpCacheAuthTest : StringSpec({
             module<PlatformModule>()
         }
         try {
-            // Resolved off the root scope: the compile-time checker ignores the qualifier and reports a
-            // false "missing definition" for every form of `koin.get(named(…))`.
+            // Compile safety is off for this compilation (see sharedUI/build.gradle.kts): the checker cannot
+            // see main's definitions from a test compilation, so this lookup is only verified at runtime.
             val scope = KoinPlatform.getKoin().scopeRegistry.rootScope
             val jsonApiClient: HttpClient = scope.get(named("JsonApiHttpClient"))
             jsonApiClient.pluginOrNull(HttpCache).shouldBeNull()

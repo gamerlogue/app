@@ -24,8 +24,8 @@ class PlatformModuleBindingTest : StringSpec({
             module<PlatformModule>()
         }
         try {
-            // Off the root scope: the compile-time checker reports a false "missing definition" for
-            // every form of `get(named(…))`, which this factory uses internally.
+            // Compile safety is off for this compilation (see sharedUI/build.gradle.kts): the checker cannot
+            // see main's definitions from a test compilation, so this lookup is only verified at runtime.
             KoinPlatform.getKoin().scopeRegistry.rootScope
                 .get<AuthenticationHandler>()
                 .shouldBeInstanceOf<JvmAuthenticationHandler>()

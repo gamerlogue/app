@@ -186,6 +186,31 @@ tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     useJUnitPlatform()
 }
 
+// Koin compiler plugin 1.2.x validates every get<T>() in a compilation that calls startKoin, but a test compilation
+// cannot see main's definitions, so the DI tests fail with KOIN-D002 (InsertKoinIO/koin-compiler-plugin#58, milestone
+// 1.2.2). Those tests resolve the real graph at runtime, so compile safety is switched off for this task only; the
+// option can't be set per compilation, hence rewriting it, as suggested in koin-compiler-plugin#105. Drop on 1.2.2+.
+tasks.named<org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile<*>>("compileTestKotlinJvm") {
+    doFirst {
+        val task = this as org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile<*>
+        task.pluginOptions.set(
+            task.pluginOptions.get().map { config ->
+                org.jetbrains.kotlin.gradle.plugin.CompilerPluginConfig().apply {
+                    config.allOptions().forEach { (pluginId, options) ->
+                        options.forEach { option ->
+                            val koinSafety = pluginId == "io.insert-koin.compiler.plugin" && option.key == "compileSafety"
+                            addPluginArgument(
+                                pluginId,
+                                if (koinSafety) org.jetbrains.kotlin.gradle.plugin.SubpluginOption("compileSafety", "false") else option,
+                            )
+                        }
+                    }
+                }
+            }
+        )
+    }
+}
+
 tasks.withType<KspAATask>().configureEach {
     dependsOn(tasks.named("generateSymbolCraftIcons"))
     if (name != "kspCommonMainKotlinMetadata") {
@@ -398,6 +423,7 @@ fun Project.applyOkioJsTestWorkaround() {
     plugins.withId("org.jetbrains.kotlin.multiplatform") {
         val applyNodePolyfillPlugin by lazy {
             tasks.register("applyNodePolyfillPlugin") {
+                description = "Applies the NodePolyfillPlugin to the webpack config for JS tests, if not already applied."
                 val applyPluginFile = projectDir
                     .resolve("webpack.config.d/applyNodePolyfillPlugin.js")
                 onlyIf {
