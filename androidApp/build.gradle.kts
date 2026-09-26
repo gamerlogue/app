@@ -28,10 +28,12 @@ android {
         // The AccountManager account type must follow the applicationId, otherwise a debug build cannot own accounts
         // already registered by a release build signed with a different key.
         resValue("string", "account_type", appPackageName)
+        // Used by res/xml/authenticator.xml. Compose Resources strings are not Android resources.
+        resValue("string", "app_name", "Gamerlogue")
     }
 
     buildFeatures {
-        // Needed for the generated account_type string; AGP 9 disables resValue support by default.
+        // Needed for the generated account_type and app_name strings; AGP 9 disables resValue support by default.
         resValues = true
     }
 
@@ -53,12 +55,6 @@ android {
             dimension = "default"
         }
     }
-
-    // Compose Resources `values/strings.xml` files are also valid Android resources: exposing them as an Android res
-    // directory is what lets platform-only XML resolve shared strings. Required today by res/xml/authenticator.xml,
-    // which references @string/app_name (declared only in sharedUI's composeResources). Removing this line breaks
-    // resource linking with "resource string/app_name not found".
-    sourceSets.getByName("main").res.directories.add("../sharedUI/src/commonMain/composeResources")
 
     packaging {
         resources {
