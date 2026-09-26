@@ -9,7 +9,7 @@
     <string name="exception__action_show">Show error details</string>
 
     <!-- Error bottom sheet -->
-    <string name="exception__type_label">%1$s</string>
+    <string name="exception__type_label" translatable="false">%1$s</string>
     <string name="exception__hint_network">Tip: check your Internet connection and try again.</string>
     <string name="exception__action_close">Close</string>
     <string name="exception__action_dismiss">Dismiss all</string>
@@ -277,9 +277,9 @@
     <string name="auth__cancel">Cancel</string>
     <string name="auth__continue">Continue</string>
     <string name="auth__logout">Log out</string>
-    <string name="auth__deep_link_scheme">gamerlogue</string>
-    <string name="auth__deep_link_host">auth</string>
-    <string name="auth__deep_link_path">callback</string>
+    <string name="auth__deep_link_scheme" translatable="false">gamerlogue</string>
+    <string name="auth__deep_link_host" translatable="false">auth</string>
+    <string name="auth__deep_link_path" translatable="false">callback</string>
 
     <!-- Game Card -->
     <string name="game_card__hours_played">%1$d hrs</string>
