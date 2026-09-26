@@ -40,7 +40,6 @@ internal class LoopbackAuthServer(
         current.stop(delaySeconds.toInt())
     }
 
-    @Throws(java.nio.charset.CharacterCodingException::class)
     private fun handleCallback(exchange: HttpExchange, proof: PkceLoginAttempt) {
         val callbackQuery = exchange.requestURI.query
             ?.takeIf { callbackMatchesState(it, proof.pending.state) }
@@ -65,7 +64,6 @@ internal class LoopbackAuthServer(
         false
     }
 
-    @Throws(kotlin.text.CharacterCodingException::class)
     private fun writeResponse(exchange: HttpExchange, success: Boolean) {
         val response = if (success) {
             "Login successful. You can close this window."

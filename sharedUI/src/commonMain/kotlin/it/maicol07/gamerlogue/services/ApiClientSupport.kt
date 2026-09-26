@@ -10,7 +10,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 /** Shared JSON reader for the off-WebView store API clients ([PsnApi]/[XboxApi]/[EpicApi]). */
 internal val apiJson = Json { ignoreUnknownKeys = true }
 
-@Throws(CharacterCodingException::class)
 /** HTTP Basic credentials (`base64(id:secret)`) for the OAuth token exchanges (PSN/Epic). */
 @OptIn(ExperimentalEncodingApi::class)
 internal fun basicAuth(clientId: String, clientSecret: String): String =
