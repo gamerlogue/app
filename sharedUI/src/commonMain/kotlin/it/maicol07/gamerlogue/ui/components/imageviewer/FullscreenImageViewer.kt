@@ -87,11 +87,8 @@ fun FullscreenImageViewer(
         Box(modifier.size(8.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.7f)))
     },
     showThumbnails: Boolean = imagesCount > 1,
-    bottomBarHeight: Dp = 84.dp,
     topOverlayHeight: Dp = 88.dp, // top gradient area height (status bar + actions)
-    bottomOverlayHeight: Dp = 140.dp, // bottom gradient area height (thumbnails)
-    topScrimAlpha: Float = 0.45f, // intensità massima scrim top
-    bottomScrimMaxAlpha: Float = 0.5f, // intensità massima scrim bottom
+    bottomScrimMaxAlpha: Float = 0.5f, // max bottom scrim opacity
 ) {
     if (imagesCount <= 0) return
 
@@ -132,7 +129,6 @@ fun FullscreenImageViewer(
                     TopOverlay(
                         onClose = onDismissRequest,
                         height = topOverlayHeight,
-                        maxScrimAlpha = topScrimAlpha,
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
                 }
@@ -231,7 +227,6 @@ fun FullscreenImageViewer(
 private fun TopOverlay(
     onClose: () -> Unit,
     height: Dp,
-    maxScrimAlpha: Float,
     modifier: Modifier = Modifier
 ) {
     Box(

@@ -48,7 +48,6 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_close
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__open_store
-import gamerlogue.sharedui.generated.resources.settings__service_done
 import gamerlogue.sharedui.generated.resources.settings__service_sync_error
 import gamerlogue.sharedui.generated.resources.settings__service_webview_busy
 import gamerlogue.sharedui.generated.resources.settings__service_working
@@ -63,7 +62,6 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
@@ -197,7 +195,7 @@ fun ServiceSyncView(
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
                 // On success just pop back to Linked Services; only stop to show an error.
-                finished && uiState.message == "error" -> CompletionContent(error = true, onFinish = onFinish)
+                finished && uiState.message == "error" -> ErrorContent(onFinish = onFinish)
                 finished -> LaunchedEffect(Unit) { onFinish() }
                 else -> LoadingContent(session.log)
             }
@@ -221,22 +219,19 @@ private fun LoadingContent(log: List<SyncPhase>) {
 }
 
 @Composable
-private fun CompletionContent(error: Boolean, onFinish: () -> Unit) {
+private fun ErrorContent(onFinish: () -> Unit) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            if (error) Icons.ErrorW500Rounded else Icons.CheckCircleW500Rounded,
+            Icons.ErrorW500Rounded,
             contentDescription = null,
-            tint = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.error,
             modifier = Modifier.size(48.dp),
         )
-        Text(
-            stringResource(if (error) Res.string.settings__service_sync_error else Res.string.settings__service_done),
-            style = MaterialTheme.typography.titleMedium,
-        )
+        Text(stringResource(Res.string.settings__service_sync_error), style = MaterialTheme.typography.titleMedium)
         Button(onClick = onFinish) { Text(stringResource(Res.string.common_close)) }
     }
 }
