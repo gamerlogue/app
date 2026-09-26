@@ -10,7 +10,7 @@ import com.parkwoocheol.composewebview.WebView
  * False on web: the WebView is a cross-origin iframe there, so stores block embedding/JS injection.
  * Users are pointed to the Android/desktop app instead.
  */
-expect fun isServiceSyncSupported(): Boolean
+expect val isServiceSyncSupported: Boolean
 
 /**
  * Platform hook run right after the service-sync WebView is created.

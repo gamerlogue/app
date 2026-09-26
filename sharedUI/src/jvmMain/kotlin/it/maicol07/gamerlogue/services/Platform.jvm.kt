@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.parkwoocheol.composewebview.WebView
 
-actual fun isServiceSyncSupported(): Boolean = true
+actual val isServiceSyncSupported: Boolean = true
 
 // CEF accepts third-party cookies by default; nothing to configure.
 actual fun configureServiceWebView(webView: WebView) = Unit

@@ -7,7 +7,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import com.parkwoocheol.composewebview.WebView
 
-actual fun isServiceSyncSupported(): Boolean = true
+actual val isServiceSyncSupported: Boolean = true
 
 actual fun configureServiceWebView(webView: WebView) {
     CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)

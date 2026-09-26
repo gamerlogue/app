@@ -105,7 +105,7 @@ private fun LinkedServicesContent(
     viewModel: LinkedServicesViewModel,
     navigateToSync: (ExternalService, ServiceSyncAction) -> Unit,
 ) {
-    if (!isServiceSyncSupported()) {
+    if (!isServiceSyncSupported) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Text(
                 stringResource(Res.string.settings__service_web_unsupported),
