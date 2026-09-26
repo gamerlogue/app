@@ -11,4 +11,4 @@ actual fun configureServiceWebView(webView: WebView) = Unit
 
 // No Compose↔native nested-scroll interop for the CEF surface; leave the sheet swipe as-is.
 @Composable
-actual fun Modifier.webViewNestedScrollModifier(): Modifier = Modifier
+actual fun Modifier.webViewNestedScrollModifier(): Modifier = this
