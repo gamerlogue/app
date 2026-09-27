@@ -20,8 +20,8 @@ import kotlinx.serialization.json.jsonPrimitive
  *
  * The only browser step is grabbing the `npsso` cookie from a logged-in session (see [PsnConnector]).
  * Owned games come from **trophy titles** (every game played on any console — PS3/Vita/PS4/PS5,
- * incl. disc games — unlike the purchased GraphQL which is PS4/PS5 digital only). The HTTP client must
- * NOT follow redirects (the auth code is read from the authorize 302 `Location`).
+ * incl. disc games — unlike the purchased GraphQL, which is PS4/PS5 digital only). The HTTP client must
+ * NOT follow redirects (the auth code is read from the authorizing 302 `Location`).
  */
 class PsnApi(private val http: HttpClient) {
 

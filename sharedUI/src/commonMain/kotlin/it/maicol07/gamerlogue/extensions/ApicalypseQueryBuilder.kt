@@ -107,7 +107,7 @@ class ApicalypseQueryBuilderWhereBuilder {
     /** The value does not exist within the list (OR between values). */
     infix fun String.notInAny(values: Collection<String>) = wheres.add("$this = !(${values.joinToString(",")})")
 
-    /** Exact match on arrays. (Does not work on ids, strings, etc). */
+    /** Exact match on arrays. (Does not work on ids, strings, etc.). */
     infix fun String.matchesAll(values: Collection<String>) = wheres.add("$this = {${values.joinToString(",")}}")
 
     /** @see it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder.equalTo */

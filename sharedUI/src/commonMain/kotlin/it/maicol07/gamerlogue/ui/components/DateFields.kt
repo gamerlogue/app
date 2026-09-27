@@ -96,7 +96,7 @@ fun DatePickerFieldDialog(
 
 fun convertMillisToDate(millis: Long): String {
     Instant.fromEpochMilliseconds(millis).let {
-        val kdate = it.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-        return "${kdate.month.number}/${kdate.day}/${kdate.year}"
+        val date = it.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+        return "${date.month.number}/${date.day}/${date.year}"
     }
 }

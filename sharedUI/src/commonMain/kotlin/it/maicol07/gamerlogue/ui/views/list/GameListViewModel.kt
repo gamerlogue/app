@@ -57,7 +57,7 @@ const val MaxHoursToBeat = 100f
 /** Upper bound of both rating sliders; at the maximum the filter is off. */
 const val MaxRating = 100f
 
-/** Bounds of the release-year range. The upper bound follows the clock so next year's announced
+/** Bounds of the release-year range. The upper bound follows the clock, so next year's announced
  *  games stay selectable; both ends are shared by the filter state, the query and the slider. */
 const val MinReleaseYear = 1970
 
@@ -145,7 +145,7 @@ data class GameListFilterState(
  *
  * With no filter and a [UiState.section] set it replays that Discover carousel's query so
  * "see all" paginates exactly what the carousel previewed; as soon as any filter or query is
- * applied it switches to a plain filtered games query.
+ *  applied, it switches to a plain filtered games query.
  */
 @KoinViewModel
 class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
@@ -154,7 +154,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         val section: DiscoverSection? = null,
         /** When set, the list is scoped to the games of this IGDB event. */
         val eventId: Int? = null,
-        /** The scoped event with its full details, once loaded; backs the list header. */
+        /** The scoped event with its full details, once loaded, backs the list header. */
         val event: Event? = null,
         val games: List<Game> = emptyList(),
         val loading: Boolean = false,
@@ -416,8 +416,8 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
      *
      * [sourceFull] tracks whether the query that *drives pagination* returned a full page, which is
      * not the same as [games] being full: when an id-source endpoint (popularity or time to beat)
-     * feeds the games query, the other filters shrink the page afterwards. Deriving "end reached"
-     * from [games] would stop pagination on the first partially-filtered page.
+     * feeds the games query, the other filters shrink the page afterward. Deriving "end reached"
+     * from [games] would stop pagination on the first partially filtered page.
      */
     private data class Page(val games: List<Game>, val sourceFull: Boolean)
 
@@ -428,7 +428,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         val eventId = state.eventId
         val isCustomFilterActive = filter.isActive
 
-        // Time to beat lives on its own endpoint keyed by game_id, so when it is filtered it takes
+        // Time to beat lives on its own endpoint keyed by game_id, so when it is filtered, it takes
         // over pagination from the section's popularity query — the two cannot both drive it.
         val popscoreQuery = if (!isCustomFilterActive) section?.popscoreQuery else null
         // In event scope the event's own game ids drive pagination and win over the other id
@@ -662,7 +662,7 @@ val GameListFilterState.hasTimeToBeatFilter: Boolean
 /**
  * The `involved_companies` clause, or null when no company is selected.
  *
- * Each company is its own parenthesised group so its roles apply to that company alone; the groups
+ * Each company is its own-parenthesised group, so its roles apply to that company alone; the groups
  * are OR-ed together, as are the roles inside a group. A company with no role matches any role.
  */
 private fun GameListFilterState.companiesClause(): String? = companyIds

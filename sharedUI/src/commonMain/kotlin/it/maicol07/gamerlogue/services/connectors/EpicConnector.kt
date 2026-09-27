@@ -14,7 +14,7 @@ import it.maicol07.gamerlogue.services.webRefs
 /**
  * Epic Games Store.
  *
- * Epic redirects its landing pages across sub-domains (www → store, account → accounts), so any
+ * Epic redirects its landing pages across subdomains (www → store, account → accounts), so any
  * cross-origin `fetch` from an injected script hits CORS. Profile and owned games use the API path
  * (like PSN/Xbox): the WebView only navigates to the `id/api/redirect` JSON endpoint to grab a launcher
  * authorization code, then [EpicApi] exchanges it and reads the identity + library from Kotlin
@@ -31,7 +31,7 @@ class EpicConnector(private val api: EpicApi) :
 
     // When an id.epicgames.com session already exists, the login page shows an account picker with a
     // "Continue with my account" button instead of the credential form. Auto-click it so the user isn't
-    // prompted every time. Text match on "continu" covers the localized label (e.g. IT "Continua").
+    // prompted every time. Text match on "continue" covers the localized label (e.g., IT "Continua").
     // Fire-and-forget + no-op when the button is absent (real first login), so it's safe on any load.
     override val loginTriggerScript = """
         (function() {
@@ -126,7 +126,7 @@ class EpicConnector(private val api: EpicApi) :
 
     // Push per game: open the product page and click its bookmark button. The button's icon carries a
     // language-independent data-testid — "empty-icon" (not wishlisted) / "filled-icon" (already added) —
-    // so we detect state without reading the localized label. Click then verify with retry, since the
+    // so we detect the state without reading the localized label. Click then verify with retry, since the
     // store is React+SSR and an early click can hit an unbound handler (same fix as the PSN connector).
     override val wishlistWrite = WishlistWrite.PerGame { storeUrl ->
         WebStep(

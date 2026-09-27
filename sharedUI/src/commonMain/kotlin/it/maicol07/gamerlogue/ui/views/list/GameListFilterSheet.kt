@@ -384,7 +384,7 @@ fun GameListFilterSheet(
                 }
             )
 
-            // Hours of the "normally" completion time.
+            // Hours of the "normal" completion time.
             RangeFilterSection(
                 icon = Icons.HourglassW500Rounded,
                 title = Res.string.gamelist__filter_time_to_beat,
@@ -744,7 +744,7 @@ private fun OptionLogo(option: NamedSearchResult, fallbackIcon: ImageVector) {
  * Plain search field for a filter section.
  *
  * Not a [androidx.compose.material3.DockedSearchBar]: that one hardcodes `width(SearchBarMinWidth)`
- * after the caller's modifier, so it cannot fill the sheet and the trailing icon ends up short of
+ * after the caller's modifier, so it cannot fill the sheet, and the trailing icon ends up short of
  * the edge. Nothing here ever expands, so a text field is the right component.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

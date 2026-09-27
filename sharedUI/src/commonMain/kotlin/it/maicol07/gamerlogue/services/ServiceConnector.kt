@@ -176,7 +176,7 @@ private val PcPlatformIds = setOf(6, 3, 14) // PC (Windows), Linux, Mac
 
 /**
  * IGDB platform ids [game] releases on, restricted to [ServiceConnector.platformFamily] (or, for PC
- * stores with a null family, to [PcPlatformIds]) — used to auto-fill `LibraryEntry.platformsIds` on
+ * stores with a null family, to [PcPlatformIds]) — used to autofill `LibraryEntry.platformsIds` on
  * import, since a store [ExternalGameRef] carries no platform info of its own.
  */
 fun ServiceConnector.platformIdsFor(game: Game): List<Int> {

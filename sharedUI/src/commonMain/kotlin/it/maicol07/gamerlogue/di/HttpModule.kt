@@ -182,7 +182,7 @@ object HttpModule {
         }
     }
 
-    // PSN API client: must NOT follow redirects (the OAuth code is read from the authorize 302).
+    // PSN API client: must NOT follow redirects (the OAuth code is read from the authorizing 302).
     @Single
     fun providePsnApi() = PsnApi(
         HttpClient {

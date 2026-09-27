@@ -5,7 +5,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
 /**
- * The detail query was hand-written as field strings before it moved to the generated DSL; this
+ * The detail query was handwritten as field strings before it moved to the generated DSL; this
  * pins the field list it produces to what the screen used to ask IGDB for, so a wrong DSL path
  * (or a dropped field) fails here instead of silently rendering an empty section.
  */

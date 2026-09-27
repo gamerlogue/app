@@ -185,7 +185,7 @@ class ServiceWebViewSession internal constructor(
     /**
      * The WebView must be interactive while we're waiting for the user to sign in — the whole [awaitLogin]
      * window (incl. 2FA / passkey "choose another method" pages). It is NOT
-     * keyed off the URL: multi-step logins (e.g. Nintendo's 2FA) leave the "login"/"signin" path, which
+     * keyed off the URL: multistep logins (e.g. Nintendo's 2FA) leave the "login"/"signin" path, which
      * used to flip the WebView to passive "working" mid-login and block the user from finishing sign-in.
      */
     val loginRequired: Boolean

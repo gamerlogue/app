@@ -22,7 +22,7 @@ import kotlinx.serialization.json.putJsonObject
  * Minimal Xbox Live API client, run from Kotlin so it isn't subject to browser CORS — mirrors [PsnApi].
  *
  * The only browser step is grabbing the MSA `access_token` from a logged-in session (see [XboxConnector]).
- * From it we run the standard Xbox Live auth chain — user token → XSTS token (+ userhash/xuid) — then list
+ * From it, we run the standard Xbox Live auth chain — user token → XSTS token (+ userhash/xuid) — then list
  * the user's games from the **titlehub title history** (every title launched on the account). Names drive
  * the IGDB name-fallback match (`external_game_source=11`).
  */

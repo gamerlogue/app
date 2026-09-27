@@ -188,7 +188,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
     fun toggleGameBacklog() = toggleStatus(GameLibraryStatus.BACKLOG) { copy(isBacklogButtonLoading = it) }
 
     /**
-     * Applies [status] to the library entry, or removes the entry when it already has that status.
+     * Applies [status] to the library entry or removes the entry when it already has that status.
      *
      * [setLoading] flips the button's own spinner, which is the only thing that differs between the
      * two toggles. Failures are reported by [safeRequest] and leave the state untouched.
