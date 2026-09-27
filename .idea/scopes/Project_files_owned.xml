@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Project files owned" pattern="file[Gamerlogue]:.github//*||file[Gamerlogue]:scripts//*||file[Gamerlogue.androidApp.main]:*/||file[Gamerlogue.desktopApp.main]:*/||file[Gamerlogue.sharedUI.androidMain]:*/||file[Gamerlogue.sharedUI.commonMain]:*/||file[Gamerlogue.sharedUI.commonTest]:*/||file[Gamerlogue.sharedUI.webMain]:*/||file[Gamerlogue.sharedUI.jvmTest]:*/||file[Gamerlogue.sharedUI.jvmMain]:*/||file[Gamerlogue.webApp]:*/||file[Gamerlogue.sharedUI]:*/||file[Gamerlogue.desktopApp]:*/||file[Gamerlogue.androidApp]:*/||file[Gamerlogue.webApp.commonMain]:*/" />
+</component>
