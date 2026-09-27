@@ -318,6 +318,7 @@ symbolCraft {
         "schedule",
         "school",
         "search",
+        "search_off",
         "settings",
         "skeleton",
         "simulation",

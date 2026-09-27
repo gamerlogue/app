@@ -1,22 +1,29 @@
 package it.maicol07.gamerlogue.ui.views.list
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,9 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.gamelist__empty_hint
 import gamerlogue.sharedui.generated.resources.home__empty_section
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchOffW500Rounded
 import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
@@ -36,6 +47,10 @@ import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.discover.cardMetadata
 import org.jetbrains.compose.resources.stringResource
+
+private val EmptyStatePadding = 48.dp
+private val EmptyStateShapeSize = 96.dp
+private val EmptyStateIconSize = 48.dp
 
 /**
  * The paginated cover grid of the game list destination.
@@ -81,7 +96,7 @@ fun GameListResults(
                     game = game,
                     metadata = listOfNotNull(section?.cardMetadata(game)),
                     showTitle = true,
-                    modifier = Modifier.clip(MaterialTheme.shapes.large),
+                    modifier = Modifier.animateItem().clip(MaterialTheme.shapes.large),
                     sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
                     onClick = onGameClick
                 )
@@ -92,7 +107,9 @@ fun GameListResults(
                         modifier = Modifier.fillMaxWidth().padding(Dimens.ScreenPadding),
                         contentAlignment = Alignment.Center
                     ) {
-                        LoadingIndicator()
+                        // The first page gets the contained, more prominent indicator; later pages
+                        // load below content that is already there.
+                        if (uiState.games.isEmpty()) ContainedLoadingIndicator() else LoadingIndicator()
                     }
                 }
             } else if (uiState.games.isEmpty()) {
@@ -103,13 +120,35 @@ fun GameListResults(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun EmptyState() = Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+private fun EmptyState() = Column(
+    modifier = Modifier.fillMaxWidth().padding(vertical = EmptyStatePadding, horizontal = Dimens.ScreenPadding),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.spacedBy(Dimens.CardGap)
+) {
+    Box(
+        modifier = Modifier
+            .size(EmptyStateShapeSize)
+            .background(MaterialTheme.colorScheme.tertiaryContainer, MaterialShapes.Cookie9Sided.toShape()),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            Icons.SearchOffW500Rounded,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.size(EmptyStateIconSize)
+        )
+    }
     Text(
         text = stringResource(Res.string.home__empty_section),
-        style = MaterialTheme.typography.bodyLarge,
+        style = MaterialTheme.typography.titleLargeEmphasized,
+        textAlign = TextAlign.Center
+    )
+    Text(
+        text = stringResource(Res.string.gamelist__empty_hint),
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(Dimens.ScreenPadding)
+        textAlign = TextAlign.Center
     )
 }

@@ -428,4 +428,6 @@
     <string name="gamelist__hours_range">%1$d–%2$d h</string>
     <string name="gamelist__hours_range_open">%1$d h and over</string>
     <string name="gamelist__filter_type_to_search">Type to search</string>
+    <string name="gamelist__empty_hint">Try a different search or fewer filters</string>
+    <string name="gamelist__remove_filter">Remove %1$s</string>
 </resources>

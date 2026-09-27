@@ -1,11 +1,12 @@
 package it.maicol07.gamerlogue.ui.views.list
 
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,8 +31,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-private val FilterBadgeSize = 9.dp
-private val FilterBadgeInset = 4.dp
+private val ChipRowPadding = 8.dp
 
 @Branch(RootTree::class, metadata = ListPaneMetadata::class)
 @Composable
@@ -57,13 +57,25 @@ fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?) {
             )
         }
     ) {
-        GameListResults(
-            uiState = uiState,
-            section = section,
-            onGameClick = { navigationState.backStack.add(it.detailNavKey) },
-            onEndReached = viewModel::onEndReached,
-            header = uiState.event?.let { event -> { EventHeader(event) } }
-        )
+        Column(Modifier.fillMaxSize()) {
+            AnimatedVisibility(visible = uiState.filterState.hasActiveFilters) {
+                ActiveFilterChips(
+                    filterState = uiState.filterState,
+                    knownOptions = uiState.knownOptions,
+                    onFilterChange = viewModel::updateFilter,
+                    onReset = viewModel::resetFilter,
+                    modifier = Modifier.padding(top = ChipRowPadding)
+                )
+            }
+            GameListResults(
+                uiState = uiState,
+                section = section,
+                onGameClick = { navigationState.backStack.add(it.detailNavKey) },
+                onEndReached = viewModel::onEndReached,
+                modifier = Modifier.weight(1f),
+                header = uiState.event?.let { event -> { EventHeader(event) } }
+            )
+        }
     }
 
     if (uiState.showFilterSheet) {
@@ -82,26 +94,23 @@ fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?) {
     }
 }
 
+/**
+ * Opens the filter sheet. Checked means "filters are active": the button morphs from round to
+ * rounded-square and fills with the primary container, instead of carrying a badge dot. Tapping
+ * always opens the sheet; it never clears the filters.
+ */
 @Composable
-private fun FilterButton(hasActiveFilters: Boolean, onClick: () -> Unit) {
-    BadgedBox(
-        badge = {
-            if (hasActiveFilters) {
-                Badge(
-                    modifier = Modifier
-                        .offset(x = -FilterBadgeInset, y = FilterBadgeInset)
-                        .size(FilterBadgeSize),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    ) {
-        IconButton(onClick = onClick) {
-            Icon(
-                Icons.TuneW500Rounded,
-                contentDescription = stringResource(Res.string.gamelist__filter_title)
-            )
-        }
-    }
+private fun FilterButton(hasActiveFilters: Boolean, onClick: () -> Unit) = IconToggleButton(
+    checked = hasActiveFilters,
+    onCheckedChange = { onClick() },
+    shapes = IconButtonDefaults.toggleableShapes(),
+    colors = IconButtonDefaults.iconToggleButtonColors(
+        checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    )
+) {
+    Icon(
+        Icons.TuneW500Rounded,
+        contentDescription = stringResource(Res.string.gamelist__filter_title)
+    )
 }

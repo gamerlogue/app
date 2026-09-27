@@ -1,3 +1,6 @@
+// One small private composable per kind of filter section keeps the sheet readable.
+@file:Suppress("TooManyFunctions")
+
 package it.maicol07.gamerlogue.ui.views.list
 
 import androidx.compose.animation.AnimatedContent
@@ -8,7 +11,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -18,19 +23,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.GameCategoryEnum
 import at.released.igdbclient.model.GameMode
@@ -114,6 +119,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Joy
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LayersW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NewsstandW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PaletteW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SortW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
@@ -131,6 +137,7 @@ import it.maicol07.gamerlogue.extensions.igdb.icon
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
 import it.maicol07.gamerlogue.ui.components.ConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -139,6 +146,10 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons as S
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 
 private val LogoSize = 18.dp
+private val SheetPadding = 16.dp
+private val CardGap = 12.dp
+private val CardPadding = 16.dp
+private val CardContentGap = 12.dp
 
 /** Slider stops every 5 hours across the 0..[MaxHoursToBeat] span. */
 private const val HoursToBeatSteps = 19
@@ -157,7 +168,7 @@ private val CompanyRole.label: StringResource
         CompanyRole.SUPPORTING -> Res.string.gamelist__company_role_supporting
     }
 
-private val SortField.label: StringResource
+internal val SortField.label: StringResource
     get() = when (this) {
         SortField.POPULARITY -> Res.string.gamelist__sort_field_popularity
         SortField.USER_RATING -> Res.string.gamelist__sort_field_user_rating
@@ -166,7 +177,7 @@ private val SortField.label: StringResource
         SortField.NAME -> Res.string.gamelist__sort_field_name
     }
 
-private val ReleaseStatusFilter.label: StringResource
+internal val ReleaseStatusFilter.label: StringResource
     get() = when (this) {
         ReleaseStatusFilter.ALL -> Res.string.gamelist__release_all
         ReleaseStatusFilter.RELEASED -> Res.string.gamelist__release_released
@@ -202,9 +213,9 @@ private val FilterStatuses = listOf(
     GameStatusEnum.CANCELLED,
 )
 
-private data class FilterPlatform(val id: Int, val name: String, val icon: ImageVector?)
+internal data class FilterPlatform(val id: Int, val name: String, val icon: ImageVector?)
 
-private val popularPlatforms = listOf(
+internal val PopularPlatforms = listOf(
     FilterPlatform(6, "PC", SvglIcons.WindowsSvgl),
     FilterPlatform(167, "PS5", SimpleIcons.Playstation5SimpleIcons),
     FilterPlatform(48, "PS4", SimpleIcons.Playstation4SimpleIcons),
@@ -242,12 +253,12 @@ fun GameListFilterSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = SheetPadding)
+                .padding(bottom = SheetPadding)
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(CardGap)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -255,19 +266,21 @@ fun GameListFilterSheet(
             ) {
                 Text(
                     text = stringResource(Res.string.gamelist__filter_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineSmallEmphasized
                 )
-                TextButton(
-                    shapes = ButtonDefaults.shapes(),
-                    onClick = onReset
-                ) {
+                FilledTonalButton(shapes = ButtonDefaults.shapes(), onClick = onReset) {
+                    Icon(
+                        Icons.RefreshW500Rounded,
+                        contentDescription = null,
+                        modifier = Modifier.size(ButtonDefaults.IconSize)
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                     Text(stringResource(Res.string.gamelist__reset))
                 }
             }
 
             // Grid column count, one slider stop per column from MinColumns to MaxColumns.
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            FilterCard {
                 FilterSectionHeader(icon = Icons.Grid4x4W500Rounded, title = Res.string.gamelist__grid_columns) {
                     HeaderValue(pluralStringResource(Res.plurals.gamelist__columns_count, columnCount, columnCount))
                 }
@@ -279,8 +292,6 @@ fun GameListFilterSheet(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-
-            HorizontalDivider()
 
             SortSection(filterState = filterState, onFilterChange = onFilterChange)
 
@@ -351,8 +362,7 @@ fun GameListFilterSheet(
                 }
             )
 
-            // Release Status Filter
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterCard {
                 FilterSectionHeader(
                     icon = Icons.CalendarMonthW500Rounded,
                     title = Res.string.gamelist__release_status
@@ -371,7 +381,7 @@ fun GameListFilterSheet(
             MultiSelectFilterSection(
                 icon = Icons.DevicesW500Rounded,
                 title = Res.string.gamelist__filter_platforms,
-                options = popularPlatforms,
+                options = PopularPlatforms,
                 idOf = FilterPlatform::id,
                 selected = filterState.platformIds,
                 onSelectedChange = { onFilterChange(filterState.copy(platformIds = it)) },
@@ -550,7 +560,7 @@ private fun Set<Int>.toggle(id: Int, isChecked: Boolean) = if (isChecked) this +
 private fun SortSection(filterState: GameListFilterState, onFilterChange: (GameListFilterState) -> Unit) {
     val sortEnabled = filterState.searchQuery.isBlank()
     val descending = filterState.sortDirection == SortDirection.DESC
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FilterCard {
         FilterSectionHeader(icon = Icons.SortW500Rounded, title = Res.string.gamelist__sort_field) {
             IconButton(
                 enabled = sortEnabled,
@@ -606,7 +616,7 @@ private fun <T> MultiSelectFilterSection(
     label: @Composable (T) -> String,
     optionIcon: (T) -> ImageVector? = { null },
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FilterCard {
         FilterSectionHeader(icon = icon, title = title)
         ConnectedButtonGroup(
             options = options,
@@ -637,7 +647,7 @@ private fun RangeFilterSection(
     onValueChangeFinished: (ClosedFloatingPointRange<Float>) -> Unit,
 ) {
     var dragValue by remember(value) { mutableStateOf(value) }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    FilterCard {
         FilterSectionHeader(icon = icon, title = title) { HeaderValue(trailingText(dragValue)) }
         RangeSlider(
             value = dragValue,
@@ -677,7 +687,7 @@ private fun SearchableFilterSection(
     val selectedOptions = selected.mapNotNull { knownOptions[it] }
     val display = (selectedOptions + options).distinctBy { it.id }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FilterCard {
         FilterSectionHeader(icon = icon, title = title)
         FilterSearchBar(
             query = searchState.query,
@@ -772,6 +782,21 @@ private fun FilterSearchBar(
     )
 }
 
+/** A tonal container for one filter section, set apart from the sheet surface behind it. */
+@Composable
+private fun FilterCard(content: @Composable ColumnScope.() -> Unit) = Surface(
+    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    shape = MaterialTheme.shapes.large,
+    modifier = Modifier.fillMaxWidth()
+) {
+    Column(
+        modifier = Modifier.padding(CardPadding),
+        verticalArrangement = Arrangement.spacedBy(CardContentGap),
+        content = content
+    )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun FilterSectionHeader(
     icon: ImageVector,
@@ -780,24 +805,20 @@ private fun FilterSectionHeader(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(CardContentGap),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = stringResource(title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        SectionIcon(
+            icon = icon,
+            shape = MaterialShapes.Cookie6Sided,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        Text(
+            text = stringResource(title),
+            style = MaterialTheme.typography.titleMediumEmphasized,
+            modifier = Modifier.weight(1f)
+        )
         trailing()
     }
 }

@@ -643,7 +643,7 @@ private fun ApicalypseQueryBuilder.applySort(filter: GameListFilterState) {
     }
 }
 
-private val DefaultFilterState = GameListFilterState()
+internal val DefaultFilterState = GameListFilterState()
 
 /**
  * True when anything beyond the section's own default query is set.
