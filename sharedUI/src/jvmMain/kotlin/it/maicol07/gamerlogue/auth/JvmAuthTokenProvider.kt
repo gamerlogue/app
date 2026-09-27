@@ -100,6 +100,7 @@ class JvmAuthTokenProvider : AuthTokenProvider() {
     }
 }
 
+@Suppress("SameParameterValue")
 private fun Preferences.putOrRemove(key: String, value: String?) =
     if (value == null) remove(key) else put(key, value)
 
