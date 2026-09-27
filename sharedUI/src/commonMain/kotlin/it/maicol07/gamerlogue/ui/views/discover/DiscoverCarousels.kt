@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
@@ -44,9 +43,11 @@ import gamerlogue.sharedui.generated.resources.home__release_in_days
 import gamerlogue.sharedui.generated.resources.home__release_today
 import gamerlogue.sharedui.generated.resources.home__release_tomorrow
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
+import it.maicol07.gamerlogue.extensions.igdb.ratingScore
 import it.maicol07.gamerlogue.extensions.mouseScrollsHorizontally
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
+import it.maicol07.gamerlogue.ui.components.pressMorphShape
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
@@ -54,7 +55,6 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /** Carousel items narrower than this (the small, peeking ones) hide the game title. */
@@ -100,7 +100,7 @@ internal fun GameCarousel(section: DiscoverSection, games: List<Game>, onGameCli
 
 /**
  * "Most loved" as a ranking: each cover overlaps a large numeral.
- * Uncontained, so the items keep their size and the numerals are never squeezed by the mask.
+ * Uncontained, so the items keep their size, and the numerals are never squeezed by the mask.
  */
 @Composable
 internal fun RankedCarousel(games: List<Game>, onGameClick: (Game) -> Unit) {
@@ -152,15 +152,24 @@ private fun SectionBadge(
     onDateClick: () -> Unit,
     modifier: Modifier
 ) {
-    // Block body on purpose: the nullable `let` branch would make an expression body return `Unit?`.
+    // Block body on purpose: the nullable `let` branch would make an expression body return `Unit?`
     when (section) {
         DiscoverSection.MOST_LOVED -> game.ratingScore()?.let { StarBadge(it, modifier) }
         DiscoverSection.UPCOMING -> ToggleablePill(
-            text = if (absoluteDates) ReleaseDate(date = game.first_release_date).displayDate() else releaseCountdown(game),
+            text = if (absoluteDates) {
+                ReleaseDate(
+                    date = game.first_release_date
+                ).displayDate()
+            } else {
+                releaseCountdown(game)
+            },
             onClick = onDateClick,
             modifier = modifier
         )
-        DiscoverSection.RECENTLY_RELEASED -> InfoPill(ReleaseDate(date = game.first_release_date).displayDate(), modifier)
+        DiscoverSection.RECENTLY_RELEASED -> InfoPill(
+            ReleaseDate(date = game.first_release_date).displayDate(),
+            modifier
+        )
         DiscoverSection.POPULAR -> Unit
     }
 }
@@ -227,8 +236,7 @@ private fun releaseCountdown(game: Game): String {
     // IGDB release dates are midnight UTC, so the UTC calendar day is the release day.
     val releaseDay = Instant.fromEpochSeconds(release.getEpochSecond()).toLocalDateTime(TimeZone.UTC).date
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val days = today.daysUntil(releaseDay)
-    return when (days) {
+    return when (val days = today.daysUntil(releaseDay)) {
         0 -> stringResource(Res.string.home__release_today)
         1 -> stringResource(Res.string.home__release_tomorrow)
         in 2..COUNTDOWN_MAX_DAYS -> pluralStringResource(Res.plurals.home__release_in_days, days, days)

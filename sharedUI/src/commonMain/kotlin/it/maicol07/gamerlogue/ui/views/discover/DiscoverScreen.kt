@@ -1,19 +1,14 @@
 package it.maicol07.gamerlogue.ui.views.discover
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -24,57 +19,39 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.RoundedPolygon
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
-import gamerlogue.sharedui.generated.resources.events__empty
-import gamerlogue.sharedui.generated.resources.events__error
-import gamerlogue.sharedui.generated.resources.events__next
-import gamerlogue.sharedui.generated.resources.events__past
-import gamerlogue.sharedui.generated.resources.events__upcoming
 import gamerlogue.sharedui.generated.resources.home__empty_section
-import gamerlogue.sharedui.generated.resources.home__events
 import gamerlogue.sharedui.generated.resources.home__section_error
 import gamerlogue.sharedui.generated.resources.home__see_all
 import gamerlogue.sharedui.generated.resources.search__global_hint
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CelebrationW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
-import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
-import it.maicol07.gamerlogue.ui.components.event.EventCard
-import it.maicol07.gamerlogue.ui.components.event.EventCardHeight
-import it.maicol07.gamerlogue.ui.components.event.EventCardWidth
-import it.maicol07.gamerlogue.ui.components.event.EventStatusPill
+import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.search.GameSearchButton
 import it.maicol07.gamerlogue.ui.navigation.DiscoverPaneMetadata
@@ -94,23 +71,19 @@ internal val CardCorner = 16.dp
 internal val CardPressedCorner = 32.dp
 
 private val SectionSpacing = 28.dp
-private val SectionIconSize = 36.dp
-private val SectionIconGlyphSize = 20.dp
-private val FeaturedEventCorner = 28.dp
-private val FeaturedEventPressedCorner = 44.dp
-private const val FEATURED_EVENT_ASPECT_RATIO = 16f / 9f
 private const val PLACEHOLDER_COUNT = 4
 
 @Branch(RootTree::class, metadata = DiscoverPaneMetadata::class)
 @Composable
 fun DiscoverView(
     viewModel: DiscoverViewModel = koinViewModel(),
-    eventsViewModel: EventsViewModel = koinViewModel(parameters = { parametersOf(EventsViewModel.PREVIEW_PAGE_SIZE) }),
+    eventsViewModel: EventsViewModel = koinViewModel { parametersOf(EventsViewModel.PREVIEW_PAGE_SIZE) }
 ) {
     val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val eventsState by eventsViewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+
     Box {
         LazyColumn(
             state = listState,
@@ -187,107 +160,8 @@ private fun LazyListScope.discoverSection(
     }
 }
 
-/**
- * The events block, the page's second highlight: a tonal container with the next event featured
- * full width, then the rest of the upcoming events and the previous ones.
- *
- * Events are not games, so they live outside [DiscoverSection] (whose queries and nav key are typed
- * against games) and are appended as their own item.
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private fun LazyListScope.eventsSection(
-    state: EventsViewModel.UiState,
-    onEventClick: (Event) -> Unit,
-    onSeeAllClick: () -> Unit
-) = item(key = "EVENTS") {
-    Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        shape = MaterialTheme.shapes.extraLarge,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.ItemGap)
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = Dimens.ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(Dimens.SectionGap)
-        ) {
-            SectionHeader(
-                title = Res.string.home__events,
-                icon = Icons.CelebrationW500Rounded,
-                iconShape = MaterialShapes.Flower,
-                iconContainerColor = MaterialTheme.colorScheme.tertiary,
-                iconColor = MaterialTheme.colorScheme.onTertiary,
-                onSeeAllClick = onSeeAllClick
-            )
-            when {
-                state.loading -> SectionLoading(EventCardWidth, EventCardHeight)
-                state.error -> SectionMessage(Res.string.events__error)
-                state.upcoming.isEmpty() && state.past.isEmpty() -> SectionMessage(Res.string.events__empty)
-                else -> {
-                    state.upcoming.firstOrNull()?.let {
-                        FeaturedEvent(it, Modifier.padding(horizontal = Dimens.ScreenPadding), onEventClick)
-                    }
-                    EventBucket(Res.string.events__upcoming, state.upcoming.drop(1), onEventClick)
-                    EventBucket(Res.string.events__past, state.past, onEventClick)
-                }
-            }
-        }
-    }
-}
-
-/** The next event, full width under a "Next up" label; also the lead of the events list. */
 @Composable
-internal fun FeaturedEvent(event: Event, modifier: Modifier, onEventClick: (Event) -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
-        ) {
-            BucketLabel(Res.string.events__next, Modifier)
-            EventStatusPill(event)
-        }
-        EventCard(
-            event = event,
-            modifier = Modifier.clip(pressMorphShape(interactionSource, FeaturedEventCorner, FeaturedEventPressedCorner)),
-            sizeModifier = Modifier.fillMaxWidth().aspectRatio(FEATURED_EVENT_ASPECT_RATIO),
-            interactionSource = interactionSource,
-            onClick = onEventClick
-        )
-    }
-}
-
-@Composable
-private fun EventBucket(label: StringResource, events: List<Event>, onEventClick: (Event) -> Unit) {
-    if (events.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
-        BucketLabel(label, Modifier.padding(horizontal = Dimens.ScreenPadding))
-        GameCoverCarousel(
-            itemCount = events.count(),
-            preferredItemWidth = EventCardWidth,
-            modifier = Modifier.height(EventCardHeight)
-        ) { i ->
-            val interactionSource = remember { MutableInteractionSource() }
-            EventCard(
-                event = events[i],
-                modifier = Modifier.maskClip(pressMorphShape(interactionSource, CardCorner, CardPressedCorner)),
-                // The carousel sizes its items, and a large item can be wider than the preferred width.
-                sizeModifier = Modifier.fillMaxSize(),
-                interactionSource = interactionSource,
-                onClick = onEventClick
-            )
-        }
-    }
-}
-
-@Composable
-private fun BucketLabel(label: StringResource, modifier: Modifier) =
-    Text(text = stringResource(label), style = MaterialTheme.typography.titleSmall, modifier = modifier)
-
-@Composable
-private fun SectionHeader(
+internal fun SectionHeader(
     title: StringResource,
     icon: ImageVector,
     iconShape: RoundedPolygon,
@@ -308,15 +182,6 @@ private fun SectionHeader(
         modifier = Modifier.weight(1f)
     )
     SeeAllButton(onSeeAllClick)
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-internal fun SectionIcon(icon: ImageVector, shape: RoundedPolygon, containerColor: Color, contentColor: Color) = Box(
-    modifier = Modifier.size(SectionIconSize).background(containerColor, shape.toShape()),
-    contentAlignment = Alignment.Center
-) {
-    Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(SectionIconGlyphSize))
 }
 
 @Composable
@@ -362,20 +227,6 @@ internal fun SectionMessage(text: StringResource) = Text(
     style = MaterialTheme.typography.bodyMedium,
     modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)
 )
-
-/**
- * Rounded corners that grow while [interactionSource] is pressed. Driven by the motion scheme, so
- * it snaps instead of animating when the system animation scale is 0.
- */
-@Composable
-internal fun pressMorphShape(interactionSource: MutableInteractionSource, rest: Dp, pressed: Dp): Shape {
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val corner by animateDpAsState(
-        targetValue = if (isPressed) pressed else rest,
-        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec()
-    )
-    return RoundedCornerShape(corner)
-}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 internal val DiscoverSection.iconShape: RoundedPolygon

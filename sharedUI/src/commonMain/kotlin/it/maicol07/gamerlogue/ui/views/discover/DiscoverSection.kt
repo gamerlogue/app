@@ -19,11 +19,11 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Sta
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.UpcomingW500Rounded
 import it.maicol07.gamerlogue.extensions.alreadyReleased
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
+import it.maicol07.gamerlogue.extensions.igdb.ratingLabel
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.serialization.Serializable
-import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -80,12 +80,6 @@ enum class DiscoverSection(
         }
     ),
 }
-
-/** Score (0-10) with one decimal, or null when the game has no rating. */
-internal fun Game.ratingScore(): String? = rating.takeIf { it > 0.0 }?.let { "%.1f".sprintf(it / 10) }
-
-/** Star + score (0-10), or null when the game has no rating. */
-internal fun Game.ratingLabel(): String? = ratingScore()?.let { "★ $it" }
 
 /** Per-section metadata badge shown on a cover card. */
 internal fun DiscoverSection.cardMetadata(game: Game): String? = when (this) {

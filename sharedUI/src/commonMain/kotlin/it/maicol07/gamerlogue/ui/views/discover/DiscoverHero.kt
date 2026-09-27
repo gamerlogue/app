@@ -32,7 +32,9 @@ import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__section_error
+import it.maicol07.gamerlogue.extensions.igdb.ratingLabel
 import it.maicol07.gamerlogue.extensions.mouseScrollsHorizontally
+import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.game.GameBannerImage
 import it.maicol07.gamerlogue.ui.components.game.bottomScrim

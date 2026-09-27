@@ -44,14 +44,14 @@ class EventsViewModel(@InjectedParam private val pageSize: Int) : StateViewModel
         /** Page size of the Discover preview, which never paginates. */
         const val PREVIEW_PAGE_SIZE = 20
 
-        private const val PrefetchThreshold = 6
+        private const val PREFETCH_THRESHOLD = 6
     }
 
     private val igdb by inject<IgdbClient>()
 
     /**
-     * Epoch seconds splitting upcoming from past, frozen per [load]: the past pages are fetched by
-     * offset, so a moving boundary would shift them and repeat events across pages.
+     * The epoch second that splits upcoming events from previous ones, frozen per [load]:
+     * [fetchPastEvents] pages by offset, so a moving boundary would shift the pages and repeat events.
      */
     private var cutoff = 0L
 
@@ -77,7 +77,7 @@ class EventsViewModel(@InjectedParam private val pageSize: Int) : StateViewModel
         val upcomingEvents = upcoming.await()
         val pastEvents = past.await()
         update {
-            if (upcomingEvents == null || pastEvents == null) {
+            if ((upcomingEvents == null) || (pastEvents == null)) {
                 copy(loading = false, error = true)
             } else {
                 copy(
@@ -92,10 +92,12 @@ class EventsViewModel(@InjectedParam private val pageSize: Int) : StateViewModel
 
     /** Loads the next page of previous events once the list is scrolled near its end. */
     fun onEndReached(lastVisibleIndex: Int) {
-        if (state.loading || state.loadingMorePast || state.pastPageError || state.pastEndReached) return
+        val idle = !state.loading && !state.loadingMorePast
+        // A failed page waits for its explicit retry.
+        val morePastAvailable = !state.pastPageError && !state.pastEndReached
         val total = state.upcoming.size + state.past.size
-        if (lastVisibleIndex < total - PrefetchThreshold) return
-        loadMorePast()
+        val nearEnd = lastVisibleIndex >= (total - PREFETCH_THRESHOLD)
+        if (idle && morePastAvailable && nearEnd) loadMorePast()
     }
 
     /** Fetches the next page of previous events; also the retry after a failed page. */

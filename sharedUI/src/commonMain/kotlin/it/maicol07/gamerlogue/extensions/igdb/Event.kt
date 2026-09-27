@@ -31,6 +31,10 @@ fun Event.dateTimeRangeLabel(locale: Locale = Locale.current): String {
     return if (end == null) start else "$start - $end"
 }
 
+/** The year the event starts in, in UTC like [dateRangeLabel], or null when it has no date. */
+fun Event.startYear(): Int? =
+    start_time?.let { Instant.fromEpochSeconds(it.getEpochSecond()).toLocalDateTime(TimeZone.UTC).year }
+
 /** The game list destination scoped to this event. */
 val Event.gamesNavKey: RootNavTree.GameList
     get() = RootNavTree.GameList(section = null, eventId = id.toInt(), eventName = name)

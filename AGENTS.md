@@ -13,7 +13,7 @@ Gamerlogue is a Kotlin Multiplatform + Compose Multiplatform game-library tracke
 - Android APK: `./gradlew :androidApp:assembleDebug` → `androidApp/build/outputs/apk/debug/`
 - Desktop: `./gradlew :desktopApp:run` — hot reload: `./gradlew :desktopApp:hotRun --auto`
 - Web (JS): `./gradlew :webApp:jsBrowserDevelopmentRun`
-- Lint: detekt runs through the IDE plugin against `detekt.yml`; there is no Gradle detekt task.
+- Lint: detekt runs through the IDE plugin against `detekt.yml`; there is no Gradle detekt task. So a green Gradle build does not mean a clean file: when AgentBridge is connected, run `get_problems` on every file you touched (it reports detekt plus the IDE inspections) and fix warnings and weak warnings before finishing. Information-level hints (smart casts, etc.) can stay.
 - All tests: `./gradlew :sharedUI:jvmTest`
 - Single test class: `./gradlew :sharedUI:jvmTest --tests "it.maicol07.gamerlogue.services.WebResultTest"`
 
@@ -69,7 +69,7 @@ Client-side library/wishlist sync with external stores (Steam, PlayStation, Xbox
 ### UI
 - Compose Multiplatform Material 3 Expressive. Theme in `ui/theme/` (MaterialKolor dynamic color). Icons are generated at build time by **SymbolCraft** (Material Symbols + external SVG sets) — see the `symbolCraft { }` block in `sharedUI/build.gradle.kts`; add icon names there, don't hand-write icon code.
 - Android launcher icons (Icon Kitchen): each variant has plain `ic_launcher*` names in `androidApp/src/{main,alpha,beta,debug}/res`; the `debug` overlay wins over the flavor. Only `ic_launcher_background` lives in `main` alone and is shared. After regenerating, Icon Kitchen copies the raster foreground into `*_monochrome.png`: rebuild them with `python scripts/gen_monochrome_icons.py <res dirs…>`.
-- Screens live in `ui/views/<feature>/`, shared widgets in `ui/components/`. Localized strings via Compose resources (`Res.string.*`); available languages are auto-derived from `composeResources/values-*` dirs.
+- Screens live in `ui/views/<feature>/`, shared widgets in `ui/components/`. Once a composable is used by more than one feature, move it to `ui/components/` (by domain, e.g. `components/event/`); likewise extensions on a model go to `extensions/` (`extensions/igdb/<Type>.kt` for IGDB models), not beside the first screen that needed them. `ui/components/` and `extensions/` must not import from `ui/views/`. Localized strings via Compose resources (`Res.string.*`); available languages are auto-derived from `composeResources/values-*` dirs.
 
 #### UI conventions
 - Prefer Segmented Lists to plain ones

@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.events
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,14 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
@@ -27,10 +24,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +44,6 @@ import gamerlogue.sharedui.generated.resources.events__empty
 import gamerlogue.sharedui.generated.resources.events__error
 import gamerlogue.sharedui.generated.resources.events__logo
 import gamerlogue.sharedui.generated.resources.events__past
-import gamerlogue.sharedui.generated.resources.events__retry
 import gamerlogue.sharedui.generated.resources.events__upcoming
 import gamerlogue.sharedui.generated.resources.nav__events
 import io.github.fopwoc.nav3ksp.annotation.Branch
@@ -56,30 +52,25 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Cel
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.igdb.dateRangeLabel
 import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
+import it.maicol07.gamerlogue.extensions.igdb.startYear
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.event.EventStatusPill
+import it.maicol07.gamerlogue.ui.components.event.FeaturedEvent
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.navigation.ListPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
-import it.maicol07.gamerlogue.ui.views.discover.FeaturedEvent
-import it.maicol07.gamerlogue.ui.views.discover.SectionIcon
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-import kotlin.time.Instant
 
 /** Thumbnail of an event logo in the list; 16:9 like the logo itself. */
 private val ThumbWidth = 96.dp
 private val ThumbHeight = 54.dp
-
-private val StatusIconSize = 96.dp
-private val StatusGlyphSize = 48.dp
 
 /**
  * The full events list: the next event featured, the other upcoming ones, then the previous ones
@@ -89,7 +80,7 @@ private val StatusGlyphSize = 48.dp
 @Branch(RootTree::class, metadata = ListPaneMetadata::class)
 @Composable
 fun EventListView(
-    viewModel: EventsViewModel = koinViewModel(parameters = { parametersOf(EventsViewModel.LIST_PAGE_SIZE) }),
+    viewModel: EventsViewModel = koinViewModel { parametersOf(EventsViewModel.LIST_PAGE_SIZE) },
 ) {
     val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -97,8 +88,11 @@ fun EventListView(
 
     val onEventClick: (Event) -> Unit = { navigationState.backStack.add(it.gamesNavKey) }
 
-    LaunchedEffect(listState.firstVisibleItemIndex, uiState.past.size) {
-        viewModel.onEndReached(listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)
+    // Reads the scroll position in a snapshotFlow, not in composition, so scrolling does not
+    // recompose the screen; restarted per page so a page that still fits on screen chains the next.
+    LaunchedEffect(listState, uiState.past.size) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .collect { viewModel.onEndReached(it) }
     }
 
     ScreenScaffold(title = Res.string.nav__events) {
@@ -233,56 +227,6 @@ private fun EventRow(event: Event, indexInGroup: Int, groupCount: Int, modifier:
         },
     ) { Text(event.name, maxLines = 2, overflow = TextOverflow.Ellipsis) }
 
-/** Full-screen state for an empty list or a failed first load, the latter with its retry. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun EventsStatus(text: StringResource, modifier: Modifier, onRetry: (() -> Unit)?) = Column(
-    modifier = modifier.padding(Dimens.ScreenPadding),
-    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-    horizontalAlignment = Alignment.CenterHorizontally,
-) {
-    Box(
-        modifier = Modifier
-            .size(StatusIconSize)
-            .background(MaterialTheme.colorScheme.secondaryContainer, MaterialShapes.Cookie9Sided.toShape()),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            Icons.CelebrationW500Rounded,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(StatusGlyphSize),
-        )
-    }
-    Text(
-        text = stringResource(text),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    if (onRetry != null) RetryButton(onRetry)
-}
-
-/** A failed later page, as the last row of the list. */
-@Composable
-private fun PageError(modifier: Modifier, onRetry: () -> Unit) = Row(
-    modifier = modifier,
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(Dimens.SectionGap),
-) {
-    Text(
-        text = stringResource(Res.string.events__error),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.weight(1f),
-    )
-    RetryButton(onRetry)
-}
-
-@Composable
-private fun RetryButton(onRetry: () -> Unit) = FilledTonalButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
-    Text(stringResource(Res.string.events__retry))
-}
-
 @Composable
 private fun EventThumb(event: Event) {
     val shape = MaterialTheme.shapes.medium
@@ -304,7 +248,3 @@ private fun EventThumb(event: Event) {
         )
     }
 }
-
-/** UTC, like [dateRangeLabel], so an event sits under the year its dates show. */
-private fun Event.startYear(): Int? =
-    start_time?.let { Instant.fromEpochSeconds(it.getEpochSecond()).toLocalDateTime(TimeZone.UTC).year }

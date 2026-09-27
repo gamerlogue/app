@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.extensions.igdb
 
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
+import net.sergeych.sprintf.sprintf
 
 /**
  * The detail destination for this game, carrying the cover and name so the target screen can draw
@@ -13,6 +14,12 @@ val Game.detailNavKey: RootNavTree.GameDetail
         coverImageId = cover?.image_id,
         gameName = name,
     )
+
+/** Score (0-10) with one decimal, or null when the game has no rating. */
+fun Game.ratingScore(): String? = rating.takeIf { it > 0.0 }?.let { "%.1f".sprintf(it / 10) }
+
+/** Star + score (0-10), or null when the game has no rating. */
+fun Game.ratingLabel(): String? = ratingScore()?.let { "★ $it" }
 
 /** These games in the order of [ids]: IGDB ignores the order of an `id = (...)` filter. */
 fun List<Game>.sortedByIds(ids: List<Int>): List<Game> {
