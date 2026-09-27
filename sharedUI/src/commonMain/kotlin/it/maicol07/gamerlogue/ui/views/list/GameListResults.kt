@@ -19,8 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,29 +33,33 @@ import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.theme.Dimens
+import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.discover.cardMetadata
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The paginated cover grid shown inside the expanded search bar, plus its filter sheet.
+ * The paginated cover grid of the game list destination.
  *
- * The [viewModel] is the one the search bar drives, so the query typed above and the filters
- * applied here narrow the same list. Pass [header] to prepend a full-width block that scrolls with
- * the grid (e.g. the details of the event the list is scoped to).
+ * [onEndReached] receives the last visible item index whenever it changes, to prefetch the next
+ * page. Pass [header] to prepend a full-width block that scrolls with the grid (e.g., the details
+ * of the event the list is scoped to).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GameListResults(
-    viewModel: GameListViewModel,
+    uiState: GameListViewModel.UiState,
+    section: DiscoverSection?,
     onGameClick: (Game) -> Unit,
+    onEndReached: (lastVisibleIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
     header: (@Composable () -> Unit)? = null,
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
     val gridState = rememberLazyGridState()
-    LaunchedEffect(gridState.firstVisibleItemIndex, uiState.games.size) {
-        viewModel.onEndReached(gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)
+    // Read in a snapshotFlow rather than as effect keys, so scrolling does not recompose the grid.
+    val currentOnEndReached by rememberUpdatedState(onEndReached)
+    LaunchedEffect(gridState) {
+        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .collect { currentOnEndReached(it) }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -74,7 +79,7 @@ fun GameListResults(
             items(uiState.games, key = { it.id }) { game ->
                 GameCoverCard(
                     game = game,
-                    metadata = listOfNotNull(uiState.section?.cardMetadata(game)),
+                    metadata = listOfNotNull(section?.cardMetadata(game)),
                     showTitle = true,
                     modifier = Modifier.clip(MaterialTheme.shapes.large),
                     sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
@@ -95,20 +100,6 @@ fun GameListResults(
             }
         }
         AppVerticalScrollbar(gridState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
-
-        if (uiState.showFilterSheet) {
-            GameListFilterSheet(
-                filterState = uiState.filterState,
-                columnCount = uiState.columnCount,
-                filterSearches = uiState.filterSearches,
-                defaultOptions = uiState.defaultOptions,
-                onFilterSearch = viewModel::searchFilterOptions,
-                onColumnCountChange = viewModel::setColumnCount,
-                onFilterChange = viewModel::updateFilter,
-                onReset = viewModel::resetFilter,
-                onDismiss = { viewModel.toggleFilterSheet(false) }
-            )
-        }
     }
 }
 

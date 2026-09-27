@@ -12,8 +12,8 @@ import at.released.igdbclient.getCompanies
 import at.released.igdbclient.getEvents
 import at.released.igdbclient.getFranchises
 import at.released.igdbclient.getGameEngines
-import at.released.igdbclient.getGames
 import at.released.igdbclient.getGameTimeToBeat
+import at.released.igdbclient.getGames
 import at.released.igdbclient.getKeywords
 import at.released.igdbclient.model.Company
 import at.released.igdbclient.model.Event
@@ -24,13 +24,14 @@ import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.model.Keyword
 import at.released.igdbclient.model.PopularityPrimitive
 import at.released.igdbclient.multiquery
+import com.github.michaelbull.result.get
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder
 import it.maicol07.gamerlogue.extensions.alreadyReleased
 import it.maicol07.gamerlogue.extensions.igdb.sortedByIds
-import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.multiqueryResults
+import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
@@ -41,10 +42,10 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
+import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 /** Selectable range of grid columns, shared by the view model and the filter sheet's slider. */
@@ -142,17 +143,19 @@ data class GameListFilterState(
 /**
  * Backs the search bar's expanded pane: a paginated, filterable game grid.
  *
- * With no filter and a [UiState.section] set it replays that Discover carousel's query so
- * "see all" paginates exactly what the carousel previewed; as soon as any filter or query is
- *  applied, it switches to a plain filtered games query.
+ * With no filter and a [section] set it replays that Discover carousel's query so "see all"
+ * paginates exactly what the carousel previewed; as soon as any filter or query is applied, it
+ * switches to a plain filtered games query. With an [eventId] the list is scoped to that IGDB
+ * event's games.
  */
 @KoinViewModel
-class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
+@Suppress("TooManyFunctions")
+class GameListViewModel(
+    @InjectedParam private val section: DiscoverSection?,
+    @InjectedParam private val eventId: Int?,
+) : StateViewModel<GameListViewModel.UiState>(UiState()) {
     /** Immutable state of the search results pane. */
     data class UiState(
-        val section: DiscoverSection? = null,
-        /** When set, the list is scoped to the games of this IGDB event. */
-        val eventId: Int? = null,
         /** The scoped event with its full details, once loaded, backs the list header. */
         val event: Event? = null,
         val games: List<Game> = emptyList(),
@@ -164,40 +167,35 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         val filterSearches: Map<FilterSearchTarget, FilterSearchState> = emptyMap(),
         /** Options shown by a searchable filter section before the user types anything. */
         val defaultOptions: Map<FilterSearchTarget, List<NamedSearchResult>> = emptyMap(),
+        /**
+         * Every option ever shown by a searchable section, by id: a selection keeps its name after
+         * the query moves on and while the sheet is closed, since the filter state only stores ids.
+         */
+        val knownOptions: Map<FilterSearchTarget, Map<Int, NamedSearchResult>> = emptyMap(),
     )
 
     private companion object {
-        const val PageSize = 50
-        const val PrefetchThreshold = 6
-        const val FilterSearchLimit = 10
-        const val DebounceMillis = 300L
-        const val SecondsPerHour = 3600
-        const val DefaultOptionsSampleSize = 60
-        const val DefaultOptionsPerTarget = 12
-        const val MinRatingsForSample = 300
+        const val PAGE_SIZE = 50
+        const val PREFETCH_THRESHOLD = 6
+        const val FILTER_SEARCH_LIMIT = 10
+        const val DEBOUNCE_MILLIS = 300L
+        const val SECONDS_PER_HOUR = 3600
+        const val DEFAULT_OPTIONS_SAMPLE_SIZE = 60
+        const val DEFAULT_OPTIONS_PER_TARGET = 12
+        const val MIN_RATINGS_FOR_SAMPLE = 300
     }
 
     private val igdb: IgdbClient by inject()
     private var offset = 0
-    private var started = false
     private val filterSearchJobs = mutableMapOf<FilterSearchTarget, Job>()
     private var defaultOptionsJob: Job? = null
     private var loadJob: Job? = null
     private var searchJob: Job? = null
 
-    /** The event's game ids, fetched once per event scope; see [fetchEventGameIds]. */
+    /** The event's game ids, fetched once per event scope; see [eventGameIdPage]. */
     private var eventGameIds: List<Int>? = null
 
-    /**
-     * Loads the first page, optionally scoped to a Discover section so "see all" paginates exactly
-     * the query that carousel previewed, or to an event's games. Idempotent: the destination re-runs
-     * it on every recomposition after a configuration change or a trip to the game detail, which
-     * must not reset the list.
-     */
-    fun start(section: DiscoverSection?, eventId: Int? = null) {
-        if (started) return
-        started = true
-        update { copy(section = section, eventId = eventId) }
+    init {
         load(reset = true)
     }
 
@@ -230,28 +228,32 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                         Game.field.game_engines.name,
                         Game.field.game_engines.logo.image_id,
                     )
-                    where { Game.field.total_rating_count greaterThan MinRatingsForSample }
+                    where { Game.field.total_rating_count greaterThan MIN_RATINGS_FOR_SAMPLE }
                     sort(Game.field.total_rating_count, SortOrder.DESC)
-                    limit(DefaultOptionsSampleSize)
+                    limit(DEFAULT_OPTIONS_SAMPLE_SIZE)
                 }
             }
             if (result.isErr) return@launch
 
             val games = result.unwrap().games
+            val options = mapOf(
+                FilterSearchTarget.COMPANY to games.rankBy { game ->
+                    game.involved_companies.mapNotNull { it.company }
+                        .map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) }
+                },
+                FilterSearchTarget.FRANCHISE to games.rankBy { game ->
+                    game.franchises.map { NamedSearchResult(it.id.toInt(), it.name) }
+                },
+                FilterSearchTarget.ENGINE to games.rankBy { game ->
+                    game.game_engines.map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) }
+                },
+            )
             update {
                 copy(
-                    defaultOptions = mapOf(
-                        FilterSearchTarget.COMPANY to games.rankBy { game ->
-                            game.involved_companies.mapNotNull { it.company }
-                                .map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) }
-                        },
-                        FilterSearchTarget.FRANCHISE to games.rankBy { game ->
-                            game.franchises.map { NamedSearchResult(it.id.toInt(), it.name) }
-                        },
-                        FilterSearchTarget.ENGINE to games.rankBy { game ->
-                            game.game_engines.map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) }
-                        },
-                    )
+                    defaultOptions = options,
+                    knownOptions = options.entries.fold(knownOptions) { known, (target, list) ->
+                        known.withOptions(target, list)
+                    }
                 )
             }
         }
@@ -264,18 +266,18 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
             .eachCount()
             .entries
             .sortedByDescending { it.value }
-            .take(DefaultOptionsPerTarget)
+            .take(DEFAULT_OPTIONS_PER_TARGET)
             .mapNotNull { entry -> firstNotNullOfOrNull { game -> extract(game).firstOrNull { it.id == entry.key } } }
 
     /**
-     * Applies the query typed in the search bar after [DebounceMillis], so a burst of keystrokes
+     * Applies the query typed in the search bar after [DEBOUNCE_MILLIS], so a burst of keystrokes
      * costs one IGDB request instead of one per character. Use [submitSearchQuery] to skip the wait.
      */
     fun setSearchQuery(query: String) {
         searchJob?.cancel()
         if (state.filterState.searchQuery == query) return
         searchJob = viewModelScope.launch {
-            delay(DebounceMillis.milliseconds)
+            delay(DEBOUNCE_MILLIS.milliseconds)
             updateFilter(state.filterState.copy(searchQuery = query))
         }
     }
@@ -313,21 +315,28 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         update { copy(filterSearches = filterSearches.with(target) { copy(query = query) }) }
         filterSearchJobs.remove(target)?.cancel()
         if (query.isBlank()) {
-            update { copy(filterSearches = filterSearches.with(target) { copy(results = emptyList(), loading = false) }) }
+            update {
+                copy(filterSearches = filterSearches.with(target) { copy(results = emptyList(), loading = false) })
+            }
             return
         }
 
         filterSearchJobs[target] = viewModelScope.launch {
-            delay(DebounceMillis.milliseconds)
+            delay(DEBOUNCE_MILLIS.milliseconds)
             update { copy(filterSearches = filterSearches.with(target) { copy(loading = true) }) }
             val results = fetchFilterOptions(target, query)
-            update { copy(filterSearches = filterSearches.with(target) { copy(results = results, loading = false) }) }
+            update {
+                copy(
+                    filterSearches = filterSearches.with(target) { copy(results = results, loading = false) },
+                    knownOptions = knownOptions.withOptions(target, results)
+                )
+            }
         }
     }
 
     fun onEndReached(lastVisibleIndex: Int) {
         if (state.loading || state.endReached) return
-        if (lastVisibleIndex >= state.games.lastIndex - PrefetchThreshold) {
+        if (lastVisibleIndex >= state.games.lastIndex - PREFETCH_THRESHOLD) {
             load(reset = false)
         }
     }
@@ -337,13 +346,18 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         reducer: FilterSearchState.() -> FilterSearchState
     ) = this + (target to (this[target] ?: FilterSearchState()).reducer())
 
+    private fun Map<FilterSearchTarget, Map<Int, NamedSearchResult>>.withOptions(
+        target: FilterSearchTarget,
+        options: List<NamedSearchResult>
+    ) = this + (target to (this[target].orEmpty() + options.associateBy(NamedSearchResult::id)))
+
     private suspend fun fetchFilterOptions(target: FilterSearchTarget, query: String): List<NamedSearchResult> =
         when (target) {
             FilterSearchTarget.COMPANY -> named({
                 igdb.getCompanies {
                     fields(Company.field.name, Company.field.logo.image_id)
                     where { Company.field.name contains query }
-                    limit(FilterSearchLimit)
+                    limit(FILTER_SEARCH_LIMIT)
                 }
             }) { result -> result.companies.map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) } }
 
@@ -351,7 +365,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                 igdb.getFranchises {
                     fields(Franchise.field.name)
                     where { Franchise.field.name contains query }
-                    limit(FilterSearchLimit)
+                    limit(FILTER_SEARCH_LIMIT)
                 }
             }) { result -> result.franchises.map { NamedSearchResult(it.id.toInt(), it.name) } }
 
@@ -359,7 +373,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                 igdb.getGameEngines {
                     fields(GameEngine.field.name, GameEngine.field.logo.image_id)
                     where { GameEngine.field.name contains query }
-                    limit(FilterSearchLimit)
+                    limit(FILTER_SEARCH_LIMIT)
                 }
             }) { result -> result.gameengines.map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) } }
 
@@ -367,7 +381,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                 igdb.getKeywords {
                     fields(Keyword.field.name)
                     where { Keyword.field.name contains query }
-                    limit(FilterSearchLimit)
+                    limit(FILTER_SEARCH_LIMIT)
                 }
             }) { result -> result.keywords.map { NamedSearchResult(it.id.toInt(), it.name) } }
         }
@@ -399,7 +413,13 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
         if (state.endReached) return
 
         update { copy(loading = true) }
-        val page = fetchPage(offset)
+        // A page the other filters empty entirely changes nothing on screen, so the grid would
+        // never ask for the next one: keep going until something shows up or the source ends.
+        var page: Page
+        do {
+            page = fetchPage(offset)
+            if (page.sourceFull) offset += PAGE_SIZE
+        } while (page.games.isEmpty() && page.sourceFull)
         update {
             copy(
                 games = games + page.games,
@@ -407,7 +427,6 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                 endReached = !page.sourceFull,
             )
         }
-        if (page.sourceFull) offset += PageSize
     }
 
     /**
@@ -423,22 +442,9 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
     @Suppress("ReturnCount")
     private suspend fun fetchPage(offset: Int): Page {
         val filter = state.filterState
-        val section = state.section
-        val eventId = state.eventId
         val isCustomFilterActive = filter.isActive
-
-        // Time to beat lives on its own endpoint keyed by game_id, so when it is filtered, it takes
-        // over pagination from the section's popularity query — the two cannot both drive it.
-        val popscoreQuery = if (!isCustomFilterActive) section?.popscoreQuery else null
-        // In event scope the event's own game ids drive pagination and win over the other id
-        // sources, so the time-to-beat filter is inert there.
-        val gameIds = when {
-            eventId != null -> eventGameIdPage(eventId, offset)
-            filter.hasTimeToBeatFilter -> fetchTimeToBeatGameIds(filter, offset)
-            popscoreQuery != null -> fetchPopScoreGameIds(section!!, popscoreQuery, offset)
-            else -> null
-        }
-        val sourceFull = gameIds?.let { it.size >= PageSize }
+        val gameIds = fetchSourceGameIds(filter, offset)
+        val sourceFull = gameIds?.let { it.size >= PAGE_SIZE }
         if (gameIds != null && gameIds.isEmpty()) return Page(emptyList(), sourceFull = false)
 
         val result = safeRequest {
@@ -459,23 +465,39 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                     if (gameIds != null) {
                         Game.field.id inAny gameIds.map(Int::toString)
                     }
-                    if (!isCustomFilterActive) {
-                        section?.baseQuery?.invoke(this@getGames)
-                    }
                     applyFilters(filter)
                 }
 
                 // With an id source the page is already chosen upstream: sorting and offsetting
                 // here would reshuffle and skip within that page.
                 if (gameIds == null) {
-                    applySort(filter, isCustomFilterActive, section)
+                    // The section's query only runs with no custom filter, when the clause above is
+                    // empty and emits nothing: the library's `where` replaces instead of appending.
+                    if (isCustomFilterActive) applySort(filter) else section?.baseQuery?.invoke(this)
                     offset(offset)
                 }
-                limit(PageSize)
+                limit(PAGE_SIZE)
             }
         }
-        val games = if (result.isOk) result.unwrap().games else emptyList()
-        return Page(gameIds?.let(games::sortedByIds) ?: games, sourceFull = sourceFull ?: (games.size >= PageSize))
+        // A failed request ends the list like an exhausted source, so the caller never retries it.
+        if (result.isErr) return Page(emptyList(), sourceFull = false)
+        val games = result.unwrap().games
+        return Page(gameIds?.let(games::sortedByIds) ?: games, sourceFull = sourceFull ?: (games.size >= PAGE_SIZE))
+    }
+
+    /** One page of the ids that drive pagination, or null when the games query paginates itself. */
+    private suspend fun fetchSourceGameIds(filter: GameListFilterState, offset: Int): List<Int>? {
+        // Time to beat lives on its own endpoint keyed by game_id, so when it is filtered, it takes
+        // over pagination from the section's popularity query — the two cannot both drive it.
+        val popscoreSection = section?.takeIf { !filter.isActive && it.popscoreQuery != null }
+        // In event scope the event's own game ids drive pagination and win over the other id
+        // sources, so the time-to-beat filter is inert there.
+        return when {
+            eventId != null -> eventGameIdPage(eventId, offset)
+            filter.hasTimeToBeatFilter -> fetchTimeToBeatGameIds(filter, offset)
+            popscoreSection != null -> fetchPopScoreGameIds(popscoreSection, offset)
+            else -> null
+        }
     }
 
     /**
@@ -487,7 +509,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
      */
     private suspend fun eventGameIdPage(eventId: Int, offset: Int): List<Int> {
         val ids = eventGameIds ?: fetchEvent(eventId).also { eventGameIds = it }
-        return ids.drop(offset).take(PageSize)
+        return ids.drop(offset).take(PAGE_SIZE)
     }
 
     /** Loads the event, publishes it for the header and returns its game ids. */
@@ -509,8 +531,7 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                 where { Event.field.id equalTo eventId.toString() }
             }
         }
-        if (result.isErr) return emptyList()
-        val event = result.unwrap().events.firstOrNull() ?: return emptyList()
+        val event = result.get()?.events?.firstOrNull() ?: return emptyList()
         update { copy(event = event) }
         return event.games.map { it.id.toInt() }
     }
@@ -521,32 +542,28 @@ class GameListViewModel : StateViewModel<GameListViewModel.UiState>(UiState()) {
                 fields(GameTimeToBeat.field.game_id)
                 where {
                     if (filter.minHoursToBeat > 0f) {
-                        GameTimeToBeat.field.normally greaterThanOrEqual (filter.minHoursToBeat * SecondsPerHour).toLong()
+                        GameTimeToBeat.field.normally greaterThanOrEqual (filter.minHoursToBeat * SECONDS_PER_HOUR).toLong()
                     }
                     if (filter.maxHoursToBeat < MaxHoursToBeat) {
-                        GameTimeToBeat.field.normally lessThanOrEqual (filter.maxHoursToBeat * SecondsPerHour).toLong()
+                        GameTimeToBeat.field.normally lessThanOrEqual (filter.maxHoursToBeat * SECONDS_PER_HOUR).toLong()
                     }
                 }
                 // `count` is how many players submitted a time, so the best-attested entries come first.
                 sort(GameTimeToBeat.field.count, SortOrder.DESC)
-                limit(PageSize)
+                limit(PAGE_SIZE)
                 offset(offset)
             }
         }
-        return if (result.isOk) result.unwrap().gametimetobeats.map { it.game_id.toInt() } else emptyList()
+        return if (result.isOk) result.unwrap().gametimetobeats.map { it.game_id } else emptyList()
     }
 
-    private suspend fun fetchPopScoreGameIds(
-        section: DiscoverSection,
-        popscoreQuery: ApicalypseQueryBuilder.() -> Unit,
-        offset: Int,
-    ): List<Int> {
+    private suspend fun fetchPopScoreGameIds(section: DiscoverSection, offset: Int): List<Int> {
         val result = safeRequest {
             igdb.multiquery {
                 query(IgdbEndpoint.POPULARITY_PRIMITIVE, section.name) {
                     fields(PopularityPrimitive.field.game_id)
-                    popscoreQuery(this)
-                    limit(PageSize)
+                    section.popscoreQuery?.invoke(this)
+                    limit(PAGE_SIZE)
                     offset(offset)
                 }
             }
@@ -584,7 +601,8 @@ private fun ApicalypseQueryBuilderWhereBuilder.applyFilters(filter: GameListFilt
         Game.field.first_release_date greaterThanOrEqual startEpoch
     }
     if (filter.maxReleaseYear < MaxReleaseYear) {
-        val endEpoch = LocalDateTime(filter.maxReleaseYear, 12, 31, 23, 59, 59).toInstant(TimeZone.UTC).epochSeconds
+        // Last second of the year: the start of the next one, minus one.
+        val endEpoch = LocalDateTime(filter.maxReleaseYear + 1, 1, 1, 0, 0).toInstant(TimeZone.UTC).epochSeconds - 1
         Game.field.first_release_date lessThanOrEqual endEpoch
     }
 
@@ -611,12 +629,8 @@ private fun ApicalypseQueryBuilderWhereBuilder.anyOf(field: IgdbRequestFieldDsl<
     if (ids.isNotEmpty()) field inAny ids.map(Int::toString)
 }
 
-/** Sort clause, or the section's own ordering when no custom filter replaces it. */
-private fun ApicalypseQueryBuilder.applySort(
-    filter: GameListFilterState,
-    isCustomFilterActive: Boolean,
-    section: DiscoverSection?,
-) {
+/** Sort clause of a custom filter; popularity falls back to the user rating outside a section's query. */
+private fun ApicalypseQueryBuilder.applySort(filter: GameListFilterState) {
     val order = if (filter.sortDirection == SortDirection.DESC) SortOrder.DESC else SortOrder.ASC
     // IGDB rejects a query carrying both `search` and `sort`: search results are relevancy-ordered.
     when (if (filter.searchQuery.isNotBlank()) null else filter.sortField) {
@@ -625,13 +639,7 @@ private fun ApicalypseQueryBuilder.applySort(
         SortField.CRITICS_RATING -> sort(Game.field.aggregated_rating, order)
         SortField.RELEASE_DATE -> sort(Game.field.first_release_date, order)
         SortField.NAME -> sort(Game.field.name, order)
-        SortField.POPULARITY -> {
-            if (isCustomFilterActive) {
-                sort(Game.field.rating, order)
-            } else {
-                section?.baseQuery?.invoke(this)
-            }
-        }
+        SortField.POPULARITY -> sort(Game.field.rating, order)
     }
 }
 

@@ -8,7 +8,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -29,6 +28,7 @@ import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 private val FilterBadgeSize = 9.dp
 private val FilterBadgeInset = 4.dp
@@ -37,52 +37,71 @@ private val FilterBadgeInset = 4.dp
 @Composable
 fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?) {
     val navigationState = LocalNavigationState.current
-    val viewModel = koinViewModel<GameListViewModel>()
+    val viewModel = koinViewModel<GameListViewModel> { parametersOf(section, eventId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(section, eventId) { viewModel.start(section, eventId) }
     ScreenScaffold(
-        topBar = { GameListTopBar(viewModel, eventName, section == null && eventId == null) }
+        topBar = {
+            GameListSearchBar(
+                placeholder = eventName ?: stringResource(Res.string.search__global_hint),
+                query = uiState.filterState.searchQuery,
+                onQueryChange = viewModel::setSearchQuery,
+                onSearch = viewModel::submitSearchQuery,
+                onBack = navigationState::navigateBack,
+                autoFocus = section == null && eventId == null,
+                trailingActions = {
+                    FilterButton(
+                        hasActiveFilters = uiState.filterState.hasActiveFilters,
+                        onClick = { viewModel.toggleFilterSheet(true) }
+                    )
+                }
+            )
+        }
     ) {
         GameListResults(
-            viewModel = viewModel,
+            uiState = uiState,
+            section = section,
             onGameClick = { navigationState.backStack.add(it.detailNavKey) },
+            onEndReached = viewModel::onEndReached,
             header = uiState.event?.let { event -> { EventHeader(event) } }
+        )
+    }
+
+    if (uiState.showFilterSheet) {
+        GameListFilterSheet(
+            filterState = uiState.filterState,
+            columnCount = uiState.columnCount,
+            filterSearches = uiState.filterSearches,
+            defaultOptions = uiState.defaultOptions,
+            knownOptions = uiState.knownOptions,
+            onFilterSearch = viewModel::searchFilterOptions,
+            onColumnCountChange = viewModel::setColumnCount,
+            onFilterChange = viewModel::updateFilter,
+            onReset = viewModel::resetFilter,
+            onDismiss = { viewModel.toggleFilterSheet(false) }
         )
     }
 }
 
 @Composable
-private fun GameListTopBar(viewModel: GameListViewModel, eventName: String?, autoFocus: Boolean) {
-    val navigationState = LocalNavigationState.current
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    GameListSearchBar(
-        placeholder = eventName ?: stringResource(Res.string.search__global_hint),
-        query = uiState.filterState.searchQuery,
-        onQueryChange = viewModel::setSearchQuery,
-        onSearch = viewModel::submitSearchQuery,
-        onBack = navigationState::navigateBack,
-        autoFocus = autoFocus,
-        trailingActions = {
-            BadgedBox(
-                badge = {
-                    if (uiState.filterState.hasActiveFilters) {
-                        Badge(
-                            modifier = Modifier
-                                .offset(x = -FilterBadgeInset, y = FilterBadgeInset)
-                                .size(FilterBadgeSize),
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                }
-            ) {
-                IconButton(onClick = { viewModel.toggleFilterSheet(true) }) {
-                    Icon(
-                        Icons.TuneW500Rounded,
-                        contentDescription = stringResource(Res.string.gamelist__filter_title)
-                    )
-                }
+private fun FilterButton(hasActiveFilters: Boolean, onClick: () -> Unit) {
+    BadgedBox(
+        badge = {
+            if (hasActiveFilters) {
+                Badge(
+                    modifier = Modifier
+                        .offset(x = -FilterBadgeInset, y = FilterBadgeInset)
+                        .size(FilterBadgeSize),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             }
         }
-    )
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(
+                Icons.TuneW500Rounded,
+                contentDescription = stringResource(Res.string.gamelist__filter_title)
+            )
+        }
+    }
 }

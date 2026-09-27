@@ -27,14 +27,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,6 +52,9 @@ import at.released.igdbclient.model.PlayerPerspective
 import at.released.igdbclient.model.Theme
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.game__game_modes_title
+import gamerlogue.sharedui.generated.resources.game__genres_title
+import gamerlogue.sharedui.generated.resources.game__themes_title
 import gamerlogue.sharedui.generated.resources.gamelist__columns_count
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_developer
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_porting
@@ -91,9 +96,6 @@ import gamerlogue.sharedui.generated.resources.gamelist__sort_field_popularity
 import gamerlogue.sharedui.generated.resources.gamelist__sort_field_release_date
 import gamerlogue.sharedui.generated.resources.gamelist__sort_field_user_rating
 import gamerlogue.sharedui.generated.resources.gamelist__user_rating
-import gamerlogue.sharedui.generated.resources.game__game_modes_title
-import gamerlogue.sharedui.generated.resources.game__genres_title
-import gamerlogue.sharedui.generated.resources.game__themes_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowDownwardW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowUpwardW500Rounded
@@ -117,14 +119,12 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Sor
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WandStarsW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons as SimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AndroidSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.IosSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.LinuxSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.MacosSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Playstation4SimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Playstation5SimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.WindowsSvgl
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.igdb.icon
@@ -135,6 +135,8 @@ import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons as SimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 
 private val LogoSize = 18.dp
 
@@ -153,6 +155,22 @@ private val CompanyRole.label: StringResource
         CompanyRole.PUBLISHER -> Res.string.gamelist__company_role_publisher
         CompanyRole.PORTING -> Res.string.gamelist__company_role_porting
         CompanyRole.SUPPORTING -> Res.string.gamelist__company_role_supporting
+    }
+
+private val SortField.label: StringResource
+    get() = when (this) {
+        SortField.POPULARITY -> Res.string.gamelist__sort_field_popularity
+        SortField.USER_RATING -> Res.string.gamelist__sort_field_user_rating
+        SortField.CRITICS_RATING -> Res.string.gamelist__sort_field_critics_rating
+        SortField.RELEASE_DATE -> Res.string.gamelist__sort_field_release_date
+        SortField.NAME -> Res.string.gamelist__sort_field_name
+    }
+
+private val ReleaseStatusFilter.label: StringResource
+    get() = when (this) {
+        ReleaseStatusFilter.ALL -> Res.string.gamelist__release_all
+        ReleaseStatusFilter.RELEASED -> Res.string.gamelist__release_released
+        ReleaseStatusFilter.UPCOMING -> Res.string.gamelist__release_upcoming
     }
 
 /** Slider stops of both rating sliders: one every 5 points across 0..[MaxRating]. */
@@ -207,6 +225,7 @@ fun GameListFilterSheet(
     columnCount: Int,
     filterSearches: Map<FilterSearchTarget, FilterSearchState>,
     defaultOptions: Map<FilterSearchTarget, List<NamedSearchResult>>,
+    knownOptions: Map<FilterSearchTarget, Map<Int, NamedSearchResult>>,
     onFilterSearch: (FilterSearchTarget, String) -> Unit,
     onColumnCountChange: (Int) -> Unit,
     onFilterChange: (GameListFilterState) -> Unit,
@@ -215,7 +234,10 @@ fun GameListFilterSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -244,13 +266,11 @@ fun GameListFilterSheet(
                 }
             }
 
-            // Grid Column Size Selector (Slider with steps: 2 to 5 columns, default 3)
+            // Grid column count, one slider stop per column from MinColumns to MaxColumns.
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                FilterSectionHeader(
-                    icon = Icons.Grid4x4W500Rounded,
-                    title = Res.string.gamelist__grid_columns,
-                    trailingText = pluralStringResource(Res.plurals.gamelist__columns_count, columnCount, columnCount)
-                )
+                FilterSectionHeader(icon = Icons.Grid4x4W500Rounded, title = Res.string.gamelist__grid_columns) {
+                    HeaderValue(pluralStringResource(Res.plurals.gamelist__columns_count, columnCount, columnCount))
+                }
                 Slider(
                     value = columnCount.toFloat(),
                     onValueChange = { onColumnCountChange(it.toInt()) },
@@ -262,92 +282,16 @@ fun GameListFilterSheet(
 
             HorizontalDivider()
 
-            // Sort Section with Direction Toggle IconButton. IGDB cannot sort a search, so the
-            // whole group is disabled while a query is active rather than silently ignored.
-            val sortEnabled = filterState.searchQuery.isBlank()
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.SortW500Rounded,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = stringResource(Res.string.gamelist__sort_field),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    IconButton(
-                        enabled = sortEnabled,
-                        shapes = IconButtonDefaults.shapes(),
-                        onClick = {
-                            val newDir = if (filterState.sortDirection == SortDirection.DESC) SortDirection.ASC else SortDirection.DESC
-                            onFilterChange(filterState.copy(sortDirection = newDir))
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (filterState.sortDirection == SortDirection.DESC) {
-                                Icons.ArrowDownwardW500Rounded
-                            } else {
-                                Icons.ArrowUpwardW500Rounded
-                            },
-                            contentDescription = stringResource(
-                                if (filterState.sortDirection == SortDirection.DESC) {
-                                    Res.string.gamelist__sort_dir_desc
-                                } else {
-                                    Res.string.gamelist__sort_dir_asc
-                                }
-                            ),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-                SingleSelectConnectedButtonGroup(
-                    options = SortField.entries,
-                    selected = filterState.sortField,
-                    onSelectedChange = { newField ->
-                        onFilterChange(filterState.copy(sortField = newField ?: SortField.POPULARITY))
-                    },
-                    toggleButtonText = { field ->
-                        stringResource(
-                            when (field) {
-                                SortField.POPULARITY -> Res.string.gamelist__sort_field_popularity
-                                SortField.USER_RATING -> Res.string.gamelist__sort_field_user_rating
-                                SortField.CRITICS_RATING -> Res.string.gamelist__sort_field_critics_rating
-                                SortField.RELEASE_DATE -> Res.string.gamelist__sort_field_release_date
-                                SortField.NAME -> Res.string.gamelist__sort_field_name
-                            }
-                        )
-                    },
-                    toggleButtonEnabled = { sortEnabled },
-                    deselectable = false
-                )
-                if (!sortEnabled) {
-                    Text(
-                        text = stringResource(Res.string.gamelist__sort_disabled_search),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            SortSection(filterState = filterState, onFilterChange = onFilterChange)
 
             RangeFilterSection(
                 icon = Icons.StarW500Rounded,
                 title = Res.string.gamelist__user_rating,
-                trailingText = "★ ${filterState.minUserRating.toInt()} – ${filterState.maxUserRating.toInt()}",
+                trailingText = { "★ ${it.start.toInt()} – ${it.endInclusive.toInt()}" },
                 value = filterState.minUserRating..filterState.maxUserRating,
                 valueRange = 0f..MaxRating,
                 steps = RatingSteps,
-                onValueChange = { range ->
+                onValueChangeFinished = { range ->
                     onFilterChange(filterState.copy(minUserRating = range.start, maxUserRating = range.endInclusive))
                 }
             )
@@ -355,11 +299,11 @@ fun GameListFilterSheet(
             RangeFilterSection(
                 icon = Icons.WandStarsW500Rounded,
                 title = Res.string.gamelist__critics_rating,
-                trailingText = "★ ${filterState.minCriticsRating.toInt()} – ${filterState.maxCriticsRating.toInt()}",
+                trailingText = { "★ ${it.start.toInt()} – ${it.endInclusive.toInt()}" },
                 value = filterState.minCriticsRating..filterState.maxCriticsRating,
                 valueRange = 0f..MaxRating,
                 steps = RatingSteps,
-                onValueChange = { range ->
+                onValueChangeFinished = { range ->
                     onFilterChange(
                         filterState.copy(minCriticsRating = range.start, maxCriticsRating = range.endInclusive)
                     )
@@ -369,12 +313,12 @@ fun GameListFilterSheet(
             RangeFilterSection(
                 icon = Icons.HistoryW500Rounded,
                 title = Res.string.gamelist__release_year,
-                trailingText = "${filterState.minReleaseYear} – ${filterState.maxReleaseYear}",
+                trailingText = { "${it.start.toInt()} – ${it.endInclusive.toInt()}" },
                 value = filterState.minReleaseYear.toFloat()..filterState.maxReleaseYear.toFloat(),
                 valueRange = MinReleaseYear.toFloat()..MaxReleaseYear.toFloat(),
                 // One stop per year, both ends included.
                 steps = MaxReleaseYear - MinReleaseYear - 1,
-                onValueChange = { range ->
+                onValueChangeFinished = { range ->
                     onFilterChange(
                         filterState.copy(
                             minReleaseYear = range.start.toInt(),
@@ -388,19 +332,21 @@ fun GameListFilterSheet(
             RangeFilterSection(
                 icon = Icons.HourglassW500Rounded,
                 title = Res.string.gamelist__filter_time_to_beat,
-                trailingText = if (filterState.maxHoursToBeat >= MaxHoursToBeat) {
-                    stringResource(Res.string.gamelist__hours_range_open, filterState.minHoursToBeat.toInt())
-                } else {
-                    stringResource(
-                        Res.string.gamelist__hours_range,
-                        filterState.minHoursToBeat.toInt(),
-                        filterState.maxHoursToBeat.toInt()
-                    )
+                trailingText = { range ->
+                    if (range.endInclusive >= MaxHoursToBeat) {
+                        stringResource(Res.string.gamelist__hours_range_open, range.start.toInt())
+                    } else {
+                        stringResource(
+                            Res.string.gamelist__hours_range,
+                            range.start.toInt(),
+                            range.endInclusive.toInt()
+                        )
+                    }
                 },
                 value = filterState.minHoursToBeat..filterState.maxHoursToBeat,
                 valueRange = 0f..MaxHoursToBeat,
                 steps = HoursToBeatSteps,
-                onValueChange = { range ->
+                onValueChangeFinished = { range ->
                     onFilterChange(filterState.copy(minHoursToBeat = range.start, maxHoursToBeat = range.endInclusive))
                 }
             )
@@ -417,15 +363,7 @@ fun GameListFilterSheet(
                     onSelectedChange = { newStatus ->
                         onFilterChange(filterState.copy(releaseStatus = newStatus ?: ReleaseStatusFilter.ALL))
                     },
-                    toggleButtonText = { status ->
-                        stringResource(
-                            when (status) {
-                                ReleaseStatusFilter.ALL -> Res.string.gamelist__release_all
-                                ReleaseStatusFilter.RELEASED -> Res.string.gamelist__release_released
-                                ReleaseStatusFilter.UPCOMING -> Res.string.gamelist__release_upcoming
-                            }
-                        )
-                    },
+                    toggleButtonText = { status -> stringResource(status.label) },
                     deselectable = false
                 )
             }
@@ -513,6 +451,7 @@ fun GameListFilterSheet(
                 target = FilterSearchTarget.COMPANY,
                 defaultOptions = defaultOptions[FilterSearchTarget.COMPANY].orEmpty(),
                 searchState = filterSearches[FilterSearchTarget.COMPANY] ?: FilterSearchState(),
+                knownOptions = knownOptions[FilterSearchTarget.COMPANY].orEmpty(),
                 selected = filterState.companyIds,
                 showLogos = true,
                 onFilterSearch = onFilterSearch,
@@ -565,6 +504,7 @@ fun GameListFilterSheet(
                 target = FilterSearchTarget.FRANCHISE,
                 defaultOptions = defaultOptions[FilterSearchTarget.FRANCHISE].orEmpty(),
                 searchState = filterSearches[FilterSearchTarget.FRANCHISE] ?: FilterSearchState(),
+                knownOptions = knownOptions[FilterSearchTarget.FRANCHISE].orEmpty(),
                 selected = filterState.franchiseIds,
                 onFilterSearch = onFilterSearch,
                 onSelectedChange = { onFilterChange(filterState.copy(franchiseIds = it)) }
@@ -577,6 +517,7 @@ fun GameListFilterSheet(
                 target = FilterSearchTarget.ENGINE,
                 defaultOptions = defaultOptions[FilterSearchTarget.ENGINE].orEmpty(),
                 searchState = filterSearches[FilterSearchTarget.ENGINE] ?: FilterSearchState(),
+                knownOptions = knownOptions[FilterSearchTarget.ENGINE].orEmpty(),
                 selected = filterState.gameEngineIds,
                 showLogos = true,
                 onFilterSearch = onFilterSearch,
@@ -590,6 +531,7 @@ fun GameListFilterSheet(
                 target = FilterSearchTarget.KEYWORD,
                 defaultOptions = defaultOptions[FilterSearchTarget.KEYWORD].orEmpty(),
                 searchState = filterSearches[FilterSearchTarget.KEYWORD] ?: FilterSearchState(),
+                knownOptions = knownOptions[FilterSearchTarget.KEYWORD].orEmpty(),
                 selected = filterState.keywordIds,
                 onFilterSearch = onFilterSearch,
                 onSelectedChange = { onFilterChange(filterState.copy(keywordIds = it)) }
@@ -599,6 +541,53 @@ fun GameListFilterSheet(
 }
 
 private fun Set<Int>.toggle(id: Int, isChecked: Boolean) = if (isChecked) this + id else this - id
+
+/**
+ * Sort field and direction. IGDB cannot sort a search, so the whole group is disabled while a
+ * query is active rather than silently ignored.
+ */
+@Composable
+private fun SortSection(filterState: GameListFilterState, onFilterChange: (GameListFilterState) -> Unit) {
+    val sortEnabled = filterState.searchQuery.isBlank()
+    val descending = filterState.sortDirection == SortDirection.DESC
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterSectionHeader(icon = Icons.SortW500Rounded, title = Res.string.gamelist__sort_field) {
+            IconButton(
+                enabled = sortEnabled,
+                shapes = IconButtonDefaults.shapes(),
+                onClick = {
+                    val newDirection = if (descending) SortDirection.ASC else SortDirection.DESC
+                    onFilterChange(filterState.copy(sortDirection = newDirection))
+                }
+            ) {
+                Icon(
+                    imageVector = if (descending) Icons.ArrowDownwardW500Rounded else Icons.ArrowUpwardW500Rounded,
+                    contentDescription = stringResource(
+                        if (descending) Res.string.gamelist__sort_dir_desc else Res.string.gamelist__sort_dir_asc
+                    ),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        SingleSelectConnectedButtonGroup(
+            options = SortField.entries,
+            selected = filterState.sortField,
+            onSelectedChange = { newField ->
+                onFilterChange(filterState.copy(sortField = newField ?: SortField.POPULARITY))
+            },
+            toggleButtonText = { field -> stringResource(field.label) },
+            toggleButtonEnabled = { sortEnabled },
+            deselectable = false
+        )
+        if (!sortEnabled) {
+            Text(
+                text = stringResource(Res.string.gamelist__sort_disabled_search),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 /**
  * A filter section over a fixed option set: header plus a multi-select button group.
@@ -631,22 +620,29 @@ private fun <T> MultiSelectFilterSection(
     }
 }
 
-/** A filter section over a numeric range: header with the current span plus a range slider. */
+/**
+ * A filter section over a numeric range: header with the current span plus a range slider.
+ *
+ * The span is only applied on release: every change reloads the list, so applying each drag frame
+ * would fire (and cancel) one IGDB request per frame and blank the grid meanwhile.
+ */
 @Composable
 private fun RangeFilterSection(
     icon: ImageVector,
     title: StringResource,
-    trailingText: String,
+    trailingText: @Composable (ClosedFloatingPointRange<Float>) -> String,
     value: ClosedFloatingPointRange<Float>,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,
-    onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
+    onValueChangeFinished: (ClosedFloatingPointRange<Float>) -> Unit,
 ) {
+    var dragValue by remember(value) { mutableStateOf(value) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FilterSectionHeader(icon = icon, title = title, trailingText = trailingText)
+        FilterSectionHeader(icon = icon, title = title) { HeaderValue(trailingText(dragValue)) }
         RangeSlider(
-            value = value,
-            onValueChange = onValueChange,
+            value = dragValue,
+            onValueChange = { dragValue = it },
+            onValueChangeFinished = { onValueChangeFinished(dragValue) },
             valueRange = valueRange,
             steps = steps,
             modifier = Modifier.fillMaxWidth()
@@ -660,6 +656,7 @@ private fun RangeFilterSection(
  *
  * Already-selected options stay in the group even after the query changes, otherwise a selection
  * made from a search result would silently disappear from the UI while still filtering the list.
+ * Their names come from [knownOptions], which the view model keeps even while the sheet is closed.
  */
 @Composable
 private fun SearchableFilterSection(
@@ -669,6 +666,7 @@ private fun SearchableFilterSection(
     target: FilterSearchTarget,
     defaultOptions: List<NamedSearchResult>,
     searchState: FilterSearchState,
+    knownOptions: Map<Int, NamedSearchResult>,
     selected: Set<Int>,
     onFilterSearch: (FilterSearchTarget, String) -> Unit,
     onSelectedChange: (Set<Int>) -> Unit,
@@ -676,9 +674,7 @@ private fun SearchableFilterSection(
     extraContent: @Composable (selected: List<NamedSearchResult>) -> Unit = {},
 ) {
     val options = searchState.results.ifEmpty { defaultOptions }
-    val seen = remember { mutableStateMapOf<Int, NamedSearchResult>() }
-    LaunchedEffect(options) { options.forEach { seen[it.id] = it } }
-    val selectedOptions = selected.mapNotNull { seen[it] }
+    val selectedOptions = selected.mapNotNull { knownOptions[it] }
     val display = (selectedOptions + options).distinctBy { it.id }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -689,7 +685,7 @@ private fun SearchableFilterSection(
             placeholder = placeholder,
             loading = searchState.loading
         )
-        // Keyed on the option ids, so a new set of results animates in but merely checking one
+        // Keyed on the option ids, so a new set of results animates in, but merely checking one
         // of the buttons already on screen does not re-run the transition.
         AnimatedContent(
             targetState = display,
@@ -753,8 +749,8 @@ private fun FilterSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     placeholder: String,
+    modifier: Modifier = Modifier,
     loading: Boolean = false,
-    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = query,
@@ -780,7 +776,7 @@ private fun FilterSearchBar(
 private fun FilterSectionHeader(
     icon: ImageVector,
     title: StringResource,
-    trailingText: String? = null
+    trailing: @Composable () -> Unit = {},
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -802,12 +798,14 @@ private fun FilterSectionHeader(
                 fontWeight = FontWeight.SemiBold
             )
         }
-        if (trailingText != null) {
-            Text(
-                text = trailingText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        trailing()
     }
 }
+
+/** The current value shown at the end of a [FilterSectionHeader]. */
+@Composable
+private fun HeaderValue(text: String) = Text(
+    text = text,
+    style = MaterialTheme.typography.bodyMedium,
+    color = MaterialTheme.colorScheme.onSurfaceVariant
+)
