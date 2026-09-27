@@ -55,6 +55,7 @@ import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.events__empty
+import gamerlogue.sharedui.generated.resources.events__error
 import gamerlogue.sharedui.generated.resources.events__next
 import gamerlogue.sharedui.generated.resources.events__past
 import gamerlogue.sharedui.generated.resources.events__upcoming
@@ -218,6 +219,7 @@ private fun LazyListScope.eventsSection(
             )
             when {
                 state.loading -> SectionLoading(EventCardWidth, EventCardHeight)
+                state.error -> SectionMessage(Res.string.events__error)
                 state.upcoming.isEmpty() && state.past.isEmpty() -> SectionMessage(Res.string.events__empty)
                 else -> {
                     state.upcoming.firstOrNull()?.let { FeaturedEvent(it, onEventClick) }

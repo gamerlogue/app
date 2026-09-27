@@ -54,8 +54,7 @@ fun GameListResults(
 
     val gridState = rememberLazyGridState()
     LaunchedEffect(gridState.firstVisibleItemIndex, uiState.games.size) {
-        val lastVisible = gridState.firstVisibleItemIndex + gridState.layoutInfo.visibleItemsInfo.size
-        viewModel.onEndReached(lastVisible)
+        viewModel.onEndReached(gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)
     }
 
     Box(modifier = modifier.fillMaxSize()) {

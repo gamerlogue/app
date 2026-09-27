@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.ui.views.events
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,29 +13,32 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.events__empty
+import gamerlogue.sharedui.generated.resources.events__error
 import gamerlogue.sharedui.generated.resources.events__logo
 import gamerlogue.sharedui.generated.resources.events__past
+import gamerlogue.sharedui.generated.resources.events__retry
 import gamerlogue.sharedui.generated.resources.events__upcoming
 import gamerlogue.sharedui.generated.resources.nav__events
 import io.github.fopwoc.nav3ksp.annotation.Branch
@@ -73,14 +77,16 @@ fun EventListView(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
+    val onEventClick: (Event) -> Unit = { navigationState.backStack.add(it.gamesNavKey) }
+
     LaunchedEffect(listState.firstVisibleItemIndex, uiState.past.size) {
-        val lastVisible = listState.firstVisibleItemIndex + listState.layoutInfo.visibleItemsInfo.size
-        viewModel.onEndReached(lastVisible)
+        viewModel.onEndReached(listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0)
     }
 
     ScreenScaffold(title = Res.string.nav__events) {
         when {
             uiState.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+            uiState.error -> EventsError(Modifier.fillMaxSize()) { viewModel.load() }
             uiState.upcoming.isEmpty() && uiState.past.isEmpty() -> Box(
                 Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -98,17 +104,18 @@ fun EventListView(
                     contentPadding = PaddingValues(horizontal = Dimens.ScreenPadding, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
                 ) {
-                    eventGroup(Res.string.events__upcoming, uiState.upcoming) {
-                        navigationState.backStack.add(it.gamesNavKey)
-                    }
-                    eventGroup(Res.string.events__past, uiState.past) {
-                        navigationState.backStack.add(it.gamesNavKey)
-                    }
+                    eventGroup(Res.string.events__upcoming, uiState.upcoming, onEventClick)
+                    eventGroup(Res.string.events__past, uiState.past, onEventClick)
                     if (uiState.loadingMorePast) {
                         item(key = "loading-more") {
                             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                                 LoadingIndicator()
                             }
+                        }
+                    }
+                    if (uiState.pastPageError) {
+                        item(key = "page-error") {
+                            EventsError(Modifier.fillMaxWidth().padding(16.dp)) { viewModel.loadMorePast() }
                         }
                     }
                 }
@@ -125,7 +132,7 @@ private fun LazyListScope.eventGroup(
     onEventClick: (Event) -> Unit,
 ) {
     if (events.isEmpty()) return
-    item(key = "header-$titleRes") {
+    item(key = "header-${titleRes.key}") {
         Text(
             stringResource(titleRes),
             style = MaterialTheme.typography.titleSmall,
@@ -148,14 +155,32 @@ private fun EventRow(event: Event, indexInGroup: Int, groupCount: Int, onClick: 
     supportingContent = { Text(event.dateRangeLabel()) },
 ) { Text(event.name) }
 
+/** A failed load with its retry; full screen for the first load, a list row for a later page. */
+@Composable
+private fun EventsError(modifier: Modifier, onRetry: () -> Unit) = Column(
+    modifier = modifier,
+    verticalArrangement = Arrangement.Center,
+    horizontalAlignment = Alignment.CenterHorizontally,
+) {
+    Text(
+        text = stringResource(Res.string.events__error),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    TextButton(onClick = onRetry) { Text(stringResource(Res.string.events__retry)) }
+}
+
 @Composable
 private fun EventThumb(event: Event) {
     val shape = MaterialTheme.shapes.extraSmall
     val sizeModifier = Modifier.size(width = ThumbWidth, height = ThumbHeight).clip(shape)
     val logo = event.event_logo
     if (logo == null) {
-        Box(sizeModifier, contentAlignment = Alignment.Center) {
-            Icon(Icons.CelebrationW500Rounded, contentDescription = null)
+        // Tonal placeholder, like the one of the event cards.
+        Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = shape, modifier = sizeModifier) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.CelebrationW500Rounded, contentDescription = null)
+            }
         }
     } else {
         RemoteImage(
