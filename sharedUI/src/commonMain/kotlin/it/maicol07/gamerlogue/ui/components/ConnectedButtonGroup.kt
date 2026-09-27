@@ -25,7 +25,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Che
 
 import androidx.compose.ui.graphics.Color
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> ConnectedButtonGroup(
     options: List<T>,

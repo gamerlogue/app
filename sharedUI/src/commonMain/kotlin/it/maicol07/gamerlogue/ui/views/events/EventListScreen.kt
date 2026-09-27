@@ -138,7 +138,7 @@ private fun LazyListScope.eventGroup(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun EventRow(event: Event, indexInGroup: Int, groupCount: Int, onClick: () -> Unit) = SegmentedListItem(
     onClick = onClick,

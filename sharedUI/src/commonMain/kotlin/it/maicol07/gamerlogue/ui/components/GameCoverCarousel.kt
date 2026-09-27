@@ -40,7 +40,6 @@ private val ArrowGap = 4.dp
  * honours on the leading edge. The arrows are pointer chrome: they are left out on Android, and
  * elsewhere they flank the carousel instead of overlaying the cards at the edges.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameCoverCarousel(
     itemCount: Int,

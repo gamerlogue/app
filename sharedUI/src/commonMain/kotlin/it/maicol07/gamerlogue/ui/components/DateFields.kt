@@ -34,7 +34,7 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 fun DatePickerFieldDialog(
     label: String,
     initialDate: Long? = null,

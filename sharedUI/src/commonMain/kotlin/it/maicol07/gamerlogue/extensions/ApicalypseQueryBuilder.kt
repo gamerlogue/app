@@ -242,12 +242,10 @@ class ApicalypseQueryBuilderWhereBuilder {
 }
 
 // Utility filters
-@OptIn(ExperimentalTime::class)
 fun ApicalypseQueryBuilderWhereBuilder.alreadyReleased() {
     Game.field.first_release_date lessThan (Clock.System.now().toEpochMilliseconds() / 1000)
 }
 
-@OptIn(ExperimentalTime::class)
 fun ApicalypseQueryBuilderWhereBuilder.notYetReleased() {
     Game.field.first_release_date greaterThan (Clock.System.now().toEpochMilliseconds() / 1000)
 }

@@ -11,7 +11,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 internal val apiJson = Json { ignoreUnknownKeys = true }
 
 /** HTTP Basic credentials (`base64(id:secret)`) for the OAuth token exchanges (PSN/Epic). */
-@OptIn(ExperimentalEncodingApi::class)
 internal fun basicAuth(clientId: String, clientSecret: String): String =
     Base64.encode("$clientId:$clientSecret".encodeToByteArray())
 

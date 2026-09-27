@@ -53,7 +53,6 @@ class EventsViewModel(@InjectedParam private val pageSize: Int) : StateViewModel
         load()
     }
 
-    @OptIn(ExperimentalTime::class)
     fun load() = viewModelScope.launch {
         update { copy(loading = true) }
         pastOffset = 0
@@ -102,20 +101,17 @@ class EventsViewModel(@InjectedParam private val pageSize: Int) : StateViewModel
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     private suspend fun fetchPastEvents(offset: Int): List<Event> = fetchEvents {
         where { raw(pastClause()) }
         sort(Event.field.start_time, SortOrder.DESC)
         offset(offset)
     }
 
-    @OptIn(ExperimentalTime::class)
     private fun upcomingClause(): String {
         val now = Clock.System.now().epochSeconds
         return "(end_time >= $now | (end_time = null & start_time >= $now))"
     }
 
-    @OptIn(ExperimentalTime::class)
     private fun pastClause(): String {
         val now = Clock.System.now().epochSeconds
         return "(end_time < $now | (end_time = null & start_time < $now))"

@@ -30,7 +30,7 @@ import it.maicol07.gamerlogue.extensions.igdb.localizedName
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReleaseDatesBottomSheet(
     game: Game,

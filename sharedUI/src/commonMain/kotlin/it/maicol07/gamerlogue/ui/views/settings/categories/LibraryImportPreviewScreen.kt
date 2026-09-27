@@ -103,7 +103,7 @@ fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LibraryImportPreviewContent(
     service: ExternalService,
@@ -254,7 +254,7 @@ private fun GroupHeader(titleRes: StringResource, count: Int) {
  * review/already-present rows open the match editor on tap. The trailing edit icon always opens the
  * editor so the match can be changed.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImportRow(
     row: LibraryImportViewModel.Row,
@@ -350,7 +350,6 @@ private fun MatchCover(game: Game?, modifier: Modifier = Modifier) {
 
 private val PlaceholderIcon: ImageVector = Icons.JoystickW500Rounded
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MatchSearchDialog(
     searching: Boolean,

@@ -37,7 +37,6 @@ import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BoxScope.GameToolbar(
     expanded: Boolean,
@@ -100,7 +99,6 @@ fun BoxScope.GameToolbar(
     },
 )
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun GameToolbarToggleIconButton(
     text: StringResource,

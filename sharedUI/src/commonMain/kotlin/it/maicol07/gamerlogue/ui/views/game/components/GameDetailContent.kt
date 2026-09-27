@@ -20,11 +20,6 @@ const val Ratio169 = 16f / 9f
  * [GameTaxonomySections] and [GameMediaSections]. Each one bails out on its own when the game
  * carries no data for it.
  */
-@OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class,
-    ExperimentalSharedTransitionApi::class
-)
 internal fun LazyListScope.gameDetailContent(
     game: Game,
     timeToBeat: GameTimeToBeat? = null,

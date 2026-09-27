@@ -32,7 +32,6 @@ var LocalGameTopBarOverlayMode = staticCompositionLocalOf<MutableState<Boolean>>
     error("No LocalGameTopBarOverlayMode provided")
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GameTopBar(
     gameName: String?,

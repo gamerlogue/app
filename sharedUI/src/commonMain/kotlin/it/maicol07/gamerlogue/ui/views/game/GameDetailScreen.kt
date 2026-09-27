@@ -44,9 +44,7 @@ import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibraryShee
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(
-    ExperimentalSharedTransitionApi::class,
-    ExperimentalMaterial3ExpressiveApi::class,
-    ExperimentalMaterial3Api::class
+    ExperimentalMaterial3ExpressiveApi::class
 )
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable

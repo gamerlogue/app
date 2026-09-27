@@ -61,7 +61,6 @@ const val MaxRating = 100f
  *  games stay selectable; both ends are shared by the filter state, the query and the slider. */
 const val MinReleaseYear = 1970
 
-@OptIn(ExperimentalTime::class)
 val MaxReleaseYear = Clock.System.now().toLocalDateTime(TimeZone.UTC).year + 1
 
 enum class ReleaseStatusFilter {

@@ -26,7 +26,6 @@ import org.jetbrains.compose.resources.stringResource
  * (same key) and Compose logs a duplicate-key warning — gate on a compact window, or scope the key
  * per pane, if that ever matters.
  */
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun Modifier.sharedGameElement(key: Any?): Modifier {
     if (key == null) return this
@@ -46,7 +45,6 @@ val CoverAspectRatio = CoverWidth / CoverHeight
  * A game cover. Pass [sizeModifier] to let the parent drive the size (e.g. a grid cell that must
  * fill its column); the default keeps the intrinsic [CoverWidth] x [CoverHeight].
  */
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun Game.CoverImage(
     modifier: Modifier = Modifier,
@@ -54,7 +52,6 @@ fun Game.CoverImage(
 ) = GameCoverImage(id.toInt(), cover?.image_id, name, modifier, sizeModifier)
 
 /** A cover preview that only needs the small values carried by the detail route. */
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun GameCoverImage(
     gameId: Int,
@@ -73,7 +70,6 @@ fun GameCoverImage(
 )
 
 /** A wide game image (artwork or screenshot) from its IGDB [imageId]. */
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun GameBannerImage(
     imageId: String,

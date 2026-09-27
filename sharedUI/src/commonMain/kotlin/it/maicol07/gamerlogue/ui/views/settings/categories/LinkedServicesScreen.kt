@@ -165,7 +165,6 @@ private fun LinkedServicesContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ServiceSegmentedGroup(
     service: ExternalService,

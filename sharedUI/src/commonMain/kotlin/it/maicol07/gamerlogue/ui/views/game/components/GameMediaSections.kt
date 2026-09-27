@@ -92,7 +92,6 @@ private val RelatedItemWidth = 120.dp
 private val RelatedCarouselHeight = 180.dp
 
 /** Videos, artworks and screenshots in one carousel, with a fullscreen viewer for the images. */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun GameMedia(game: Game) {
     // IGDB's video, artwork and screenshot models share no supertype, so they are wrapped to keep
@@ -289,7 +288,6 @@ private fun cleanDomain(url: String): String {
     return if (domain.isNotBlank()) domain.replaceFirstChar { it.uppercase() } else "Website"
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun GameRelatedCarousels(
     game: Game,

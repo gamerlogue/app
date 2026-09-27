@@ -111,7 +111,6 @@ internal fun ImmersiveHero(
 }
 
 /** One segment per page, only the current one lit: shows both the position and the total. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PageSegments(pageCount: Int, currentPage: Int, modifier: Modifier) = Row(
     modifier = modifier,
@@ -126,7 +125,6 @@ private fun PageSegments(pageCount: Int, currentPage: Int, modifier: Modifier) =
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImmersivePage(section: DiscoverSection, game: Game, rank: Int, onGameClick: (Game) -> Unit) = Box(
     modifier = Modifier.fillMaxSize().clickable { onGameClick(game) },

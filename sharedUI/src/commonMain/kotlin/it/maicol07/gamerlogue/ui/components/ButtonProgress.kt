@@ -26,7 +26,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun ButtonProgress(
     loading: Boolean,
@@ -61,7 +60,6 @@ fun ButtonProgress(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Preview
 @Composable
 private fun LoadingButtonPreview() {

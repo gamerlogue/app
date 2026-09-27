@@ -75,7 +75,6 @@ import kotlinx.coroutines.launch
  * - imageContent: slot to render the large image for the given page (apply the incoming `modifier`)
  * - thumbnailContent: slot to render the thumbnail; highlight is provided via `selected`
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FullscreenImageViewer(
     imagesCount: Int,
@@ -222,7 +221,6 @@ fun FullscreenImageViewer(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TopOverlay(
     onClose: () -> Unit,

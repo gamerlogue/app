@@ -8,7 +8,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 fun ReleaseDate.displayDate(locale: Locale = Locale.current) = date?.let {
     val formatter = LocalDateTimeFormatter.ofPattern(
         "dd/MM/yyyy",

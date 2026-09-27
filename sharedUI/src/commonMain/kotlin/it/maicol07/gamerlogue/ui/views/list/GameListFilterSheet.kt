@@ -199,7 +199,7 @@ private val popularPlatforms = listOf(
     FilterPlatform(34, "Android", SimpleIcons.AndroidSimpleIcons),
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Suppress("LongMethod")
 fun GameListFilterSheet(

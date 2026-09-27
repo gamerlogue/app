@@ -242,7 +242,6 @@ private fun LazyListScope.statusSection(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryStatusSelector(
     selectedStatus: GameLibraryStatus?,
@@ -295,7 +294,6 @@ private fun CompletionStatusChips(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ActionsRow(
     saveLoading: Boolean = false,

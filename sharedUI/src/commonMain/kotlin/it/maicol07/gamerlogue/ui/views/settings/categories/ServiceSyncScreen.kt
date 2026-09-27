@@ -87,7 +87,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * peek while working (so the user can see what's happening). The body shows the loading log, the
  * outgoing push checklist, or a completion state. Import/preview flows hand off to the preview screen.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
 fun ServiceSyncView(

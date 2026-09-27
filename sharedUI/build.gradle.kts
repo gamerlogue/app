@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmDsl::class)
-
 import com.google.devtools.ksp.gradle.KspAATask
 import io.github.kingsword09.symbolcraft.model.SymbolVariant
 import org.gradle.kotlin.dsl.withType

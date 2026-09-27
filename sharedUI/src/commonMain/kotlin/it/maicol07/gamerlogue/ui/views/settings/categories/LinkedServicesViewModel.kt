@@ -35,7 +35,6 @@ enum class ServiceSyncAction { CONNECT, REFRESH_PROFILE, SYNC_WISHLIST, PREVIEW_
  * the preview screen. Per-service link flags are kept in [settings] (the actual session lives in the
  * WebView cookies); [refreshAll] re-reads them when the list returns to the foreground.
  */
-@OptIn(ExperimentalTime::class, ExperimentalSettingsApi::class)
 @KoinViewModel
 class LinkedServicesViewModel(
     private val connectors: Map<ExternalService, ServiceConnector>,

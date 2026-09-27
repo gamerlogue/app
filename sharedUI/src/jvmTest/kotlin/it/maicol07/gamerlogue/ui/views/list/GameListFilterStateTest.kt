@@ -12,7 +12,6 @@ import kotlin.time.ExperimentalTime
  * one, and it is derived from the default instance — these cover that every kind of field
  * participates, so the derivation cannot silently stop covering one.
  */
-@OptIn(ExperimentalTime::class)
 class GameListFilterStateTest : StringSpec({
     "a pristine filter is not active" {
         GameListFilterState().isActive shouldBe false

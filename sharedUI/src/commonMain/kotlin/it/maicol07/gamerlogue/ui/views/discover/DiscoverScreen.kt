@@ -145,7 +145,6 @@ fun DiscoverView(
  * The search bar floats over the page instead of sitting in a top bar, so the hero artwork runs
  * under it and the status bar: transparent on the artwork, opaque once the hero is gone.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun FloatingSearchBar(listState: LazyListState, searchBar: @Composable () -> Unit) {
     val heroScrolledAway by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
@@ -248,7 +247,6 @@ private fun FeaturedEvent(event: Event, onEventClick: (Event) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EventBucket(label: StringResource, events: List<Event>, onEventClick: (Event) -> Unit) {
     if (events.isEmpty()) return
@@ -276,7 +274,6 @@ private fun EventBucket(label: StringResource, events: List<Event>, onEventClick
 private fun BucketLabel(label: StringResource, modifier: Modifier) =
     Text(text = stringResource(label), style = MaterialTheme.typography.titleSmall, modifier = modifier)
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SectionHeader(
     title: StringResource,
@@ -310,7 +307,6 @@ internal fun SectionIcon(icon: ImageVector, shape: RoundedPolygon, containerColo
     Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(SectionIconGlyphSize))
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun SeeAllButton(onClick: () -> Unit) = FilledTonalButton(
     onClick = onClick,
@@ -359,7 +355,6 @@ internal fun SectionMessage(text: StringResource) = Text(
  * Rounded corners that grow while [interactionSource] is pressed. Driven by the motion scheme, so
  * it snaps instead of animating when the system animation scale is 0.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun pressMorphShape(interactionSource: MutableInteractionSource, rest: Dp, pressed: Dp): Shape {
     val isPressed by interactionSource.collectIsPressedAsState()

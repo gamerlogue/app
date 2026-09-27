@@ -65,7 +65,6 @@ private val RankedNumeralSize = 120.sp
 private const val COUNTDOWN_MAX_DAYS = 30
 
 /** A multi-browse carousel of covers, each with the badge its [section] cares about. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun GameCarousel(section: DiscoverSection, games: List<Game>, onGameClick: (Game) -> Unit) {
     val titleMinWidthPx = with(LocalDensity.current) { CardTitleMinWidth.toPx() }
@@ -103,7 +102,6 @@ internal fun GameCarousel(section: DiscoverSection, games: List<Game>, onGameCli
  * "Most loved" as a ranking: each cover overlaps a large numeral.
  * Uncontained, so the items keep their size and the numerals are never squeezed by the mask.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun RankedCarousel(games: List<Game>, onGameClick: (Game) -> Unit) {
     val state = rememberCarouselState { games.size }
@@ -196,7 +194,6 @@ private fun InfoPill(text: String, modifier: Modifier) = Surface(
  * A pill with its own tap target, which takes the tap instead of the card under it. A new [text]
  * cross-fades in while the pill resizes to fit it.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ToggleablePill(text: String, onClick: () -> Unit, modifier: Modifier) {
     val fadeSpec = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
@@ -215,7 +212,6 @@ private fun ToggleablePill(text: String, onClick: () -> Unit, modifier: Modifier
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PillText(text: String) = Text(
     text = text,
@@ -224,7 +220,6 @@ private fun PillText(text: String) = Text(
 )
 
 /** "Today", "Tomorrow" or "In N days" for the next month; the plain date after that. */
-@OptIn(ExperimentalTime::class)
 @Composable
 private fun releaseCountdown(game: Game): String {
     val releaseDate = ReleaseDate(date = game.first_release_date)

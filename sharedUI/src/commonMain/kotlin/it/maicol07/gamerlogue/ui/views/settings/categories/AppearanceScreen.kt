@@ -82,7 +82,7 @@ fun AppearanceView() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ThemeSection(theme: AppTheme, onThemeSelected: (AppTheme) -> Unit) {
     val themeStrings = AppTheme.entries.associateWith { stringResource(it.label) }
@@ -99,7 +99,7 @@ private fun ThemeSection(theme: AppTheme, onThemeSelected: (AppTheme) -> Unit) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LanguageSection(selectedLanguage: String?, onLanguageSelected: (Locale?) -> Unit) {
     var languageDialogOpen by remember { mutableStateOf(false) }
@@ -149,7 +149,7 @@ private fun LanguageSection(selectedLanguage: String?, onLanguageSelected: (Loca
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun DynamicColorsSwitch(useDynamicColors: Boolean, onDynamicColorsToggled: (Boolean) -> Unit) = SettingsSwitch(
     useDynamicColors,
