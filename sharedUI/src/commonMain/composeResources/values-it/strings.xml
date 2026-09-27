@@ -48,6 +48,7 @@
     <string name="events__empty">Nessun evento da mostrare</string>
     <string name="events__error">Impossibile caricare gli eventi</string>
     <string name="events__retry">Riprova</string>
+    <string name="events__live_now">In corso</string>
     <string name="events__logo">Logo di %1$s</string>
     <string name="events__live_stream">Diretta</string>
 

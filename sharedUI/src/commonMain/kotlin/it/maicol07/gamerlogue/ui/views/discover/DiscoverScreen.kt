@@ -74,6 +74,7 @@ import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.event.EventCard
 import it.maicol07.gamerlogue.ui.components.event.EventCardHeight
 import it.maicol07.gamerlogue.ui.components.event.EventCardWidth
+import it.maicol07.gamerlogue.ui.components.event.EventStatusPill
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.search.GameSearchButton
 import it.maicol07.gamerlogue.ui.navigation.DiscoverPaneMetadata
@@ -222,7 +223,9 @@ private fun LazyListScope.eventsSection(
                 state.error -> SectionMessage(Res.string.events__error)
                 state.upcoming.isEmpty() && state.past.isEmpty() -> SectionMessage(Res.string.events__empty)
                 else -> {
-                    state.upcoming.firstOrNull()?.let { FeaturedEvent(it, onEventClick) }
+                    state.upcoming.firstOrNull()?.let {
+                        FeaturedEvent(it, Modifier.padding(horizontal = Dimens.ScreenPadding), onEventClick)
+                    }
                     EventBucket(Res.string.events__upcoming, state.upcoming.drop(1), onEventClick)
                     EventBucket(Res.string.events__past, state.past, onEventClick)
                 }
@@ -231,14 +234,21 @@ private fun LazyListScope.eventsSection(
     }
 }
 
+/** The next event, full width under a "Next up" label; also the lead of the events list. */
 @Composable
-private fun FeaturedEvent(event: Event, onEventClick: (Event) -> Unit) {
+internal fun FeaturedEvent(event: Event, modifier: Modifier, onEventClick: (Event) -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     Column(
-        modifier = Modifier.padding(horizontal = Dimens.ScreenPadding),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
     ) {
-        BucketLabel(Res.string.events__next, Modifier)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
+        ) {
+            BucketLabel(Res.string.events__next, Modifier)
+            EventStatusPill(event)
+        }
         EventCard(
             event = event,
             modifier = Modifier.clip(pressMorphShape(interactionSource, FeaturedEventCorner, FeaturedEventPressedCorner)),

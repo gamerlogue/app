@@ -50,6 +50,7 @@
     <string name="events__empty">No events to show</string>
     <string name="events__error">Couldn\'t load events</string>
     <string name="events__retry">Retry</string>
+    <string name="events__live_now">Live now</string>
     <string name="events__logo">Logo of %1$s</string>
     <string name="events__live_stream">Live stream</string>
 
