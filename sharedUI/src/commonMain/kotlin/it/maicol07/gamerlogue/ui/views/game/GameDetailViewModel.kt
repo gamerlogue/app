@@ -11,12 +11,11 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
-import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.extensions.multiqueryResults
+import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.extensions.self
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -28,9 +27,13 @@ import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
-/** Cover, title and release date of a game shown in one of the detail screen's carousels. */
-private fun GameFieldDsl.relatedGameFields(): Array<IgdbRequestField<*>> = arrayOf(
-    id, name, cover.image_id, rating, first_release_date
+/** Cover, title, and release date of a game shown in one of the detail screen's carousels. */
+private fun GameFieldDsl.relatedGameFields(): List<IgdbRequestField<*>> = listOf(
+    id,
+    name,
+    cover.image_id,
+    rating,
+    first_release_date,
 )
 
 /**
@@ -39,17 +42,20 @@ private fun GameFieldDsl.relatedGameFields(): Array<IgdbRequestField<*>> = array
  * Written with the generated field DSL rather than raw strings: a field renamed or dropped by IGDB
  * fails to compile here instead of silently returning nothing at runtime.
  */
-internal val DetailFields: Array<IgdbRequestField<*>> = with(Game.field) {
-    arrayOf<IgdbRequestField<*>>(
+internal val DetailFields: List<IgdbRequestField<*>> = with(Game.field) {
+    listOf(
         name,
         summary,
         storyline,
-        category,
-        status,
+        game_type.type,
+        game_status.status,
         rating,
         rating_count,
+        aggregated_rating,
+        aggregated_rating_count,
         first_release_date,
         cover.image_id,
+        artworks.image_id,
         screenshots.image_id,
         videos.name,
         videos.video_id,
@@ -92,19 +98,6 @@ internal val DetailFields: Array<IgdbRequestField<*>> = with(Game.field) {
         websites.category,
         websites.url,
         websites.trusted,
-        remakes.id,
-        remakes.name,
-        remakes.cover.image_id,
-        remasters.id,
-        remasters.name,
-        *similar_games.relatedGameFields(),
-        *dlcs.relatedGameFields(),
-        *expansions.relatedGameFields(),
-        *standalone_expansions.relatedGameFields(),
-        *expanded_games.relatedGameFields(),
-        *bundles.relatedGameFields(),
-        *ports.relatedGameFields(),
-        *collections.games.relatedGameFields(),
         parent_game.id,
         parent_game.name,
         parent_game.cover.image_id,
@@ -113,7 +106,18 @@ internal val DetailFields: Array<IgdbRequestField<*>> = with(Game.field) {
         version_parent.name,
         version_parent.cover.image_id,
         version_parent.first_release_date,
-    )
+    ) + listOf(
+        remakes,
+        remasters,
+        similar_games,
+        dlcs,
+        expansions,
+        standalone_expansions,
+        expanded_games,
+        bundles,
+        ports,
+        collections.games,
+    ).flatMap { it.relatedGameFields() }
 }
 
 @KoinViewModel
@@ -129,16 +133,14 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
     )
 
     private val igdb by inject<IgdbClient>()
-    private val authTokenProvider by inject<AuthTokenProvider>()
 
     companion object {
         /** Sub-query names of the detail multiquery; they pick the results apart again below. */
-        private const val GameQuery = "game"
-        private const val TimeToBeatQuery = "ttb"
+        private const val GAME_QUERY = "game"
+        private const val TIME_TO_BEAT_QUERY = "ttb"
 
         @Composable
         fun inject(gameId: Int): GameDetailViewModel = koinViewModel(parameters = { parametersOf(gameId) })
-
     }
 
     init {
@@ -150,12 +152,12 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         update { copy(isLoading = true) }
         val result = safeRequest {
             igdb.multiquery {
-                query(IgdbEndpoint.GAME, GameQuery) {
-                    fields(*DetailFields)
+                query(IgdbEndpoint.GAME, GAME_QUERY) {
+                    fields(*DetailFields.toTypedArray())
                     where { Game.field.id equalTo gameId.toString() }
                     limit(1)
                 }
-                query(IgdbEndpoint.GAME_TIME_TO_BEAT, TimeToBeatQuery) {
+                query(IgdbEndpoint.GAME_TIME_TO_BEAT, TIME_TO_BEAT_QUERY) {
                     fields(
                         GameTimeToBeat.field.completely,
                         GameTimeToBeat.field.hastily,
@@ -170,8 +172,8 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
 
         if (result.isOk) {
             val responses = result.unwrap()
-            val fetchedGame = responses.multiqueryResults<Game>(GameQuery).firstOrNull()
-            val fetchedTtb = responses.multiqueryResults<GameTimeToBeat>(TimeToBeatQuery).firstOrNull()
+            val fetchedGame = responses.multiqueryResults<Game>(GAME_QUERY).firstOrNull()
+            val fetchedTtb = responses.multiqueryResults<GameTimeToBeat>(TIME_TO_BEAT_QUERY).firstOrNull()
             update { copy(game = fetchedGame ?: state.game, timeToBeat = fetchedTtb, isLoading = false) }
         } else {
             update { copy(isLoading = false) }

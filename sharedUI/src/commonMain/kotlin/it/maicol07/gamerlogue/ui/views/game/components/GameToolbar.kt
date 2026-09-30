@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
@@ -116,7 +114,7 @@ private fun GameToolbarToggleIconButton(
 ) {
     FilledTonalIconToggleButton(
         checked = checked,
-        enabled = !loading || !enabled,
+        enabled = enabled && !loading,
         onCheckedChange = onCheckedChange,
         shapes = IconButtonDefaults.toggleableShapes(),
     ) {

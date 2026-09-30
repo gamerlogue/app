@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.game
 
-import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.LoadingIndicator
@@ -16,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_loading
 import gamerlogue.sharedui.generated.resources.game__not_found
@@ -43,9 +41,6 @@ import it.maicol07.gamerlogue.ui.views.game.components.gameDetailContent
 import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibrarySheet
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(
-    ExperimentalMaterial3ExpressiveApi::class
-)
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
 fun GameDetailView(
@@ -56,16 +51,17 @@ fun GameDetailView(
 ) {
     val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val game = uiState.game
+    val topBarOverlayMode = remember { mutableStateOf(true) }
 
     var addToLibraryBottomSheetOpen by remember { mutableStateOf(false) }
-    val loadingDescription = stringResource(Res.string.common_loading)
 
     Box(contentAlignment = Alignment.TopStart) {
         var expanded by remember { mutableStateOf(true) }
         val listState = rememberLazyListState()
-        CompositionLocalProvider(LocalGameTopBarOverlayMode provides mutableStateOf(true)) {
-            GameTopBar(uiState.game?.name)
-            if (uiState.game != null) {
+        CompositionLocalProvider(LocalGameTopBarOverlayMode provides topBarOverlayMode) {
+            GameTopBar(game?.name)
+            if (game != null) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize()
@@ -77,38 +73,19 @@ fun GameDetailView(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     gameDetailContent(
-                        uiState.game!!,
+                        game,
                         timeToBeat = uiState.timeToBeat,
                         onGameClick = { navigationState.backStack.add(it.detailNavKey) }
                     )
                 }
             } else if (uiState.isLoading) {
-                Box(Modifier.fillMaxSize()) {
-                    if (gameName != null) {
-                        GameDetailLoadingCover(gameId, coverImageId, gameName)
-                    }
-                    LoadingIndicator(
-                        Modifier.align(Alignment.Center).semantics {
-                            contentDescription = loadingDescription
-                        }
-                    )
-                }
+                GameDetailLoading(gameId, coverImageId, gameName)
             } else {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        stringResource(Res.string.game__not_found),
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                GameDetailNotFound()
             }
         }
-        if (uiState.game != null) {
+        if (game != null) {
             AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
-        }
-
-        if (uiState.game != null) {
             GameToolbar(
                 expanded,
                 uiState.libraryEntry?.status,
@@ -120,12 +97,36 @@ fun GameDetailView(
         }
     }
 
-    if (addToLibraryBottomSheetOpen && uiState.game != null) {
+    if (addToLibraryBottomSheetOpen && game != null) {
         GameAddEditLibrarySheet(
             onDismiss = { addToLibraryBottomSheetOpen = false },
             existingData = uiState.libraryEntry,
-            game = uiState.game!!,
+            game = game,
             onDelete = { viewModel.loadLibraryEntry() }
         ) { viewModel.loadLibraryEntry() }
     }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun GameDetailLoading(gameId: Int, coverImageId: String?, gameName: String?) = Box(Modifier.fillMaxSize()) {
+    val loadingDescription = stringResource(Res.string.common_loading)
+    if (gameName != null) {
+        GameDetailLoadingCover(gameId, coverImageId, gameName)
+    }
+    LoadingIndicator(
+        Modifier.align(Alignment.Center).semantics {
+            contentDescription = loadingDescription
+        }
+    )
+}
+
+@Composable
+private fun GameDetailNotFound() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Text(
+        stringResource(Res.string.game__not_found),
+        modifier = Modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }

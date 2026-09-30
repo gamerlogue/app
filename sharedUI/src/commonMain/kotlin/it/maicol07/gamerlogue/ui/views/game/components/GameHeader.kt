@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,8 +40,10 @@ import at.released.igdbclient.model.Screenshot
 import it.maicol07.gamerlogue.extensions.isVisible
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.game.GameCoverImage
-import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
 import it.maicol07.gamerlogue.ui.components.game.Image
+import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
+
+private const val TITLE_VISIBILITY_THRESHOLD = 40
 
 private val BannerHeight = 260.dp
 private val CoverWidth = 140.dp
@@ -58,12 +61,7 @@ fun LazyItemScope.GameHeader(
 ) {
     Box(modifier = Modifier.animateItem().fillMaxWidth(), contentAlignment = Alignment.BottomStart) {
         GameBanner(game)
-        game.CoverImage(
-            Modifier.detailCover()
-                .clickable {
-//                    showViewer = true
-                }
-        )
+        game.CoverImage(Modifier.detailCover())
 
         // Title and metadata on the banner, moved to the right of the cover
         Column(
@@ -80,7 +78,7 @@ fun LazyItemScope.GameHeader(
                 ),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.isVisible(40) { topBarState.value = it }
+                modifier = Modifier.isVisible(TITLE_VISIBILITY_THRESHOLD) { topBarState.value = it }
             )
 
             GamePlatforms(game)
@@ -116,9 +114,6 @@ private fun GameBanner(game: Game) {
     val bannerModifier = Modifier
         .fillMaxWidth()
         .height(BannerHeight)
-        .clickable {
-//            showViewer = true
-        }
         .drawWithContent {
             drawContent()
             // Top scrim for readability of the top bar and icons
@@ -146,7 +141,7 @@ private fun GameBanner(game: Game) {
     when (banner) {
         is Artwork -> banner.Image(bannerModifier, bannerLoadingModifier, sharedKey = bannerKey)
         is Screenshot -> banner.Image(bannerModifier, bannerLoadingModifier, sharedKey = bannerKey)
-        else -> {}
+        else -> Box(bannerLoadingModifier.background(Color.Black))
     }
 }
 

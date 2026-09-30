@@ -1,0 +1,32 @@
+package it.maicol07.gamerlogue.ui.views.game.components
+
+import at.released.igdbclient.model.Artwork
+import at.released.igdbclient.model.Game
+import at.released.igdbclient.model.GameVideo
+import at.released.igdbclient.model.Screenshot
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+
+class GameMediaTest : StringSpec({
+    "viewer images exclude videos and preserve the carousel image order" {
+        val game = Game(
+            videos = listOf(GameVideo(video_id = "video")),
+            artworks = listOf(Artwork(image_id = "artwork")),
+            screenshots = listOf(Screenshot(image_id = "first"), Screenshot(image_id = "second"))
+        )
+
+        gameMediaImageIds(game) shouldBe listOf("artwork", "first", "second")
+        gameMediaImageIds(game.copy(videos = emptyList())) shouldBe gameMediaImageIds(game)
+    }
+
+    "video-only games have no viewer pages" {
+        gameMediaImageIds(Game(videos = listOf(GameVideo(video_id = "video")))) shouldBe emptyList()
+    }
+    "website labels preserve alias matching and the domain fallback" {
+        websiteInfo("https://store.steampowered.com/app/1").first shouldBe "Steam"
+        websiteInfo("https://steam.com").first shouldBe "Steam"
+        websiteInfo("https://xbox.com").first shouldBe "Xbox"
+        websiteInfo("https://example.wikia.org").first shouldBe "Fandom"
+        websiteInfo("https://www.example.org/game").first shouldBe "Example.org"
+    }
+})

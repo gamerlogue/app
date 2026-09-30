@@ -4,25 +4,23 @@ import at.released.igdbclient.apicalypse.ApicalypseQueryBuilder
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
-/**
- * The detail query was handwritten as field strings before it moved to the generated DSL; this
- * pins the field list it produces to what the screen used to ask IGDB for, so a wrong DSL path
- * (or a dropped field) fails here instead of silently rendering an empty section.
- */
+/** Pins the fields consumed by the detail screen, including image and related-game metadata. */
 class GameDetailFieldsTest : StringSpec({
     "the detail query asks for exactly the fields the screen renders" {
         val expected = setOf(
             "age_ratings.category",
             "age_ratings.rating",
             "age_ratings.rating_cover_url",
+            "aggregated_rating",
+            "aggregated_rating_count",
             "alternative_names.comment",
             "alternative_names.name",
+            "artworks.image_id",
             "bundles.cover.image_id",
             "bundles.first_release_date",
             "bundles.id",
             "bundles.name",
             "bundles.rating",
-            "category",
             "collections.games.cover.image_id",
             "collections.games.first_release_date",
             "collections.games.id",
@@ -50,6 +48,8 @@ class GameDetailFieldsTest : StringSpec({
             "franchises.name",
             "game_engines.name",
             "game_modes.name",
+            "game_status.status",
+            "game_type.type",
             "genres.name",
             "involved_companies.company.name",
             "involved_companies.developer",
@@ -88,10 +88,15 @@ class GameDetailFieldsTest : StringSpec({
             "release_dates.release_region",
             "release_dates.status.name",
             "remakes.cover.image_id",
+            "remakes.first_release_date",
             "remakes.id",
             "remakes.name",
+            "remakes.rating",
+            "remasters.cover.image_id",
+            "remasters.first_release_date",
             "remasters.id",
             "remasters.name",
+            "remasters.rating",
             "screenshots.image_id",
             "similar_games.cover.image_id",
             "similar_games.first_release_date",
@@ -103,7 +108,6 @@ class GameDetailFieldsTest : StringSpec({
             "standalone_expansions.id",
             "standalone_expansions.name",
             "standalone_expansions.rating",
-            "status",
             "storyline",
             "summary",
             "themes.name",
@@ -118,8 +122,8 @@ class GameDetailFieldsTest : StringSpec({
             "websites.url",
         )
 
-        // The builder emits Apicalypse's short form, `f a,b,c;`.
-        val query = ApicalypseQueryBuilder().fields(*DetailFields).build().toString()
+        // The builder emits the short query form.
+        val query = ApicalypseQueryBuilder().fields(*DetailFields.toTypedArray()).build().toString()
         val actual = query.removePrefix("f ").removeSuffix(";").split(",").map { it.trim() }.toSet()
 
         // Split assertions: the two diffs read better than one 100-element mismatch.
