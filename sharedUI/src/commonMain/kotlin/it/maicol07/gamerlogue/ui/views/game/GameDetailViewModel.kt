@@ -160,6 +160,8 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val result = safeRequest {
             igdb.multiquery {
                 query(IgdbEndpoint.GAME, GAME_QUERY) {
+                    // fields() only takes varargs; copying ~100 references once per load is noise next to the request.
+                    @Suppress("SpreadOperator")
                     fields(*DetailFields.toTypedArray())
                     where { Game.field.id equalTo gameId.toString() }
                     limit(1)
