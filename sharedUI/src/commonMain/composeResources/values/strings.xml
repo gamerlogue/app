@@ -33,7 +33,7 @@
     <string name="home__upcoming_games">Coming soon</string>
     <string name="home__see_all">See all</string>
     <string name="home__empty_section">No games to show</string>
-    <string name="home__section_error">Couldn\'t load this section</string>
+    <string name="home__section_error">Couldn't load this section</string>
     <string name="home__release_today">Today</string>
     <string name="home__release_tomorrow">Tomorrow</string>
     <plurals name="home__release_in_days">
@@ -48,7 +48,7 @@
     <string name="events__upcoming">Upcoming</string>
     <string name="events__past">Previous</string>
     <string name="events__empty">No events to show</string>
-    <string name="events__error">Couldn\'t load events</string>
+    <string name="events__error">Couldn't load events</string>
     <string name="events__retry">Retry</string>
     <string name="events__live_now">Live now</string>
     <string name="events__logo">Logo of %1$s</string>
@@ -179,7 +179,7 @@
     <string name="genre__strategy">Strategy</string>
     <string name="genre__tbs">Turn Based Strategy (TBS)</string>
     <string name="genre__tactical">Tactical</string>
-    <string name="genre__hack_and_slash">Hack and slash/Beat \'em up</string>
+    <string name="genre__hack_and_slash">Hack and slash/Beat 'em up</string>
     <string name="genre__quiz">Quiz/Trivia</string>
     <string name="genre__pinball">Pinball</string>
     <string name="genre__adventure">Adventure</string>
@@ -309,7 +309,7 @@
     <string name="settings__service_nintendo">Nintendo</string>
     <string name="settings__service_ubisoft">Ubisoft Connect</string>
     <string name="settings__service_pc_only">PC only</string>
-    <string name="settings__service_webview_busy">Operation in progress — the WebView can\'t be used right now</string>
+    <string name="settings__service_webview_busy">Operation in progress — the WebView can't be used right now</string>
     <string name="settings__sync_title_connect">Signing in to %1$s</string>
     <string name="settings__sync_title_refresh_profile">Updating your %1$s profile</string>
     <string name="settings__sync_title_sync_wishlist">Syncing your %1$s wishlist</string>
@@ -353,7 +353,7 @@
     <string name="settings__import_group_to_import">To import (%1$d)</string>
     <string name="settings__import_group_to_review">To review (%1$d)</string>
     <string name="settings__import_group_already_present">Already in your library (%1$d)</string>
-    <string name="settings__service_web_unsupported">Account linking isn\'t available on the web. Use the Android or desktop app to connect your stores.</string>
+    <string name="settings__service_web_unsupported">Account linking isn't available on the web. Use the Android or desktop app to connect your stores.</string>
     <string name="settings__service_login_required">Sign in to continue</string>
     <string name="settings__service_working">Working…</string>
     <string name="settings__service_phase_logged_in">Signed in</string>
@@ -375,7 +375,7 @@
 
     <!-- Profile/Calendar placeholders -->
     <string name="profile__subtitle">Your profile and settings</string>
-    <string name="calendar__placeholder">Here you\'ll see upcoming releases and your events</string>
+    <string name="calendar__placeholder">Here you'll see upcoming releases and your events</string>
 
     <!-- Library extras -->
     <string name="library__error_select_status">Please select a status.</string>

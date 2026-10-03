@@ -113,7 +113,7 @@
     <!-- Player Perspectives -->
     <string name="player_perspective__first_person">Prima persona</string>
     <string name="player_perspective__third_person">Terza persona</string>
-    <string name="player_perspective__isometric">Vista dall\'alto / Isometrica</string>
+    <string name="player_perspective__isometric">Vista dall'alto / Isometrica</string>
     <string name="player_perspective__side_view">Vista a scorrimento (Side view)</string>
     <string name="player_perspective__text">Testuale</string>
     <string name="player_perspective__auditory">Audio / Uditiva</string>
@@ -232,8 +232,8 @@
     <string name="library__edit_entry">Modifica %1$s</string>
     <string name="library__add_to_backlog">Aggiungi al Backlog</string>
     <string name="library__remove_from_backlog">Rimuovi dal Backlog</string>
-    <string name="library__add_to_playing">Aggiungi a \"In gioco\"</string>
-    <string name="library__remove_from_playing">Rimuovi da \"In gioco\"</string>
+    <string name="library__add_to_playing">Aggiungi a "In gioco"</string>
+    <string name="library__remove_from_playing">Rimuovi da "In gioco"</string>
     <string name="library__edit_in_library">Modifica voce libreria</string>
     <string name="library__section">Sezione</string>
     <string name="library__completion_status">Stato di completamento</string>
@@ -247,7 +247,7 @@
     <string name="library__standard_edition">Edizione standard</string>
     <string name="library__platforms">Piattaforme</string>
     <string name="library__dates">Date</string>
-    <string name="library__start_date">Data d\'inizio</string>
+    <string name="library__start_date">Data d'inizio</string>
     <string name="library__end_date">Data di fine</string>
     <string name="library__played_time">Tempo di gioco</string>
     <string name="library__hours">ore</string>
@@ -273,7 +273,7 @@
 
     <!-- Authentication -->
     <string name="auth__login_required_title">Accesso richiesto</string>
-    <string name="auth__login_required_message">Devi effettuare l\'accesso per accedere a questa sezione.</string>
+    <string name="auth__login_required_message">Devi effettuare l'accesso per accedere a questa sezione.</string>
     <string name="auth__login">Accedi</string>
     <string name="auth__logging_in">Apertura pagina di accesso…</string>
     <string name="auth__login_success">Accesso effettuato con successo</string>
@@ -350,7 +350,7 @@
     <string name="settings__import_group_to_import">Da importare (%1$d)</string>
     <string name="settings__import_group_to_review">Da rivedere (%1$d)</string>
     <string name="settings__import_group_already_present">Già nella libreria (%1$d)</string>
-    <string name="settings__service_web_unsupported">Il collegamento degli account non è disponibile sul web. Usa l\'app Android o desktop per collegare i tuoi store.</string>
+    <string name="settings__service_web_unsupported">Il collegamento degli account non è disponibile sul web. Usa l'app Android o desktop per collegare i tuoi store.</string>
     <string name="settings__service_login_required">Accedi per continuare</string>
     <string name="settings__service_working">Operazione in corso…</string>
     <string name="settings__service_phase_logged_in">Accesso effettuato</string>
@@ -417,15 +417,15 @@
     <string name="gamelist__filter_franchises">Franchise</string>
     <string name="gamelist__filter_engines">Motori di gioco</string>
     <string name="gamelist__filter_keywords">Parole chiave</string>
-    <string name="gamelist__search_companies">Cerca un\'azienda…</string>
+    <string name="gamelist__search_companies">Cerca un'azienda…</string>
     <string name="gamelist__search_franchises">Cerca un franchise…</string>
     <string name="gamelist__search_engines">Cerca un motore…</string>
     <string name="gamelist__search_keywords">Cerca una parola chiave…</string>
-    <string name="gamelist__sort_disabled_search">L\'ordinamento non è disponibile durante la ricerca</string>
+    <string name="gamelist__sort_disabled_search">L'ordinamento non è disponibile durante la ricerca</string>
     <string name="gamelist__filter_time_to_beat">Tempo di completamento</string>
     <string name="gamelist__hours_range">%1$d–%2$d h</string>
     <string name="gamelist__hours_range_open">Oltre %1$d h</string>
     <string name="gamelist__filter_type_to_search">Digita per cercare</string>
-    <string name="gamelist__empty_hint">Prova un\'altra ricerca o meno filtri</string>
+    <string name="gamelist__empty_hint">Prova un'altra ricerca o meno filtri</string>
     <string name="gamelist__remove_filter">Rimuovi %1$s</string>
 </resources>
