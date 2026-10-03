@@ -53,9 +53,11 @@ fun <T> ConnectedButtonGroup(
                 modifier = toggleButtonModifier(
                     type
                 ).semantics { role = if (multiple) Role.Checkbox else Role.RadioButton },
-                shapes = when (index) {
-                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                shapes = when {
+                    // A lone button has no neighbours to connect to: keep it fully rounded.
+                    options.size == 1 -> ToggleButtonDefaults.shapes()
+                    index == 0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    index == options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                     else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                 },
                 colors = ToggleButtonDefaults.toggleButtonColors(
