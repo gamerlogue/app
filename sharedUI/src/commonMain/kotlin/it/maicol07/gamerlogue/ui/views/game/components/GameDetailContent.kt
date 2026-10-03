@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameTimeToBeat
+import it.maicol07.gamerlogue.ui.views.list.GameListPreset
 
 const val Ratio169 = 16f / 9f
 
@@ -24,18 +25,19 @@ internal fun LazyListScope.gameDetailContent(
     game: Game,
     timeToBeat: GameTimeToBeat?,
     onTitleVisibilityChange: (Boolean) -> Unit,
-    onGameClick: (Game) -> Unit
+    onGameClick: (Game) -> Unit,
+    onPresetClick: (GameListPreset) -> Unit
 ) {
-    item { GameHeader(game, onTitleVisibilityChange) }
+    item { GameHeader(game, onTitleVisibilityChange, onPresetClick) }
     item { GameRatings(game) }
     item { GameAgeRatings(game) }
     item { GameTimeToBeatSection(timeToBeat) }
-    item { GameGenresAndThemes(game) }
+    item { GameGenresAndThemes(game, onPresetClick) }
     item { GameMultiplayerDetails(game) }
     item { GameMedia(game) }
     item { GameDescription(game) }
-    item { GameKeywords(game) }
-    item { GameDetailsList(game, onGameClick = onGameClick) }
+    item { GameKeywords(game, onPresetClick) }
+    item { GameDetailsList(game, onGameClick = onGameClick, onPresetClick = onPresetClick) }
     item { GameWebsites(game) }
     item { GameRelatedCarousels(game, onGameClick = onGameClick) }
     // Room for the floating toolbar, so the last section can scroll clear of it.

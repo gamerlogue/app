@@ -1,7 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import at.released.igdbclient.model.Game
@@ -21,38 +19,52 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Tag
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.VisibilityW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.icon
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
+import it.maicol07.gamerlogue.ui.views.list.GameListPreset
+import it.maicol07.gamerlogue.ui.views.list.GameListPresetType
 import org.jetbrains.compose.resources.stringResource
 
 /** Keywords are a long tail; only the most relevant ones are worth the vertical space. */
 private const val MaxKeywords = 15
 
 @Composable
-internal fun GameGenresAndThemes(game: Game) {
+internal fun GameGenresAndThemes(game: Game, onPresetClick: (GameListPreset) -> Unit) {
     if (game.genres.isNotEmpty()) {
         ChipSection(stringResource(Res.string.game__genres_title), Icons.CategoryW500Rounded) {
             for (genre in game.genres) {
-                InfoChip(genre.localizedName, genre.icon)
+                val name = genre.localizedName
+                MetadataChip(name, genre.icon) {
+                    onPresetClick(GameListPreset(GameListPresetType.GENRE, genre.id.toInt(), name))
+                }
             }
         }
     }
     if (game.themes.isNotEmpty()) {
         ChipSection(stringResource(Res.string.game__themes_title), Icons.StyleW500Rounded) {
             for (theme in game.themes) {
-                InfoChip(theme.localizedName, theme.icon)
+                val name = theme.localizedName
+                MetadataChip(name, theme.icon) {
+                    onPresetClick(GameListPreset(GameListPresetType.THEME, theme.id.toInt(), name))
+                }
             }
         }
     }
     if (game.game_modes.isNotEmpty()) {
         ChipSection(stringResource(Res.string.game__game_modes_title), Icons.JoystickW500Rounded) {
             for (mode in game.game_modes) {
-                InfoChip(mode.localizedName, mode.icon)
+                val name = mode.localizedName
+                MetadataChip(name, mode.icon) {
+                    onPresetClick(GameListPreset(GameListPresetType.GAME_MODE, mode.id.toInt(), name))
+                }
             }
         }
     }
     if (game.player_perspectives.isNotEmpty()) {
         ChipSection(stringResource(Res.string.game__player_perspectives_title), Icons.VisibilityW500Rounded) {
             for (perspective in game.player_perspectives) {
-                InfoChip(perspective.localizedName, perspective.icon)
+                val name = perspective.localizedName
+                MetadataChip(name, perspective.icon) {
+                    onPresetClick(GameListPreset(GameListPresetType.PLAYER_PERSPECTIVE, perspective.id.toInt(), name))
+                }
             }
         }
     }
@@ -91,21 +103,19 @@ internal fun GameMultiplayerDetails(game: Game) {
 private fun playerLimit(count: Int) = if (count > 0) " (fino a $count giocatori)" else ""
 
 @Composable
-internal fun GameKeywords(game: Game) {
+internal fun GameKeywords(game: Game, onPresetClick: (GameListPreset) -> Unit) {
     if (game.keywords.isEmpty()) return
 
     val items = remember(game) {
-        game.keywords.mapNotNull { keyword -> keyword.name.takeIf { it.isNotBlank() } }.distinct()
+        game.keywords.filter { it.name.isNotBlank() }.distinctBy { it.name }
     }
     if (items.isEmpty()) return
 
     ChipSection(stringResource(Res.string.game__keywords_title), Icons.TagW500Rounded) {
         for (keyword in items.take(MaxKeywords)) {
-            Text(
-                "#$keyword",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            MetadataChip("#${keyword.name}", icon = null) {
+                onPresetClick(GameListPreset(GameListPresetType.KEYWORD, keyword.id.toInt(), keyword.name))
+            }
         }
     }
 }

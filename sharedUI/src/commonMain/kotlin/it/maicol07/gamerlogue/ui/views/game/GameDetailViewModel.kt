@@ -45,6 +45,7 @@ private fun GameFieldDsl.relatedGameFields(): List<IgdbRequestField<*>> = listOf
 internal val DetailFields: List<IgdbRequestField<*>> = with(Game.field) {
     listOf(
         name,
+        url,
         summary,
         storyline,
         game_type.type,

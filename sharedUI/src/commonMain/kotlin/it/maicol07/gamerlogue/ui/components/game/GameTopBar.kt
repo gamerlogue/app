@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.ui.components.game
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -24,11 +25,15 @@ import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import org.jetbrains.compose.resources.stringResource
 
-/** [isOverlayMode]: transparent over the banner, with the title hidden while the header shows it. */
+/**
+ * [isOverlayMode]: transparent over the banner, with the title hidden while the header shows it.
+ * [actions] go before the shared global-error action.
+ */
 @Composable
 fun GameTopBar(
     gameName: String?,
     isOverlayMode: Boolean,
+    actions: @Composable RowScope.() -> Unit,
     modifier: Modifier = Modifier,
     navigationState: AppNavigationState = LocalNavigationState.current
 ) {
@@ -72,7 +77,10 @@ fun GameTopBar(
                 }
             }
         },
-        actions = { GlobalErrorAction() },
+        actions = {
+            actions()
+            GlobalErrorAction()
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = containerColor,
             titleContentColor = contentColor,

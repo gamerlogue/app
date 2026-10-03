@@ -31,7 +31,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameVideo
+import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.model.ReleaseDate
+import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__bundles_title
 import gamerlogue.sharedui.generated.resources.game__collections_carousel_title
@@ -137,6 +139,7 @@ internal fun GameMedia(game: Game) {
     if (showViewer) {
         FullscreenImageViewer(
             imagesCount = images.size,
+            imageUrl = { page -> igdbImageUrl(images[page], IgdbImageSize.H1080P) },
             initialPage = initialViewerIndex,
             onDismissRequest = { showViewer = false },
             imageContent = { page, modifier -> GameBannerImage(images[page], modifier.aspectRatio(Ratio169)) },

@@ -435,4 +435,18 @@
     <string name="gamelist__filter_type_to_search">Type to search</string>
     <string name="gamelist__empty_hint">Try a different search or fewer filters</string>
     <string name="gamelist__remove_filter">Remove %1$s</string>
+    <string name="common__more_options">More options</string>
+    <string name="game__igdb_open">Open on IGDB</string>
+    <string name="game__igdb_edit">Edit on IGDB</string>
+    <string name="game__igdb_about">About this data</string>
+    <string name="game__igdb_about_title">Data from IGDB</string>
+    <string name="game__igdb_about_body">Game details come from IGDB, a community-maintained database. If something is missing or wrong, you can fix it there: changes are reviewed by IGDB moderators and show up here once approved.</string>
+    <string name="viewer__open_external">Open in browser</string>
+    <string name="viewer__copy_link">Copy link</string>
+    <string name="viewer__share">Share</string>
+    <string name="viewer__save">Save image</string>
+    <string name="viewer__link_copied">Link copied</string>
+    <string name="viewer__saved">Image saved</string>
+    <string name="viewer__save_failed">Couldn't save the image</string>
+    <string name="viewer__page">%1$d of %2$d</string>
 </resources>

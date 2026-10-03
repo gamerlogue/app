@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -16,20 +17,25 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import gamerlogue.sharedui.generated.resources.Res
-import gamerlogue.sharedui.generated.resources.game__franchises_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CategoryW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
+import it.maicol07.gamerlogue.ui.views.list.GameListPreset
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+
+/** Several values of one metadata field (e.g. the developers); picking one opens the games filtered on it. */
+data class MetadataChoice(val title: StringResource, val icon: ImageVector, val options: List<GameListPreset>)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FranchisesBottomSheet(
-    franchiseNames: List<String>,
-    onDismissRequest: () -> Unit = { }
+fun MetadataChooserSheet(
+    choice: MetadataChoice,
+    onPick: (GameListPreset) -> Unit,
+    onDismissRequest: () -> Unit
 ) = ModalBottomSheet(
     onDismissRequest = onDismissRequest,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -37,22 +43,21 @@ fun FranchisesBottomSheet(
     LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp), contentPadding = PaddingValues(16.dp)) {
         item {
             Text(
-                stringResource(Res.string.game__franchises_title),
+                stringResource(choice.title),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
 
-        itemsIndexed(franchiseNames) { index, name ->
+        itemsIndexed(choice.options) { index, option ->
             ListItem(
-                leadingContent = {
-                    Icon(Icons.CategoryW500Rounded, contentDescription = null)
-                },
-                headlineContent = { Text(name) },
+                leadingContent = { Icon(choice.icon, contentDescription = null) },
+                headlineContent = { Text(option.name) },
+                trailingContent = { Icon(Icons.KeyboardArrowRightW500Rounded, contentDescription = null) },
                 colors = ListItemDefaults.expressiveSegmentedColors(),
-                modifier = Modifier.clip(
-                    ListItemDefaults.expressiveShape(index == 0, index == franchiseNames.lastIndex)
-                )
+                modifier = Modifier
+                    .clip(ListItemDefaults.expressiveShape(index == 0, index == choice.options.lastIndex))
+                    .clickable { onPick(option) }
             )
         }
     }

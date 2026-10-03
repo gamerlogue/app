@@ -35,6 +35,7 @@ import gamerlogue.sharedui.generated.resources.game__details_publishers
 import gamerlogue.sharedui.generated.resources.game__details_release_date
 import gamerlogue.sharedui.generated.resources.game__details_status
 import gamerlogue.sharedui.generated.resources.game__details_type
+import gamerlogue.sharedui.generated.resources.game__franchises_title
 import gamerlogue.sharedui.generated.resources.game__languages_count
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Book4W500Rounded
@@ -52,6 +53,9 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
+import it.maicol07.gamerlogue.ui.views.list.CompanyRole
+import it.maicol07.gamerlogue.ui.views.list.GameListPreset
+import it.maicol07.gamerlogue.ui.views.list.GameListPresetType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -61,31 +65,62 @@ private const val MAX_DETAIL_COLUMNS = 3
 private val THREE_COLUMN_MIN_WIDTH = 900.dp
 private val TWO_COLUMN_MIN_WIDTH = 500.dp
 
-private enum class GameDetailSheet { RELEASE_DATES, ALTERNATIVE_NAMES, FRANCHISES, LANGUAGES }
+private enum class GameDetailSheet { RELEASE_DATES, ALTERNATIVE_NAMES, LANGUAGES }
 
 @Composable
 fun GameDetailsList(
     game: Game,
-    onGameClick: (Game) -> Unit
+    onGameClick: (Game) -> Unit,
+    onPresetClick: (GameListPreset) -> Unit
 ) = Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = SectionSpacing)) {
     var sheet by remember { mutableStateOf<GameDetailSheet?>(null) }
-    val franchiseNames = remember(game) {
-        (game.franchises.map { it.name } + listOfNotNull(game.franchise?.name)).filter { it.isNotBlank() }.distinct()
-    }
+    var choice by remember { mutableStateOf<MetadataChoice?>(null) }
     val onSheetClick: (GameDetailSheet) -> Unit = { sheet = it }
+    val actions = PresetActions(onPresetClick) { choice = it }
     val details = gameInfoEntries(game, onSheetClick) +
-        remember(game, franchiseNames, onGameClick) {
-            gameCompanyEntries(game) + gameRelatedEntries(game, franchiseNames, onGameClick, onSheetClick)
+        remember(game, onGameClick, onPresetClick) {
+            gameCompanyEntries(game, actions) + gameRelatedEntries(game, onGameClick, actions)
         }
 
     GameDetailsGrid(details)
 
     when (sheet) {
-        GameDetailSheet.RELEASE_DATES -> ReleaseDatesBottomSheet(game) { sheet = null }
+        GameDetailSheet.RELEASE_DATES -> ReleaseDatesBottomSheet(
+            game,
+            onPlatformClick = {
+                sheet = null
+                onPresetClick(it)
+            },
+            onDismissRequest = { sheet = null }
+        )
         GameDetailSheet.ALTERNATIVE_NAMES -> AlternativeNamesBottomSheet(game) { sheet = null }
-        GameDetailSheet.FRANCHISES -> FranchisesBottomSheet(franchiseNames) { sheet = null }
         GameDetailSheet.LANGUAGES -> LanguagesBottomSheet(game) { sheet = null }
         null -> {}
+    }
+    choice?.let { current ->
+        MetadataChooserSheet(
+            current,
+            onPick = {
+                choice = null
+                onPresetClick(it)
+            },
+            onDismissRequest = { choice = null }
+        )
+    }
+}
+
+/**
+ * Click handling for a metadata row: a single value opens the games filtered on it directly,
+ * several values open [MetadataChooserSheet] to pick one.
+ */
+private class PresetActions(val onPresetClick: (GameListPreset) -> Unit, val onChoose: (MetadataChoice) -> Unit) {
+    fun forChoice(choice: MetadataChoice): () -> Unit {
+        val single = choice.options.singleOrNull()
+        return if (single != null) {
+            { onPresetClick(single) }
+        } else {
+            { onChoose(choice) }
+        }
     }
 }
 
@@ -126,28 +161,53 @@ private fun gameInfoEntries(game: Game, onSheetClick: (GameDetailSheet) -> Unit)
     }
 )
 
-private fun gameCompanyEntries(game: Game): List<GameDetailEntry> = listOfNotNull(
-    game.involved_companies.filter { it.developer }.takeIf { it.isNotEmpty() }?.let { companies ->
-        GameDetailEntry(
-            leadingIcon = Icons.CodeW500Rounded,
-            headline = Res.string.game__details_developers,
-            supporting = companies.joinToString { it.company?.name ?: "N/A" }
-        )
-    },
-    game.involved_companies.filter { it.publisher }.takeIf { it.isNotEmpty() }?.let { companies ->
-        GameDetailEntry(
-            leadingIcon = Icons.PublishW500Rounded,
-            headline = Res.string.game__details_publishers,
-            supporting = companies.joinToString { it.company?.name ?: "N/A" }
-        )
-    }
+private fun gameCompanyEntries(game: Game, actions: PresetActions): List<GameDetailEntry> = listOfNotNull(
+    companyEntry(game, CompanyRole.DEVELOPER, Icons.CodeW500Rounded, Res.string.game__details_developers, actions),
+    companyEntry(game, CompanyRole.PUBLISHER, Icons.PublishW500Rounded, Res.string.game__details_publishers, actions),
+)
+
+private fun companyEntry(
+    game: Game,
+    role: CompanyRole,
+    icon: ImageVector,
+    headline: StringResource,
+    actions: PresetActions
+): GameDetailEntry? {
+    val type = if (role == CompanyRole.DEVELOPER) GameListPresetType.DEVELOPER else GameListPresetType.PUBLISHER
+    val companies = game.involved_companies
+        .filter { if (role == CompanyRole.DEVELOPER) it.developer else it.publisher }
+        .mapNotNull { it.company }
+        .filter { it.name.isNotBlank() }
+        .distinctBy { it.id }
+    if (companies.isEmpty()) return null
+    return presetEntry(
+        icon,
+        headline,
+        companies.joinToString { it.name },
+        MetadataChoice(headline, icon, companies.map { GameListPreset(type, it.id.toInt(), it.name) }),
+        actions
+    )
+}
+
+/** A row listing [supporting], tappable to open the games filtered on one of the [choice] values. */
+private fun presetEntry(
+    icon: ImageVector,
+    headline: StringResource,
+    supporting: String,
+    choice: MetadataChoice,
+    actions: PresetActions
+) = GameDetailEntry(
+    leadingIcon = icon,
+    headline = headline,
+    supporting = supporting,
+    trailingIcon = Icons.KeyboardArrowRightW500Rounded,
+    onClick = actions.forChoice(choice)
 )
 
 private fun gameRelatedEntries(
     game: Game,
-    franchiseNames: List<String>,
     onGameClick: (Game) -> Unit,
-    onSheetClick: (GameDetailSheet) -> Unit
+    actions: PresetActions
 ): List<GameDetailEntry> = listOfNotNull(
     listOfNotNull(game.parent_game, game.version_parent).distinctBy { it.id }.singleOrNull()?.let { parent ->
         GameDetailEntry(
@@ -158,23 +218,34 @@ private fun gameRelatedEntries(
             onClick = { onGameClick(parent) }
         )
     },
-    game.game_engines.map { it.name }.filter { it.isNotBlank() }.takeIf { it.isNotEmpty() }?.let {
-        GameDetailEntry(Icons.LayersW500Rounded, Res.string.game__details_engines, it.joinToString())
-    },
-    franchiseNames.firstOrNull()?.let { first ->
-        val multiple = franchiseNames.size > 1
-        GameDetailEntry(
-            leadingIcon = Icons.CategoryW500Rounded,
-            headline = Res.string.game__details_franchise,
-            supporting = if (multiple) "${franchiseNames.size} franchises ($first...)" else first,
-            trailingIcon = if (multiple) Icons.InfoW500Rounded else null,
-            onClick = if (multiple) {
-                { onSheetClick(GameDetailSheet.FRANCHISES) }
-            } else {
-                null
-            }
+    game.game_engines.filter { it.name.isNotBlank() }.takeIf { it.isNotEmpty() }?.let { engines ->
+        presetEntry(
+            Icons.LayersW500Rounded,
+            Res.string.game__details_engines,
+            engines.joinToString { it.name },
+            MetadataChoice(
+                Res.string.game__details_engines,
+                Icons.LayersW500Rounded,
+                engines.map { GameListPreset(GameListPresetType.ENGINE, it.id.toInt(), it.name) }
+            ),
+            actions
         )
     },
+    (game.franchises + listOfNotNull(game.franchise)).filter { it.name.isNotBlank() }.distinctBy { it.id }
+        .takeIf { it.isNotEmpty() }?.let { franchises ->
+            val first = franchises.first().name
+            presetEntry(
+                Icons.CategoryW500Rounded,
+                Res.string.game__details_franchise,
+                if (franchises.size > 1) "${franchises.size} franchises ($first...)" else first,
+                MetadataChoice(
+                    Res.string.game__franchises_title,
+                    Icons.CategoryW500Rounded,
+                    franchises.map { GameListPreset(GameListPresetType.FRANCHISE, it.id.toInt(), it.name) }
+                ),
+                actions
+            )
+        },
     game.collections.map { it.name }.filter { it.isNotBlank() }.takeIf { it.isNotEmpty() }?.let {
         GameDetailEntry(Icons.Inventory2W500Rounded, Res.string.game__details_collection, it.joinToString())
     }

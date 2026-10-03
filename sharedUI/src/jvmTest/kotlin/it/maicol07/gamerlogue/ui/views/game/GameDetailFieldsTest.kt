@@ -111,6 +111,7 @@ class GameDetailFieldsTest : StringSpec({
             "storyline",
             "summary",
             "themes.name",
+            "url",
             "version_parent.cover.image_id",
             "version_parent.first_release_date",
             "version_parent.id",

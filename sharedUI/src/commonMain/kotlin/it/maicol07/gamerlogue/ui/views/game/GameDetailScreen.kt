@@ -54,6 +54,7 @@ import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.views.game.components.GameDetailLoadingCover
+import it.maicol07.gamerlogue.ui.views.game.components.GameIgdbMenu
 import it.maicol07.gamerlogue.ui.views.game.components.GameToolbar
 import it.maicol07.gamerlogue.ui.views.game.components.gameDetailContent
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -90,7 +91,11 @@ fun GameDetailView(
 
     Box {
         // Overlay only above the banner: the status screens have none, and white icons would vanish on them.
-        GameTopBar(game?.name, isOverlayMode = game != null && titleVisible)
+        GameTopBar(
+            game?.name,
+            isOverlayMode = game != null && titleVisible,
+            actions = { game?.url?.takeIf { it.isNotBlank() }?.let { GameIgdbMenu(it) } }
+        )
         when {
             game != null -> {
                 var expanded by remember { mutableStateOf(true) }
@@ -108,7 +113,8 @@ fun GameDetailView(
                         game,
                         timeToBeat = uiState.timeToBeat,
                         onTitleVisibilityChange = { titleVisible = it },
-                        onGameClick = { navigationState.backStack.add(it.detailNavKey) }
+                        onGameClick = { navigationState.backStack.add(it.detailNavKey) },
+                        onPresetClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null, it)) }
                     )
                 }
                 AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())

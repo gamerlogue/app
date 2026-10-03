@@ -54,6 +54,7 @@ import it.maicol07.gamerlogue.ui.components.game.GameBannerImage
 import it.maicol07.gamerlogue.ui.components.game.GameCoverImage
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.imageviewer.FullscreenImageViewer
+import it.maicol07.gamerlogue.ui.views.list.GameListPreset
 
 private const val TITLE_VISIBILITY_THRESHOLD = 40
 
@@ -78,7 +79,8 @@ private val CoverDropShadow = androidx.compose.ui.graphics.shadow.Shadow(
 @Composable
 fun LazyItemScope.GameHeader(
     game: Game,
-    onTitleVisibilityChange: (Boolean) -> Unit
+    onTitleVisibilityChange: (Boolean) -> Unit,
+    onPresetClick: (GameListPreset) -> Unit
 ) = Column(Modifier.animateItem().fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
     val coverId = game.cover?.image_id
     val galleryImages = remember(game) { listOfNotNull(coverId) + gameMediaImageIds(game) }
@@ -119,7 +121,7 @@ fun LazyItemScope.GameHeader(
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp)
         )
     }
-    GamePlatforms(game, Modifier.padding(top = 16.dp))
+    GamePlatforms(game, onPresetClick, Modifier.padding(top = 16.dp))
 
     viewerPage?.let { page ->
         HeaderGallery(game.name, coverId, galleryImages, page) { viewerPage = null }
@@ -148,6 +150,7 @@ private fun HeaderGallery(
     }
     FullscreenImageViewer(
         imagesCount = images.size,
+        imageUrl = { page -> igdbImageUrl(images[page], IgdbImageSize.H1080P) },
         initialPage = initialPage,
         onDismissRequest = onDismiss,
         imageContent = { index, modifier -> viewerImage(index, modifier) },
@@ -218,7 +221,7 @@ private val PlatformIconSize = Modifier.size(24.dp)
 
 /** Platform logos in an outlined pill with a chevron, so it reads as a button; opens the release dates. */
 @Composable
-private fun GamePlatforms(game: Game, modifier: Modifier) {
+private fun GamePlatforms(game: Game, onPresetClick: (GameListPreset) -> Unit, modifier: Modifier) {
     if (game.platforms.isEmpty()) return
     val shown = game.platforms.take(PlatformsToShow)
     val extraCount = game.platforms.size - shown.size
@@ -251,6 +254,13 @@ private fun GamePlatforms(game: Game, modifier: Modifier) {
     }
 
     if (showPlatformsSheet) {
-        ReleaseDatesBottomSheet(game) { showPlatformsSheet = false }
+        ReleaseDatesBottomSheet(
+            game,
+            onPlatformClick = {
+                showPlatformsSheet = false
+                onPresetClick(it)
+            },
+            onDismissRequest = { showPlatformsSheet = false }
+        )
     }
 }

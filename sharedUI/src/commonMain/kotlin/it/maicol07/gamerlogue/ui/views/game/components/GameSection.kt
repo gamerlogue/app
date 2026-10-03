@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -79,14 +80,24 @@ internal fun GameSection(
 @Composable
 internal fun ChipSection(title: String, icon: ImageVector, content: @Composable () -> Unit) =
     GameSection(title, icon) {
+        // No vertical gap: tappable chips already sit in a 48dp touch slot, which spaces the rows.
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap),
-            verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap),
             modifier = Modifier.fillMaxWidth()
         ) {
             content()
         }
     }
+
+/** A metadata value that opens the games sharing it; same pill as [InfoChip], but a button. */
+@Composable
+internal fun MetadataChip(label: String, icon: ImageVector?, onClick: () -> Unit) = Surface(
+    onClick = onClick,
+    color = MaterialTheme.colorScheme.secondaryContainer,
+    shape = CircleShape
+) {
+    ChipContent(label, icon)
+}
 
 /**
  * A read-only label pill. Not a chip component on purpose: those are buttons, and these do nothing
@@ -95,14 +106,19 @@ internal fun ChipSection(title: String, icon: ImageVector, content: @Composable 
 @Composable
 internal fun InfoChip(label: String, icon: ImageVector?) = Surface(
     color = MaterialTheme.colorScheme.secondaryContainer,
-    shape = CircleShape
+    shape = CircleShape,
+    // Same row height as a tappable chip's touch slot, so read-only rows space out alike.
+    modifier = Modifier.minimumInteractiveComponentSize()
 ) {
-    Row(
-        Modifier.padding(start = if (icon != null) 10.dp else 14.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(ChipIconSize))
-        Text(label, style = MaterialTheme.typography.labelLarge)
-    }
+    ChipContent(label, icon)
+}
+
+@Composable
+private fun ChipContent(label: String, icon: ImageVector?) = Row(
+    Modifier.padding(start = if (icon != null) 10.dp else 14.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+    verticalAlignment = Alignment.CenterVertically
+) {
+    if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(ChipIconSize))
+    Text(label, style = MaterialTheme.typography.labelLarge)
 }

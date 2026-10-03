@@ -436,4 +436,18 @@
     <string name="gamelist__filter_type_to_search">Digita per cercare</string>
     <string name="gamelist__empty_hint">Prova un'altra ricerca o meno filtri</string>
     <string name="gamelist__remove_filter">Rimuovi %1$s</string>
+    <string name="common__more_options">Altre opzioni</string>
+    <string name="game__igdb_open">Apri su IGDB</string>
+    <string name="game__igdb_edit">Modifica su IGDB</string>
+    <string name="game__igdb_about">Informazioni sui dati</string>
+    <string name="game__igdb_about_title">Dati da IGDB</string>
+    <string name="game__igdb_about_body">I dettagli del gioco provengono da IGDB, un database mantenuto dalla community. Se qualcosa manca o è sbagliato puoi correggerlo lì: le modifiche vengono controllate dai moderatori di IGDB e compaiono qui una volta approvate.</string>
+    <string name="viewer__open_external">Apri nel browser</string>
+    <string name="viewer__copy_link">Copia link</string>
+    <string name="viewer__share">Condividi</string>
+    <string name="viewer__save">Salva immagine</string>
+    <string name="viewer__link_copied">Link copiato</string>
+    <string name="viewer__saved">Immagine salvata</string>
+    <string name="viewer__save_failed">Impossibile salvare l'immagine</string>
+    <string name="viewer__page">%1$d di %2$d</string>
 </resources>
