@@ -14,6 +14,7 @@
     <plurals name="exception__count">
         <item quantity="one">%1$d errore</item>
         <item quantity="many">%1$d errori</item>
+        <item quantity="other">%1$d errori</item>
     </plurals>
     <string name="exception__details_show">Mostra dettagli tecnici</string>
     <string name="exception__details_hide">Nascondi dettagli tecnici</string>
@@ -37,6 +38,7 @@
     <plurals name="home__release_in_days">
         <item quantity="one">Tra %1$d giorno</item>
         <item quantity="many">Tra %1$d giorni</item>
+        <item quantity="other">Tra %1$d giorni</item>
     </plurals>
     <string name="events__next">Il prossimo</string>
 
@@ -87,6 +89,7 @@
     <plurals name="game__languages_count">
         <item quantity="one">%1$d lingua</item>
         <item quantity="many">%1$d lingue</item>
+        <item quantity="other">%1$d lingue</item>
     </plurals>
     <string name="game__languages_audio">Audio</string>
     <string name="game__languages_subtitles">Sottotitoli</string>
