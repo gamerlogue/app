@@ -1,14 +1,20 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Card
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,12 +24,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameTimeToBeat
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__age_ratings_title
+import gamerlogue.sharedui.generated.resources.game__rating_description
 import gamerlogue.sharedui.generated.resources.game__ratings_igdb_critics
 import gamerlogue.sharedui.generated.resources.game__ratings_igdb_user
 import gamerlogue.sharedui.generated.resources.game__ratings_title
@@ -32,9 +45,10 @@ import gamerlogue.sharedui.generated.resources.game__time_to_beat_hastly
 import gamerlogue.sharedui.generated.resources.game__time_to_beat_main
 import gamerlogue.sharedui.generated.resources.game_time_to_beat
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FamilyStarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ScheduleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarShineW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TimerW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.displayTitle
 import it.maicol07.gamerlogue.extensions.igdb.formattedCoverUrl
 import it.maicol07.gamerlogue.ui.components.RemoteImage
@@ -43,6 +57,14 @@ import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.stringResource
 
 private const val RatingScale = 10
+private const val MaxIgdbRating = 100.0
+private const val RatingTrackAlpha = 0.16f
+private val RatingGaugeSize = 96.dp
+private val RatingGaugeStroke = 6.dp
+
+private val ConnectedTileGap = 2.dp
+private val ConnectedOuterCorner = 24.dp
+private val ConnectedInnerCorner = 6.dp
 
 /** Seconds above which a time-to-beat value is a duration rather than a plain hour count. */
 private const val SecondsThreshold = 300
@@ -61,48 +83,55 @@ internal fun GameRatings(game: Game) {
     }
     if (ratings.isEmpty()) return
 
-    Column(
-        Modifier.padding(horizontal = Dimens.ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
-    ) {
-        Text(stringResource(Res.string.game__ratings_title), style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
-            for ((pair, count) in ratings) {
-                val (labelRes, value) = pair
-                RatingTile(stringResource(labelRes), value, count, Modifier.weight(1f))
+    GameSection(stringResource(Res.string.game__ratings_title), Icons.StarShineW500Rounded) {
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = MaterialTheme.shapes.extraLarge,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                for ((pair, count) in ratings) {
+                    val (labelRes, value) = pair
+                    RatingGauge(stringResource(labelRes), value, count)
+                }
             }
         }
     }
 }
 
+/** An IGDB score (0-100) as a wavy ring around its value out of [RatingScale]. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun RatingTile(label: String, value: Double, count: Int, modifier: Modifier) = Card(modifier) {
-    Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Icon(
-                Icons.StarShineW500Rounded,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 4.dp)
+private fun RatingGauge(label: String, value: Double, count: Int) {
+    val score = "%.1f".sprintf(value / RatingScale)
+    val description = stringResource(Res.string.game__rating_description, label, score, count)
+    val stroke = with(LocalDensity.current) { Stroke(width = RatingGaugeStroke.toPx(), cap = StrokeCap.Round) }
+    // One announcement for the whole gauge; the ring's own progress semantics would read as a running task.
+    Column(
+        Modifier.clearAndSetSemantics { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(Modifier.size(RatingGaugeSize), contentAlignment = Alignment.Center) {
+            CircularWavyProgressIndicator(
+                progress = { (value / MaxIgdbRating).toFloat() },
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = RatingTrackAlpha),
+                stroke = stroke,
+                trackStroke = stroke,
+                // A score is not a running task: keep the wave still.
+                waveSpeed = 0.dp
             )
-            Text(
-                text = "%.1f".sprintf(value / RatingScale),
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = "/$RatingScale",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 2.dp, bottom = 4.dp)
-            )
+            Text(score, style = MaterialTheme.typography.headlineMediumEmphasized)
         }
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.labelLarge)
         if (count > 0) {
-            Text(
-                text = "($count)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
+            Text("($count)", style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -124,25 +153,17 @@ internal fun GameAgeRatings(game: Game) {
     }
     if (validRatings.isEmpty()) return
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)
-    ) {
-        Text(
-            text = stringResource(Res.string.game__age_ratings_title),
-            style = MaterialTheme.typography.titleMedium
-        )
-
+    GameSection(stringResource(Res.string.game__age_ratings_title), Icons.FamilyStarW500Rounded) {
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap),
+            verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap),
             modifier = Modifier.fillMaxWidth()
         ) {
             for ((ageRating, title) in validRatings) {
                 val logoUrl = ageRating.formattedCoverUrl()
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = MaterialTheme.shapes.medium
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -181,69 +202,49 @@ internal fun GameAgeRatings(game: Game) {
 @Composable
 internal fun GameTimeToBeatSection(timeToBeat: GameTimeToBeat?) {
     if (timeToBeat == null) return
-    val normally = formatTimeToBeat(timeToBeat.normally?.toInt())
-    val completely = formatTimeToBeat(timeToBeat.completely?.toInt())
-    val hastily = formatTimeToBeat(timeToBeat.hastily?.toInt())
+    // Shortest to longest, so the connected tiles read as a progression.
+    val entries = listOfNotNull(
+        formatTimeToBeat(timeToBeat.hastily?.toInt())?.let { Res.string.game__time_to_beat_hastly to it },
+        formatTimeToBeat(timeToBeat.normally?.toInt())?.let { Res.string.game__time_to_beat_main to it },
+        formatTimeToBeat(timeToBeat.completely?.toInt())?.let { Res.string.game__time_to_beat_completionist to it },
+    )
+    if (entries.isEmpty()) return
 
-    if (normally == null && completely == null && hastily == null) return
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)
-    ) {
-        Text(
-            text = stringResource(Res.string.game_time_to_beat),
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.fillMaxWidth()
+    GameSection(stringResource(Res.string.game_time_to_beat), Icons.TimerW500Rounded) {
+        Row(
+            Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(ConnectedTileGap)
         ) {
-            if (normally != null) {
-                TimeToBeatCard(label = stringResource(Res.string.game__time_to_beat_main), value = normally)
-            }
-            if (completely != null) {
-                TimeToBeatCard(label = stringResource(Res.string.game__time_to_beat_completionist), value = completely)
-            }
-            if (hastily != null) {
-                TimeToBeatCard(label = stringResource(Res.string.game__time_to_beat_hastly), value = hastily)
+            entries.forEachIndexed { index, (label, value) ->
+                TimeToBeatTile(
+                    label = stringResource(label),
+                    value = value,
+                    shape = connectedTileShape(first = index == 0, last = index == entries.lastIndex),
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
             }
         }
     }
 }
 
+/** Rounded outer ends, tight inner joints: the connected-group look of expressive button groups. */
+private fun connectedTileShape(first: Boolean, last: Boolean) = RoundedCornerShape(
+    topStart = if (first) ConnectedOuterCorner else ConnectedInnerCorner,
+    bottomStart = if (first) ConnectedOuterCorner else ConnectedInnerCorner,
+    topEnd = if (last) ConnectedOuterCorner else ConnectedInnerCorner,
+    bottomEnd = if (last) ConnectedOuterCorner else ConnectedInnerCorner,
+)
+
 @Composable
-private fun TimeToBeatCard(label: String, value: String) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Icon(
-                imageVector = Icons.ScheduleW500Rounded,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Column {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+private fun TimeToBeatTile(label: String, value: String, shape: Shape, modifier: Modifier) = Surface(
+    color = MaterialTheme.colorScheme.tertiaryContainer,
+    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+    shape = shape,
+    modifier = modifier
+) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(value, style = MaterialTheme.typography.titleLargeEmphasized)
+        Text(label, style = MaterialTheme.typography.labelMedium)
     }
 }
 

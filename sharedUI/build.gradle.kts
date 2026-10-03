@@ -274,6 +274,7 @@ symbolCraft {
         "conversion_path",
         "date_range",
         "delete",
+        "description",
         "devices",
         "edit",
         "error",
@@ -283,6 +284,7 @@ symbolCraft {
         "filter_list",
         "flutter_dash",
         "grid_4x4",
+        "group",
         "history",
         "home",
         "hourglass",
@@ -336,6 +338,7 @@ symbolCraft {
         "sword_rose",
         "sync",
         "tactic",
+        "tag",
         "theater_comedy",
         "timer",
         "toys_and_games",
@@ -345,6 +348,7 @@ symbolCraft {
         "arrow_upward",
         "domain",
         "upcoming",
+        "visibility",
         "wand_stars",
         "web_traffic"
     )

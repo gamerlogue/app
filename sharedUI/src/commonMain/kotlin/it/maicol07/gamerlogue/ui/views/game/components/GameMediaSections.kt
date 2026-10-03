@@ -1,32 +1,33 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameVideo
@@ -41,18 +42,23 @@ import gamerlogue.sharedui.generated.resources.game__no_description
 import gamerlogue.sharedui.generated.resources.game__parent_games_title
 import gamerlogue.sharedui.generated.resources.game__ports_title
 import gamerlogue.sharedui.generated.resources.game__remakes_remasters_title
+import gamerlogue.sharedui.generated.resources.game__show_less
+import gamerlogue.sharedui.generated.resources.game__show_more
 import gamerlogue.sharedui.generated.resources.game__similar_games_title
 import gamerlogue.sharedui.generated.resources.game__standalone_expansions_title
 import gamerlogue.sharedui.generated.resources.game__storyline_title
 import gamerlogue.sharedui.generated.resources.game__websites_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Book4W500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CategoryW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DescriptionW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DevicesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ExploreW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Inventory2W500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LanguageW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LayersW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AndroidSimpleIcons
@@ -72,7 +78,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.XSim
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.YoutubeSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
-import it.maicol07.gamerlogue.ui.components.ConnectedButtonGroup
+import it.maicol07.gamerlogue.ui.components.ConnectedActionButtonGroup
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.game.GameBannerImage
@@ -87,6 +93,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIconsRo
 private val MediaItemWidth = 200.dp
 private val RelatedItemWidth = 120.dp
 private val RelatedCarouselHeight = 180.dp
+private const val CollapsedTextLines = 5
 
 internal fun gameMediaImageIds(game: Game): List<String> =
     game.artworks.map { it.image_id } + game.screenshots.map { it.image_id }
@@ -105,10 +112,10 @@ internal fun GameMedia(game: Game) {
     GameCoverCarousel(
         itemCount = videos.size + images.size,
         preferredItemWidth = MediaItemWidth,
-        modifier = Modifier.wrapContentHeight()
+        modifier = Modifier.padding(top = SectionSpacing).wrapContentHeight()
     ) { i ->
         val itemModifier = Modifier
-            .maskClip(MaterialTheme.shapes.large)
+            .maskClip(MaterialTheme.shapes.extraLarge)
             .aspectRatio(Ratio169)
 
         if (i < videos.size) {
@@ -173,31 +180,54 @@ private fun VideoThumbnail(
 internal fun GameDescription(game: Game) {
     val summary = game.summary.takeIf { it.isNotBlank() }
     val storyline = game.storyline.takeIf { it.isNotBlank() }
-    if (summary == null && storyline == null) {
-        Column(
-            Modifier.padding(horizontal = Dimens.ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(stringResource(Res.string.game__description_title), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(Res.string.game__no_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        return
-    }
 
-    Column(
-        Modifier.padding(horizontal = Dimens.ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        if (summary != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(Res.string.game__description_title), style = MaterialTheme.typography.titleMedium)
-                Text(summary)
+    // The description section also carries the "no description" note when the game has no text at all.
+    if (summary != null || storyline == null) {
+        GameSection(stringResource(Res.string.game__description_title), Icons.DescriptionW500Rounded) {
+            if (summary != null) {
+                ExpandableText(summary)
+            } else {
+                Text(
+                    stringResource(Res.string.game__no_description),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
-        if (storyline != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(Res.string.game__storyline_title), style = MaterialTheme.typography.titleMedium)
-                Text(storyline)
+    }
+    if (storyline != null) {
+        GameSection(stringResource(Res.string.game__storyline_title), Icons.Book4W500Rounded) {
+            ExpandableText(storyline)
+        }
+    }
+}
+
+/** Long text in a card, clamped to a few lines with a toggle when it does not fit. */
+@Composable
+private fun ExpandableText(text: String) = Surface(
+    color = MaterialTheme.colorScheme.surfaceContainerLow,
+    shape = MaterialTheme.shapes.extraLarge
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var overflows by remember { mutableStateOf(false) }
+    Column(
+        Modifier
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = if (expanded) Int.MAX_VALUE else CollapsedTextLines,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow }
+        )
+        if (overflows) {
+            TextButton(
+                onClick = { expanded = !expanded },
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(if (expanded) Res.string.game__show_less else Res.string.game__show_more))
             }
         }
     }
@@ -207,30 +237,21 @@ internal fun GameDescription(game: Game) {
 internal fun GameWebsites(game: Game) {
     if (game.websites.isEmpty()) return
     val uriHandler = LocalUriHandler.current
+    val validWebsites = remember(game.websites) { game.websites.filter { it.url.isNotBlank() } }
+    if (validWebsites.isEmpty()) return
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)
-    ) {
-        Text(
-            text = stringResource(Res.string.game__websites_title),
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        val validWebsites = remember(game.websites) { game.websites.filter { it.url.isNotBlank() } }
-        if (validWebsites.isEmpty()) return@Column
-
-        ConnectedButtonGroup(
+    GameSection(stringResource(Res.string.game__websites_title), Icons.LanguageW500Rounded) {
+        ConnectedActionButtonGroup(
             options = validWebsites,
-            checked = { false },
-            onCheckedChange = { website, _ ->
+            onClick = { website ->
                 val url = website.url
                 val formattedUrl = if (url.startsWith("http://") || url.startsWith("https://")) url else "https://$url"
                 runCatching { uriHandler.openUri(formattedUrl) }
             },
-            toggleButtonText = { website -> websiteInfo(website.url).first },
-            toggleButtonIcon = { website -> websiteInfo(website.url).second },
-            rowModifier = Modifier.fillMaxWidth()
+            buttonText = { website -> websiteInfo(website.url).first },
+            buttonIcon = { website -> websiteInfo(website.url).second },
+            trailingIcon = Icons.OpenInNewW500Rounded,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -313,21 +334,10 @@ private fun RelatedGameCarousel(
     gamesList: List<Game>,
     onGameClick: (Game) -> Unit
 ) = Column(
-    verticalArrangement = Arrangement.spacedBy(8.dp),
-    modifier = Modifier.padding(top = 8.dp)
+    Modifier.padding(top = SectionSpacing),
+    verticalArrangement = Arrangement.spacedBy(12.dp)
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.ScreenPadding),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = stringResource(titleRes),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
+    SectionHeader(stringResource(titleRes), icon, Modifier.padding(horizontal = Dimens.ScreenPadding))
 
     GameCoverCarousel(
         itemCount = gamesList.size,
@@ -340,7 +350,7 @@ private fun RelatedGameCarousel(
             game = relatedGame,
             metadata = listOfNotNull(metadata),
             showTitle = true,
-            modifier = Modifier.maskClip(MaterialTheme.shapes.large),
+            modifier = Modifier.maskClip(MaterialTheme.shapes.extraLarge),
             onClick = onGameClick
         )
     }

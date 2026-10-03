@@ -59,6 +59,7 @@
     <string name="game__ratings_title">Valutazioni</string>
     <string name="game__ratings_igdb_user">Utenti IGDB</string>
     <string name="game__ratings_igdb_critics">Critica IGDB</string>
+    <string name="game__rating_description">%1$s: %2$s su 10, %3$d voti</string>
     <string name="game__genres_title">Generi</string>
     <string name="game__themes_title">Temi</string>
     <string name="game__game_modes_title">Modalità di gioco</string>
@@ -373,6 +374,8 @@
     <string name="game__not_found">Dettagli del gioco non trovati</string>
     <string name="game__load_error">Impossibile caricare i dettagli del gioco</string>
     <string name="game__retry">Riprova</string>
+    <string name="game__show_more">Mostra altro</string>
+    <string name="game__show_less">Mostra meno</string>
     <string name="game__artwork_image">Immagine artwork</string>
 
     <!-- Profile/Calendar placeholders -->

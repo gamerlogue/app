@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.ui.views.game.components
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -9,6 +10,8 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameTimeToBeat
 
 const val Ratio169 = 16f / 9f
+
+private val ToolbarClearance = 96.dp
 
 /**
  * Renders the scrollable content of the Game detail screen for a loaded [game].
@@ -35,5 +38,6 @@ internal fun LazyListScope.gameDetailContent(
     item { GameDetailsList(game, onGameClick = onGameClick) }
     item { GameWebsites(game) }
     item { GameRelatedCarousels(game, onGameClick = onGameClick) }
-    item { Spacer(Modifier.height(12.dp)) }
+    // Room for the floating toolbar, so the last section can scroll clear of it.
+    item { Spacer(Modifier.navigationBarsPadding().height(ToolbarClearance)) }
 }

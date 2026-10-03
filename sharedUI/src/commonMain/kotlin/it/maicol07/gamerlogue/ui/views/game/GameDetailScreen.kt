@@ -1,19 +1,27 @@
 package it.maicol07.gamerlogue.ui.views.game
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,8 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
@@ -32,6 +42,10 @@ import gamerlogue.sharedui.generated.resources.game__load_error
 import gamerlogue.sharedui.generated.resources.game__not_found
 import gamerlogue.sharedui.generated.resources.game__retry
 import io.github.fopwoc.nav3ksp.annotation.Branch
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchOffW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
@@ -47,6 +61,9 @@ import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibraryShee
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+
+private val StatusIconContainerSize = 112.dp
+private val StatusIconSize = 48.dp
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
@@ -72,7 +89,8 @@ fun GameDetailView(
         if (uiState.isAuthenticated) action else ({ navigationState.backStack.add(RootNavTree.Login) })
 
     Box {
-        GameTopBar(game?.name, isOverlayMode = titleVisible)
+        // Overlay only above the banner: the status screens have none, and white icons would vanish on them.
+        GameTopBar(game?.name, isOverlayMode = game != null && titleVisible)
         when {
             game != null -> {
                 var expanded by remember { mutableStateOf(true) }
@@ -85,7 +103,6 @@ fun GameDetailView(
                             onExpand = { expanded = true },
                             onCollapse = { expanded = false },
                         ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     gameDetailContent(
                         game,
@@ -127,7 +144,7 @@ private fun GameDetailLoading(gameId: Int, coverImageId: String?, gameName: Stri
     if (gameName != null) {
         GameDetailLoadingCover(gameId, coverImageId, gameName)
     }
-    LoadingIndicator(
+    ContainedLoadingIndicator(
         Modifier.align(Alignment.Center).semantics {
             contentDescription = loadingDescription
         }
@@ -135,26 +152,44 @@ private fun GameDetailLoading(gameId: Int, coverImageId: String?, gameName: Stri
 }
 
 @Composable
-private fun GameDetailNotFound() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    Text(
-        stringResource(Res.string.game__not_found),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-}
+private fun GameDetailNotFound() =
+    GameDetailStatus(Icons.SearchOffW500Rounded, stringResource(Res.string.game__not_found)) {}
 
 @Composable
-private fun GameDetailError(onRetry: () -> Unit) = Column(
-    Modifier.fillMaxSize(),
-    verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+private fun GameDetailError(onRetry: () -> Unit) =
+    GameDetailStatus(Icons.AndroidWifi3BarAlertW500Rounded, stringResource(Res.string.game__load_error)) {
+        Button(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
+            Icon(
+                Icons.RefreshW500Rounded,
+                contentDescription = null,
+                modifier = Modifier.size(ButtonDefaults.IconSize)
+            )
+            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+            Text(stringResource(Res.string.game__retry))
+        }
+    }
+
+/** Full-screen message: [icon] in an expressive shape, [message], then an optional [action]. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun GameDetailStatus(icon: ImageVector, message: String, action: @Composable () -> Unit) = Column(
+    Modifier.fillMaxSize().padding(horizontal = 32.dp),
+    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     horizontalAlignment = Alignment.CenterHorizontally
 ) {
-    Text(
-        stringResource(Res.string.game__load_error),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-    FilledTonalButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
-        Text(stringResource(Res.string.game__retry))
+    Box(
+        Modifier
+            .size(StatusIconContainerSize)
+            .background(MaterialTheme.colorScheme.tertiaryContainer, MaterialShapes.Cookie9Sided.toShape()),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.size(StatusIconSize)
+        )
     }
+    Text(message, style = MaterialTheme.typography.titleMediumEmphasized, textAlign = TextAlign.Center)
+    action()
 }

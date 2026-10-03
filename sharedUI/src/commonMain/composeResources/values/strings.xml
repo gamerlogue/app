@@ -59,6 +59,7 @@
     <string name="game__ratings_title">Ratings</string>
     <string name="game__ratings_igdb_user">IGDB Users</string>
     <string name="game__ratings_igdb_critics">IGDB Critics</string>
+    <string name="game__rating_description">%1$s: %2$s out of 10, %3$d ratings</string>
     <string name="game__genres_title">Genres</string>
     <string name="game__themes_title">Themes</string>
     <string name="game__game_modes_title">Game Modes</string>
@@ -373,6 +374,8 @@
     <string name="game__not_found">Game details not found</string>
     <string name="game__load_error">Couldn't load the game details</string>
     <string name="game__retry">Retry</string>
+    <string name="game__show_more">Show more</string>
+    <string name="game__show_less">Show less</string>
     <string name="game__artwork_image">Artwork image</string>
 
     <!-- Profile/Calendar placeholders -->

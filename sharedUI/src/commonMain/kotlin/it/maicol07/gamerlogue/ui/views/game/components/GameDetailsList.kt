@@ -64,7 +64,10 @@ private val TWO_COLUMN_MIN_WIDTH = 500.dp
 private enum class GameDetailSheet { RELEASE_DATES, ALTERNATIVE_NAMES, FRANCHISES, LANGUAGES }
 
 @Composable
-fun GameDetailsList(game: Game, onGameClick: (Game) -> Unit) = Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+fun GameDetailsList(
+    game: Game,
+    onGameClick: (Game) -> Unit
+) = Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = SectionSpacing)) {
     var sheet by remember { mutableStateOf<GameDetailSheet?>(null) }
     val franchiseNames = remember(game) {
         (game.franchises.map { it.name } + listOfNotNull(game.franchise?.name)).filter { it.isNotBlank() }.distinct()
