@@ -35,19 +35,19 @@ private val ChipRowPadding = 8.dp
 
 @Branch(RootTree::class, metadata = ListPaneMetadata::class)
 @Composable
-fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?) {
+fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?, preset: GameListPreset?) {
     val navigationState = LocalNavigationState.current
-    val viewModel = koinViewModel<GameListViewModel> { parametersOf(section, eventId) }
+    val viewModel = koinViewModel<GameListViewModel> { parametersOf(section, eventId, preset) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     ScreenScaffold(
         topBar = {
             GameListSearchBar(
-                placeholder = eventName ?: stringResource(Res.string.search__global_hint),
+                placeholder = eventName ?: preset?.name ?: stringResource(Res.string.search__global_hint),
                 query = uiState.filterState.searchQuery,
                 onQueryChange = viewModel::setSearchQuery,
                 onSearch = viewModel::submitSearchQuery,
                 onBack = navigationState::navigateBack,
-                autoFocus = section == null && eventId == null,
+                autoFocus = section == null && eventId == null && preset == null,
                 trailingActions = {
                     FilterButton(
                         hasActiveFilters = uiState.filterState.hasActiveFilters,
@@ -62,6 +62,7 @@ fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?) {
                 ActiveFilterChips(
                     filterState = uiState.filterState,
                     knownOptions = uiState.knownOptions,
+                    presetPlatform = preset?.takeIf { it.type == GameListPresetType.PLATFORM },
                     onFilterChange = viewModel::updateFilter,
                     onReset = viewModel::resetFilter,
                     modifier = Modifier.padding(top = ChipRowPadding)

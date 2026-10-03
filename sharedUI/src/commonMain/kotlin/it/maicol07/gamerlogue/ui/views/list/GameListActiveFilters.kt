@@ -54,11 +54,12 @@ private data class ActiveFilterChip(
 fun ActiveFilterChips(
     filterState: GameListFilterState,
     knownOptions: Map<FilterSearchTarget, Map<Int, NamedSearchResult>>,
+    presetPlatform: GameListPreset?,
     onFilterChange: (GameListFilterState) -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val chips = sortChips(filterState) + rangeChips(filterState) + fixedOptionChips(filterState) +
+    val chips = sortChips(filterState) + rangeChips(filterState) + fixedOptionChips(filterState, presetPlatform) +
         searchedOptionChips(filterState, knownOptions)
     LazyRow(
         modifier = modifier,
@@ -143,11 +144,19 @@ private fun GameListFilterState.hoursLabel(): String = if (maxHoursToBeat >= Max
     stringResource(Res.string.gamelist__hours_range, minHoursToBeat.toInt(), maxHoursToBeat.toInt())
 }
 
-/** One chip per option picked from the sheet's fixed option sets; enums are stored by ordinal. */
+/**
+ * One chip per option picked from the sheet's fixed option sets; enums are stored by ordinal.
+ * [presetPlatform] names a platform the list was opened on that is not among the popular ones.
+ */
 @Composable
-private fun fixedOptionChips(filter: GameListFilterState): List<ActiveFilterChip> = with(filter) {
+private fun fixedOptionChips(
+    filter: GameListFilterState,
+    presetPlatform: GameListPreset?
+): List<ActiveFilterChip> = with(filter) {
     platformIds.map { id ->
-        val name = PopularPlatforms.firstOrNull { it.id == id }?.name ?: id.toString()
+        val name = PopularPlatforms.firstOrNull { it.id == id }?.name
+            ?: presetPlatform?.takeIf { it.id == id }?.name
+            ?: id.toString()
         ActiveFilterChip("platform:$id", name) { copy(platformIds = platformIds - id) }
     } + playerPerspectiveIds.map { id ->
         ActiveFilterChip("perspective:$id", PlayerPerspective(id.toLong()).localizedName) {

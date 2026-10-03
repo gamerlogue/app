@@ -97,7 +97,7 @@ fun DiscoverView(
                     state = uiState.sections.getValue(section),
                     hero = index == 0,
                     onGameClick = { navigationState.backStack.add(it.detailNavKey) },
-                    onSeeAllClick = { navigationState.backStack.add(RootNavTree.GameList(section, null, null)) }
+                    onSeeAllClick = { navigationState.backStack.add(RootNavTree.GameList(section, null, null, null)) }
                 )
             }
             eventsSection(
@@ -110,7 +110,7 @@ fun DiscoverView(
         FloatingSearchBar(listState) {
             GameSearchButton(
                 placeholder = stringResource(Res.string.search__global_hint),
-                onClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null)) }
+                onClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null, null)) }
             )
         }
     }

@@ -11,6 +11,8 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTreeLayout
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
+import it.maicol07.gamerlogue.ui.views.list.GameListPreset
+import it.maicol07.gamerlogue.ui.views.list.GameListPresetType
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
 import kotlinx.serialization.modules.SerializersModule
@@ -39,6 +41,7 @@ class NavBackStackSerializationTest : StringSpec({
                 section = DiscoverSection.POPULAR,
                 eventId = 42,
                 eventName = "Summer Games Fest",
+                preset = GameListPreset(GameListPresetType.DEVELOPER, 9, "FromSoftware"),
             ),
             RootNavTree.GameDetail(gameId = 7, coverImageId = "co1abc", gameName = "Hollow Knight"),
             RootNavTree.LibraryImportPreview(ExternalService.STEAM, ImportMode.WISHLIST),

@@ -37,7 +37,7 @@ fun Event.startYear(): Int? =
 
 /** The game list destination scoped to this event. */
 val Event.gamesNavKey: RootNavTree.GameList
-    get() = RootNavTree.GameList(section = null, eventId = id.toInt(), eventName = name)
+    get() = RootNavTree.GameList(section = null, eventId = id.toInt(), eventName = name, preset = null)
 
 private const val DatePattern = "dd/MM/yyyy"
 private const val DateTimePattern = "dd/MM/yyyy HH:mm"
