@@ -39,11 +39,10 @@ import org.jetbrains.compose.resources.stringResource
 fun BoxScope.GameToolbar(
     expanded: Boolean,
     currentGameStatus: GameLibraryStatus?,
-    backlogLoading: Boolean,
-    playingLoading: Boolean,
-    onBacklogButtonClick: (Boolean) -> Unit,
-    onPlayingButtonClick: (Boolean) -> Unit,
-    onAddToLibraryBottomSheetOpenChange: () -> Unit,
+    pendingStatus: GameLibraryStatus?,
+    onBacklogClick: () -> Unit,
+    onPlayingClick: () -> Unit,
+    onAddClick: () -> Unit,
 ) = HorizontalFloatingToolbar(
     modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().offset(y = -ScreenOffset),
     expanded = expanded,
@@ -58,9 +57,9 @@ fun BoxScope.GameToolbar(
             },
             Icons.BookmarkW500Rounded,
             currentGameStatus == GameLibraryStatus.BACKLOG,
-            loading = backlogLoading,
+            loading = pendingStatus == GameLibraryStatus.BACKLOG,
             enabled = currentGameStatus == null || currentGameStatus == GameLibraryStatus.BACKLOG,
-            onBacklogButtonClick
+            onBacklogClick
         )
     },
     trailingContent = {
@@ -74,19 +73,19 @@ fun BoxScope.GameToolbar(
             },
             Icons.PlayCircleW500Rounded,
             currentGameStatus == GameLibraryStatus.PLAYING,
-            loading = playingLoading,
+            loading = pendingStatus == GameLibraryStatus.PLAYING,
             enabled = currentGameStatus == null || currentGameStatus == GameLibraryStatus.PLAYING,
-            onPlayingButtonClick
+            onPlayingClick
         )
     },
     content = {
         FilledIconButton(
             shapes = IconButtonDefaults.shapes(),
             modifier = Modifier.width(64.dp),
-            onClick = onAddToLibraryBottomSheetOpenChange
+            onClick = onAddClick
         ) {
             Icon(
-                if (currentGameStatus === null) {
+                if (currentGameStatus == null) {
                     Icons.AddW500Rounded
                 } else {
                     Icons.EditW500Rounded
@@ -104,7 +103,7 @@ private fun GameToolbarToggleIconButton(
     checked: Boolean,
     loading: Boolean = false,
     enabled: Boolean = true,
-    onCheckedChange: (Boolean) -> Unit
+    onClick: () -> Unit
 ) = TooltipBox(
     tooltip = {
         PlainTooltip {
@@ -115,7 +114,7 @@ private fun GameToolbarToggleIconButton(
     FilledTonalIconToggleButton(
         checked = checked,
         enabled = enabled && !loading,
-        onCheckedChange = onCheckedChange,
+        onCheckedChange = { onClick() },
         shapes = IconButtonDefaults.toggleableShapes(),
     ) {
         if (loading) {

@@ -2,18 +2,20 @@ package it.maicol07.gamerlogue.ui.views.game
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,20 +28,25 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_loading
+import gamerlogue.sharedui.generated.resources.game__load_error
 import gamerlogue.sharedui.generated.resources.game__not_found
+import gamerlogue.sharedui.generated.resources.game__retry
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
-import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.views.game.components.GameDetailLoadingCover
 import it.maicol07.gamerlogue.ui.views.game.components.GameToolbar
 import it.maicol07.gamerlogue.ui.views.game.components.gameDetailContent
+import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibrarySheet
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
@@ -47,21 +54,29 @@ fun GameDetailView(
     gameId: Int,
     coverImageId: String? = null,
     gameName: String? = null,
-    viewModel: GameDetailViewModel = GameDetailViewModel.inject(gameId),
 ) {
     val navigationState = LocalNavigationState.current
+    val viewModel = koinViewModel<GameDetailViewModel> { parametersOf(gameId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val game = uiState.game
-    val topBarOverlayMode = remember { mutableStateOf(true) }
+    var titleVisible by remember { mutableStateOf(true) }
 
     var addToLibraryBottomSheetOpen by remember { mutableStateOf(false) }
+    // Signing out drops the library entry the sheet edits, so the sheet goes with it.
+    LaunchedEffect(uiState.isAuthenticated) {
+        if (!uiState.isAuthenticated) addToLibraryBottomSheetOpen = false
+    }
 
-    Box(contentAlignment = Alignment.TopStart) {
-        var expanded by remember { mutableStateOf(true) }
-        val listState = rememberLazyListState()
-        CompositionLocalProvider(LocalGameTopBarOverlayMode provides topBarOverlayMode) {
-            GameTopBar(game?.name)
-            if (game != null) {
+    // Library actions need a signed-in user; signed out, each one leads to the login screen instead.
+    fun requiringLogin(action: () -> Unit): () -> Unit =
+        if (uiState.isAuthenticated) action else ({ navigationState.backStack.add(RootNavTree.Login) })
+
+    Box {
+        GameTopBar(game?.name, isOverlayMode = titleVisible)
+        when {
+            game != null -> {
+                var expanded by remember { mutableStateOf(true) }
+                val listState = rememberLazyListState()
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize()
@@ -75,25 +90,23 @@ fun GameDetailView(
                     gameDetailContent(
                         game,
                         timeToBeat = uiState.timeToBeat,
+                        onTitleVisibilityChange = { titleVisible = it },
                         onGameClick = { navigationState.backStack.add(it.detailNavKey) }
                     )
                 }
-            } else if (uiState.isLoading) {
-                GameDetailLoading(gameId, coverImageId, gameName)
-            } else {
-                GameDetailNotFound()
+                AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+                GameToolbar(
+                    expanded = expanded,
+                    currentGameStatus = uiState.libraryEntry?.status,
+                    pendingStatus = uiState.pendingStatus,
+                    onBacklogClick = requiringLogin { viewModel.toggleStatus(GameLibraryStatus.BACKLOG) },
+                    onPlayingClick = requiringLogin { viewModel.toggleStatus(GameLibraryStatus.PLAYING) },
+                    onAddClick = requiringLogin { addToLibraryBottomSheetOpen = true },
+                )
             }
-        }
-        if (game != null) {
-            AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
-            GameToolbar(
-                expanded,
-                uiState.libraryEntry?.status,
-                uiState.isBacklogButtonLoading,
-                uiState.isPlayingButtonLoading,
-                { viewModel.toggleGameBacklog() },
-                { viewModel.toggleGamePlaying() }
-            ) { addToLibraryBottomSheetOpen = true }
+            uiState.isLoading -> GameDetailLoading(gameId, coverImageId, gameName)
+            uiState.isLoadError -> GameDetailError(onRetry = { viewModel.loadGameDetails() })
+            else -> GameDetailNotFound()
         }
     }
 
@@ -125,8 +138,23 @@ private fun GameDetailLoading(gameId: Int, coverImageId: String?, gameName: Stri
 private fun GameDetailNotFound() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     Text(
         stringResource(Res.string.game__not_found),
-        modifier = Modifier.fillMaxWidth(),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+}
+
+@Composable
+private fun GameDetailError(onRetry: () -> Unit) = Column(
+    Modifier.fillMaxSize(),
+    verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+    horizontalAlignment = Alignment.CenterHorizontally
+) {
+    Text(
+        stringResource(Res.string.game__load_error),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    FilledTonalButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
+        Text(stringResource(Res.string.game__retry))
+    }
 }

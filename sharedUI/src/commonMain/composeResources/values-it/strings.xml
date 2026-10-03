@@ -368,6 +368,8 @@
     <string name="game__description_title">Descrizione</string>
     <string name="game__no_description">Nessuna descrizione disponibile</string>
     <string name="game__not_found">Dettagli del gioco non trovati</string>
+    <string name="game__load_error">Impossibile caricare i dettagli del gioco</string>
+    <string name="game__retry">Riprova</string>
     <string name="game__artwork_image">Immagine artwork</string>
 
     <!-- Profile/Calendar placeholders -->

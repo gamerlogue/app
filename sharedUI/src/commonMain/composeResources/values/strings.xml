@@ -371,6 +371,8 @@
     <string name="game__description_title">Description</string>
     <string name="game__no_description">No description available</string>
     <string name="game__not_found">Game details not found</string>
+    <string name="game__load_error">Couldn't load the game details</string>
+    <string name="game__retry">Retry</string>
     <string name="game__artwork_image">Artwork image</string>
 
     <!-- Profile/Calendar placeholders -->

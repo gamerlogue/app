@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.game
 
-import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.IgdbEndpoint
@@ -11,6 +10,7 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
@@ -20,12 +20,12 @@ import it.maicol07.gamerlogue.extensions.self
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
-import org.koin.core.parameter.parametersOf
 
 /** Cover, title, and release date of a game shown in one of the detail screen's carousels. */
 private fun GameFieldDsl.relatedGameFields(): List<IgdbRequestField<*>> = listOf(
@@ -128,28 +128,35 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val timeToBeat: GameTimeToBeat? = null,
         val libraryEntry: LibraryEntry? = null,
         val isLoading: Boolean = true,
-        val isPlayingButtonLoading: Boolean = false,
-        val isBacklogButtonLoading: Boolean = false,
+        /** The last load failed (network, server), as opposed to IGDB returning no such game. */
+        val isLoadError: Boolean = false,
+        /** The library is per-user: signed out, there is no entry to show or edit. */
+        val isAuthenticated: Boolean = false,
+        /** Status whose toggle is in flight, so only that button shows a spinner. */
+        val pendingStatus: GameLibraryStatus? = null,
     )
 
     private val igdb by inject<IgdbClient>()
+    private val authProvider by inject<AuthTokenProvider>()
 
     companion object {
         /** Sub-query names of the detail multiquery; they pick the results apart again below. */
         private const val GAME_QUERY = "game"
         private const val TIME_TO_BEAT_QUERY = "ttb"
-
-        @Composable
-        fun inject(gameId: Int): GameDetailViewModel = koinViewModel(parameters = { parametersOf(gameId) })
     }
 
     init {
-        viewModelScope.launch { loadGameDetails() }
-        loadLibraryEntry()
+        loadGameDetails()
+        viewModelScope.launch {
+            authProvider.session.map { it.isAuthenticated }.distinctUntilChanged().collect { authenticated ->
+                update { copy(isAuthenticated = authenticated, libraryEntry = null) }
+                if (authenticated) loadLibraryEntry()
+            }
+        }
     }
 
-    suspend fun loadGameDetails() {
-        update { copy(isLoading = true) }
+    fun loadGameDetails(): Job = viewModelScope.launch {
+        update { copy(isLoading = true, isLoadError = false) }
         val result = safeRequest {
             igdb.multiquery {
                 query(IgdbEndpoint.GAME, GAME_QUERY) {
@@ -176,36 +183,29 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
             val fetchedTtb = responses.multiqueryResults<GameTimeToBeat>(TIME_TO_BEAT_QUERY).firstOrNull()
             update { copy(game = fetchedGame ?: state.game, timeToBeat = fetchedTtb, isLoading = false) }
         } else {
-            update { copy(isLoading = false) }
+            update { copy(isLoading = false, isLoadError = true) }
         }
     }
 
     fun loadLibraryEntry(): Job = viewModelScope.launch {
         val result = safeRequest { LibraryEntry.currentUserEntryForGame(gameId).firstOrNull().data }
-        update { copy(libraryEntry = if (result.isOk) result.unwrap() else null) }
+        // A failed reload keeps the known entry: clearing it would offer "add" and invite a duplicate.
+        if (result.isOk) update { copy(libraryEntry = result.unwrap()) }
     }
-
-    fun toggleGamePlaying() = toggleStatus(GameLibraryStatus.PLAYING) { copy(isPlayingButtonLoading = it) }
-
-    fun toggleGameBacklog() = toggleStatus(GameLibraryStatus.BACKLOG) { copy(isBacklogButtonLoading = it) }
 
     /**
      * Applies [status] to the library entry or removes the entry when it already has that status.
      *
-     * [setLoading] flips the button's own spinner, which is the only thing that differs between the
-     * two toggles. Failures are reported by [safeRequest] and leave the state untouched.
+     * Failures are reported by [safeRequest] and leave the state untouched.
      */
-    private fun toggleStatus(
-        status: GameLibraryStatus,
-        setLoading: UiState.(Boolean) -> UiState,
-    ) = viewModelScope.launch {
-        update { setLoading(true) }
+    fun toggleStatus(status: GameLibraryStatus) = viewModelScope.launch {
+        update { copy(pendingStatus = status) }
         if (state.libraryEntry?.status == status) {
             removeGameLibraryEntry()
         } else {
             applyStatus(status)
         }
-        update { setLoading(false) }
+        update { copy(pendingStatus = null) }
     }
 
     private suspend fun applyStatus(status: GameLibraryStatus) {

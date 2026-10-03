@@ -41,7 +41,6 @@ import it.maicol07.gamerlogue.extensions.isVisible
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.game.GameCoverImage
 import it.maicol07.gamerlogue.ui.components.game.Image
-import it.maicol07.gamerlogue.ui.components.game.LocalGameTopBarOverlayMode
 
 private const val TITLE_VISIBILITY_THRESHOLD = 40
 
@@ -57,7 +56,8 @@ private val CoverDropShadow = androidx.compose.ui.graphics.shadow.Shadow(
 
 @Composable
 fun LazyItemScope.GameHeader(
-    game: Game
+    game: Game,
+    onTitleVisibilityChange: (Boolean) -> Unit
 ) {
     Box(modifier = Modifier.animateItem().fillMaxWidth(), contentAlignment = Alignment.BottomStart) {
         GameBanner(game)
@@ -67,8 +67,6 @@ fun LazyItemScope.GameHeader(
         Column(
             Modifier.padding(start = 16.dp + CoverWidth + 16.dp, end = 16.dp, bottom = 36.dp)
         ) {
-            val topBarState = LocalGameTopBarOverlayMode.current
-
             Text(
                 text = game.name,
                 color = Color.White,
@@ -78,7 +76,7 @@ fun LazyItemScope.GameHeader(
                 ),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.isVisible(TITLE_VISIBILITY_THRESHOLD) { topBarState.value = it }
+                modifier = Modifier.isVisible(TITLE_VISIBILITY_THRESHOLD, onTitleVisibilityChange)
             )
 
             GamePlatforms(game)

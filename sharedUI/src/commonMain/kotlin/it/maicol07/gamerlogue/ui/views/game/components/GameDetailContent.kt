@@ -19,10 +19,11 @@ const val Ratio169 = 16f / 9f
  */
 internal fun LazyListScope.gameDetailContent(
     game: Game,
-    timeToBeat: GameTimeToBeat? = null,
+    timeToBeat: GameTimeToBeat?,
+    onTitleVisibilityChange: (Boolean) -> Unit,
     onGameClick: (Game) -> Unit
 ) {
-    item { GameHeader(game) }
+    item { GameHeader(game, onTitleVisibilityChange) }
     item { GameRatings(game) }
     item { GameAgeRatings(game) }
     item { GameTimeToBeatSection(timeToBeat) }
