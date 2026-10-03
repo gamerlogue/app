@@ -364,7 +364,8 @@ symbolCraft {
     )
     @Suppress("SpreadOperator")
     externalIcons(*mdiIcons.toTypedArray(), libraryName = "mdi") {
-        urlTemplate = "https://esm.sh/@mdi/svg@latest/svg/{name}.svg"
+        // Pinned and redirect-free: esm.sh now 302s `@latest`, which SymbolCraft does not follow.
+        urlTemplate = "https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/{name}.svg"
     }
 
     val brandIcons = listOf(
