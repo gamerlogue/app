@@ -7,6 +7,9 @@ on:
     types: [ published ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # ----------------------------------------------------------------
   # Android Build Job
@@ -158,6 +161,8 @@ jobs:
   # ----------------------------------------------------------------
   web_build:
     name: Web Build
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -207,6 +212,8 @@ jobs:
   # ----------------------------------------------------------------
   release_assets:
     name: Upload Release Assets
+    permissions:
+      contents: write
     needs: [android_build, desktop_build, web_build]
     if: >-
       always() &&
