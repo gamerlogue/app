@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import at.released.igdbclient.model.Artwork
@@ -48,8 +49,9 @@ val CoverAspectRatio = CoverWidth / CoverHeight
 @Composable
 fun Game.CoverImage(
     modifier: Modifier = Modifier,
-    sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight)
-) = GameCoverImage(id.toInt(), cover?.image_id, name, modifier, sizeModifier)
+    sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight),
+    contentScale: ContentScale = ContentScale.FillBounds
+) = GameCoverImage(id.toInt(), cover?.image_id, name, modifier, sizeModifier, contentScale)
 
 /** A cover preview that only needs the small values carried by the detail route. */
 @Composable
@@ -59,9 +61,11 @@ fun GameCoverImage(
     contentDescription: String,
     modifier: Modifier = Modifier,
     sizeModifier: Modifier = Modifier.width(CoverWidth).height(CoverHeight),
+    contentScale: ContentScale = ContentScale.FillBounds,
 ) = RemoteImage(
     coverImageId?.let { igdbImageUrl(it, IgdbImageSize.COVER_BIG) } ?: "https://placehold.net/default.png",
     contentDescription = contentDescription,
+    contentScale = contentScale,
     modifier = Modifier
         .sharedGameElement("cover-$gameId")
         .then(modifier)
@@ -75,10 +79,12 @@ fun GameBannerImage(
     imageId: String,
     modifier: Modifier = Modifier,
     loadingModifier: Modifier = Modifier,
-    sharedKey: Any? = null
+    sharedKey: Any? = null,
+    contentScale: ContentScale = ContentScale.FillBounds
 ) = RemoteImage(
     igdbImageUrl(imageId, IgdbImageSize.SCREENSHOT_HUGE),
     contentDescription = stringResource(Res.string.game__artwork_image),
+    contentScale = contentScale,
     modifier = Modifier.sharedGameElement(sharedKey).then(modifier),
     loadingModifier = loadingModifier
 )
