@@ -5,9 +5,9 @@ androidx-appcompat = "1.8.0"
 androidx-uiTest = "1.12.1"
 browser = "1.10.0"
 buildConfig = "6.1.2"
-compose-multiplatform = "1.12.1"
+compose-multiplatform = "1.13.0-alpha01"
 compose-hot-reload = "1.2.0"
-compose-settings = "3.2.0"
+compose-settings = "3.3.0-material13.1"
 composeWebview = "1.9.1"
 countriesCore = "0.2.0"
 flagpackCompose = "1.0.0"
@@ -72,9 +72,9 @@ compose-webview = { module = "io.github.parkwoocheol:compose-webview", version.r
 countries-core = { module = "org.kimplify:countries-core", version.ref = "countriesCore" }
 flagpack-compose = { module = "io.github.niyajali:flagpack-compose", version.ref = "flagpackCompose" }
 igdbclient-ktor = { module = "at.released.igdbclient:igdbclient-ktor", version.ref = "igdbclientKtor" }
-composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-tiles", version.ref = "compose-settings" }
-composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
-composeSettings-ui-expressive = { group = "com.github.alorma.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
+composeSettings-ui = { group = "com.github.maicol07.compose-settings", name = "ui-tiles", version.ref = "compose-settings" }
+composeSettings-ui-extended = { group = "com.github.maicol07.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
+composeSettings-ui-expressive = { group = "com.github.maicol07.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
 java-keyring = { module = "com.github.javakeyring:java-keyring", version.ref = "javaKeyring" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }

@@ -9,6 +9,11 @@ on:
 
 permissions:
   contents: read
+  packages: read
+
+env:
+  ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
+  ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   # ----------------------------------------------------------------
@@ -163,6 +168,7 @@ jobs:
     name: Web Build
     permissions:
       contents: write
+      packages: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -235,4 +241,3 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**/*
-

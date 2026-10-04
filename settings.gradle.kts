@@ -34,6 +34,16 @@ dependencyResolutionManagement {
         maven("https://maven.universablockchain.com/")
         maven("https://jitpack.io/")
 
+        maven("https://maven.pkg.github.com/maicol07/Compose-Settings") {
+            content { includeGroup("com.github.maicol07.compose-settings") }
+            credentials {
+                username = providers.gradleProperty("githubPackagesUsername")
+                    .orElse(providers.environmentVariable("GITHUB_ACTOR")).orNull
+                password = providers.gradleProperty("githubPackagesPassword")
+                    .orElse(providers.environmentVariable("GITHUB_TOKEN")).orNull
+            }
+        }
+
         maven {
             name = "Central Portal Snapshots"
             url = URI("https://central.sonatype.com/repository/maven-snapshots/")
