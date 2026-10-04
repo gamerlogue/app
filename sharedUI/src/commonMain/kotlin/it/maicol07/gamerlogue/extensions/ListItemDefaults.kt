@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -67,6 +68,15 @@ fun ListItemDefaults.expressiveSegmentedColors(
     draggedOverlineContentColor = draggedOverlineContentColor,
     draggedSupportingContentColor = draggedSupportingContentColor
 )
+
+/**
+ * [ListItemDefaults.segmentedShapes], except that a lone item gets fully rounded corners: Material3 returns
+ * the plain list item shapes for `count == 1`, whose corners are square.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun ListItemDefaults.expressiveSegmentedShapes(index: Int, count: Int): ListItemShapes =
+    if (count == 1) shapes(shape = MaterialTheme.shapes.large) else segmentedShapes(index, count)
 
 @Suppress("UnusedReceiverParameter")
 @Composable

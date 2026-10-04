@@ -294,6 +294,10 @@
     <string name="nav__settings">Impostazioni</string>
     <string name="settings__linked_services">Servizi collegati</string>
     <string name="settings__appearance">Aspetto</string>
+    <string name="settings__appearance_summary">Tema, colori del dispositivo, lingua</string>
+    <string name="settings__linked_services_summary">Steam, PlayStation, Xbox e altri</string>
+    <string name="settings__group_app">App</string>
+    <string name="settings__group_account">Account</string>
     <string name="settings__linked_services_disclaimer">I collegamenti e le credenziali sono salvati localmente e non vengono mai trasmessi altrove.</string>
     <string name="settings__theme">Tema</string>
     <string name="settings__language">Lingua</string>
