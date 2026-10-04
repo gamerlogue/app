@@ -1,13 +1,9 @@
 package it.maicol07.gamerlogue.ui.views.game
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,10 +14,7 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,11 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_loading
@@ -47,6 +37,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.And
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchOffW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
+import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
@@ -62,9 +53,6 @@ import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibraryShee
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-
-private val StatusIconContainerSize = 112.dp
-private val StatusIconSize = 48.dp
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
@@ -159,11 +147,11 @@ private fun GameDetailLoading(gameId: Int, coverImageId: String?, gameName: Stri
 
 @Composable
 private fun GameDetailNotFound() =
-    GameDetailStatus(Icons.SearchOffW500Rounded, stringResource(Res.string.game__not_found)) {}
+    StatusMessage(Icons.SearchOffW500Rounded, stringResource(Res.string.game__not_found))
 
 @Composable
 private fun GameDetailError(onRetry: () -> Unit) =
-    GameDetailStatus(Icons.AndroidWifi3BarAlertW500Rounded, stringResource(Res.string.game__load_error)) {
+    StatusMessage(Icons.AndroidWifi3BarAlertW500Rounded, stringResource(Res.string.game__load_error)) {
         Button(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
             Icon(
                 Icons.RefreshW500Rounded,
@@ -174,28 +162,3 @@ private fun GameDetailError(onRetry: () -> Unit) =
             Text(stringResource(Res.string.game__retry))
         }
     }
-
-/** Full-screen message: [icon] in an expressive shape, [message], then an optional [action]. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun GameDetailStatus(icon: ImageVector, message: String, action: @Composable () -> Unit) = Column(
-    Modifier.fillMaxSize().padding(horizontal = 32.dp),
-    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-    horizontalAlignment = Alignment.CenterHorizontally
-) {
-    Box(
-        Modifier
-            .size(StatusIconContainerSize)
-            .background(MaterialTheme.colorScheme.tertiaryContainer, MaterialShapes.Cookie9Sided.toShape()),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.size(StatusIconSize)
-        )
-    }
-    Text(message, style = MaterialTheme.typography.titleMediumEmphasized, textAlign = TextAlign.Center)
-    action()
-}
