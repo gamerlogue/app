@@ -33,3 +33,6 @@ expect fun deviceSeedColor(): Color?
  * @param tag an IETF BCP 47 language tag, e.g. `it`.
  */
 expect fun applyAppLanguage(tag: String?)
+
+/** Whether the app runs on an Android emulator, which reaches the host machine through `10.0.2.2`. */
+expect val isAndroidEmulator: Boolean

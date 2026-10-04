@@ -233,8 +233,6 @@ buildConfig {
                 ).uppercase()
         }"
     )
-    buildConfigField("IGDB_API_URL", localProperties.getOrDefault("IGDB_API_URL", "https://api.igdb.com/v4/") as String)
-    buildConfigField("GAMERLOGUE_URL", localProperties.getOrDefault("GAMERLOGUE_URL", "") as String)
 
     val composeResourcesDir = file("src/commonMain/composeResources")
     val availableLanguages = listOf("en") + (

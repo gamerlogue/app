@@ -10,14 +10,13 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.parameters
-import it.maicol07.gamerlogue.BuildConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Calls the native Sanctum token endpoints without managing local session state. */
-internal class SanctumTokenClient(private val httpClient: HttpClient) {
+internal class SanctumTokenClient(private val httpClient: HttpClient, private val serverUrl: () -> String) {
     suspend fun exchange(code: String, verifier: String): TokenResponse = httpClient.submitForm(
-        url = "${BuildConfig.GAMERLOGUE_URL}/api/sanctum/token/exchange",
+        url = "${serverUrl()}/api/sanctum/token/exchange",
         formParameters = parameters {
             append("code", code)
             append("code_verifier", verifier)
@@ -25,7 +24,7 @@ internal class SanctumTokenClient(private val httpClient: HttpClient) {
     ).body()
 
     suspend fun refresh(refreshToken: String): TokenResponse {
-        val response = httpClient.post("${BuildConfig.GAMERLOGUE_URL}/api/sanctum/token/refresh") {
+        val response = httpClient.post("${serverUrl()}/api/sanctum/token/refresh") {
             expectSuccess = false
             setBody(FormDataContent(parameters { append("refresh_token", refreshToken) }))
         }
@@ -40,7 +39,7 @@ internal class SanctumTokenClient(private val httpClient: HttpClient) {
 
     suspend fun revoke(refreshToken: String) {
         val response = httpClient.submitForm(
-            url = "${BuildConfig.GAMERLOGUE_URL}/api/sanctum/token/revoke",
+            url = "${serverUrl()}/api/sanctum/token/revoke",
             formParameters = parameters { append("refresh_token", refreshToken) },
         ) { expectSuccess = false }
         if (response.status.value !in SUCCESS_STATUS_CODES) {
