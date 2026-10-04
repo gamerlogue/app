@@ -53,7 +53,7 @@ fun <T> ConnectedButtonGroup(
                     type
                 ).semantics { role = if (multiple) Role.Checkbox else Role.RadioButton },
                 shapes = connectedShapes(index, options.lastIndex),
-                colors = ToggleButtonDefaults.toggleButtonColors(
+                colors = ToggleButtonDefaults.colors(
                     containerColor = containerColor
                 )
             ) {
@@ -89,7 +89,7 @@ fun <T> ConnectedButtonGroup(
 /** Shapes for the button at [index] of a connected group; a lone button has no neighbours, so stays round. */
 @Composable
 private fun connectedShapes(index: Int, lastIndex: Int): ToggleButtonShapes = when {
-    lastIndex == 0 -> ToggleButtonDefaults.shapes()
+    lastIndex == 0 -> ToggleButtonDefaults.shapesFor(ToggleButtonDefaults.MinHeight)
     index == 0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
     index == lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
     else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
