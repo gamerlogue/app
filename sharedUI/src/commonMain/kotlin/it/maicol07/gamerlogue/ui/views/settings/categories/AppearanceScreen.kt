@@ -51,7 +51,7 @@ import it.maicol07.gamerlogue.ui.views.settings.components.SingleChoiceAlertDial
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
-const val TotalItems = 3
+private const val TotalItems = 3
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
