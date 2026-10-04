@@ -1,21 +1,19 @@
 package it.maicol07.gamerlogue.ui.components.imageviewer
 
-import android.content.ContentValues
+import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.media.MediaScannerConnection
+import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.IOException
-
-private const val ALBUM = "Gamerlogue"
+import androidx.core.content.ContextCompat
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.saveImageToGallery
+import kotlinx.coroutines.CompletableDeferred
 
 actual val isShareSupported: Boolean = true
 
@@ -30,40 +28,33 @@ actual fun rememberShareUrl(): (url: String) -> Unit {
     }
 }
 
+/** The pending storage-permission answer, completed by the launcher callback. */
+private class PermissionRequest {
+    var answer: CompletableDeferred<Boolean>? = null
+}
+
 @Composable
-actual fun rememberSaveImage(): suspend (url: String, fileName: String) -> Boolean {
+actual fun rememberSaveImage(): suspend (bytes: ByteArray, fileName: String) -> Boolean {
     val context = LocalContext.current
-    return remember(context) {
-        { url, fileName ->
-            val bytes = downloadImageBytes(url)
-            withContext(Dispatchers.IO) { saveToPictures(context, bytes, fileName) }
-            true
+    val request = remember { PermissionRequest() }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        request.answer?.complete(granted)
+    }
+    return remember(context, launcher) {
+        { bytes, fileName ->
+            val allowed = !needsStoragePermission(context) || CompletableDeferred<Boolean>().let { answer ->
+                request.answer = answer
+                launcher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                answer.await()
+            }
+            if (allowed) FileKit.saveImageToGallery(bytes, fileName).getOrThrow()
+            allowed
         }
     }
 }
 
-private fun saveToPictures(context: Context, bytes: ByteArray, fileName: String) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        val resolver = context.contentResolver
-        val values = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/$ALBUM")
-            put(MediaStore.Images.Media.IS_PENDING, 1)
-        }
-        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-            ?: throw IOException("MediaStore refused to create $fileName")
-        resolver.openOutputStream(uri)?.use { it.write(bytes) }
-            ?: throw IOException("Cannot open MediaStore output for $fileName")
-        values.clear()
-        values.put(MediaStore.Images.Media.IS_PENDING, 0)
-        resolver.update(uri, values, null, null)
-    } else {
-        // ponytail: Android 8-9 would need WRITE_EXTERNAL_STORAGE for the shared Pictures folder; the
-        // app's own Pictures folder needs no permission and is still indexed by the media scanner.
-        val dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-            ?: throw IOException("External storage unavailable")
-        val file = File(dir, fileName).apply { writeBytes(bytes) }
-        MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), arrayOf("image/jpeg"), null)
-    }
-}
+/** Below Android 10 the gallery is shared storage, writable only with the legacy storage permission. */
+private fun needsStoragePermission(context: Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+        PackageManager.PERMISSION_GRANTED

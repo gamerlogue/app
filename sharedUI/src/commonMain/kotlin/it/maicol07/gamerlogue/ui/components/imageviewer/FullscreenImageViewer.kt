@@ -340,7 +340,7 @@ private fun ImageMenu(imageUrl: String, snackbarHostState: SnackbarHostState) = 
     val uriHandler = LocalUriHandler.current
     val clipboard = LocalClipboard.current
     val share = rememberShareUrl()
-    val save = rememberSaveImage()
+    val saveImage = rememberSaveImage()
     val scope = rememberCoroutineScope()
     val linkCopied = stringResource(Res.string.viewer__link_copied)
     val saved = stringResource(Res.string.viewer__saved)
@@ -373,7 +373,7 @@ private fun ImageMenu(imageUrl: String, snackbarHostState: SnackbarHostState) = 
             scope.launch {
                 // UI boundary: any failure (network, storage, browser) ends in the same message.
                 val message = try {
-                    if (save(imageUrl, imageFileName(imageUrl))) saved else null
+                    if (saveImage(downloadImageBytes(imageUrl), imageFileName(imageUrl))) saved else null
                 } catch (e: CancellationException) {
                     throw e
                 } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {

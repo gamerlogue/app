@@ -96,6 +96,8 @@ kotlin {
             implementation(libs.mp.stools)
             implementation(libs.kotlinx.datetime.ext)
             implementation(libs.zoomimage.compose)
+            implementation(libs.filekit.core)
+            implementation(libs.filekit.dialogs)
             implementation(libs.spraypaintkt.core)
             implementation(libs.spraypaintkt.ktor)
             implementation(libs.spraypaintkt.annotation)

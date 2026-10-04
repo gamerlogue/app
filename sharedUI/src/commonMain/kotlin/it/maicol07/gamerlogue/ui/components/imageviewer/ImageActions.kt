@@ -13,11 +13,12 @@ expect val isShareSupported: Boolean
 expect fun rememberShareUrl(): (url: String) -> Unit
 
 /**
- * Saves the image at the given URL as `fileName` where the platform keeps user images.
- * Returns false when the user cancelled (desktop save dialog); failures throw.
+ * Saves image bytes as the given file name where the platform keeps user images: the gallery on
+ * Android (asking for storage access first on Android 8-9), a save dialog on desktop, a download on
+ * web. Returns false when the user cancelled or denied access; failures throw.
  */
 @Composable
-expect fun rememberSaveImage(): suspend (url: String, fileName: String) -> Boolean
+expect fun rememberSaveImage(): suspend (bytes: ByteArray, fileName: String) -> Boolean
 
 /** Plain client for image bytes: none of the API clients' auth or JSON setup applies to the image CDN. */
 private val imageHttpClient by lazy { HttpClient { expectSuccess = true } }
