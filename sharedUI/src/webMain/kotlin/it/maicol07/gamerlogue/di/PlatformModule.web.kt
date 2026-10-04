@@ -3,6 +3,7 @@ package it.maicol07.gamerlogue.di
 import io.ktor.client.HttpClient
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.auth.WebAuthTokenProvider
 import it.maicol07.gamerlogue.auth.WebAuthenticationHandler
 import org.koin.core.annotation.Configuration
@@ -21,5 +22,6 @@ actual object PlatformModule {
     actual fun provideAuthenticationHandler(scope: Scope): AuthenticationHandler = WebAuthenticationHandler(
         authProvider = scope.get(),
         authClient = scope.get<HttpClient>(named("AuthHttpClient")),
+        serverUrl = { scope.get<AppPreferences>().serverUrl.value },
     )
 }

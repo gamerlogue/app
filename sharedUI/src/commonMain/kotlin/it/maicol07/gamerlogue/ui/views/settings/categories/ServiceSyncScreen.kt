@@ -14,7 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -72,12 +73,14 @@ import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SyncPhase
+import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.label
 import it.maicol07.gamerlogue.ui.components.rememberServiceWebViewHost
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
+import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -203,6 +206,7 @@ fun ServiceSyncView(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LoadingContent(log: List<SyncPhase>) {
     Column(
@@ -210,30 +214,23 @@ private fun LoadingContent(log: List<SyncPhase>) {
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CircularProgressIndicator()
-        Text(stringResource(Res.string.settings__service_working), style = MaterialTheme.typography.titleMedium)
+        ContainedLoadingIndicator()
+        Text(stringResource(Res.string.settings__service_working), style = MaterialTheme.typography.titleMediumEmphasized)
         log.forEach { phase ->
             Text(phase.label(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ErrorContent(onFinish: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            Icons.ErrorW500Rounded,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(48.dp),
-        )
-        Text(stringResource(Res.string.settings__service_sync_error), style = MaterialTheme.typography.titleMedium)
-        Button(onClick = onFinish) { Text(stringResource(Res.string.common_close)) }
-    }
+private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
+    Icons.ErrorW500Rounded,
+    stringResource(Res.string.settings__service_sync_error),
+    containerColor = MaterialTheme.colorScheme.errorContainer,
+    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+) {
+    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
 }
 
 /** Outgoing-direction preview: pick which backlog games to add to the store wishlist. */
@@ -262,7 +259,7 @@ private fun PushChecklist(
     Column(Modifier.fillMaxSize()) {
         Text(
             stringResource(Res.string.settings__wishlist_push_title),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMediumEmphasized,
             modifier = Modifier.padding(16.dp),
         )
         LazyColumn(
@@ -276,14 +273,7 @@ private fun PushChecklist(
                 }
             }
             if (offPlatform.isNotEmpty()) {
-                item {
-                    Text(
-                        stringResource(Res.string.settings__wishlist_push_off_platform),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 4.dp),
-                    )
-                }
+                item { SettingsGroupHeader(stringResource(Res.string.settings__wishlist_push_off_platform)) }
                 itemsIndexed(offPlatform) { index, game ->
                     PushRow(game, index, offPlatform.size, selected[game.uid] == true, matchesByName, uriHandler::openURL) {
                         selected[game.uid] = it
@@ -295,11 +285,12 @@ private fun PushChecklist(
             Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(onClick = onSkip, modifier = Modifier.weight(1f)) {
+            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes(), modifier = Modifier.weight(1f)) {
                 Text(stringResource(Res.string.settings__wishlist_push_skip))
             }
             Button(
                 onClick = { onConfirm(games.filter { selected[it.uid] == true }) },
+                shapes = ButtonDefaults.shapes(),
                 modifier = Modifier.weight(1f),
             ) {
                 Text(stringResource(Res.string.settings__wishlist_push_confirm))

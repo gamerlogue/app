@@ -3,7 +3,6 @@ package it.maicol07.gamerlogue.auth
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
 import io.ktor.util.generateNonceBlocking
-import it.maicol07.gamerlogue.BuildConfig
 import okio.ByteString.Companion.encodeUtf8
 
 /** The half of the PKCE proof that has to survive until the callback comes back. */
@@ -37,8 +36,8 @@ internal fun callbackMatchesState(query: String, expectedState: String): Boolean
 internal fun authorizationCode(query: String): String? =
     callbackParameter(query, "code")?.takeIf { it.length == AUTHORIZATION_CODE_LENGTH }
 
-internal fun buildAuthUrl(redirectUri: String, proof: PkceLoginAttempt): String =
-    URLBuilder("${BuildConfig.GAMERLOGUE_URL}/sanctum/token").apply {
+internal fun buildAuthUrl(serverUrl: String, redirectUri: String, proof: PkceLoginAttempt): String =
+    URLBuilder("$serverUrl/sanctum/token").apply {
         parameters.append("token_name", "Gamerlogue")
         parameters.append("code_challenge", proof.challenge)
         parameters.append("code_challenge_method", "S256")

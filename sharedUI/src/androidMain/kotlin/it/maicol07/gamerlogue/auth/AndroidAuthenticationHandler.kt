@@ -6,13 +6,14 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import io.ktor.client.HttpClient
-import it.maicol07.gamerlogue.BuildConfig
+import it.maicol07.gamerlogue.core.OFFICIAL_SERVER_URL
 
 class AndroidAuthenticationHandler(
     private val context: Context,
     authProvider: AuthTokenProvider,
     authClient: HttpClient,
-) : NativeAuthenticationHandler(authProvider, authClient) {
+    serverUrl: () -> String,
+) : NativeAuthenticationHandler(authProvider, authClient, serverUrl) {
     private val flowState = context.getSharedPreferences("native_auth_flow", Context.MODE_PRIVATE)
 
     override fun launchLogin(attempt: PkceLoginAttempt) {
@@ -20,8 +21,9 @@ class AndroidAuthenticationHandler(
         // The App Link is bound to the host hardcoded in the manifest, so any other backend — a local
         // one included — can only come back through the private-use scheme filter, which matches
         // regardless of host. See docs/auth-app-links.md.
-        val redirectUri = if (BuildConfig.GAMERLOGUE_URL == OFFICIAL_INSTANCE_URL) {
-            "$OFFICIAL_INSTANCE_URL/auth/callback"
+        val server = serverUrl()
+        val redirectUri = if (server == OFFICIAL_SERVER_URL) {
+            "$OFFICIAL_SERVER_URL/auth/callback"
         } else {
             "gamerlogue://auth/callback"
         }
@@ -32,7 +34,7 @@ class AndroidAuthenticationHandler(
             .setShowTitle(true)
             .build()
             .apply { intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-            .launchUrl(context, buildAuthUrl(redirectUri, attempt).toUri())
+            .launchUrl(context, buildAuthUrl(server, redirectUri, attempt).toUri())
     }
 
     override suspend fun handleCallback(query: String): Boolean {
@@ -62,6 +64,3 @@ class AndroidAuthenticationHandler(
         flowState.edit(commit = true) { clear() }
     }
 }
-
-/** Kept in sync with the `autoVerify` intent-filter host in the Android manifest. */
-private const val OFFICIAL_INSTANCE_URL = "https://gamerlogue.maicol07.it"

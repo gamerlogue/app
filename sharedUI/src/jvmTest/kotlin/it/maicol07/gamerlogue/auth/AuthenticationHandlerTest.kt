@@ -159,12 +159,12 @@ private fun testClient(engine: MockEngine) = HttpClient(engine) {
 private class TestAuthenticationHandler(
     provider: AuthTokenProvider,
     client: HttpClient,
-) : NativeAuthenticationHandler(provider, client) {
+) : NativeAuthenticationHandler(provider, client, { "https://gamerlogue.test" }) {
     private var pending: PendingLogin? = null
 
     fun begin(proof: PkceLoginAttempt): String {
         pending = proof.pending
-        return buildAuthUrl("gamerlogue://auth/callback", proof)
+        return buildAuthUrl(serverUrl(), "gamerlogue://auth/callback", proof)
     }
 
     override fun launchLogin(attempt: PkceLoginAttempt) = Unit

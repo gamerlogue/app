@@ -153,7 +153,8 @@ data class GameListFilterState(
 class GameListViewModel(
     @InjectedParam private val section: DiscoverSection?,
     @InjectedParam private val eventId: Int?,
-) : StateViewModel<GameListViewModel.UiState>(UiState()) {
+    @InjectedParam preset: GameListPreset?,
+) : StateViewModel<GameListViewModel.UiState>(UiState.from(preset)) {
     /** Immutable state of the search results pane. */
     data class UiState(
         /** The scoped event with its full details, once loaded, backs the list header. */
@@ -172,7 +173,23 @@ class GameListViewModel(
          * the query moves on and while the sheet is closed, since the filter state only stores ids.
          */
         val knownOptions: Map<FilterSearchTarget, Map<Int, NamedSearchResult>> = emptyMap(),
-    )
+    ) {
+        companion object {
+            /** Initial state, pre-filtered on [preset] when the list was opened from a game's metadata. */
+            fun from(preset: GameListPreset?): UiState {
+                if (preset == null) return UiState()
+                val target = preset.searchTarget
+                return UiState(
+                    filterState = preset.applyTo(GameListFilterState()),
+                    knownOptions = if (target != null) {
+                        mapOf(target to mapOf(preset.id to NamedSearchResult(preset.id, preset.name)))
+                    } else {
+                        emptyMap()
+                    }
+                )
+            }
+        }
+    }
 
     private companion object {
         const val PAGE_SIZE = 50

@@ -5,6 +5,7 @@ import it.maicol07.gamerlogue.auth.AndroidAuthTokenProvider
 import it.maicol07.gamerlogue.auth.AndroidAuthenticationHandler
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
+import it.maicol07.gamerlogue.core.AppPreferences
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -23,5 +24,6 @@ actual object PlatformModule {
         context = scope.get(),
         authProvider = scope.get(),
         authClient = scope.get<HttpClient>(named("AuthHttpClient")),
+        serverUrl = { scope.get<AppPreferences>().serverUrl.value },
     )
 }

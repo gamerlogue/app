@@ -76,3 +76,6 @@ actual fun deviceSeedColor(): Color? {
         }
     }
 }
+
+// ponytail: covers the official emulator images (ranchu, and goldfish on old ones), not third-party emulators.
+actual val isAndroidEmulator = Build.HARDWARE == "ranchu" || Build.HARDWARE == "goldfish"

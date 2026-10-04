@@ -14,6 +14,7 @@
     <plurals name="exception__count">
         <item quantity="one">%1$d errore</item>
         <item quantity="many">%1$d errori</item>
+        <item quantity="other">%1$d errori</item>
     </plurals>
     <string name="exception__details_show">Mostra dettagli tecnici</string>
     <string name="exception__details_hide">Nascondi dettagli tecnici</string>
@@ -37,6 +38,7 @@
     <plurals name="home__release_in_days">
         <item quantity="one">Tra %1$d giorno</item>
         <item quantity="many">Tra %1$d giorni</item>
+        <item quantity="other">Tra %1$d giorni</item>
     </plurals>
     <string name="events__next">Il prossimo</string>
 
@@ -57,6 +59,7 @@
     <string name="game__ratings_title">Valutazioni</string>
     <string name="game__ratings_igdb_user">Utenti IGDB</string>
     <string name="game__ratings_igdb_critics">Critica IGDB</string>
+    <string name="game__rating_description">%1$s: %2$s su 10, %3$d voti</string>
     <string name="game__genres_title">Generi</string>
     <string name="game__themes_title">Temi</string>
     <string name="game__game_modes_title">Modalità di gioco</string>
@@ -87,6 +90,7 @@
     <plurals name="game__languages_count">
         <item quantity="one">%1$d lingua</item>
         <item quantity="many">%1$d lingue</item>
+        <item quantity="other">%1$d lingue</item>
     </plurals>
     <string name="game__languages_audio">Audio</string>
     <string name="game__languages_subtitles">Sottotitoli</string>
@@ -113,7 +117,7 @@
     <!-- Player Perspectives -->
     <string name="player_perspective__first_person">Prima persona</string>
     <string name="player_perspective__third_person">Terza persona</string>
-    <string name="player_perspective__isometric">Vista dall\'alto / Isometrica</string>
+    <string name="player_perspective__isometric">Vista dall'alto / Isometrica</string>
     <string name="player_perspective__side_view">Vista a scorrimento (Side view)</string>
     <string name="player_perspective__text">Testuale</string>
     <string name="player_perspective__auditory">Audio / Uditiva</string>
@@ -232,8 +236,8 @@
     <string name="library__edit_entry">Modifica %1$s</string>
     <string name="library__add_to_backlog">Aggiungi al Backlog</string>
     <string name="library__remove_from_backlog">Rimuovi dal Backlog</string>
-    <string name="library__add_to_playing">Aggiungi a \"In gioco\"</string>
-    <string name="library__remove_from_playing">Rimuovi da \"In gioco\"</string>
+    <string name="library__add_to_playing">Aggiungi a "In gioco"</string>
+    <string name="library__remove_from_playing">Rimuovi da "In gioco"</string>
     <string name="library__edit_in_library">Modifica voce libreria</string>
     <string name="library__section">Sezione</string>
     <string name="library__completion_status">Stato di completamento</string>
@@ -247,7 +251,7 @@
     <string name="library__standard_edition">Edizione standard</string>
     <string name="library__platforms">Piattaforme</string>
     <string name="library__dates">Date</string>
-    <string name="library__start_date">Data d\'inizio</string>
+    <string name="library__start_date">Data d'inizio</string>
     <string name="library__end_date">Data di fine</string>
     <string name="library__played_time">Tempo di gioco</string>
     <string name="library__hours">ore</string>
@@ -273,7 +277,7 @@
 
     <!-- Authentication -->
     <string name="auth__login_required_title">Accesso richiesto</string>
-    <string name="auth__login_required_message">Devi effettuare l\'accesso per accedere a questa sezione.</string>
+    <string name="auth__login_required_message">Devi effettuare l'accesso per accedere a questa sezione.</string>
     <string name="auth__login">Accedi</string>
     <string name="auth__logging_in">Apertura pagina di accesso…</string>
     <string name="auth__login_success">Accesso effettuato con successo</string>
@@ -281,6 +285,7 @@
     <string name="auth__cancel">Annulla</string>
     <string name="auth__continue">Continua</string>
     <string name="auth__logout">Esci</string>
+    <string name="auth__logout_confirm_message">Vuoi davvero uscire?</string>
 
     <!-- Game Card -->
     <string name="game_card__hours_played">%1$d ore</string>
@@ -289,6 +294,10 @@
     <string name="nav__settings">Impostazioni</string>
     <string name="settings__linked_services">Servizi collegati</string>
     <string name="settings__appearance">Aspetto</string>
+    <string name="settings__appearance_summary">Tema, colori del dispositivo, lingua</string>
+    <string name="settings__linked_services_summary">Steam, PlayStation, Xbox e altri</string>
+    <string name="settings__group_app">App</string>
+    <string name="settings__group_account">Account</string>
     <string name="settings__linked_services_disclaimer">I collegamenti e le credenziali sono salvati localmente e non vengono mai trasmessi altrove.</string>
     <string name="settings__theme">Tema</string>
     <string name="settings__language">Lingua</string>
@@ -350,7 +359,7 @@
     <string name="settings__import_group_to_import">Da importare (%1$d)</string>
     <string name="settings__import_group_to_review">Da rivedere (%1$d)</string>
     <string name="settings__import_group_already_present">Già nella libreria (%1$d)</string>
-    <string name="settings__service_web_unsupported">Il collegamento degli account non è disponibile sul web. Usa l\'app Android o desktop per collegare i tuoi store.</string>
+    <string name="settings__service_web_unsupported">Il collegamento degli account non è disponibile sul web. Usa l'app Android o desktop per collegare i tuoi store.</string>
     <string name="settings__service_login_required">Accedi per continuare</string>
     <string name="settings__service_working">Operazione in corso…</string>
     <string name="settings__service_phase_logged_in">Accesso effettuato</string>
@@ -368,6 +377,10 @@
     <string name="game__description_title">Descrizione</string>
     <string name="game__no_description">Nessuna descrizione disponibile</string>
     <string name="game__not_found">Dettagli del gioco non trovati</string>
+    <string name="game__load_error">Impossibile caricare i dettagli del gioco</string>
+    <string name="game__retry">Riprova</string>
+    <string name="game__show_more">Mostra altro</string>
+    <string name="game__show_less">Mostra meno</string>
     <string name="game__artwork_image">Immagine artwork</string>
 
     <!-- Profile/Calendar placeholders -->
@@ -417,15 +430,49 @@
     <string name="gamelist__filter_franchises">Franchise</string>
     <string name="gamelist__filter_engines">Motori di gioco</string>
     <string name="gamelist__filter_keywords">Parole chiave</string>
-    <string name="gamelist__search_companies">Cerca un\'azienda…</string>
+    <string name="gamelist__search_companies">Cerca un'azienda…</string>
     <string name="gamelist__search_franchises">Cerca un franchise…</string>
     <string name="gamelist__search_engines">Cerca un motore…</string>
     <string name="gamelist__search_keywords">Cerca una parola chiave…</string>
-    <string name="gamelist__sort_disabled_search">L\'ordinamento non è disponibile durante la ricerca</string>
+    <string name="gamelist__sort_disabled_search">L'ordinamento non è disponibile durante la ricerca</string>
     <string name="gamelist__filter_time_to_beat">Tempo di completamento</string>
     <string name="gamelist__hours_range">%1$d–%2$d h</string>
     <string name="gamelist__hours_range_open">Oltre %1$d h</string>
     <string name="gamelist__filter_type_to_search">Digita per cercare</string>
-    <string name="gamelist__empty_hint">Prova un\'altra ricerca o meno filtri</string>
+    <string name="gamelist__empty_hint">Prova un'altra ricerca o meno filtri</string>
     <string name="gamelist__remove_filter">Rimuovi %1$s</string>
+    <string name="common__more_options">Altre opzioni</string>
+    <string name="game__igdb_open">Apri su IGDB</string>
+    <string name="game__igdb_edit">Modifica su IGDB</string>
+    <string name="game__igdb_about">Informazioni sui dati</string>
+    <string name="game__igdb_about_title">Dati da IGDB</string>
+    <string name="game__igdb_about_body">I dettagli del gioco provengono da IGDB, un database mantenuto dalla community. Se qualcosa manca o è sbagliato puoi correggerlo lì: le modifiche vengono controllate dai moderatori di IGDB e compaiono qui una volta approvate.</string>
+    <string name="viewer__open_external">Apri nel browser</string>
+    <string name="viewer__copy_link">Copia link</string>
+    <string name="viewer__share">Condividi</string>
+    <string name="viewer__save">Salva immagine</string>
+    <string name="viewer__link_copied">Link copiato</string>
+    <string name="viewer__saved">Immagine salvata</string>
+    <string name="viewer__save_failed">Impossibile salvare l'immagine</string>
+    <string name="viewer__page">%1$d di %2$d</string>
+    <string name="settings__group_advanced">Avanzate</string>
+    <string name="settings__server">Server</string>
+    <string name="settings__server_summary">Istanza Gamerlogue ed endpoint IGDB</string>
+    <string name="settings__server_warning">Solo per utenti avanzati. Modifica questi indirizzi solo se sai cosa stai facendo: un valore errato impedisce all'app di funzionare. “Ripristina predefiniti” riporta sempre alla configurazione originale.</string>
+    <string name="settings__server_url">URL del server Gamerlogue</string>
+    <string name="settings__server_igdb_follows">IGDB tramite il server Gamerlogue</string>
+    <string name="settings__server_igdb_url">URL dell'API IGDB</string>
+    <string name="settings__server_check">Verifica</string>
+    <string name="settings__server_save">Salva</string>
+    <string name="settings__server_restore">Ripristina predefiniti</string>
+    <string name="settings__server_status_checking">Verifica in corso…</string>
+    <string name="settings__server_status_invalid">Inserisci un indirizzo completo http:// o https://</string>
+    <string name="settings__server_status_server_ok">Server Gamerlogue raggiungibile</string>
+    <string name="settings__server_status_igdb_ok">Endpoint IGDB funzionante</string>
+    <string name="settings__server_status_server_unexpected">Raggiungibile, ma non è un server Gamerlogue</string>
+    <string name="settings__server_status_igdb_unexpected">Raggiungibile, ma non risponde come IGDB</string>
+    <string name="settings__server_status_unreachable">Non raggiungibile</string>
+    <string name="settings__server_sign_out_title">Cambiare server?</string>
+    <string name="settings__server_sign_out_message">Verrai disconnesso, perché il tuo account appartiene al server attuale.</string>
+    <string name="settings__server_sign_out_confirm">Cambia e disconnetti</string>
 </resources>

@@ -122,7 +122,7 @@ private fun EventLinks(event: Event, onOpen: (String) -> Unit) {
         onCheckedChange = { link, _ -> onOpen(link.url) },
         toggleButtonText = { it.label },
         toggleButtonIcon = { it.icon },
-        rowModifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     )
 }
 

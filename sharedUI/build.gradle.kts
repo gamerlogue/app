@@ -96,6 +96,8 @@ kotlin {
             implementation(libs.mp.stools)
             implementation(libs.kotlinx.datetime.ext)
             implementation(libs.zoomimage.compose)
+            implementation(libs.filekit.core)
+            implementation(libs.filekit.dialogs)
             implementation(libs.spraypaintkt.core)
             implementation(libs.spraypaintkt.ktor)
             implementation(libs.spraypaintkt.annotation)
@@ -231,8 +233,6 @@ buildConfig {
                 ).uppercase()
         }"
     )
-    buildConfigField("IGDB_API_URL", localProperties.getOrDefault("IGDB_API_URL", "https://api.igdb.com/v4/") as String)
-    buildConfigField("GAMERLOGUE_URL", localProperties.getOrDefault("GAMERLOGUE_URL", "") as String)
 
     val composeResourcesDir = file("src/commonMain/composeResources")
     val availableLanguages = listOf("en") + (
@@ -274,7 +274,9 @@ symbolCraft {
         "conversion_path",
         "date_range",
         "delete",
+        "description",
         "devices",
+        "download",
         "edit",
         "error",
         "explosion",
@@ -283,6 +285,7 @@ symbolCraft {
         "filter_list",
         "flutter_dash",
         "grid_4x4",
+        "group",
         "history",
         "home",
         "hourglass",
@@ -293,11 +296,13 @@ symbolCraft {
         "layers",
         "language",
         "linked_services",
+        "link",
         "lips",
         "lightbulb",
         "local_fire_department",
         "login",
         "logout",
+        "more_vert",
         "music_note",
         "mystery",
         "newsstand",
@@ -320,6 +325,7 @@ symbolCraft {
         "search",
         "search_off",
         "settings",
+        "share",
         "skeleton",
         "simulation",
         "sort",
@@ -336,6 +342,7 @@ symbolCraft {
         "sword_rose",
         "sync",
         "tactic",
+        "tag",
         "theater_comedy",
         "timer",
         "toys_and_games",
@@ -344,7 +351,11 @@ symbolCraft {
         "arrow_downward",
         "arrow_upward",
         "domain",
+        "dns",
+        "settings_backup_restore",
+        "warning",
         "upcoming",
+        "visibility",
         "wand_stars",
         "web_traffic"
     )
@@ -364,7 +375,8 @@ symbolCraft {
     )
     @Suppress("SpreadOperator")
     externalIcons(*mdiIcons.toTypedArray(), libraryName = "mdi") {
-        urlTemplate = "https://esm.sh/@mdi/svg@latest/svg/{name}.svg"
+        // Pinned and redirect-free: esm.sh now 302s `@latest`, which SymbolCraft does not follow.
+        urlTemplate = "https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/{name}.svg"
     }
 
     val brandIcons = listOf(

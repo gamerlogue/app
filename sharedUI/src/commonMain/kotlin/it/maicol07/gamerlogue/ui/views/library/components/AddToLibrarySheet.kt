@@ -290,7 +290,7 @@ private fun CompletionStatusChips(
         toggleButtonText = { stringResource(it.displayName) },
         showChecks = true,
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        rowModifier = modifier
+        modifier = modifier
     )
 }
 

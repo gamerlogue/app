@@ -1,6 +1,6 @@
 package it.maicol07.gamerlogue.data
 
-import it.maicol07.gamerlogue.BuildConfig
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.spraypaintkt.PaginationStrategy
 import it.maicol07.spraypaintkt.interfaces.HttpClient
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
@@ -12,7 +12,9 @@ import org.koin.core.qualifier.named
 
 @DefaultInstance
 data object AppJsonApiConfig : JsonApiConfig, KoinComponent {
-    override val baseUrl: String = "${BuildConfig.GAMERLOGUE_URL}/api"
+    // Resolved per access, like httpClient below, so a server change in the settings applies at once.
+    override val baseUrl: String
+        get() = "${get<AppPreferences>().serverUrl.value}/api"
 
     // Backend is page-based (rejects page[offset] with "Page should not be less than 1").
     override val paginationStrategy: PaginationStrategy = PaginationStrategy.PAGE_BASED

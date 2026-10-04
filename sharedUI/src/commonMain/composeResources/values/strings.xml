@@ -33,7 +33,7 @@
     <string name="home__upcoming_games">Coming soon</string>
     <string name="home__see_all">See all</string>
     <string name="home__empty_section">No games to show</string>
-    <string name="home__section_error">Couldn\'t load this section</string>
+    <string name="home__section_error">Couldn't load this section</string>
     <string name="home__release_today">Today</string>
     <string name="home__release_tomorrow">Tomorrow</string>
     <plurals name="home__release_in_days">
@@ -48,7 +48,7 @@
     <string name="events__upcoming">Upcoming</string>
     <string name="events__past">Previous</string>
     <string name="events__empty">No events to show</string>
-    <string name="events__error">Couldn\'t load events</string>
+    <string name="events__error">Couldn't load events</string>
     <string name="events__retry">Retry</string>
     <string name="events__live_now">Live now</string>
     <string name="events__logo">Logo of %1$s</string>
@@ -59,6 +59,7 @@
     <string name="game__ratings_title">Ratings</string>
     <string name="game__ratings_igdb_user">IGDB Users</string>
     <string name="game__ratings_igdb_critics">IGDB Critics</string>
+    <string name="game__rating_description">%1$s: %2$s out of 10, %3$d ratings</string>
     <string name="game__genres_title">Genres</string>
     <string name="game__themes_title">Themes</string>
     <string name="game__game_modes_title">Game Modes</string>
@@ -179,7 +180,7 @@
     <string name="genre__strategy">Strategy</string>
     <string name="genre__tbs">Turn Based Strategy (TBS)</string>
     <string name="genre__tactical">Tactical</string>
-    <string name="genre__hack_and_slash">Hack and slash/Beat \'em up</string>
+    <string name="genre__hack_and_slash">Hack and slash/Beat 'em up</string>
     <string name="genre__quiz">Quiz/Trivia</string>
     <string name="genre__pinball">Pinball</string>
     <string name="genre__adventure">Adventure</string>
@@ -283,6 +284,7 @@
     <string name="auth__cancel">Cancel</string>
     <string name="auth__continue">Continue</string>
     <string name="auth__logout">Log out</string>
+    <string name="auth__logout_confirm_message">Are you sure you want to log out?</string>
     <string name="auth__deep_link_scheme" translatable="false">gamerlogue</string>
     <string name="auth__deep_link_host" translatable="false">auth</string>
     <string name="auth__deep_link_path" translatable="false">callback</string>
@@ -294,6 +296,10 @@
     <string name="nav__settings">Settings</string>
     <string name="settings__linked_services">Linked Services</string>
     <string name="settings__appearance">Appearance</string>
+    <string name="settings__appearance_summary">Theme, device colors, language</string>
+    <string name="settings__linked_services_summary">Steam, PlayStation, Xbox and more</string>
+    <string name="settings__group_app">App</string>
+    <string name="settings__group_account">Account</string>
     <string name="settings__linked_services_disclaimer">Links and credentials are saved locally and are never transmitted elsewhere.</string>
     <string name="settings__theme">Theme</string>
     <string name="settings__language">Language</string>
@@ -309,7 +315,7 @@
     <string name="settings__service_nintendo">Nintendo</string>
     <string name="settings__service_ubisoft">Ubisoft Connect</string>
     <string name="settings__service_pc_only">PC only</string>
-    <string name="settings__service_webview_busy">Operation in progress — the WebView can\'t be used right now</string>
+    <string name="settings__service_webview_busy">Operation in progress — the WebView can't be used right now</string>
     <string name="settings__sync_title_connect">Signing in to %1$s</string>
     <string name="settings__sync_title_refresh_profile">Updating your %1$s profile</string>
     <string name="settings__sync_title_sync_wishlist">Syncing your %1$s wishlist</string>
@@ -353,7 +359,7 @@
     <string name="settings__import_group_to_import">To import (%1$d)</string>
     <string name="settings__import_group_to_review">To review (%1$d)</string>
     <string name="settings__import_group_already_present">Already in your library (%1$d)</string>
-    <string name="settings__service_web_unsupported">Account linking isn\'t available on the web. Use the Android or desktop app to connect your stores.</string>
+    <string name="settings__service_web_unsupported">Account linking isn't available on the web. Use the Android or desktop app to connect your stores.</string>
     <string name="settings__service_login_required">Sign in to continue</string>
     <string name="settings__service_working">Working…</string>
     <string name="settings__service_phase_logged_in">Signed in</string>
@@ -371,11 +377,15 @@
     <string name="game__description_title">Description</string>
     <string name="game__no_description">No description available</string>
     <string name="game__not_found">Game details not found</string>
+    <string name="game__load_error">Couldn't load the game details</string>
+    <string name="game__retry">Retry</string>
+    <string name="game__show_more">Show more</string>
+    <string name="game__show_less">Show less</string>
     <string name="game__artwork_image">Artwork image</string>
 
     <!-- Profile/Calendar placeholders -->
     <string name="profile__subtitle">Your profile and settings</string>
-    <string name="calendar__placeholder">Here you\'ll see upcoming releases and your events</string>
+    <string name="calendar__placeholder">Here you'll see upcoming releases and your events</string>
 
     <!-- Library extras -->
     <string name="library__error_select_status">Please select a status.</string>
@@ -430,4 +440,38 @@
     <string name="gamelist__filter_type_to_search">Type to search</string>
     <string name="gamelist__empty_hint">Try a different search or fewer filters</string>
     <string name="gamelist__remove_filter">Remove %1$s</string>
+    <string name="common__more_options">More options</string>
+    <string name="game__igdb_open">Open on IGDB</string>
+    <string name="game__igdb_edit">Edit on IGDB</string>
+    <string name="game__igdb_about">About this data</string>
+    <string name="game__igdb_about_title">Data from IGDB</string>
+    <string name="game__igdb_about_body">Game details come from IGDB, a community-maintained database. If something is missing or wrong, you can fix it there: changes are reviewed by IGDB moderators and show up here once approved.</string>
+    <string name="viewer__open_external">Open in browser</string>
+    <string name="viewer__copy_link">Copy link</string>
+    <string name="viewer__share">Share</string>
+    <string name="viewer__save">Save image</string>
+    <string name="viewer__link_copied">Link copied</string>
+    <string name="viewer__saved">Image saved</string>
+    <string name="viewer__save_failed">Couldn't save the image</string>
+    <string name="viewer__page">%1$d of %2$d</string>
+    <string name="settings__group_advanced">Advanced</string>
+    <string name="settings__server">Server</string>
+    <string name="settings__server_summary">Gamerlogue instance and IGDB endpoint</string>
+    <string name="settings__server_warning">For advanced users only. Change these addresses only if you know what you are doing: a wrong value stops the app from working. “Restore defaults” always brings back the original setup.</string>
+    <string name="settings__server_url">Gamerlogue server URL</string>
+    <string name="settings__server_igdb_follows">IGDB through the Gamerlogue server</string>
+    <string name="settings__server_igdb_url">IGDB API URL</string>
+    <string name="settings__server_check">Check</string>
+    <string name="settings__server_save">Save</string>
+    <string name="settings__server_restore">Restore defaults</string>
+    <string name="settings__server_status_checking">Checking…</string>
+    <string name="settings__server_status_invalid">Enter a full http:// or https:// address</string>
+    <string name="settings__server_status_server_ok">Gamerlogue server reachable</string>
+    <string name="settings__server_status_igdb_ok">IGDB endpoint working</string>
+    <string name="settings__server_status_server_unexpected">Reachable, but it isn't a Gamerlogue server</string>
+    <string name="settings__server_status_igdb_unexpected">Reachable, but it doesn't answer like IGDB</string>
+    <string name="settings__server_status_unreachable">Unreachable</string>
+    <string name="settings__server_sign_out_title">Change server?</string>
+    <string name="settings__server_sign_out_message">You'll be signed out, since your account belongs to the current server.</string>
+    <string name="settings__server_sign_out_confirm">Change and sign out</string>
 </resources>

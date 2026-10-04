@@ -19,13 +19,16 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedListItem
@@ -69,6 +72,7 @@ import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
@@ -76,10 +80,12 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
+import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -115,18 +121,19 @@ private fun LibraryImportPreviewContent(
     val uriHandler = LocalUriHandler.current
 
     if (uiState.loading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { ContainedLoadingIndicator() }
         return
     }
 
     uiState.importedCount?.let { count ->
-        Column(
-            Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        StatusMessage(
+            Icons.CheckCircleW500Rounded,
+            pluralStringResource(Res.plurals.settings__import_done, count, count),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = MaterialShapes.Sunny,
         ) {
-            Text(pluralStringResource(Res.plurals.settings__import_done, count, count), style = MaterialTheme.typography.titleMedium)
-            Button(onClick = onDone) { Text(stringResource(Res.string.settings__import_finish)) }
+            Button(onClick = onDone, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.settings__import_finish)) }
         }
         return
     }
@@ -165,7 +172,7 @@ private fun LibraryImportPreviewContent(
 
         if (uiState.matching) {
             val progress = if (uiState.total > 0) uiState.processed.toFloat() / uiState.total else 0f
-            LinearProgressIndicator(
+            LinearWavyProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             )
@@ -193,6 +200,7 @@ private fun LibraryImportPreviewContent(
         Button(
             onClick = viewModel::confirm,
             enabled = !uiState.matching && !uiState.importing && selectedCount > 0,
+            shapes = ButtonDefaults.shapes(),
             modifier = Modifier.fillMaxWidth().padding(16.dp),
         ) {
             if (uiState.importing) {
@@ -224,7 +232,7 @@ private fun LazyListScope.importGroup(
     onOpenStore: (String) -> Unit,
 ) {
     if (rows.isEmpty()) return
-    item { GroupHeader(titleRes, rows.size) }
+    item { SettingsGroupHeader(stringResource(titleRes, rows.size)) }
     itemsIndexed(rows) { indexInGroup, indexed ->
         ImportRow(
             row = indexed.value,
@@ -237,16 +245,6 @@ private fun LazyListScope.importGroup(
             onOpenStore = onOpenStore,
         )
     }
-}
-
-@Composable
-private fun GroupHeader(titleRes: StringResource, count: Int) {
-    Text(
-        stringResource(titleRes, count),
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-    )
 }
 
 /**

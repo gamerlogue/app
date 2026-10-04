@@ -4,7 +4,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.http.HttpStatusCode
-import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.spraypaintkt.JsonApiException
 import kotlinx.browser.window
@@ -12,13 +11,14 @@ import kotlinx.browser.window
 class WebAuthenticationHandler(
     authProvider: AuthTokenProvider,
     private val authClient: HttpClient,
+    private val serverUrl: () -> String,
 ) : AuthenticationHandler(authProvider) {
     override fun login() {
-        window.location.href = "${BuildConfig.GAMERLOGUE_URL}/oidc/login"
+        window.location.href = "${serverUrl()}/oidc/login"
     }
 
     override suspend fun restoreSession() {
-        authClient.get("${BuildConfig.GAMERLOGUE_URL}/sanctum/csrf-cookie")
+        authClient.get("${serverUrl()}/sanctum/csrf-cookie")
         val user = try {
             User.all().data.singleOrNull()
         } catch (e: JsonApiException) {
@@ -35,7 +35,7 @@ class WebAuthenticationHandler(
      */
     override suspend fun logout() {
         try {
-            authClient.post("${BuildConfig.GAMERLOGUE_URL}/logout")
+            authClient.post("${serverUrl()}/logout")
         } finally {
             authProvider.clearSession()
         }

@@ -35,3 +35,5 @@ private val systemLocale: Locale = Locale.getDefault()
 actual fun applyAppLanguage(tag: String?) {
     Locale.setDefault(if (tag == null) systemLocale else Locale.forLanguageTag(tag))
 }
+
+actual val isAndroidEmulator = false

@@ -10,13 +10,14 @@ import java.net.URISyntaxException
 class JvmAuthenticationHandler(
     authProvider: AuthTokenProvider,
     authClient: HttpClient,
-) : NativeAuthenticationHandler(authProvider, authClient) {
+    serverUrl: () -> String,
+) : NativeAuthenticationHandler(authProvider, authClient, serverUrl) {
     private val loginServer = LoopbackAuthServer(::exchangeCallback)
 
     override fun launchLogin(attempt: PkceLoginAttempt) {
         try {
             val port = loginServer.start(attempt)
-            val authUrl = buildAuthUrl("http://localhost:$port/callback", attempt)
+            val authUrl = buildAuthUrl(serverUrl(), "http://localhost:$port/callback", attempt)
 
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(URI(authUrl))

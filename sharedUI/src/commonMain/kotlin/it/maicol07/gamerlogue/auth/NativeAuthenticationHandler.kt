@@ -11,13 +11,18 @@ import kotlinx.serialization.SerializationException
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-/** Shared PKCE and bearer-token behavior for Android and desktop. */
+/**
+ * Shared PKCE and bearer-token behavior for Android and desktop.
+ *
+ * @param serverUrl read on every call, so the instance chosen in the settings applies without a restart.
+ */
 abstract class NativeAuthenticationHandler(
     authProvider: AuthTokenProvider,
     authClient: HttpClient,
+    protected val serverUrl: () -> String,
 ) : AuthenticationHandler(authProvider) {
     private val tokenMutex = Mutex()
-    private val tokenClient = SanctumTokenClient(authClient)
+    private val tokenClient = SanctumTokenClient(authClient, serverUrl)
 
     final override fun login() = launchLogin(createPkceLoginAttempt())
 

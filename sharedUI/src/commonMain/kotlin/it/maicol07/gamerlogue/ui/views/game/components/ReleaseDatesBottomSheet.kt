@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -22,11 +24,15 @@ import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__release_dates_title
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveShape
-import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
+import it.maicol07.gamerlogue.ui.components.game.Image
+import it.maicol07.gamerlogue.ui.views.list.GameListPreset
+import it.maicol07.gamerlogue.ui.views.list.GameListPresetType
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.ExperimentalTime
 
@@ -34,7 +40,8 @@ import kotlin.time.ExperimentalTime
 @Composable
 fun ReleaseDatesBottomSheet(
     game: Game,
-    onDismissRequest: () -> Unit = { }
+    onPlatformClick: (GameListPreset) -> Unit,
+    onDismissRequest: () -> Unit
 ) = ModalBottomSheet(
     onDismissRequest = onDismissRequest,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -70,10 +77,13 @@ fun ReleaseDatesBottomSheet(
                         }
                     }
                 },
+                trailingContent = { Icon(Icons.KeyboardArrowRightW500Rounded, contentDescription = null) },
                 colors = ListItemDefaults.expressiveSegmentedColors(),
-                modifier = Modifier.clip(
-                    ListItemDefaults.expressiveShape(index == 0, index == game.platforms.lastIndex)
-                )
+                modifier = Modifier
+                    .clip(ListItemDefaults.expressiveShape(index == 0, index == game.platforms.lastIndex))
+                    .clickable {
+                        onPlatformClick(GameListPreset(GameListPresetType.PLATFORM, platform.id.toInt(), platform.name))
+                    }
             )
         }
     }

@@ -20,13 +20,16 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.accept
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.appendEncodedPathSegments
 import io.ktor.http.contentType
+import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.auth.configurePlatformSession
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.UbisoftApi
@@ -84,25 +87,42 @@ private val PlatformSession = createClientPlugin("PlatformSession") {
     onRequest { request, _ -> request.configurePlatformSession() }
 }
 
+/**
+ * `igdbclient` fixes its base URL at construction, but the client is a singleton and the endpoint can
+ * change in the settings. It is built against this placeholder host, and every request is moved onto
+ * the endpoint configured at the time it is sent.
+ */
+internal const val IGDB_PLACEHOLDER_HOST = "igdb.invalid"
+
+internal fun igdbBaseUrl(currentBaseUrl: () -> String) = createClientPlugin("IgdbBaseUrl") {
+    onRequest { request, _ ->
+        if (request.url.host != IGDB_PLACEHOLDER_HOST) return@onRequest
+        val endpoint = request.url.encodedPathSegments.filter(String::isNotEmpty)
+        // takeFrom only replaces what the base URL specifies, so the query survives as is.
+        request.url.takeFrom(currentBaseUrl()).appendEncodedPathSegments(endpoint)
+    }
+}
+
 @Module
 @Configuration
 object HttpModule {
     /**
      * Provides an instance of [IgdbClient] configured with a custom Ktor HTTP engine and base URL.
      *
-     * The client is initialized using the [IgdbKtorEngine] and a base URL defined in [BuildConfig.IGDB_API_URL].
-     * A custom [HttpClient] is configured and provided to handle HTTP communication, where additional settings
-     * can be applied through the `ktorHttpClientConfig` function.
+     * The client is initialized using the [IgdbKtorEngine]; requests go to [AppPreferences.igdbApiUrl],
+     * read when each one is sent. A custom [HttpClient] is configured and provided to handle HTTP
+     * communication, where additional settings can be applied through the `ktorHttpClientConfig` function.
      *
      * This method is annotated with `@Single` indicating it provides a singleton instance in the Koin dependency injection setup.
      *
      * @return A configured instance of [IgdbClient].
      */
     @Single
-    fun provideIgdbClient() = IgdbClient(IgdbKtorEngine) {
-        baseUrl = BuildConfig.IGDB_API_URL
+    fun provideIgdbClient(preferences: AppPreferences) = IgdbClient(IgdbKtorEngine) {
+        baseUrl = "https://$IGDB_PLACEHOLDER_HOST"
         httpClient {
             this.httpClient = HttpClient {
+                install(igdbBaseUrl { preferences.igdbApiUrl.value })
                 ktorHttpClientConfig()
                 // Safe here, unlike on the user-scoped clients: IGDB responses are the same for every
                 // user, so a URL-keyed cache cannot leak one user's data to another.

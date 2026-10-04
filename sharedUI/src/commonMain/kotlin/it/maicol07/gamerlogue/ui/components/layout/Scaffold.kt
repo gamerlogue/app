@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -20,6 +23,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import it.maicol07.gamerlogue.NavigationBarContrastEnforced
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.navigation.showsNavigationSuite
 import org.jetbrains.compose.resources.StringResource
 
@@ -38,7 +42,12 @@ fun AppScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     val navigationState = LocalNavigationState.current
-    val showNavigation = navigationState.backStack.last().showsNavigationSuite
+    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
+    val destination = navigationState.backStack.last()
+    // The game detail is immersive only with a bottom bar, where its floating toolbar would stack on
+    // it; a rail stays, so the list-detail panes keep their navigation on larger windows.
+    val showNavigation = destination.showsNavigationSuite ||
+        (destination is RootNavTree.GameDetail && layoutType != NavigationSuiteType.NavigationBar)
     // Seeded from the current destination, otherwise the suite would animate out on a cold start
     // landing on a destination that hides it.
     val navigationSuiteState = rememberNavigationSuiteScaffoldState(
@@ -51,6 +60,7 @@ fun AppScaffold(
     }
     NavigationSuiteScaffold(
         navigationSuiteItems = { appNavigationItems(navigationState) },
+        layoutType = layoutType,
         state = navigationSuiteState,
     ) {
         CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {

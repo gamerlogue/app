@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
@@ -180,11 +181,12 @@ private fun ImmersivePage(section: DiscoverSection, game: Game, rank: Int, onGam
 private fun GameBanner(game: Game, modifier: Modifier) = when (
     val bannerId = game.artworks.firstOrNull()?.image_id ?: game.screenshots.firstOrNull()?.image_id
 ) {
-    null -> game.CoverImage(modifier, sizeModifier = Modifier.fillMaxSize())
+    null -> game.CoverImage(modifier, sizeModifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
     else -> GameBannerImage(
         imageId = bannerId,
         modifier = modifier,
         loadingModifier = Modifier.fillMaxSize(),
-        sharedKey = "banner-${game.id}"
+        sharedKey = "banner-${game.id}",
+        contentScale = ContentScale.Crop
     )
 }
