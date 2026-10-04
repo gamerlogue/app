@@ -284,6 +284,7 @@
     <string name="auth__cancel">Cancel</string>
     <string name="auth__continue">Continue</string>
     <string name="auth__logout">Log out</string>
+    <string name="auth__logout_confirm_message">Are you sure you want to log out?</string>
     <string name="auth__deep_link_scheme" translatable="false">gamerlogue</string>
     <string name="auth__deep_link_host" translatable="false">auth</string>
     <string name="auth__deep_link_path" translatable="false">callback</string>

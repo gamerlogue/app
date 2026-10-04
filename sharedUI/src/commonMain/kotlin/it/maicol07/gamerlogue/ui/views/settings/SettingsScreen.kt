@@ -3,19 +3,27 @@ package it.maicol07.gamerlogue.ui.views.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.alorma.compose.settings.ui.expressive.SettingsMenuLink
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.auth__cancel
 import gamerlogue.sharedui.generated.resources.auth__logout
+import gamerlogue.sharedui.generated.resources.auth__logout_confirm_message
 import gamerlogue.sharedui.generated.resources.nav__settings
 import gamerlogue.sharedui.generated.resources.settings__appearance
 import gamerlogue.sharedui.generated.resources.settings__linked_services
@@ -48,10 +56,11 @@ fun SettingsView(
     viewModel: SettingsViewModel = koinInject()
 ) {
     val backStack = LocalNavigationState.current.backStack
+    var logoutDialogOpen by remember { mutableStateOf(false) }
     val entries = listOf(
         SettingsEntry(Res.string.settings__appearance, Icons.PaletteW500Rounded, { backStack.add(RootNavTree.Appearance) }),
         SettingsEntry(Res.string.settings__linked_services, Icons.LinkedServicesW500Rounded, { backStack.add(RootNavTree.LinkedServices) }),
-        SettingsEntry(Res.string.auth__logout, Icons.LogoutW500Rounded, viewModel::logout, destructive = true),
+        SettingsEntry(Res.string.auth__logout, Icons.LogoutW500Rounded, { logoutDialogOpen = true }, destructive = true),
     )
 
     ScreenScaffold(title = Res.string.nav__settings) {
@@ -73,5 +82,23 @@ fun SettingsView(
                 )
             }
         }
+    }
+
+    if (logoutDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { logoutDialogOpen = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    logoutDialogOpen = false
+                    viewModel.logout()
+                }) { Text(stringResource(Res.string.auth__logout)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { logoutDialogOpen = false }) { Text(stringResource(Res.string.auth__cancel)) }
+            },
+            icon = { Icon(Icons.LogoutW500Rounded, null) },
+            title = { Text(stringResource(Res.string.auth__logout)) },
+            text = { Text(stringResource(Res.string.auth__logout_confirm_message)) },
+        )
     }
 }

@@ -285,6 +285,7 @@
     <string name="auth__cancel">Annulla</string>
     <string name="auth__continue">Continua</string>
     <string name="auth__logout">Esci</string>
+    <string name="auth__logout_confirm_message">Vuoi davvero uscire?</string>
 
     <!-- Game Card -->
     <string name="game_card__hours_played">%1$d ore</string>
