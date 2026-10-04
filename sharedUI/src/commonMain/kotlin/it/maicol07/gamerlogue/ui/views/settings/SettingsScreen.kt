@@ -31,11 +31,15 @@ import gamerlogue.sharedui.generated.resources.nav__settings
 import gamerlogue.sharedui.generated.resources.settings__appearance
 import gamerlogue.sharedui.generated.resources.settings__appearance_summary
 import gamerlogue.sharedui.generated.resources.settings__group_account
+import gamerlogue.sharedui.generated.resources.settings__group_advanced
 import gamerlogue.sharedui.generated.resources.settings__group_app
 import gamerlogue.sharedui.generated.resources.settings__linked_services
 import gamerlogue.sharedui.generated.resources.settings__linked_services_summary
+import gamerlogue.sharedui.generated.resources.settings__server
+import gamerlogue.sharedui.generated.resources.settings__server_summary
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DnsW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkedServicesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LogoutW500Rounded
@@ -91,6 +95,16 @@ fun SettingsView(
                     Res.string.settings__linked_services, Res.string.settings__linked_services_summary,
                     Icons.LinkedServicesW500Rounded, MaterialShapes.Clover4Leaf, colors.tertiaryContainer, colors.onTertiaryContainer,
                     { backStack.add(RootNavTree.LinkedServices) },
+                ),
+            )
+        ),
+        SettingsGroup(
+            Res.string.settings__group_advanced,
+            listOf(
+                SettingsEntry(
+                    Res.string.settings__server, Res.string.settings__server_summary,
+                    Icons.DnsW500Rounded, MaterialShapes.Pill, colors.secondaryContainer, colors.onSecondaryContainer,
+                    { backStack.add(RootNavTree.ServerSettings) },
                 ),
             )
         ),

@@ -454,4 +454,24 @@
     <string name="viewer__saved">Image saved</string>
     <string name="viewer__save_failed">Couldn't save the image</string>
     <string name="viewer__page">%1$d of %2$d</string>
+    <string name="settings__group_advanced">Advanced</string>
+    <string name="settings__server">Server</string>
+    <string name="settings__server_summary">Gamerlogue instance and IGDB endpoint</string>
+    <string name="settings__server_warning">For advanced users only. Change these addresses only if you know what you are doing: a wrong value stops the app from working. “Restore defaults” always brings back the original setup.</string>
+    <string name="settings__server_url">Gamerlogue server URL</string>
+    <string name="settings__server_igdb_follows">IGDB through the Gamerlogue server</string>
+    <string name="settings__server_igdb_url">IGDB API URL</string>
+    <string name="settings__server_check">Check</string>
+    <string name="settings__server_save">Save</string>
+    <string name="settings__server_restore">Restore defaults</string>
+    <string name="settings__server_status_checking">Checking…</string>
+    <string name="settings__server_status_invalid">Enter a full http:// or https:// address</string>
+    <string name="settings__server_status_server_ok">Gamerlogue server reachable</string>
+    <string name="settings__server_status_igdb_ok">IGDB endpoint working</string>
+    <string name="settings__server_status_server_unexpected">Reachable, but it isn't a Gamerlogue server</string>
+    <string name="settings__server_status_igdb_unexpected">Reachable, but it doesn't answer like IGDB</string>
+    <string name="settings__server_status_unreachable">Unreachable</string>
+    <string name="settings__server_sign_out_title">Change server?</string>
+    <string name="settings__server_sign_out_message">You'll be signed out, since your account belongs to the current server.</string>
+    <string name="settings__server_sign_out_confirm">Change and sign out</string>
 </resources>
