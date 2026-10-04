@@ -242,6 +242,7 @@ private fun LazyListScope.statusSection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryStatusSelector(
     selectedStatus: GameLibraryStatus?,

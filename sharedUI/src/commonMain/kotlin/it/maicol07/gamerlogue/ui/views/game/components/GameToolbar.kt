@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
@@ -124,6 +125,7 @@ private fun GameToolbarAddButton(inLibrary: Boolean, onClick: () -> Unit) = Fill
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GameToolbarToggleIconButton(
     text: StringResource,

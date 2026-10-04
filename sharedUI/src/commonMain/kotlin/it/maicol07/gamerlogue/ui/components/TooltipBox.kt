@@ -10,6 +10,7 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TooltipBox(
     tooltip: @Composable TooltipScope.() -> Unit,
