@@ -29,19 +29,14 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
 
     private val igdb by inject<IgdbClient>()
 
-    fun loadLibraryEntries(section: GameLibraryStatus? = state.selectedSection) = viewModelScope.launch {
-        // Clear the target section(s), then fill them page by page as each page arrives.
+    /** Loads every status in one pass; section switching then filters the already-loaded state. */
+    fun loadLibraryEntries() = viewModelScope.launch {
         update {
-            val cleared = if (section == null) {
-                GameLibraryStatus.entries.associateWith { emptyMap() }
-            } else {
-                games + (section to emptyMap())
-            }
-            copy(loading = true, games = cleared)
+            copy(loading = true, games = GameLibraryStatus.entries.associateWith { emptyMap() })
         }
 
         val result = safeRequest {
-            LibraryEntry.currentUserEntries(section).forEachPage { page ->
+            LibraryEntry.currentUserEntries().forEachPage { page ->
                 val grouped = groupEntriesByStatus(page)
                 update { copy(games = mergeGames(games, grouped)) }
             }
@@ -53,11 +48,8 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
     private fun mergeGames(
         existing: Map<GameLibraryStatus, Map<Game, LibraryEntry>>,
         add: Map<GameLibraryStatus, Map<Game, LibraryEntry>>,
-    ): Map<GameLibraryStatus, Map<Game, LibraryEntry>> {
-        val out = existing.toMutableMap()
-        add.forEach { (status, games) -> out[status] = (out[status] ?: emptyMap()) + games }
-        return out
-    }
+    ): Map<GameLibraryStatus, Map<Game, LibraryEntry>> =
+        existing + add.mapValues { (status, games) -> existing[status].orEmpty() + games }
 
     private suspend fun groupEntriesByStatus(
         entries: List<LibraryEntry>
@@ -83,16 +75,10 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
 
         val gamesById = gamesResult.unwrap().games.associateBy { it.id }
         return entries
-            .mapNotNull { entry ->
-                val game = gamesById[entry.gameId.toLong()] ?: return@mapNotNull null
-                Triple(entry.status, game, entry)
-            }
-            .groupBy({ it.first }) { it.second to it.third }
+            .mapNotNull { entry -> gamesById[entry.gameId.toLong()]?.let { entry.status to (it to entry) } }
+            .groupBy({ it.first }) { it.second }
             .mapValues { (_, pairs) -> pairs.toMap() }
     }
 
-    fun selectSection(section: GameLibraryStatus?) {
-        update { copy(selectedSection = section) }
-        loadLibraryEntries(section)
-    }
+    fun selectSection(section: GameLibraryStatus?) = update { copy(selectedSection = section) }
 }
