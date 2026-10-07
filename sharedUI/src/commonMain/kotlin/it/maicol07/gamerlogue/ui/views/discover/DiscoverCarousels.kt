@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +64,9 @@ private val CardTitleMinWidth = 100.dp
 private val StarBadgeSize = 44.dp
 private val RankedItemWidth = 196.dp
 private val RankedNumeralSize = 120.sp
+
+/** Two stacked digits have to fit the card height, so they are drawn smaller than a single one. */
+private val RankedStackedNumeralSize = 96.sp
 private const val COUNTDOWN_MAX_DAYS = 30
 
 /** A multi-browse carousel of covers, each with the badge its [section] cares about. */
@@ -132,12 +136,16 @@ internal fun RankedCarousel(games: List<Game>, onGameClick: (Game) -> Unit) {
         val game = games[i]
         val interactionSource = remember { MutableInteractionSource() }
         Box(Modifier.fillMaxSize()) {
+            // The strip left of the cover fits one digit: longer ranks stack one digit per line.
+            val rank = "${i + 1}"
+            val numeralSize = if (rank.length == 1) RankedNumeralSize else RankedStackedNumeralSize
             Text(
-                text = "${i + 1}",
+                text = rank.toList().joinToString("\n"),
                 color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.displayLargeEmphasized.copy(
-                    fontSize = RankedNumeralSize,
-                    lineHeight = RankedNumeralSize
+                    fontSize = numeralSize,
+                    lineHeight = numeralSize
                 ),
                 modifier = Modifier.align(Alignment.BottomStart)
             )
