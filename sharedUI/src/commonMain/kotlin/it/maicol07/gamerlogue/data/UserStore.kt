@@ -18,8 +18,12 @@ class UserStore(private val settings: ObservableSettings) {
 
     fun getUser(): User? {
         val json = settings.getStringOrNull(USER_KEY) ?: return null
+        val response = JsonApiSingleResponse.fromJsonApiString(json)
+        val data = response.data
+        val migrated = if (data?.type == "user") response.copy(data = data.copy(type = User.resourceType)) else response
         val user = User()
-        user.fromJsonApiResponse(JsonApiSingleResponse.fromJsonApiString(json))
+        user.fromJsonApiResponse(migrated)
+        if (migrated !== response) saveUser(user)
         return user
     }
 
