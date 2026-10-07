@@ -79,7 +79,6 @@ import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.game.bottomScrim
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -319,18 +318,18 @@ internal fun DatesSection(
     ) {
         DatePickerFieldDialog(
             label = stringResource(Res.string.library__start_date),
-            initialDate = viewModel.startDate?.toEpochMilliseconds(),
+            initialDate = viewModel.startDate,
             modifier = Modifier.weight(1f)
         ) {
-            viewModel.startDate = it?.let { Instant.fromEpochMilliseconds(it) }
+            viewModel.startDate = it
         }
         AnimatedVisibility(visible = showEndDate, modifier = Modifier.weight(1f)) {
             DatePickerFieldDialog(
                 label = stringResource(Res.string.library__end_date),
-                initialDate = viewModel.endDate?.epochSeconds,
+                initialDate = viewModel.endDate,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                viewModel.endDate = it?.let { Instant.fromEpochMilliseconds(it) }
+                viewModel.endDate = it
             }
         }
     }

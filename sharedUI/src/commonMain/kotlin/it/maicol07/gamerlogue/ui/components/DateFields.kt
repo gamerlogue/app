@@ -28,6 +28,9 @@ import gamerlogue.sharedui.generated.resources.common_select_date
 import gamerlogue.sharedui.generated.resources.date__input_placeholder
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DateRangeW500Rounded
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -37,15 +40,15 @@ import kotlin.time.Instant
 @OptIn(ExperimentalMaterial3Api::class)
 fun DatePickerFieldDialog(
     label: String,
-    initialDate: Long? = null,
+    initialDate: LocalDate?,
     modifier: Modifier = Modifier,
-    onDateSelected: (Long?) -> Unit
+    onDateSelected: (LocalDate?) -> Unit
 ) {
     var selectedDate by remember { mutableStateOf(initialDate) }
     var showDialog by remember { mutableStateOf(false) }
 
     TextField(
-        value = selectedDate?.let { convertMillisToDate(it) } ?: "",
+        value = selectedDate?.let(::formatDate) ?: "",
         onValueChange = { },
         label = { Text(label) },
         placeholder = { Text(stringResource(Res.string.date__input_placeholder)) },
@@ -70,14 +73,14 @@ fun DatePickerFieldDialog(
 
     if (showDialog) {
         val state = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate
+            initialSelectedDateMillis = selectedDate?.toPickerMillis()
         )
         DatePickerDialog(
             confirmButton = {
                 TextButton(
                     shapes = ButtonDefaults.shapes(),
                     onClick = {
-                        selectedDate = state.selectedDateMillis
+                        selectedDate = state.selectedDateMillis?.let(::pickerMillisToDate)
                         onDateSelected(selectedDate)
                         showDialog = false
                     }
@@ -94,9 +97,13 @@ fun DatePickerFieldDialog(
     }
 }
 
-fun convertMillisToDate(millis: Long): String {
-    Instant.fromEpochMilliseconds(millis).let {
-        val date = it.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-        return "${date.month.number}/${date.day}/${date.year}"
-    }
-}
+fun formatDate(date: LocalDate): String = "${date.month.number}/${date.day}/${date.year}"
+
+/**
+ * Material date pickers speak UTC-midnight millis. Converting through UTC on both ways keeps the
+ * calendar day; the system time zone would shift it by one west of Greenwich.
+ */
+fun LocalDate.toPickerMillis(): Long = atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+
+/** The calendar day a date picker selection stands for; see [toPickerMillis]. */
+fun pickerMillisToDate(millis: Long): LocalDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date

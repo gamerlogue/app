@@ -19,8 +19,6 @@ import it.maicol07.gamerlogue.data.LibraryEntry
 
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
-import kotlinx.datetime.format
-import kotlinx.datetime.format.DateTimeComponents
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
@@ -54,8 +52,8 @@ class AddToLibrarySheetViewModel(
             } ?: emptyList()
         )
     }
-    var startDate by mutableStateOf(existingEntry?.startDateAsInstant)
-    var endDate by mutableStateOf(existingEntry?.endDateAsInstant)
+    var startDate by mutableStateOf(existingEntry?.startLocalDate)
+    var endDate by mutableStateOf(existingEntry?.endLocalDate)
     var playedTime = TextFieldState(existingEntry?.playedTime?.toString() ?: "")
     var rating by mutableStateOf(existingEntry?.rating)
     var review = TextFieldState(existingEntry?.review ?: "")
@@ -134,12 +132,9 @@ class AddToLibrarySheetViewModel(
         entry.owned = owned
         entry.editionsIds = selectedEditions.toList()
         entry.platformsIds = selectedPlatforms.map { it.id.toInt() }
-        entry.startDate = if (isBacklog) null else startDate?.format(DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET)
-        entry.endDate = if (isBacklog || isPlayingOrPaused) {
-            null
-        } else {
-            endDate?.format(DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET)
-        }
+        // Date columns: sent as a plain `yyyy-MM-dd`, the calendar day the user picked.
+        entry.startDate = if (isBacklog) null else startDate?.toString()
+        entry.endDate = if (isBacklog || isPlayingOrPaused) null else endDate?.toString()
         entry.playedTime = if (isBacklog) null else playedTime.text.toString().ifBlank { null }?.toInt()
         entry.rating = if (isBacklog || isPlayingOrPaused) null else rating
         entry.review = if (isBacklog || isPlayingOrPaused) "" else review.text.toString()

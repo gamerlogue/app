@@ -6,6 +6,7 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import kotlinx.datetime.LocalDate
 
 class LibraryEntryTest : StringSpec({
     "quickDraft builds entry from game and status" {
@@ -23,5 +24,15 @@ class LibraryEntryTest : StringSpec({
 
         draft.id shouldBe "42"
         draft.status shouldBe GameLibraryStatus.BACKLOG
+    }
+
+    "dates keep the calendar day the backend sent, whatever its offset" {
+        val entry = LibraryEntry().apply {
+            startDate = "2026-01-01T00:00:00+01:00"
+            endDate = "2026-01-20"
+        }
+
+        entry.startLocalDate shouldBe LocalDate(2026, 1, 1)
+        entry.endLocalDate shouldBe LocalDate(2026, 1, 20)
     }
 })

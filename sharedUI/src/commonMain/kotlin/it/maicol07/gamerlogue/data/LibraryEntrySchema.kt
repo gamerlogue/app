@@ -8,8 +8,8 @@ import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.spraypaintkt_annotation.Attr
 import it.maicol07.spraypaintkt_annotation.Relation
 import it.maicol07.spraypaintkt_annotation.ResourceSchema
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
-import kotlin.time.Instant
 
 @ResourceSchema(endpoint = "library_entries", resourceType = "LibraryEntry")
 interface LibraryEntrySchema {
@@ -35,8 +35,15 @@ interface LibraryEntrySchema {
         FULL_100(Res.string.library__completion_100)
     }
 
-    val startDateAsInstant: Instant?
-        get() = startDate?.let { Instant.parseOrNull(it) }
-    val endDateAsInstant: Instant?
-        get() = endDate?.let { Instant.parseOrNull(it) }
+    val startLocalDate: LocalDate?
+        get() = startDate?.let(::parseCalendarDate)
+    val endLocalDate: LocalDate?
+        get() = endDate?.let(::parseCalendarDate)
 }
+
+/**
+ * The calendar day of a date attribute. The backend sends date columns with a time and offset
+ * (`2026-01-01T00:00:00+01:00`): only the date part is meaningful, and converting the whole value
+ * to UTC would land on the day before.
+ */
+private fun parseCalendarDate(value: String): LocalDate? = LocalDate.Formats.ISO.parseOrNull(value.substringBefore('T'))
