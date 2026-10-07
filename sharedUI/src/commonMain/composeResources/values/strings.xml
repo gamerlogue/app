@@ -442,6 +442,8 @@
     <string name="gamelist__max_hours">Max hours</string>
     <string name="gamelist__hours_range_up_to">up to %1$d h</string>
     <string name="gamelist__date_any">Any date</string>
+    <string name="gamelist__group_library">Your library</string>
+    <string name="gamelist__group_game">Game details</string>
     <string name="common__more_options">More options</string>
     <string name="game__igdb_open">Open on IGDB</string>
     <string name="game__igdb_edit">Edit on IGDB</string>

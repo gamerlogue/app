@@ -47,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.GameCategoryEnum
 import at.released.igdbclient.model.GameMode
@@ -79,6 +81,8 @@ import gamerlogue.sharedui.generated.resources.gamelist__filter_time_to_beat
 import gamerlogue.sharedui.generated.resources.gamelist__filter_title
 import gamerlogue.sharedui.generated.resources.gamelist__filter_type_to_search
 import gamerlogue.sharedui.generated.resources.gamelist__grid_columns
+import gamerlogue.sharedui.generated.resources.gamelist__group_game
+import gamerlogue.sharedui.generated.resources.gamelist__group_library
 import gamerlogue.sharedui.generated.resources.gamelist__hours_range
 import gamerlogue.sharedui.generated.resources.gamelist__hours_range_open
 import gamerlogue.sharedui.generated.resources.gamelist__release_all
@@ -150,6 +154,9 @@ private val SheetPadding = 16.dp
 private val CardGap = 12.dp
 private val CardPadding = 16.dp
 private val CardContentGap = 12.dp
+
+/** Added to [CardGap] above a group title. */
+private val GroupGap = 12.dp
 
 /** Slider stops every 5 hours across the 0..[MaxHoursToBeat] span. */
 private const val HoursToBeatSteps = 19
@@ -298,11 +305,15 @@ fun GameListFilterSheet(
                 )
             }
 
+            // In library scope the entry filters and the game filters form two titled groups: they
+            // act on different data, the user's entries versus IGDB's games.
             if (libraryScope) {
+                FilterGroupTitle(Res.string.gamelist__group_library)
                 LibraryFilterSections(
                     filter = filterState.library,
                     onFilterChange = { onFilterChange(filterState.copy(library = it)) }
                 )
+                FilterGroupTitle(Res.string.gamelist__group_game)
             } else {
                 SortSection(filterState = filterState, onFilterChange = onFilterChange)
             }
@@ -602,6 +613,16 @@ private fun SortSection(filterState: GameListFilterState, onFilterChange: (GameL
         }
     }
 }
+
+/** Heading of a group of filter cards, set off from the group above by extra space. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun FilterGroupTitle(title: StringResource) = Text(
+    text = stringResource(title),
+    style = MaterialTheme.typography.titleLargeEmphasized,
+    color = MaterialTheme.colorScheme.primary,
+    modifier = Modifier.padding(top = GroupGap).semantics { heading() }
+)
 
 /** Flips the sort [direction]; the arrow shows the current one. */
 @Composable
