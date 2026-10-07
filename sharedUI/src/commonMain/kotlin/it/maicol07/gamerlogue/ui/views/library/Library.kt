@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,15 +29,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game_card__hours_played
-import gamerlogue.sharedui.generated.resources.library__empty_abandoned
 import gamerlogue.sharedui.generated.resources.library__empty_all
-import gamerlogue.sharedui.generated.resources.library__empty_backlog
-import gamerlogue.sharedui.generated.resources.library__empty_completed
-import gamerlogue.sharedui.generated.resources.library__empty_paused
-import gamerlogue.sharedui.generated.resources.library__empty_playing
 import gamerlogue.sharedui.generated.resources.library__section_all
 import gamerlogue.sharedui.generated.resources.nav__library
 import io.github.fopwoc.nav3ksp.annotation.Branch
+import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.ui.components.ConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
@@ -85,82 +82,66 @@ private fun LibraryContent(
         toggleButtonIcon = { it?.icon }
     )
 
-    if (uiState.loading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+    val sectionLibraryEntries = remember(uiState.games, uiState.selectedSection) {
+        val section = uiState.selectedSection
+        if (section != null) {
+            uiState.games[section].orEmpty()
+        } else {
+            uiState.games.values.flatMap { it.toList() }.toMap()
+        }
+    }
+    when {
+        uiState.loading -> CenteredBox { LoadingIndicator() }
+        sectionLibraryEntries.isEmpty() -> EmptyLibraryState(section = uiState.selectedSection)
+        else -> LibraryGrid(entries = sectionLibraryEntries, onGameClick = onGameClick)
+    }
+}
+
+@Composable
+private fun LibraryGrid(
+    entries: Map<Game, LibraryEntry>,
+    onGameClick: (Game) -> Unit
+) {
+    val gridState = rememberLazyGridState()
+    Box {
+        LazyVerticalGrid(
+            state = gridState,
+            columns = GridCells.Adaptive(minSize = CoverWidth),
+            contentPadding = PaddingValues(Dimens.ScreenPadding),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.CardGap),
+            verticalArrangement = Arrangement.spacedBy(Dimens.CardGap)
         ) {
-            LoadingIndicator()
-        }
-    } else {
-        val sectionLibraryEntries = if (uiState.selectedSection == null) {
-            uiState.games.values
-                .flatMap { map -> map.entries }
-                .associate { it.key to it.value }
-        } else {
-            uiState.games[uiState.selectedSection].orEmpty()
-        }
-        if (sectionLibraryEntries.isEmpty()) {
-            EmptyLibraryState(section = uiState.selectedSection)
-        } else {
-            val gridState = rememberLazyGridState()
-            Box {
-                LazyVerticalGrid(
-                    state = gridState,
-                    columns = GridCells.Adaptive(minSize = CoverWidth),
-                    contentPadding = PaddingValues(Dimens.ScreenPadding),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.CardGap),
-                    verticalArrangement = Arrangement.spacedBy(Dimens.CardGap)
-                ) {
-                    // No item key: the "all" section flattens several status maps, so the same game
-                    // can show up twice and a duplicate key would crash the grid.
-                    items(sectionLibraryEntries.entries.toList()) { (game, entry) ->
-                        GameCoverCard(
-                            game = game,
-                            metadata = listOfNotNull(
-                                entry.rating?.let { "★ %.1f".sprintf(it) },
-                                entry.playedTime?.let { stringResource(Res.string.game_card__hours_played, it) }
-                            ),
-                            showTitle = true,
-                            modifier = Modifier.animateItem().clip(MaterialTheme.shapes.large),
-                            sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
-                            onClick = onGameClick
-                        )
-                    }
-                }
-                AppVerticalScrollbar(gridState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+            items(entries.entries.toList(), key = { (game, _) -> game.id }) { (game, entry) ->
+                GameCoverCard(
+                    game = game,
+                    metadata = listOfNotNull(
+                        entry.rating?.let { "★ %.1f".sprintf(it) },
+                        entry.playedTime?.let { stringResource(Res.string.game_card__hours_played, it) }
+                    ),
+                    showTitle = true,
+                    modifier = Modifier.animateItem().clip(MaterialTheme.shapes.large),
+                    sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
+                    onClick = onGameClick
+                )
             }
         }
+        AppVerticalScrollbar(gridState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }
 }
 
 @Composable
 private fun EmptyLibraryState(
     section: GameLibraryStatus?
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val text = stringResource(
-                when (section) {
-                    null -> Res.string.library__empty_all
-                    GameLibraryStatus.PLAYING -> Res.string.library__empty_playing
-                    GameLibraryStatus.COMPLETED -> Res.string.library__empty_completed
-                    GameLibraryStatus.PAUSED -> Res.string.library__empty_paused
-                    GameLibraryStatus.ABANDONED -> Res.string.library__empty_abandoned
-                    GameLibraryStatus.BACKLOG -> Res.string.library__empty_backlog
-                }
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+) = CenteredBox {
+    Text(
+        text = stringResource(section?.emptyMessage ?: Res.string.library__empty_all),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
+
+@Composable
+private fun CenteredBox(content: @Composable () -> Unit) = Box(
+    modifier = Modifier.fillMaxSize(),
+    contentAlignment = Alignment.Center
+) { content() }

@@ -2,6 +2,11 @@ package it.maicol07.gamerlogue.ui.views.library
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.library__empty_abandoned
+import gamerlogue.sharedui.generated.resources.library__empty_backlog
+import gamerlogue.sharedui.generated.resources.library__empty_completed
+import gamerlogue.sharedui.generated.resources.library__empty_paused
+import gamerlogue.sharedui.generated.resources.library__empty_playing
 import gamerlogue.sharedui.generated.resources.library__section_abandoned
 import gamerlogue.sharedui.generated.resources.library__section_backlog
 import gamerlogue.sharedui.generated.resources.library__section_completed
@@ -15,25 +20,34 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Pau
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import org.jetbrains.compose.resources.StringResource
 
-enum class GameLibraryStatus(val displayName: StringResource, val icon: ImageVector) {
+enum class GameLibraryStatus(
+    val displayName: StringResource,
+    val icon: ImageVector,
+    val emptyMessage: StringResource,
+) {
     PLAYING(
         Res.string.library__section_playing,
-        Icons.PlayCircleW500Rounded
+        Icons.PlayCircleW500Rounded,
+        Res.string.library__empty_playing
     ),
     COMPLETED(
         Res.string.library__section_completed,
-        Icons.CheckCircleW500Rounded
+        Icons.CheckCircleW500Rounded,
+        Res.string.library__empty_completed
     ),
     PAUSED(
         Res.string.library__section_paused,
-        Icons.PauseCircleW500Rounded
+        Icons.PauseCircleW500Rounded,
+        Res.string.library__empty_paused
     ),
     ABANDONED(
         Res.string.library__section_abandoned,
-        Icons.DeleteW500Rounded
+        Icons.DeleteW500Rounded,
+        Res.string.library__empty_abandoned
     ),
     BACKLOG(
         Res.string.library__section_backlog,
-        Icons.BookmarkW500Rounded
+        Icons.BookmarkW500Rounded,
+        Res.string.library__empty_backlog
     ),
 }
