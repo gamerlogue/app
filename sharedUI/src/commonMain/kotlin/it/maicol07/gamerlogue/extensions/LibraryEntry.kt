@@ -4,7 +4,10 @@ import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import it.maicol07.spraypaintkt.CollectionProxy
 import it.maicol07.spraypaintkt.Scope
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 
 /**
  * Reusable JSON:API query builders for [LibraryEntry].
@@ -39,6 +42,14 @@ fun LibraryEntry.Companion.currentUserEntryForGame(gameId: Number): Scope<Librar
 // Page-based pagination: backend returns one page per request; pages start at 1.
 private const val MaxPages = 500
 
+// The backend reads the page number from a plain `page` parameter. spraypaintkt's `page()` sends
+// `page[number]`, which the backend silently ignores, re-serving the first page.
+private const val PageParam = "page"
+
+/** The total number of entries matching the query, from the `meta.totalItems` every list response carries. */
+val CollectionProxy<LibraryEntry>.totalItems: Int?
+    get() = (meta["totalItems"] as? JsonPrimitive)?.intOrNull
+
 /**
  * Walk every page of this scope, invoking [onPage] with each page's *new* entries as it arrives.
  * [Scope.all] returns only one page. Stops when a page brings no new ids (covers both the end and a
@@ -50,8 +61,8 @@ suspend fun Scope<LibraryEntry>.forEachPage(onPage: suspend (List<LibraryEntry>)
     var total: Int? = null
     var page = 1
     repeat(MaxPages) {
-        val result = page(page).all()
-        total = total ?: (result.meta["totalItems"] as? Number)?.toInt()
+        val result = extraParam(PageParam, page.toString()).all()
+        total = total ?: result.totalItems
         val fresh = result.data.filter { seen.add(it.id) }
         if (fresh.isEmpty()) return
         onPage(fresh)
