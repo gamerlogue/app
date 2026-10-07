@@ -11,7 +11,7 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 
-@ResourceSchema(endpoint = "library_entries")
+@ResourceSchema(endpoint = "library_entries", resourceType = "LibraryEntry")
 interface LibraryEntrySchema {
     @Attr val gameId: Int
     @Attr val status: GameLibraryStatus

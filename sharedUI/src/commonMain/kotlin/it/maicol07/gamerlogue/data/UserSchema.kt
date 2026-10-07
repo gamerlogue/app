@@ -3,7 +3,7 @@ package it.maicol07.gamerlogue.data
 import it.maicol07.spraypaintkt_annotation.Attr
 import it.maicol07.spraypaintkt_annotation.ResourceSchema
 
-@ResourceSchema("user", "users")
+@ResourceSchema()
 interface UserSchema {
     @Attr val nickname: String
     @Attr val name: String
