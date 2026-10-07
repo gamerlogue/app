@@ -18,8 +18,11 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Che
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DeleteW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PauseCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
+import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
 
+/** Only the entry name is serialized (enum default), so it is safe to embed in navigation keys. */
+@Serializable
 enum class GameLibraryStatus(
     val displayName: StringResource,
     val icon: ImageVector,

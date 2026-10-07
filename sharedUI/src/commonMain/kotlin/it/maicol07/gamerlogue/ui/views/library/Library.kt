@@ -165,16 +165,20 @@ private fun LazyGridScope.gameItems(
 ) { (game, entry) ->
     GameCoverCard(
         game = game,
-        metadata = listOfNotNull(
-            entry.rating?.let { "★ %.1f".sprintf(it) },
-            entry.playedTime?.let { stringResource(Res.string.game_card__hours_played, it) }
-        ),
+        metadata = entry.cardMetadata(),
         showTitle = true,
         modifier = Modifier.animateItem().clip(MaterialTheme.shapes.large),
         sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
         onClick = onGameClick
     )
 }
+
+/** The user's rating and play time, as badges on the game's cover. */
+@Composable
+internal fun LibraryEntry.cardMetadata(): List<String> = listOfNotNull(
+    rating?.let { "★ %.1f".sprintf(it) },
+    playedTime?.let { stringResource(Res.string.game_card__hours_played, it) }
+)
 
 /** Status title with its icon set in an expressive shape, plus how many games it holds. */
 @Composable

@@ -27,14 +27,18 @@ import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder
+import it.maicol07.gamerlogue.extensions.allPages
 import it.maicol07.gamerlogue.extensions.alreadyReleased
+import it.maicol07.gamerlogue.extensions.currentUserEntries
 import it.maicol07.gamerlogue.extensions.igdb.sortedByIds
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
+import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -146,7 +150,7 @@ data class GameListFilterState(
  * With no filter and a [section] set it replays that Discover carousel's query so "see all"
  * paginates exactly what the carousel previewed; as soon as any filter or query is applied, it
  * switches to a plain filtered games query. With an [eventId] the list is scoped to that IGDB
- * event's games.
+ * event's games, with a [libraryStatus] to the user's library entries in that status.
  */
 @KoinViewModel
 @Suppress("TooManyFunctions")
@@ -154,11 +158,14 @@ class GameListViewModel(
     @InjectedParam private val section: DiscoverSection?,
     @InjectedParam private val eventId: Int?,
     @InjectedParam preset: GameListPreset?,
+    @InjectedParam private val libraryStatus: GameLibraryStatus?,
 ) : StateViewModel<GameListViewModel.UiState>(UiState.from(preset)) {
     /** Immutable state of the search results pane. */
     data class UiState(
         /** The scoped event with its full details, once loaded, backs the list header. */
         val event: Event? = null,
+        /** In library scope, the user's entry for each listed game id, for the card badges. */
+        val libraryEntries: Map<Long, LibraryEntry> = emptyMap(),
         val games: List<Game> = emptyList(),
         val loading: Boolean = false,
         val endReached: Boolean = false,
@@ -211,6 +218,9 @@ class GameListViewModel(
 
     /** The event's game ids, fetched once per event scope; see [eventGameIdPage]. */
     private var eventGameIds: List<Int>? = null
+
+    /** The library status' game ids, fetched once per library scope; see [libraryGameIdPage]. */
+    private var libraryGameIds: List<Int>? = null
 
     init {
         load(reset = true)
@@ -507,10 +517,11 @@ class GameListViewModel(
         // Time to beat lives on its own endpoint keyed by game_id, so when it is filtered, it takes
         // over pagination from the section's popularity query — the two cannot both drive it.
         val popscoreSection = section?.takeIf { !filter.isActive && it.popscoreQuery != null }
-        // In event scope the event's own game ids drive pagination and win over the other id
-        // sources, so the time-to-beat filter is inert there.
+        // In event or library scope the scope's own game ids drive pagination and win over the
+        // other id sources, so the time-to-beat filter is inert there.
         return when {
             eventId != null -> eventGameIdPage(eventId, offset)
+            libraryStatus != null -> libraryGameIdPage(libraryStatus, offset)
             filter.hasTimeToBeatFilter -> fetchTimeToBeatGameIds(filter, offset)
             popscoreSection != null -> fetchPopScoreGameIds(popscoreSection, offset)
             else -> null
@@ -551,6 +562,24 @@ class GameListViewModel(
         val event = result.get()?.events?.firstOrNull() ?: return emptyList()
         update { copy(event = event) }
         return event.games.map { it.id.toInt() }
+    }
+
+    /**
+     * One page of the library status' game ids, in library order.
+     *
+     * The backend pages differently from IGDB, so — as for events — every entry is fetched once and
+     * paged client-side.
+     */
+    private suspend fun libraryGameIdPage(status: GameLibraryStatus, offset: Int): List<Int> {
+        val ids = libraryGameIds ?: fetchLibraryEntries(status).also { libraryGameIds = it }
+        return ids.drop(offset).take(PAGE_SIZE)
+    }
+
+    /** Loads the user's entries in [status], publishes them for the card badges and returns their game ids. */
+    private suspend fun fetchLibraryEntries(status: GameLibraryStatus): List<Int> {
+        val entries = safeRequest { LibraryEntry.currentUserEntries(status).allPages() }.get().orEmpty()
+        update { copy(libraryEntries = entries.associateBy { it.gameId.toLong() }) }
+        return entries.map { it.gameId }
     }
 
     private suspend fun fetchTimeToBeatGameIds(filter: GameListFilterState, offset: Int): List<Int> {

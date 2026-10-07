@@ -37,8 +37,6 @@ import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.theme.Dimens
-import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
-import it.maicol07.gamerlogue.ui.views.discover.cardMetadata
 import org.jetbrains.compose.resources.stringResource
 
 private val EmptyStatePadding = 48.dp
@@ -48,13 +46,13 @@ private val EmptyStatePadding = 48.dp
  *
  * [onEndReached] receives the last visible item index whenever it changes, to prefetch the next
  * page. Pass [header] to prepend a full-width block that scrolls with the grid (e.g., the details
- * of the event the list is scoped to).
+ * of the event the list is scoped to). [cardMetadata] supplies each cover's badges.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GameListResults(
     uiState: GameListViewModel.UiState,
-    section: DiscoverSection?,
+    cardMetadata: @Composable (Game) -> List<String>,
     onGameClick: (Game) -> Unit,
     onEndReached: (lastVisibleIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -85,7 +83,7 @@ fun GameListResults(
             items(uiState.games, key = { it.id }) { game ->
                 GameCoverCard(
                     game = game,
-                    metadata = listOfNotNull(section?.cardMetadata(game)),
+                    metadata = cardMetadata(game),
                     showTitle = true,
                     modifier = Modifier.animateItem().clip(MaterialTheme.shapes.large),
                     sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),

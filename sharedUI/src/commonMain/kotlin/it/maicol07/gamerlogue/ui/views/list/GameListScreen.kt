@@ -27,6 +27,9 @@ import it.maicol07.gamerlogue.ui.navigation.ListPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
+import it.maicol07.gamerlogue.ui.views.discover.cardMetadata
+import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import it.maicol07.gamerlogue.ui.views.library.cardMetadata
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -35,19 +38,27 @@ private val ChipRowPadding = 8.dp
 
 @Branch(RootTree::class, metadata = ListPaneMetadata::class)
 @Composable
-fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?, preset: GameListPreset?) {
+fun GameListView(
+    section: DiscoverSection?,
+    eventId: Int?,
+    eventName: String?,
+    preset: GameListPreset?,
+    libraryStatus: GameLibraryStatus?
+) {
     val navigationState = LocalNavigationState.current
-    val viewModel = koinViewModel<GameListViewModel> { parametersOf(section, eventId, preset) }
+    val viewModel = koinViewModel<GameListViewModel> { parametersOf(section, eventId, preset, libraryStatus) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     ScreenScaffold(
         topBar = {
             GameListSearchBar(
-                placeholder = eventName ?: preset?.name ?: stringResource(Res.string.search__global_hint),
+                placeholder = eventName
+                    ?: preset?.name
+                    ?: stringResource(libraryStatus?.displayName ?: Res.string.search__global_hint),
                 query = uiState.filterState.searchQuery,
                 onQueryChange = viewModel::setSearchQuery,
                 onSearch = viewModel::submitSearchQuery,
                 onBack = navigationState::navigateBack,
-                autoFocus = section == null && eventId == null && preset == null,
+                autoFocus = section == null && eventId == null && preset == null && libraryStatus == null,
                 trailingActions = {
                     FilterButton(
                         hasActiveFilters = uiState.filterState.hasActiveFilters,
@@ -70,7 +81,9 @@ fun GameListView(section: DiscoverSection?, eventId: Int?, eventName: String?, p
             }
             GameListResults(
                 uiState = uiState,
-                section = section,
+                cardMetadata = { game ->
+                    uiState.libraryEntries[game.id]?.cardMetadata() ?: listOfNotNull(section?.cardMetadata(game))
+                },
                 onGameClick = { navigationState.backStack.add(it.detailNavKey) },
                 onEndReached = viewModel::onEndReached,
                 modifier = Modifier.weight(1f),

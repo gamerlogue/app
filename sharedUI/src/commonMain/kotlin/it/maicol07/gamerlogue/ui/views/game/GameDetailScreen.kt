@@ -102,7 +102,7 @@ fun GameDetailView(
                         timeToBeat = uiState.timeToBeat,
                         onTitleVisibilityChange = { titleVisible = it },
                         onGameClick = { navigationState.backStack.add(it.detailNavKey) },
-                        onPresetClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null, it)) }
+                        onPresetClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null, it, null)) }
                     )
                 }
                 AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
