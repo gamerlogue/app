@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -26,6 +27,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -160,6 +162,7 @@ private fun LazyListScope.discoverSection(
     }
 }
 
+/** Section title with its shaped icon, an optional item [count] next to it, and "see all". */
 @Composable
 internal fun SectionHeader(
     title: StringResource,
@@ -167,7 +170,8 @@ internal fun SectionHeader(
     iconShape: RoundedPolygon,
     iconContainerColor: Color,
     iconColor: Color,
-    onSeeAllClick: () -> Unit
+    onSeeAllClick: () -> Unit,
+    count: Int? = null
 ) = Row(
     modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.ScreenPadding),
     verticalAlignment = Alignment.CenterVertically,
@@ -179,9 +183,23 @@ internal fun SectionHeader(
         style = MaterialTheme.typography.titleLargeEmphasized,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.weight(1f)
+        modifier = Modifier.weight(1f, fill = false)
     )
+    if (count != null) CountPill(count)
+    Spacer(Modifier.weight(1f))
     SeeAllButton(onSeeAllClick)
+}
+
+@Composable
+private fun CountPill(count: Int) = Surface(
+    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    shape = CircleShape
+) {
+    Text(
+        text = count.toString(),
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
+    )
 }
 
 @Composable

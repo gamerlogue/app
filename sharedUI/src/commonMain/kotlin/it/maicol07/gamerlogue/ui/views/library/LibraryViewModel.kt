@@ -11,74 +11,85 @@ import com.github.michaelbull.result.unwrapError
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntries
-import it.maicol07.gamerlogue.extensions.forEachPage
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 
+/** Backs the Library screen: a preview of each status, whose full list opens in GameList. */
 @KoinViewModel
 class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
-    /** Immutable state of the Library screen. */
-    data class UiState(
-        val loading: Boolean = false,
-        val selectedSection: GameLibraryStatus? = null,
-        val games: Map<GameLibraryStatus, Map<Game, LibraryEntry>> =
-            GameLibraryStatus.entries.associateWith { emptyMap() },
+    /** One status' preview: its first games and how many the user has in total. */
+    data class SectionUiState(
+        val loading: Boolean = true,
+        val error: Boolean = false,
+        val entries: Map<Game, LibraryEntry> = emptyMap(),
+        /** Total entries in the status; null when the backend does not report it. */
+        val count: Int? = null,
     )
+
+    /** Immutable state of the Library screen, one entry per [GameLibraryStatus]. */
+    data class UiState(
+        val sections: Map<GameLibraryStatus, SectionUiState> =
+            GameLibraryStatus.entries.associateWith { SectionUiState() },
+    )
+
+    private companion object {
+        const val PREVIEW_SIZE = 20
+    }
 
     private val igdb by inject<IgdbClient>()
 
-    /** Loads every status in one pass; section switching then filters the already-loaded state. */
-    fun loadLibraryEntries() = viewModelScope.launch {
-        update {
-            copy(loading = true, games = GameLibraryStatus.entries.associateWith { emptyMap() })
-        }
-
-        val result = safeRequest {
-            LibraryEntry.currentUserEntries().forEachPage { page ->
-                val grouped = groupEntriesByStatus(page)
-                update { copy(games = mergeGames(games, grouped)) }
-            }
-        }
-        if (result.isErr) Logger.e(result.unwrapError()) { "Error loading library entries" }
-        update { copy(loading = false) }
+    /** Reloads every status preview in parallel. */
+    fun loadPreviews() = viewModelScope.launch {
+        update { UiState() }
+        GameLibraryStatus.entries.forEach { status -> launch { setSection(status, loadSection(status)) } }
     }
 
-    private fun mergeGames(
-        existing: Map<GameLibraryStatus, Map<Game, LibraryEntry>>,
-        add: Map<GameLibraryStatus, Map<Game, LibraryEntry>>,
-    ): Map<GameLibraryStatus, Map<Game, LibraryEntry>> =
-        existing + add.mapValues { (status, games) -> existing[status].orEmpty() + games }
+    private suspend fun loadSection(status: GameLibraryStatus): SectionUiState {
+        val result = safeRequest { LibraryEntry.currentUserEntries(status).page(1).per(PREVIEW_SIZE).all() }
+        if (result.isErr) {
+            Logger.e(result.unwrapError()) { "Error loading library entries" }
+            return SectionUiState(loading = false, error = true)
+        }
+        val page = result.unwrap()
+        // take(): in case the backend ignores the page size.
+        val games = fetchGames(page.data.take(PREVIEW_SIZE)) ?: return SectionUiState(loading = false, error = true)
+        return SectionUiState(
+            loading = false,
+            entries = games,
+            count = (page.meta["totalItems"] as? JsonPrimitive)?.intOrNull,
+        )
+    }
 
-    private suspend fun groupEntriesByStatus(
-        entries: List<LibraryEntry>
-    ): Map<GameLibraryStatus, Map<Game, LibraryEntry>> {
+    /** The IGDB game of each entry, in entry order; null when IGDB fails. */
+    private suspend fun fetchGames(entries: List<LibraryEntry>): Map<Game, LibraryEntry>? {
         if (entries.isEmpty()) return emptyMap()
 
-        val allGameIds = entries.map { it.gameId }.toSet()
-        val gamesResult = safeRequest {
+        val gameIds = entries.map { it.gameId }.toSet()
+        val result = safeRequest {
             igdb.getGames {
                 fields(Game.field.name, Game.field.cover.image_id)
                 where {
-                    "id" inAny allGameIds.map { it.toString() }
+                    "id" inAny gameIds.map { it.toString() }
                 }
-                // Without an explicit limit IGDB returns only 10, dropping the rest of the page.
-                limit(allGameIds.size.coerceIn(1, 500))
+                // Without an explicit limit IGDB returns only 10.
+                limit(gameIds.size)
             }
         }
-
-        if (gamesResult.isErr) {
-            Logger.e(gamesResult.unwrapError()) { "Error loading games for library" }
-            return emptyMap()
+        if (result.isErr) {
+            Logger.e(result.unwrapError()) { "Error loading games for library" }
+            return null
         }
 
-        val gamesById = gamesResult.unwrap().games.associateBy { it.id }
+        val gamesById = result.unwrap().games.associateBy { it.id }
         return entries
-            .mapNotNull { entry -> gamesById[entry.gameId.toLong()]?.let { entry.status to (it to entry) } }
-            .groupBy({ it.first }) { it.second }
-            .mapValues { (_, pairs) -> pairs.toMap() }
+            .mapNotNull { entry -> gamesById[entry.gameId.toLong()]?.let { it to entry } }
+            .toMap()
     }
 
-    fun selectSection(section: GameLibraryStatus?) = update { copy(selectedSection = section) }
+    private fun setSection(status: GameLibraryStatus, section: SectionUiState) =
+        update { copy(sections = sections + (status to section)) }
 }
