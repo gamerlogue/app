@@ -3,6 +3,7 @@ package it.maicol07.gamerlogue.extensions.igdb
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import net.sergeych.sprintf.sprintf
+import kotlin.time.Clock
 
 /**
  * The detail destination for this game, carrying the cover and name so the target screen can draw
@@ -14,6 +15,13 @@ val Game.detailNavKey: RootNavTree.GameDetail
         coverImageId = cover?.image_id,
         gameName = name,
     )
+
+/**
+ * Whether the game is already out. Needs `first_release_date` among the fetched fields: a missing
+ * date reads as unreleased (TBA), so a thinner field list would lock the game to the backlog.
+ */
+fun Game.isReleased(): Boolean =
+    first_release_date?.let { it.getEpochSecond() <= Clock.System.now().epochSeconds } ?: false
 
 /** Score (0-10) with one decimal, or null when the game has no rating. */
 fun Game.ratingScore(): String? = rating.takeIf { it > 0.0 }?.let { "%.1f".sprintf(it / 10) }

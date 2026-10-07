@@ -37,6 +37,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.And
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchOffW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
+import it.maicol07.gamerlogue.extensions.igdb.isReleased
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.game.GameTopBar
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
@@ -109,6 +110,7 @@ fun GameDetailView(
                 GameToolbar(
                     expanded = expanded,
                     currentGameStatus = uiState.libraryEntry?.status,
+                    released = game.isReleased(),
                     pendingStatus = uiState.pendingStatus,
                     onBacklogClick = requiringLogin { viewModel.toggleStatus(GameLibraryStatus.BACKLOG) },
                     onPlayingClick = requiringLogin { viewModel.toggleStatus(GameLibraryStatus.PLAYING) },

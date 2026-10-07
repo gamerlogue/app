@@ -54,6 +54,7 @@ import org.jetbrains.compose.resources.stringResource
 fun BoxScope.GameToolbar(
     expanded: Boolean,
     currentGameStatus: GameLibraryStatus?,
+    released: Boolean,
     pendingStatus: GameLibraryStatus?,
     onBacklogClick: () -> Unit,
     onPlayingClick: () -> Unit,
@@ -91,7 +92,7 @@ fun BoxScope.GameToolbar(
             Icons.PlayCircleW500RoundedFill,
             currentGameStatus == GameLibraryStatus.PLAYING,
             loading = pendingStatus == GameLibraryStatus.PLAYING,
-            enabled = currentGameStatus == null || currentGameStatus == GameLibraryStatus.PLAYING,
+            enabled = (released && currentGameStatus == null) || currentGameStatus == GameLibraryStatus.PLAYING,
             onPlayingClick
         )
     },

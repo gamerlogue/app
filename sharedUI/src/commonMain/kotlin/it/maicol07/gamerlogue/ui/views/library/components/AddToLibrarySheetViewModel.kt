@@ -16,7 +16,7 @@ import gamerlogue.sharedui.generated.resources.library__error_select_status
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
-
+import it.maicol07.gamerlogue.extensions.igdb.isReleased
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -32,8 +32,11 @@ class AddToLibrarySheetViewModel(
     private val authTokenProvider by inject<AuthTokenProvider>()
     private val igdb by inject<IgdbClient>()
 
+    /** An unreleased game can only be backlogged, and not owned yet. */
+    val released = game.isReleased()
+
     // States
-    var selectedStatus by mutableStateOf(existingEntry?.status)
+    var selectedStatus by mutableStateOf(existingEntry?.status ?: GameLibraryStatus.BACKLOG.takeUnless { released })
     var completionStatus by mutableStateOf(existingEntry?.completionStatus)
     var owned by mutableStateOf(existingEntry?.owned ?: false)
     // editionsIds/platformsIds throw NoSuchElementException on a never-set attribute (older entries

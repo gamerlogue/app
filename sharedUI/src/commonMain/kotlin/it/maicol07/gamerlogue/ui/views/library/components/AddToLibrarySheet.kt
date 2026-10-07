@@ -94,7 +94,14 @@ fun GameAddEditLibrarySheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             statusSection(game.name, viewModel, isEditing)
-            item { OwnedSwitch(viewModel.owned, onOwnedChange = { viewModel.owned = it }) }
+            item {
+                // Kept enabled while set, so an entry owned before the release can still be unset.
+                OwnedSwitch(
+                    owned = viewModel.owned,
+                    enabled = viewModel.released || viewModel.owned,
+                    onOwnedChange = { viewModel.owned = it }
+                )
+            }
             item { EditionSection(game, viewModel) }
             item { PlatformSection(game, viewModel) }
             if (!isBacklog) {
@@ -200,6 +207,7 @@ private fun LazyListScope.statusSection(
             }
             LibraryStatusSelector(
                 selectedStatus = viewModel.selectedStatus,
+                released = viewModel.released,
                 onSectionStatus = { viewModel.selectedStatus = it }
             )
         }
@@ -246,6 +254,7 @@ private fun LazyListScope.statusSection(
 @Composable
 private fun LibraryStatusSelector(
     selectedStatus: GameLibraryStatus?,
+    released: Boolean,
     onSectionStatus: (GameLibraryStatus) -> Unit
 ) {
     FlowRow(
@@ -260,6 +269,8 @@ private fun LibraryStatusSelector(
                 FilledIconToggleButton(
                     checked = selectedStatus == section,
                     onCheckedChange = { onSectionStatus(section) },
+                    // The current status stays enabled, so an existing entry is never locked out.
+                    enabled = released || section == GameLibraryStatus.BACKLOG || section == selectedStatus,
                     shapes = IconButtonDefaults.toggleableShapes(),
                     colors = IconButtonDefaults.filledIconToggleButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,

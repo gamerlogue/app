@@ -84,12 +84,14 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun OwnedSwitch(
     owned: Boolean,
+    enabled: Boolean,
     onOwnedChange: (Boolean) -> Unit
 ) {
     SegmentedListLayout(Modifier.fillMaxWidth()) {
         SegmentedListItem(
             checked = owned,
             onCheckedChange = onOwnedChange,
+            enabled = enabled,
             shapes = ListItemDefaults.segmentedShapes(0, 1),
             colors = ListItemDefaults.expressiveSegmentedColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -111,6 +113,7 @@ internal fun OwnedSwitch(
                 Switch(
                     checked = owned,
                     onCheckedChange = onOwnedChange,
+                    enabled = enabled,
                     thumbContent = {
                         if (owned) {
                             Icon(
