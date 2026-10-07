@@ -11,10 +11,9 @@ import com.github.michaelbull.result.unwrapError
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntries
+import it.maicol07.gamerlogue.extensions.totalItems
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.intOrNull
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
 
@@ -26,7 +25,7 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
         val loading: Boolean = true,
         val error: Boolean = false,
         val entries: Map<Game, LibraryEntry> = emptyMap(),
-        /** Total entries in the status; null when the backend does not report it. */
+        /** Total entries in the status, from the page meta; null until loaded. */
         val count: Int? = null,
     )
 
@@ -48,20 +47,16 @@ class LibraryViewModel : StateViewModel<LibraryViewModel.UiState>(UiState()) {
         GameLibraryStatus.entries.forEach { status -> launch { setSection(status, loadSection(status)) } }
     }
 
+    /** The status' first page (the backend's page size is fixed), whose meta also carries the total. */
     private suspend fun loadSection(status: GameLibraryStatus): SectionUiState {
-        val result = safeRequest { LibraryEntry.currentUserEntries(status).page(1).per(PREVIEW_SIZE).all() }
+        val result = safeRequest { LibraryEntry.currentUserEntries(status).all() }
         if (result.isErr) {
             Logger.e(result.unwrapError()) { "Error loading library entries" }
             return SectionUiState(loading = false, error = true)
         }
         val page = result.unwrap()
-        // take(): in case the backend ignores the page size.
         val games = fetchGames(page.data.take(PREVIEW_SIZE)) ?: return SectionUiState(loading = false, error = true)
-        return SectionUiState(
-            loading = false,
-            entries = games,
-            count = (page.meta["totalItems"] as? JsonPrimitive)?.intOrNull,
-        )
+        return SectionUiState(loading = false, entries = games, count = page.totalItems)
     }
 
     /** The IGDB game of each entry, in entry order; null when IGDB fails. */
