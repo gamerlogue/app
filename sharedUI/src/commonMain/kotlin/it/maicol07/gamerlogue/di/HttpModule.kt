@@ -141,6 +141,15 @@ object HttpModule {
             accept(VndApiJson)
             contentType(VndApiJson)
         }
+        install(Logging) {
+            logger = object : Logger {
+                override fun log(message: String) {
+                    co.touchlab.kermit.Logger.v(tag = "HTTP Client") { message }
+                }
+            }
+            // HEADERS logs the Authorization header, so it stays out of anything but a local build.
+            level = if (BuildConfig.APP_ENV == AppEnvironment.LOCAL) LogLevel.HEADERS else LogLevel.NONE
+        }
         install(PlatformSession)
         ktorHttpClientConfig()
         HttpResponseValidator {
