@@ -25,10 +25,14 @@ import gamerlogue.sharedui.generated.resources.gamelist__critics_rating
 import gamerlogue.sharedui.generated.resources.gamelist__filter_time_to_beat
 import gamerlogue.sharedui.generated.resources.gamelist__hours_range
 import gamerlogue.sharedui.generated.resources.gamelist__hours_range_open
+import gamerlogue.sharedui.generated.resources.gamelist__my_rating
 import gamerlogue.sharedui.generated.resources.gamelist__release_year
 import gamerlogue.sharedui.generated.resources.gamelist__remove_filter
 import gamerlogue.sharedui.generated.resources.gamelist__reset
 import gamerlogue.sharedui.generated.resources.gamelist__user_rating
+import gamerlogue.sharedui.generated.resources.library__end_date
+import gamerlogue.sharedui.generated.resources.library__played_time
+import gamerlogue.sharedui.generated.resources.library__start_date
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
@@ -59,8 +63,8 @@ fun ActiveFilterChips(
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val chips = sortChips(filterState) + rangeChips(filterState) + fixedOptionChips(filterState, presetPlatform) +
-        searchedOptionChips(filterState, knownOptions)
+    val chips = sortChips(filterState) + libraryChips(filterState) + rangeChips(filterState) +
+        fixedOptionChips(filterState, presetPlatform) + searchedOptionChips(filterState, knownOptions)
     LazyRow(
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = Dimens.ScreenPadding),
@@ -110,6 +114,39 @@ private fun sortChips(filter: GameListFilterState): List<ActiveFilterChip> {
         ActiveFilterChip("sort", "${stringResource(filter.sortField.label)} $arrow") {
             copy(sortField = DefaultFilterState.sortField, sortDirection = DefaultFilterState.sortDirection)
         }
+    )
+}
+
+/** The library scope's sort and entry filters; all at their defaults outside that scope. */
+@Composable
+private fun libraryChips(filter: GameListFilterState): List<ActiveFilterChip> = with(filter.library) {
+    val default = LibraryFilterState()
+    fun chip(key: String, label: String, reset: LibraryFilterState.() -> LibraryFilterState) =
+        ActiveFilterChip("library:$key", label) { copy(library = library.reset()) }
+
+    val arrow = if (sortDirection == SortDirection.DESC) "↓" else "↑"
+    listOfNotNull(
+        chip("sort", "${stringResource(sortField.label)} $arrow") {
+            copy(sortField = default.sortField, sortDirection = default.sortDirection)
+        }.takeIf { sortField != default.sortField || sortDirection != default.sortDirection },
+        completionStatus?.let { chip("completion", stringResource(it.displayName)) { copy(completionStatus = null) } },
+        owned?.let { chip("owned", stringResource(it.ownedLabel)) { copy(owned = null) } },
+        chip("rating", "${stringResource(Res.string.gamelist__my_rating)} ${minRating.toInt()}–${maxRating.toInt()}") {
+            copy(minRating = 0f, maxRating = MaxEntryRating)
+        }.takeIf { hasRatingFilter },
+        playedTimeLabel()?.let { hours ->
+            chip("playedTime", "${stringResource(Res.string.library__played_time)} $hours") {
+                copy(minPlayedTime = null, maxPlayedTime = null)
+            }
+        },
+        startDate?.let { span ->
+            chip("startDate", "${stringResource(Res.string.library__start_date)} ${span.label()}") {
+                copy(startDate = null)
+            }
+        },
+        endDate?.let { span ->
+            chip("endDate", "${stringResource(Res.string.library__end_date)} ${span.label()}") { copy(endDate = null) }
+        },
     )
 }
 

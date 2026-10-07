@@ -440,6 +440,14 @@
     <string name="gamelist__filter_type_to_search">Type to search</string>
     <string name="gamelist__empty_hint">Try a different search or fewer filters</string>
     <string name="gamelist__remove_filter">Remove %1$s</string>
+    <string name="gamelist__library_sort_updated">Last updated</string>
+    <string name="gamelist__library_sort_created">Date added</string>
+    <string name="gamelist__my_rating">My rating</string>
+    <string name="gamelist__not_owned">Not owned</string>
+    <string name="gamelist__min_hours">Min hours</string>
+    <string name="gamelist__max_hours">Max hours</string>
+    <string name="gamelist__hours_range_up_to">up to %1$d h</string>
+    <string name="gamelist__date_any">Any date</string>
     <string name="common__more_options">More options</string>
     <string name="game__igdb_open">Open on IGDB</string>
     <string name="game__igdb_edit">Edit on IGDB</string>

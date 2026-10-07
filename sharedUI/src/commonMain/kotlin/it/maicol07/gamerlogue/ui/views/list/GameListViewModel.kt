@@ -142,6 +142,8 @@ data class GameListFilterState(
     val keywordIds: Set<Int> = emptySet(),
     val minHoursToBeat: Float = 0f,
     val maxHoursToBeat: Float = MaxHoursToBeat,
+    /** Only applies in library scope. */
+    val library: LibraryFilterState = LibraryFilterState(),
 )
 
 /**
@@ -435,6 +437,8 @@ class GameListViewModel(
     private suspend fun loadPage(reset: Boolean) {
         if (reset) {
             offset = 0
+            // The library filters are applied by the backend, so a new filter needs a new fetch.
+            libraryGameIds = null
             update { copy(games = emptyList(), endReached = false) }
         }
         if (state.endReached) return
@@ -565,19 +569,21 @@ class GameListViewModel(
     }
 
     /**
-     * One page of the library status' game ids, in library order.
+     * One page of the library status' game ids, in the order of the library sort.
      *
-     * The backend pages differently from IGDB, so — as for events — every entry is fetched once and
-     * paged client-side.
+     * The backend pages differently from IGDB, so — as for events — every entry matching the
+     * library filters is fetched once and paged client-side.
      */
     private suspend fun libraryGameIdPage(status: GameLibraryStatus, offset: Int): List<Int> {
-        val ids = libraryGameIds ?: fetchLibraryEntries(status).also { libraryGameIds = it }
+        val ids = libraryGameIds ?: fetchLibraryEntries(status, state.filterState.library).also { libraryGameIds = it }
         return ids.drop(offset).take(PAGE_SIZE)
     }
 
     /** Loads the user's entries in [status], publishes them for the card badges and returns their game ids. */
-    private suspend fun fetchLibraryEntries(status: GameLibraryStatus): List<Int> {
-        val entries = safeRequest { LibraryEntry.currentUserEntries(status).allPages() }.get().orEmpty()
+    private suspend fun fetchLibraryEntries(status: GameLibraryStatus, filter: LibraryFilterState): List<Int> {
+        val entries = safeRequest { LibraryEntry.currentUserEntries(status).applyFilter(filter).allPages() }
+            .get()
+            .orEmpty()
         update { copy(libraryEntries = entries.associateBy { it.gameId.toLong() }) }
         return entries.map { it.gameId }
     }

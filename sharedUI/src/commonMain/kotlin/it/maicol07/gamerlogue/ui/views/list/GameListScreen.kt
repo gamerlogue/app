@@ -95,6 +95,7 @@ fun GameListView(
     if (uiState.showFilterSheet) {
         GameListFilterSheet(
             filterState = uiState.filterState,
+            libraryScope = libraryStatus != null,
             columnCount = uiState.columnCount,
             filterSearches = uiState.filterSearches,
             defaultOptions = uiState.defaultOptions,

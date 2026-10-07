@@ -228,11 +228,16 @@ internal val PopularPlatforms = listOf(
     FilterPlatform(34, "Android", SimpleIcons.AndroidSimpleIcons),
 )
 
+/**
+ * In [libraryScope] the IGDB sort, which a library list ignores, gives way to the library sort and
+ * filters; the time-to-beat filter is hidden for the same reason.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Suppress("LongMethod")
 fun GameListFilterSheet(
     filterState: GameListFilterState,
+    libraryScope: Boolean,
     columnCount: Int,
     filterSearches: Map<FilterSearchTarget, FilterSearchState>,
     defaultOptions: Map<FilterSearchTarget, List<NamedSearchResult>>,
@@ -293,7 +298,14 @@ fun GameListFilterSheet(
                 )
             }
 
-            SortSection(filterState = filterState, onFilterChange = onFilterChange)
+            if (libraryScope) {
+                LibraryFilterSections(
+                    filter = filterState.library,
+                    onFilterChange = { onFilterChange(filterState.copy(library = it)) }
+                )
+            } else {
+                SortSection(filterState = filterState, onFilterChange = onFilterChange)
+            }
 
             RangeFilterSection(
                 icon = Icons.StarW500Rounded,
@@ -340,27 +352,31 @@ fun GameListFilterSheet(
             )
 
             // Hours of the "normal" completion time.
-            RangeFilterSection(
-                icon = Icons.HourglassW500Rounded,
-                title = Res.string.gamelist__filter_time_to_beat,
-                trailingText = { range ->
-                    if (range.endInclusive >= MaxHoursToBeat) {
-                        stringResource(Res.string.gamelist__hours_range_open, range.start.toInt())
-                    } else {
-                        stringResource(
-                            Res.string.gamelist__hours_range,
-                            range.start.toInt(),
-                            range.endInclusive.toInt()
+            if (!libraryScope) {
+                RangeFilterSection(
+                    icon = Icons.HourglassW500Rounded,
+                    title = Res.string.gamelist__filter_time_to_beat,
+                    trailingText = { range ->
+                        if (range.endInclusive >= MaxHoursToBeat) {
+                            stringResource(Res.string.gamelist__hours_range_open, range.start.toInt())
+                        } else {
+                            stringResource(
+                                Res.string.gamelist__hours_range,
+                                range.start.toInt(),
+                                range.endInclusive.toInt()
+                            )
+                        }
+                    },
+                    value = filterState.minHoursToBeat..filterState.maxHoursToBeat,
+                    valueRange = 0f..MaxHoursToBeat,
+                    steps = HoursToBeatSteps,
+                    onValueChangeFinished = { range ->
+                        onFilterChange(
+                            filterState.copy(minHoursToBeat = range.start, maxHoursToBeat = range.endInclusive)
                         )
                     }
-                },
-                value = filterState.minHoursToBeat..filterState.maxHoursToBeat,
-                valueRange = 0f..MaxHoursToBeat,
-                steps = HoursToBeatSteps,
-                onValueChangeFinished = { range ->
-                    onFilterChange(filterState.copy(minHoursToBeat = range.start, maxHoursToBeat = range.endInclusive))
-                }
-            )
+                )
+            }
 
             FilterCard {
                 FilterSectionHeader(
@@ -559,25 +575,13 @@ private fun Set<Int>.toggle(id: Int, isChecked: Boolean) = if (isChecked) this +
 @Composable
 private fun SortSection(filterState: GameListFilterState, onFilterChange: (GameListFilterState) -> Unit) {
     val sortEnabled = filterState.searchQuery.isBlank()
-    val descending = filterState.sortDirection == SortDirection.DESC
     FilterCard {
         FilterSectionHeader(icon = Icons.SortW500Rounded, title = Res.string.gamelist__sort_field) {
-            IconButton(
+            SortDirectionButton(
+                direction = filterState.sortDirection,
                 enabled = sortEnabled,
-                shapes = IconButtonDefaults.shapes(),
-                onClick = {
-                    val newDirection = if (descending) SortDirection.ASC else SortDirection.DESC
-                    onFilterChange(filterState.copy(sortDirection = newDirection))
-                }
-            ) {
-                Icon(
-                    imageVector = if (descending) Icons.ArrowDownwardW500Rounded else Icons.ArrowUpwardW500Rounded,
-                    contentDescription = stringResource(
-                        if (descending) Res.string.gamelist__sort_dir_desc else Res.string.gamelist__sort_dir_asc
-                    ),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+                onDirectionChange = { onFilterChange(filterState.copy(sortDirection = it)) }
+            )
         }
         SingleSelectConnectedButtonGroup(
             options = SortField.entries,
@@ -596,6 +600,29 @@ private fun SortSection(filterState: GameListFilterState, onFilterChange: (GameL
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+/** Flips the sort [direction]; the arrow shows the current one. */
+@Composable
+internal fun SortDirectionButton(
+    direction: SortDirection,
+    enabled: Boolean,
+    onDirectionChange: (SortDirection) -> Unit
+) {
+    val descending = direction == SortDirection.DESC
+    IconButton(
+        enabled = enabled,
+        shapes = IconButtonDefaults.shapes(),
+        onClick = { onDirectionChange(if (descending) SortDirection.ASC else SortDirection.DESC) }
+    ) {
+        Icon(
+            imageVector = if (descending) Icons.ArrowDownwardW500Rounded else Icons.ArrowUpwardW500Rounded,
+            contentDescription = stringResource(
+                if (descending) Res.string.gamelist__sort_dir_desc else Res.string.gamelist__sort_dir_asc
+            ),
+            tint = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
@@ -637,7 +664,7 @@ private fun <T> MultiSelectFilterSection(
  * would fire (and cancel) one IGDB request per frame and blank the grid meanwhile.
  */
 @Composable
-private fun RangeFilterSection(
+internal fun RangeFilterSection(
     icon: ImageVector,
     title: StringResource,
     trailingText: @Composable (ClosedFloatingPointRange<Float>) -> String,
@@ -784,7 +811,7 @@ private fun FilterSearchBar(
 
 /** A tonal container for one filter section, set apart from the sheet surface behind it. */
 @Composable
-private fun FilterCard(content: @Composable ColumnScope.() -> Unit) = Surface(
+internal fun FilterCard(content: @Composable ColumnScope.() -> Unit) = Surface(
     color = MaterialTheme.colorScheme.surfaceContainerHigh,
     shape = MaterialTheme.shapes.large,
     modifier = Modifier.fillMaxWidth()
@@ -798,7 +825,7 @@ private fun FilterCard(content: @Composable ColumnScope.() -> Unit) = Surface(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun FilterSectionHeader(
+internal fun FilterSectionHeader(
     icon: ImageVector,
     title: StringResource,
     trailing: @Composable () -> Unit = {},
@@ -825,7 +852,7 @@ private fun FilterSectionHeader(
 
 /** The current value shown at the end of a [FilterSectionHeader]. */
 @Composable
-private fun HeaderValue(text: String) = Text(
+internal fun HeaderValue(text: String) = Text(
     text = text,
     style = MaterialTheme.typography.bodyMedium,
     color = MaterialTheme.colorScheme.onSurfaceVariant
