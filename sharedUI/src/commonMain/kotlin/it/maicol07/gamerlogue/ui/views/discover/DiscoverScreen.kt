@@ -178,15 +178,21 @@ internal fun SectionHeader(
     horizontalArrangement = Arrangement.spacedBy(Dimens.SectionGap)
 ) {
     SectionIcon(icon, iconShape, iconContainerColor, iconColor)
-    Text(
-        text = stringResource(title),
-        style = MaterialTheme.typography.titleLargeEmphasized,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.weight(1f, fill = false)
-    )
-    if (count != null) CountPill(count)
-    Spacer(Modifier.weight(1f))
+    // One weighted group: the title ellipsizes inside it and "see all" stays at the end.
+    Row(
+        modifier = Modifier.weight(1f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SectionGap)
+    ) {
+        Text(
+            text = stringResource(title),
+            style = MaterialTheme.typography.titleLargeEmphasized,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        if (count != null) CountPill(count)
+    }
     SeeAllButton(onSeeAllClick)
 }
 
