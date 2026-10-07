@@ -8,6 +8,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -67,9 +68,31 @@ private const val COUNTDOWN_MAX_DAYS = 30
 /** A multi-browse carousel of covers, each with the badge its [section] cares about. */
 @Composable
 internal fun GameCarousel(section: DiscoverSection, games: List<Game>, onGameClick: (Game) -> Unit) {
-    val titleMinWidthPx = with(LocalDensity.current) { CardTitleMinWidth.toPx() }
     // Upcoming dates start relative; tapping any date pill flips the whole row between the two.
     var absoluteDates by rememberSaveable { mutableStateOf(false) }
+    GameCarousel(games = games, onGameClick = onGameClick, metadata = { emptyList() }) { game ->
+        SectionBadge(
+            section = section,
+            game = game,
+            absoluteDates = absoluteDates,
+            onDateClick = { absoluteDates = !absoluteDates },
+            modifier = Modifier.align(Alignment.TopStart).padding(Dimens.ItemGap)
+        )
+    }
+}
+
+/**
+ * A multi-browse carousel of covers with press-morphing cards: [metadata] feeds the card's own
+ * badges, [badge] overlays a custom one on top of the cover.
+ */
+@Composable
+internal fun GameCarousel(
+    games: List<Game>,
+    onGameClick: (Game) -> Unit,
+    metadata: @Composable (Game) -> List<String>,
+    badge: @Composable BoxScope.(Game) -> Unit
+) {
+    val titleMinWidthPx = with(LocalDensity.current) { CardTitleMinWidth.toPx() }
     GameCoverCarousel(
         itemCount = games.count(),
         preferredItemWidth = CardWidth,
@@ -80,20 +103,14 @@ internal fun GameCarousel(section: DiscoverSection, games: List<Game>, onGameCli
         Box(Modifier.maskClip(pressMorphShape(interactionSource, CardCorner, CardPressedCorner))) {
             GameCoverCard(
                 game = game,
-                metadata = emptyList(),
+                metadata = metadata(game),
                 showTitle = carouselItemDrawInfo.size > titleMinWidthPx,
                 // The carousel sizes its items, and a large item can be wider than the preferred width.
                 sizeModifier = Modifier.fillMaxSize(),
                 interactionSource = interactionSource,
                 onClick = onGameClick
             )
-            SectionBadge(
-                section = section,
-                game = game,
-                absoluteDates = absoluteDates,
-                onDateClick = { absoluteDates = !absoluteDates },
-                modifier = Modifier.align(Alignment.TopStart).padding(Dimens.ItemGap)
-            )
+            badge(game)
         }
     }
 }
