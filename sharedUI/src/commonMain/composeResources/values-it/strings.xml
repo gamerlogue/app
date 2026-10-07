@@ -218,7 +218,6 @@
     <string name="theme__unknown">Sconosciuto</string>
 
     <!-- Library -->
-    <string name="library__section_all">Tutti</string>
     <string name="library__section_playing">In gioco</string>
     <string name="library__section_completed">Completati</string>
     <string name="library__section_paused">In pausa</string>
@@ -226,11 +225,6 @@
     <string name="library__section_backlog">Backlog</string>
 
     <string name="library__empty_all">La tua libreria è vuota. Aggiungi dei giochi per iniziare!</string>
-    <string name="library__empty_playing">Nessun gioco in corso.</string>
-    <string name="library__empty_completed">Ancora nessun gioco completato.</string>
-    <string name="library__empty_paused">Nessun gioco in pausa.</string>
-    <string name="library__empty_abandoned">Nessun gioco abbandonato.</string>
-    <string name="library__empty_backlog">Il tuo backlog è vuoto.</string>
 
     <string name="library__add_to_library">Aggiungi %1$s alla libreria</string>
     <string name="library__edit_entry">Modifica %1$s</string>
