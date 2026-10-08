@@ -7,6 +7,7 @@ import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.AuthCircuitBreaker
@@ -18,6 +19,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.accept
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendEncodedPathSegments
@@ -211,38 +213,40 @@ object HttpModule {
         }
     }
 
+    /**
+     * Client for an off-WebView store API ([PsnApi]/[XboxApi]/[EpicApi]/[UbisoftApi]).
+     *
+     * Deliberately not `expectSuccess`, which also rejects 3xx: the PSN authorize step reads its auth
+     * code out of a 302 `Location`. Only 4xx/5xx are errors — but they must be errors, because without
+     * a validator the error body reaches the JSON parser and a 401 silently reads as "no games".
+     */
+    private fun storeApiClient(configure: HttpClientConfig<*>.() -> Unit = {}) = HttpClient {
+        ktorHttpClientConfig()
+        HttpResponseValidator {
+            validateResponse { response ->
+                if (response.status.value >= HttpStatusCode.BadRequest.value) {
+                    throw ResponseException(response, response.bodyAsText())
+                }
+            }
+        }
+        configure()
+    }
+
     // PSN API client: must NOT follow redirects (the OAuth code is read from the authorizing 302).
     @Single
-    fun providePsnApi() = PsnApi(
-        HttpClient {
-            followRedirects = false
-            ktorHttpClientConfig()
-        }
-    )
+    fun providePsnApi() = PsnApi(storeApiClient { followRedirects = false })
 
     // Xbox Live API client (token chain + titlehub); plain JSON calls, the MSA token comes from the WebView.
     @Single
-    fun provideXboxApi() = XboxApi(
-        HttpClient {
-            ktorHttpClientConfig()
-        }
-    )
+    fun provideXboxApi() = XboxApi(storeApiClient())
 
     // Epic launcher API client (token exchange + library/catalog); plain JSON, the auth code comes from
     // the WebView. Off-WebView so it isn't CORS-blocked like the same calls would be in the browser.
     @Single
-    fun provideEpicApi() = EpicApi(
-        HttpClient {
-            ktorHttpClientConfig()
-        }
-    )
+    fun provideEpicApi() = EpicApi(storeApiClient())
 
     // Ubisoft Connect API client (GraphQL owned games); plain JSON, the session ticket comes from the
     // WebView. Off-WebView so it isn't CORS-blocked like the same calls would be in the browser.
     @Single
-    fun provideUbisoftApi() = UbisoftApi(
-        HttpClient {
-            ktorHttpClientConfig()
-        }
-    )
+    fun provideUbisoftApi() = UbisoftApi(storeApiClient())
 }

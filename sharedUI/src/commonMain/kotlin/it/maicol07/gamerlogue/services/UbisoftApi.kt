@@ -58,18 +58,22 @@ class UbisoftApi(private val http: HttpClient) {
 
     /** Exchange [session]'s ticket for one freshly minted under [AppId], or null if the renewal fails. */
     private suspend fun renewSession(session: Session): Session? {
-        val resp = http.put(SESSIONS) {
-            contentType(ContentType.Application.Json)
-            header(HttpHeaders.Authorization, "Ubi_v1 t=${session.ticket}")
-            header("Ubi-AppId", AppId)
-            setBody("{}")
-        }
-        val body = resp.bodyAsText()
-        val obj = runCatching { apiJson.parseToJsonElement(body).jsonObject }.getOrNull()
+        // The only call here allowed to fail softly: the caller falls back to the captured session,
+        // which is often still valid. Everything after it propagates instead.
+        val obj = runCatching {
+            val resp = http.put(SESSIONS) {
+                contentType(ContentType.Application.Json)
+                header(HttpHeaders.Authorization, "Ubi_v1 t=${session.ticket}")
+                header("Ubi-AppId", AppId)
+                setBody("{}")
+            }
+            apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
+        }.onFailure { Logger.w(it) { "Ubisoft session renewal failed" } }.getOrNull()
+
         val ticket = obj?.string("ticket")
         val sessionId = obj?.string("sessionId")
         if (ticket == null || sessionId == null) {
-            Logger.w { "Ubisoft session renewal: unexpected response, status=${resp.status} body=${body.take(500)}" }
+            Logger.w { "Ubisoft session renewal: no ticket/sessionId in the response" }
             return null
         }
         return Session(ticket, sessionId)
@@ -83,13 +87,8 @@ class UbisoftApi(private val http: HttpClient) {
             header("Ubi-SessionId", session.sessionId)
             header("Ubi-LocaleCode", "en-US")
         }
-        val body = resp.bodyAsText()
-        val root = runCatching { apiJson.parseToJsonElement(body).jsonObject }.getOrNull()
-        val entitlements = root?.get("entitlements")?.let { it.jsonArrayOrNodes() }
-        if (entitlements == null) {
-            Logger.w { "Ubisoft entitlements: unexpected response, status=${resp.status} body=${body.take(500)}" }
-            return emptyList()
-        }
+        val root = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
+        val entitlements = root["entitlements"]?.jsonArrayOrNodes() ?: error("Ubisoft entitlements: no entitlements")
         return entitlements.mapNotNull { it as? JsonObject }
             .filter { entitlement ->
                 entitlement.string("accessLevel").equalsIgnoreCase("owned") &&
@@ -119,13 +118,10 @@ class UbisoftApi(private val http: HttpClient) {
             header("Ubi-SessionId", session.sessionId)
             setBody(payload.toString())
         }
-        val body = resp.bodyAsText()
-        val games = runCatching { apiJson.parseToJsonElement(body).jsonObject }.getOrNull()
-            ?.get("data")?.jsonObject?.get("games")?.jsonArray
-        if (games == null) {
-            Logger.w { "Ubisoft game details: unexpected response, status=${resp.status} body=${body.take(500)}" }
-            return emptyList()
-        }
+        // GraphQL answers 200 even for a rejected query, so the error lives in the body, not the status.
+        val body = apiJson.parseToJsonElement(resp.bodyAsText()).jsonObject
+        val games = body["data"]?.jsonObject?.get("games")?.jsonArray
+            ?: error("Ubisoft game details: no data.games (${body["errors"]?.toString()?.take(ERROR_EXCERPT)})")
         return games.mapNotNull { node ->
             val obj = node as? JsonObject ?: return@mapNotNull null
             if (!containsPcPlatform(obj)) return@mapNotNull null
@@ -139,6 +135,7 @@ class UbisoftApi(private val http: HttpClient) {
     private fun containsPcPlatform(element: JsonElement): Boolean = when (element) {
         is JsonObject -> element["type"]?.jsonPrimitive?.content.equalsIgnoreCase("pc") ||
             element.values.any(::containsPcPlatform)
+
         is JsonArray -> element.any(::containsPcPlatform)
         else -> false
     }
@@ -160,6 +157,9 @@ class UbisoftApi(private val http: HttpClient) {
         const val GRAPHQL = "https://public-ubiservices.ubi.com/v1/profiles/me/uplay/graphql"
         const val SESSIONS = "https://public-ubiservices.ubi.com/v3/profiles/sessions"
         const val SPACE_ID_BATCH_SIZE = 50
+
+        /** How much of a GraphQL `errors` payload goes into the failure message. */
+        const val ERROR_EXCERPT = 500
 
         val GET_OWNED_GAMES_QUERY = $$"""
             query GetOwnedGames($spaceIds: [String!]) {
