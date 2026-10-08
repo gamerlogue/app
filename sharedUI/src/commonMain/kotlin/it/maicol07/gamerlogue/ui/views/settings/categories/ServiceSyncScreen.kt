@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -27,7 +28,6 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -50,6 +50,7 @@ import gamerlogue.sharedui.generated.resources.common_close
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__open_store
 import gamerlogue.sharedui.generated.resources.settings__service_sync_error
+import gamerlogue.sharedui.generated.resources.settings__service_sync_summary
 import gamerlogue.sharedui.generated.resources.settings__service_webview_busy
 import gamerlogue.sharedui.generated.resources.settings__service_working
 import gamerlogue.sharedui.generated.resources.settings__sync_title_connect
@@ -65,6 +66,7 @@ import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
@@ -72,8 +74,8 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.RemoteImage
-import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.StatusMessage
+import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.label
 import it.maicol07.gamerlogue.ui.components.rememberServiceWebViewHost
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
@@ -125,6 +127,7 @@ fun ServiceSyncView(
                 navigatedAway = true
                 navigateToImportPreview(service, ImportMode.OWNED)
             }
+
             ServiceSyncAction.PREVIEW_WISHLIST -> {
                 val refs = viewModel.runWishlistPreview(service, session)
                 ImportHandoff.put(service, refs)
@@ -142,6 +145,7 @@ fun ServiceSyncView(
         ServiceSyncAction.REFRESH_PROFILE -> stringResource(Res.string.settings__sync_title_refresh_profile, serviceName)
         ServiceSyncAction.SYNC_WISHLIST,
         ServiceSyncAction.PREVIEW_WISHLIST -> stringResource(Res.string.settings__sync_title_sync_wishlist, serviceName)
+
         ServiceSyncAction.IMPORT_LIBRARY -> stringResource(Res.string.settings__sync_title_import_library, serviceName)
     }
 
@@ -190,6 +194,7 @@ fun ServiceSyncView(
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             val pending = session.pendingConfirm
+            val outcome = uiState.outcome
             when {
                 pending != null -> PushChecklist(
                     games = pending,
@@ -197,8 +202,11 @@ fun ServiceSyncView(
                     onConfirm = session::resolveConfirm,
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
-                // On success just pop back to Linked Services; only stop to show an error.
-                finished && uiState.message == "error" -> ErrorContent(onFinish = onFinish)
+                // Pop straight back to Linked Services unless there is something worth reporting.
+                finished && outcome == LinkedServicesViewModel.SyncOutcome.Failed -> ErrorContent(onFinish)
+                finished && outcome is LinkedServicesViewModel.SyncOutcome.WishlistSynced &&
+                    outcome.changedAnything -> WishlistSummary(outcome, onFinish)
+
                 finished -> LaunchedEffect(Unit) { onFinish() }
                 else -> LoadingContent(session.log)
             }
@@ -233,6 +241,21 @@ private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
     Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
 }
 
+/** What a wishlist sync actually did, shown only when it changed something on either side. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun WishlistSummary(
+    outcome: LinkedServicesViewModel.SyncOutcome.WishlistSynced,
+    onFinish: () -> Unit,
+) = StatusMessage(
+    Icons.CheckCircleW500Rounded,
+    stringResource(Res.string.settings__service_sync_summary, outcome.added, outcome.pushed),
+    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+) {
+    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
+}
+
 /** Outgoing-direction preview: pick which backlog games to add to the store wishlist. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -248,7 +271,10 @@ private fun PushChecklist(
     val selected = remember(games) {
         mutableStateMapOf<String, Boolean>().apply {
             games.forEach {
-                put(it.uid, (it.storeUrl != null || (matchesByName && it.matchesPublisher)) && it.onPlatform && !it.alreadyOnWishlist)
+                put(
+                    it.uid,
+                    (it.storeUrl != null || (matchesByName && it.matchesPublisher)) && it.onPlatform && !it.alreadyOnWishlist
+                )
             }
         }
     }
@@ -310,7 +336,8 @@ private fun PushRow(
     onOpenStore: (String) -> Unit,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    val pushable = (game.storeUrl != null || (matchesByName && game.matchesPublisher)) && game.onPlatform && !game.alreadyOnWishlist
+    val pushable =
+        (game.storeUrl != null || (matchesByName && game.matchesPublisher)) && game.onPlatform && !game.alreadyOnWishlist
     SegmentedListItem(
         selected = checked,
         enabled = pushable,
@@ -340,6 +367,7 @@ private fun PushRow(
                 game.alreadyOnWishlist -> stringResource(Res.string.settings__wishlist_already_present)
                 game.onPlatform && game.storeUrl == null && !(matchesByName && game.matchesPublisher) ->
                     stringResource(Res.string.settings__import_no_match)
+
                 else -> null
             }
             subtitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }

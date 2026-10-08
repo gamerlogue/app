@@ -319,7 +319,7 @@
     <string name="settings__service_refresh_profile">Refresh profile</string>
     <string name="settings__service_sync_wishlist">Sync wishlist</string>
     <string name="settings__service_import_library">Import library</string>
-    <string name="settings__service_sync_done">Wishlist synced.</string>
+    <string name="settings__service_sync_summary">Wishlist synced: %1$d added to your library, %2$d sent to the store.</string>
     <string name="settings__service_sync_error">Sync failed. Try again.</string>
     <string name="settings__import_library_title">Import library</string>
     <string name="settings__wishlist_preview_title">Wishlist</string>

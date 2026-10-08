@@ -3,7 +3,6 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.parkwoocheol.composewebview.PlatformCookieManager
-import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.services.ExternalGameRef
@@ -19,7 +18,6 @@ import kotlinx.serialization.json.Json
 import org.koin.core.annotation.KoinViewModel
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 /** A store flow that requires the WebView; carried by the [it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree.ServiceSync] key. */
 @Serializable
@@ -50,9 +48,20 @@ class LinkedServicesViewModel(
         val profile: ServiceProfile? = null,
     )
 
+    /** How the last WebView flow ended, for the sync screen's closing message. */
+    sealed interface SyncOutcome {
+        /** [added] entries created in Gamerlogue, [pushed] backlog games sent to the store wishlist. */
+        data class WishlistSynced(val added: Int, val pushed: Int) : SyncOutcome {
+            /** False when the two libraries already agreed — nothing worth stopping to report. */
+            val changedAnything: Boolean get() = added > 0 || pushed > 0
+        }
+
+        data object Failed : SyncOutcome
+    }
+
     data class UiState(
         val services: Map<ExternalService, ServiceState> = emptyMap(),
-        val message: String? = null,
+        val outcome: SyncOutcome? = null,
     )
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -95,7 +104,6 @@ class LinkedServicesViewModel(
         }
     }
 
-    fun consumeMessage() = update { copy(message = null) }
 
     // --- WebView flows (called by the ServiceSyncView's WebView) ---
 
@@ -134,14 +142,14 @@ class LinkedServicesViewModel(
             session.awaitLogin(connector)
             val wishlist = wishlistRefs(connector, session)
             val result = librarySync.pullWishlist(connector, wishlist)
-            if (result.toPush.isNotEmpty()) pushWishlist(connector, session, result.toPush)
+            val pushed = pushWishlist(connector, session, result.toPush)
             setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-            update { copy(message = "wishlist:${result.added}:${result.toPush.size}") }
+            update { copy(outcome = SyncOutcome.WishlistSynced(result.added, pushed)) }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Logger.e(e) { "Wishlist sync failed for $service" }
-            update { copy(message = "error") }
+            update { copy(outcome = SyncOutcome.Failed) }
         } finally {
             setBusy(service, false)
             refresh(service)
@@ -173,25 +181,42 @@ class LinkedServicesViewModel(
     private suspend fun wishlistRefs(connector: ServiceConnector, session: WebSession): List<ExternalGameRef> =
         connector.wishlist?.let { session.read(it) }.orEmpty()
 
-    private suspend fun pushWishlist(connector: ServiceConnector, session: WebSession, games: List<LibrarySync.OutgoingGame>) {
-        val write = connector.wishlistWrite ?: return
+    /** Pushes [games] to the store wishlist and returns how many it actually sent. */
+    private suspend fun pushWishlist(
+        connector: ServiceConnector,
+        session: WebSession,
+        games: List<LibrarySync.OutgoingGame>,
+    ): Int {
+        val write = connector.wishlistWrite ?: return 0
         // Only games that release on this platform and aren't already wishlisted; a store page (storeUrl)
         // is required for every strategy except SearchByName, which searches by name instead.
         val onPlatform = games.filter { it.onPlatform && !it.alreadyOnWishlist }
-        when (write) {
-            is WishlistWrite.Batch -> onPlatform.filter { it.storeUrl != null }.let { pushable ->
-                if (pushable.isNotEmpty()) session.run(write.step(pushable.map { ExternalGameRef(it.uid, it.name) }))
+        val withStorePage = onPlatform.filter { it.storeUrl != null }
+        return when (write) {
+            is WishlistWrite.Batch -> {
+                if (withStorePage.isNotEmpty()) {
+                    session.run(write.step(withStorePage.map { ExternalGameRef(it.uid, it.name) }))
+                }
+                withStorePage.size
             }
             // Per-game write: open each store page and click its add-to-wishlist button (e.g. PSN).
-            is WishlistWrite.PerGame -> onPlatform.filter { it.storeUrl != null }
-                .forEach { g -> write.step(g.storeUrl!!)?.let { session.run(it) } }
+            is WishlistWrite.PerGame -> {
+                withStorePage.forEach { g -> write.step(g.storeUrl!!)?.let { session.run(it) } }
+                withStorePage.size
+            }
             // Resolve the real product URL from an intermediate page first, then act on it (Nintendo).
-            is WishlistWrite.PerGameResolved -> onPlatform.filter { it.storeUrl != null }.forEach { g ->
-                val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
-                if (!resolved.isNullOrBlank()) write.step(resolved)?.let { session.run(it) }
+            is WishlistWrite.PerGameResolved -> {
+                withStorePage.forEach { g ->
+                    val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
+                    if (!resolved.isNullOrBlank()) write.step(resolved)?.let { session.run(it) }
+                }
+                withStorePage.size
             }
             // Search-driven write: no store URL needed, the game's name drives the search (Ubisoft).
-            is WishlistWrite.SearchByName -> onPlatform.forEach { g -> session.run(write.step(g.name)) }
+            is WishlistWrite.SearchByName -> {
+                onPlatform.forEach { g -> session.run(write.step(g.name)) }
+                onPlatform.size
+            }
         }
     }
 

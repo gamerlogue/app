@@ -317,7 +317,7 @@
     <string name="settings__service_refresh_profile">Aggiorna profilo</string>
     <string name="settings__service_sync_wishlist">Sincronizza wishlist</string>
     <string name="settings__service_import_library">Importa libreria</string>
-    <string name="settings__service_sync_done">Wishlist sincronizzata.</string>
+    <string name="settings__service_sync_summary">Wishlist sincronizzata: %1$d aggiunti alla libreria, %2$d inviati allo store.</string>
     <string name="settings__service_sync_error">Sincronizzazione fallita. Riprova.</string>
     <string name="settings__import_library_title">Importa libreria</string>
     <string name="settings__wishlist_preview_title">Wishlist</string>
