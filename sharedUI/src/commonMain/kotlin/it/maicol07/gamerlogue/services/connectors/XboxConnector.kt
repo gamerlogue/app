@@ -85,22 +85,10 @@ class XboxConnector(private val api: XboxApi) :
                 console.log('[GL] xbox wishlist at ' + location.href);
                 // Wishlist tiles are CSS-module anchors; the hashed class suffix (___OfDqr) changes per build,
                 // so match the stable module prefix substring instead of the full generated class name.
-                let productAnchors = function() {
-                    return Array.prototype.slice.call(
-                        document.querySelectorAll('[class*="WishlistProductItem-module__productDetails"] > a[href]'),
-                    );
-                };
-                // Tiles render late (React); poll until product anchors appear instead of reading an empty DOM.
-                let tiles = await new Promise(function(res) {
-                    let tries = 0;
-                    (function tick() {
-                        let t = productAnchors();
-                        if (t.length || ++tries > 30) return res(t);
-                        setTimeout(tick, 500);
-                    })();
-                });
+                // They render late (React), so wait for them instead of reading an empty DOM.
+                let tiles = await __glWaitForAll('[class*="WishlistProductItem-module__productDetails"] > a[href]');
                 let result = {};
-                tiles.forEach(a => {
+                Array.prototype.forEach.call(tiles, a => {
                     let href = a.getAttribute('href') || '';
                     let uid = (href.match(/\/([0-9A-Za-z]{12})(?:[\/?#]|$)/) || [])[1] || '';
                     let name = (a.getAttribute('aria-label') || a.textContent || '').trim();
@@ -118,39 +106,24 @@ class XboxConnector(private val api: XboxApi) :
             storeUrl,
             SyncScripts.wrap(
                 """
-                // Click then VERIFY with retry (same React/SSR timing issue as PSN: the add button renders
-                // before its onClick is bound). Success = an add control flips to a remove/added state.
-                let wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
-                let findAdd = function() {
+                // The add control carries no stable selector, so both states are matched on the
+                // (localized) label: it always contains "wishlist", plus "add" or a done word.
+                let labelled = function(words) {
                     return Array.prototype.find.call(
                         document.querySelectorAll('button, [role="button"]'),
                         function(b) {
                             let l = ((b.getAttribute('aria-label') || '') + ' ' + (b.textContent || '')).toLowerCase();
-                            return b.offsetParent !== null && l.indexOf('wishlist') >= 0 && l.indexOf('add') >= 0;
-                        },
+                            return b.offsetParent !== null && l.indexOf('wishlist') >= 0 &&
+                                words.some(function(w) { return l.indexOf(w) >= 0; });
+                        }
                     );
                 };
-                let confirmed = function() {
-                    return !!Array.prototype.find.call(
-                        document.querySelectorAll('button, [role="button"]'),
-                        function(b) {
-                            let l = ((b.getAttribute('aria-label') || '') + ' ' + (b.textContent || '')).toLowerCase();
-                            let done = l.indexOf('remove') >= 0 || l.indexOf('added') >= 0 || l.indexOf('in wishlist') >= 0;
-                            return l.indexOf('wishlist') >= 0 && done;
-                        },
-                    );
-                };
-                let attempts = 0;
-                for (let i = 0; i < 5 && !confirmed(); i++) {
-                    let btn = findAdd();
-                    if (!btn) { await wait(500); continue; }
-                    attempts++;
-                    btn.click();
-                    await wait(1200);
-                }
-                let ok = confirmed();
+                let ok = await __glClickUntil(
+                    function() { return labelled(['add']); },
+                    function() { return !!labelled(['remove', 'added', 'in wishlist']); }
+                );
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
-                console.log('[GL] xbox wishlist push added=' + ok + ' attempts=' + attempts + ' ' + location.href);
+                console.log('[GL] xbox wishlist push added=' + ok + ' ' + location.href);
                 """.trimIndent(),
             ),
         )

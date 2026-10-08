@@ -33,18 +33,17 @@ class EpicConnector(private val api: EpicApi) :
     // "Continue with my account" button instead of the credential form. Auto-click it so the user isn't
     // prompted every time. Text match on "continue" covers the localized label (e.g., IT "Continua").
     // Fire-and-forget + no-op when the button is absent (real first login), so it's safe on any load.
-    override val loginTriggerScript = """
-        (function() {
-            var tries = 0;
-            (function tick() {
-                var els = Array.prototype.slice.call(document.querySelectorAll('button, a'));
-                var btn = els.find(function(e) { return /continu/i.test(e.textContent || ''); });
-                if (btn) { console.log('[GL] epic continue click'); btn.click(); return; }
-                if (++tries > 40) return;
-                setTimeout(tick, 500);
-            })();
-        })();
-    """.trimIndent()
+    override val loginTriggerScript = SyncScripts.clickWhenPresent(
+        label = "epic continue",
+        finder = """
+            function() {
+                return Array.prototype.find.call(
+                    document.querySelectorAll('button, a'),
+                    function(e) { return /continu/i.test(e.textContent || ''); }
+                );
+            }
+        """.trimIndent(),
+    )
 
     // Recognise an Epic store product page (returns its slug) so IGDB `websites` URLs are matched for push.
     override fun uidFromUrl(url: String) =
@@ -126,31 +125,24 @@ class EpicConnector(private val api: EpicApi) :
 
     // Push per game: open the product page and click its bookmark button. The button's icon carries a
     // language-independent data-testid — "empty-icon" (not wishlisted) / "filled-icon" (already added) —
-    // so we detect the state without reading the localized label. Click then verify with retry, since the
-    // store is React+SSR and an early click can hit an unbound handler (same fix as the PSN connector).
+    // so we detect the state without reading the localized label.
     override val wishlistWrite = WishlistWrite.PerGame { storeUrl ->
         WebStep(
             storeUrl,
             SyncScripts.wrap(
                 """
-                let wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
                 let btnWith = function(testid) {
                     return Array.prototype.find.call(document.querySelectorAll('button'), function(b) {
                         return b.querySelector('svg[data-testid="' + testid + '"]') && b.offsetParent !== null;
                     });
                 };
-                let confirmed = function() { return !!btnWith('filled-icon'); };
-                let attempts = 0;
-                for (let i = 0; i < 6 && !confirmed(); i++) {
-                    let btn = btnWith('empty-icon');
-                    if (!btn) { await wait(500); continue; }
-                    attempts++;
-                    btn.click();
-                    await wait(1200);
-                }
-                let ok = confirmed();
+                let ok = await __glClickUntil(
+                    function() { return btnWith('empty-icon'); },
+                    function() { return !!btnWith('filled-icon'); },
+                    6
+                );
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
-                console.log('[GL] epic wishlist push added=' + ok + ' attempts=' + attempts + ' ' + location.href);
+                console.log('[GL] epic wishlist push added=' + ok + ' ' + location.href);
                 """.trimIndent(),
             ),
         )

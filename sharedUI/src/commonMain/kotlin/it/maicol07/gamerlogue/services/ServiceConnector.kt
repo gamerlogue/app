@@ -61,6 +61,7 @@ sealed interface WishlistWrite {
         val resolve: (storeUrl: String) -> WebStep,
         val step: (resolvedUrl: String) -> WebStep?,
     ) : WishlistWrite
+
     data class SearchByName(val step: (name: String) -> WebStep) : WishlistWrite
 }
 
@@ -222,7 +223,7 @@ internal fun parseProfileJson(raw: String?): ServiceProfile? {
         .getOrNull()?.takeIf { it.username.isNotBlank() }
 }
 
-/** Shared JS plumbing for connectors: bridge delivery + desktop/CEF native polyfill. */
+/** Shared JS plumbing for connectors: bridge delivery, DOM waiting helpers, desktop/CEF native polyfill. */
 object SyncScripts {
     /** Injected JS object name (see [WebViewJsBridge][com.parkwoocheol.composewebview.WebViewJsBridge]). */
     const val BRIDGE_OBJECT = "GlBridge"
@@ -233,13 +234,91 @@ object SyncScripts {
     /** Bridge method the wrapped scripts call to deliver their `[{uid,name}, …]` result. */
     const val RESULT_METHOD = "glResult"
 
+    /** Default polling budget of the wait helpers: tries × interval ≈ 15s, under the Kotlin script timeout. */
+    private const val DEFAULT_TRIES = 30
+    private const val POLL_MS = 500
+
+    /** Default click-then-verify budget of [HELPERS]' `__glClickUntil`. */
+    private const val CLICK_ATTEMPTS = 5
+    private const val CLICK_SETTLE_MS = 1200
+
+    /**
+     * DOM helpers every injected script gets, so no connector hand-rolls a poll loop.
+     *
+     * - `__glSleep(ms)`
+     * - `__glWaitFor(find, tries?, interval?)` — polls `find()` until it returns a truthy value (a
+     *   collection must be non-empty) and resolves it; on timeout resolves whatever the last call gave.
+     * - `__glWaitForEl(selector, …)` / `__glWaitForAll(selector, …)` — selector shorthands.
+     * - `__glVisible(selector)` — first match that is actually rendered, skipping hidden duplicates.
+     * - `__glClickUntil(find, confirmed, attempts?, settle?)` — click then verify, with retry: the
+     *   React/SSR stores render the button before binding its handler, so a single early click hits a
+     *   dead handler and silently does nothing. Resolves `confirmed()`.
+     */
+    val HELPERS = """
+        function __glSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+        async function __glWaitFor(find, tries, interval) {
+            var max = tries || $DEFAULT_TRIES, every = interval || $POLL_MS;
+            for (var i = 0; i < max; i++) {
+                var found = find();
+                // A NodeList/array counts as found only once non-empty; a single element just has to exist.
+                if (found && (found.length === undefined || found.length > 0)) return found;
+                await __glSleep(every);
+            }
+            return find();
+        }
+        function __glWaitForEl(selector, tries, interval) {
+            return __glWaitFor(function() { return document.querySelector(selector); }, tries, interval);
+        }
+        function __glWaitForAll(selector, tries, interval) {
+            return __glWaitFor(function() { return document.querySelectorAll(selector); }, tries, interval);
+        }
+        function __glVisible(selector) {
+            return Array.prototype.find.call(
+                document.querySelectorAll(selector),
+                function(e) { return e.offsetParent !== null; }
+            );
+        }
+        async function __glClickUntil(find, confirmed, attempts, settle) {
+            var max = attempts || $CLICK_ATTEMPTS, pause = settle || $CLICK_SETTLE_MS;
+            var tried = 0;
+            for (var i = 0; i < max && !confirmed(); i++) {
+                var el = find();
+                if (!el) { await __glSleep($POLL_MS); continue; } // still rendering
+                tried++;
+                el.click();
+                await __glSleep(pause); // let the framework handle the click and its request fire
+            }
+            console.log('[GL] clickUntil attempts=' + tried + ' ok=' + confirmed());
+            return confirmed();
+        }
+    """.trimIndent()
+
+    /**
+     * Fire-and-forget script that clicks the element [finder] returns as soon as it appears, for
+     * [ServiceConnector.loginTriggerScript]. That one is injected raw (it delivers no bridge result and
+     * so never goes through [wrap]), hence it carries its own copy of [HELPERS]. A no-op when the
+     * element never shows up, so it is safe to inject on any load during the login wait.
+     */
+    fun clickWhenPresent(label: String, finder: String, tries: Int = LOGIN_TRIES): String = """
+        (function() {
+            $HELPERS
+            __glWaitFor($finder, $tries).then(function(el) {
+                if (el) { console.log('[GL] $label click'); el.click(); }
+            });
+        })();
+    """.trimIndent()
+
+    /** Logins can sit on a slow redirect chain, so the trigger waits longer than a DOM read. */
+    private const val LOGIN_TRIES = 40
+
     /**
      * Wrap a body that assigns the `out` array into the bridge-delivery protocol: wait for the bridge,
      * run the (possibly async) body, then push `out` to Kotlin. Always sends something (empty on error)
-     * so the Kotlin side never waits forever.
+     * so the Kotlin side never waits forever. [HELPERS] are in scope for the body.
      */
     fun wrap(body: String): String = """
         (function() {
+            $HELPERS
             // Desktop/CEF re-injects window.$BRIDGE_OBJECT after each navigation but NOT the native
             // polyfill; the CEF message router persists, so re-create the polyfill here. Guarded by
             // window.cefQuery so on Android (real native interface, no cefQuery) we never overwrite it.

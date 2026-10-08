@@ -50,7 +50,8 @@ class UbisoftConnector(private val api: UbisoftApi) :
     // Ubisoft Store product pages are /{locale}/{slug}/{productId}.html; expose the product id so IGDB
     // `websites` can be matched for wishlist push (name-based owned/wishlist matching still drives the
     // main import).
-    override fun uidFromUrl(url: String) = Regex("ubisoft\\.com/(?:[a-z]{2}/)?[^/]+/([0-9a-f]{24})\\.html").find(url)?.groupValues?.get(1)
+    override fun uidFromUrl(url: String) =
+        Regex("ubisoft\\.com/(?:[a-z]{2}/)?[^/]+/([0-9a-f]{24})\\.html").find(url)?.groupValues?.get(1)
 
     // Games are name-matched with no store URL to confirm the match, so a random backlog game (e.g. from
     // another publisher entirely) would otherwise be just as "pushable" as an actual Ubisoft title. Only
@@ -84,23 +85,13 @@ class UbisoftConnector(private val api: UbisoftApi) :
     override val ownedGames = apiRefs(credentialStep) { credential -> api.ownedGames(credential.toSession()) }
 
     // The Connect API's own session data carries no display name/avatar worth trusting, so the profile
-    // is scraped from the account settings page instead — a React SPA, so poll until it hydrates.
+    // is scraped from the account settings page instead — a React SPA, so wait until it hydrates.
     override val profile = webProfile(
         WebStep(
             "https://www.ubisoft.com/account/account-information",
             SyncScripts.wrap(
                 """
-                let waitFor = function(selector) {
-                    return new Promise(function(res) {
-                        let tries = 0;
-                        (function tick() {
-                            let el = document.querySelector(selector);
-                            if (el || ++tries > 30) return res(el);
-                            setTimeout(tick, 500);
-                        })();
-                    });
-                };
-                let usernameInput = await waitFor('input[data-e2e="textfield-input"]');
+                let usernameInput = await __glWaitForEl('input[data-e2e="textfield-input"]');
                 let avatarImg = document.querySelector('[data-e2e="avatar"] img');
                 out = {
                     username: usernameInput ? (usernameInput.value || '') : '',
@@ -114,20 +105,13 @@ class UbisoftConnector(private val api: UbisoftApi) :
     )
 
     // Best-effort wishlist read from the Ubisoft Store account page; no known JSON endpoint, so this
-    // scrapes rendered wishlist cards (poll since the store is client-rendered).
+    // scrapes rendered wishlist cards (client-rendered, hence the wait).
     override val wishlist = webRefs(
         WebStep(
             "https://store.ubisoft.com/wishlist",
             SyncScripts.wrap(
                 """
-                let cards = await new Promise(function(res) {
-                    let tries = 0;
-                    (function tick() {
-                        let c = document.querySelectorAll('.items-in-wishlist .product-tile[data-itemid]');
-                        if (c.length || ++tries > 40) return res(c);
-                        setTimeout(tick, 500);
-                    })();
-                });
+                let cards = await __glWaitForAll('.items-in-wishlist .product-tile[data-itemid]', $STORE_TRIES);
                 if (!cards.length) {
                     cards = document.querySelectorAll('.product-tile[data-itemid]');
                 }
@@ -136,7 +120,7 @@ class UbisoftConnector(private val api: UbisoftApi) :
                     + ' any=' + document.querySelectorAll('.product-tile[data-itemid]').length
                     + ' wrapper=' + document.querySelectorAll('.items-in-wishlist').length);
                 let map = {};
-                cards.forEach(function(c) {
+                Array.prototype.forEach.call(cards, function(c) {
                     let uid = c.getAttribute('data-itemid');
                     let titleEl = c.querySelector('.prod-title');
                     let name = (titleEl ? titleEl.textContent : '').trim();
@@ -157,28 +141,7 @@ class UbisoftConnector(private val api: UbisoftApi) :
             "https://store.ubisoft.com/",
             SyncScripts.wrap(
                 """
-                let wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
-                let waitFor = function(selector) {
-                    return new Promise(function(res) {
-                        let tries = 0;
-                        (function tick() {
-                            let el = document.querySelector(selector);
-                            if (el || ++tries > 40) return res(el);
-                            setTimeout(tick, 500);
-                        })();
-                    });
-                };
-                let waitForAll = function(selector) {
-                    return new Promise(function(res) {
-                        let tries = 0;
-                        (function tick() {
-                            let els = document.querySelectorAll(selector);
-                            if (els.length || ++tries > 40) return res(els);
-                            setTimeout(tick, 500);
-                        })();
-                    });
-                };
-                let input = await waitFor('#searchbox .ais-SearchBox-input');
+                let input = await __glWaitForEl('#searchbox .ais-SearchBox-input', $STORE_TRIES);
                 if (!input) {
                     out = [];
                     console.log('[GL] ubisoft wishlist push: no search box');
@@ -189,14 +152,14 @@ class UbisoftConnector(private val api: UbisoftApi) :
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                     input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'a' }));
-                    await wait(800);
+                    await __glSleep(800);
                     let keywordEl = document.querySelector('.algolia-search-result[data-search-keyword]');
                     console.log('[GL] ubisoft wishlist search: inputValue=' + input.value
                         + ' recordedKeyword=' + (keywordEl ? keywordEl.getAttribute('data-search-keyword') : 'none'));
-                    let cards = await waitForAll('#search-result-items .algolia-producttile-card');
+                    let cards = await __glWaitForAll('#search-result-items .algolia-producttile-card', $STORE_TRIES);
                     let wanted = '$escaped'.toLowerCase();
                     let target = null;
-                    cards.forEach(function(c) {
+                    Array.prototype.forEach.call(cards, function(c) {
                         if (target) return;
                         let link = c.querySelector('.product-hit-link');
                         let gameName = (link ? (link.getAttribute('data-game-name') || '') : '').toLowerCase();
@@ -208,9 +171,11 @@ class UbisoftConnector(private val api: UbisoftApi) :
                         out = [];
                         console.log('[GL] ubisoft wishlist push: no result for $escaped');
                     } else {
+                        // The button toggles its own class rather than re-rendering, so this is a
+                        // click-then-poll rather than __glClickUntil's click-then-retry.
                         if (!btn.classList.contains('product-added')) {
                             btn.click();
-                            for (let i = 0; i < 10 && !btn.classList.contains('product-added'); i++) await wait(500);
+                            for (let i = 0; i < 10 && !btn.classList.contains('product-added'); i++) await __glSleep(500);
                         }
                         let added = btn.classList.contains('product-added');
                         out = added ? [{ uid: '$escaped', name: 'added' }] : [];
@@ -238,5 +203,8 @@ class UbisoftConnector(private val api: UbisoftApi) :
         // with [UbisoftApi] is now rejected by Ubisoft's gateway for the games/ownership APIs).
         const val AppId = "f68a4bb5-608a-4ff2-8123-be8ef797e0a6"
         const val GenomeId = "954e66a0-be1b-4aa0-9690-fb75201e4e9e"
+
+        /** The Ubisoft Store hydrates slower than the other stores, so its waits get a longer budget. */
+        const val STORE_TRIES = 40
     }
 }

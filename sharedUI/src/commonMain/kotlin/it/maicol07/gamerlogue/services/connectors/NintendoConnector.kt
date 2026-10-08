@@ -45,16 +45,12 @@ class NintendoConnector : ServiceConnector(ExternalService.NINTENDO, host = "nin
 
     // Read the profile from the dashboard DOM: the api.accounts.nintendo.com/users/me endpoint is a
     // different origin and bearer-auth, so a same-origin fetch is blocked by CORS. The nickname/avatar are
-    // rendered in the account header. ponytail: poll briefly since the header hydrates after load.
+    // rendered in the account header, which hydrates after load — hence the wait on a *filled* nickname.
     override val profile = webProfile(WebStep(ACCOUNT, SyncScripts.wrap("""
-        let nick = await new Promise(function(res) {
-            let tries = 0;
-            (function tick() {
-                let el = document.querySelector('.c-user_nickname');
-                if ((el && el.textContent.trim()) || ++tries > 30) return res(el);
-                setTimeout(tick, 300);
-            })();
-        });
+        let nick = await __glWaitFor(function() {
+            let el = document.querySelector('.c-user_nickname');
+            return el && el.textContent.trim() ? el : null;
+        }, 30, 300);
         let img = document.querySelector('.c-avatorIcon > img');
         out = {
             username: nick ? nick.textContent.trim() : '',
@@ -85,21 +81,14 @@ class NintendoConnector : ServiceConnector(ExternalService.NINTENDO, host = "nin
         },
         step = { ecUrl ->
             WebStep(ecUrl, SyncScripts.wrap("""
-                let btn = await new Promise(function(res) {
-                    let tries = 0;
-                    (function tick() {
-                        let b = document.querySelector('.btn-wishlist');
-                        if (b || ++tries > 30) return res(b);
-                        setTimeout(tick, 500);
-                    })();
-                });
-                if (btn) { btn.click(); await new Promise(function(r) { setTimeout(r, 1000); }); }
+                let btn = await __glWaitForEl('.btn-wishlist');
+                if (btn) { btn.click(); await __glSleep(1000); }
                 out = btn ? [{ uid: '$ecUrl', name: 'added' }] : [];
             """.trimIndent()))
         },
     )
 
-    // Poll for the React-rendered cards, then read every /titles/{id} link (uid) and its cover <img alt>
+    // Wait for the React-rendered cards, then read every /titles/{id} link (uid) and its cover <img alt>
     // (name; matching is name-based). Deduped by uid since each card links to the same title several times.
     // IGDB has no Nintendo source, so matching is by name only — strip the eShop platform/edition noise
     // ("Xenoblade Chronicles: Definitive Edition – Nintendo Switch 2 Edition" → "Xenoblade Chronicles:
@@ -111,16 +100,9 @@ class NintendoConnector : ServiceConnector(ExternalService.NINTENDO, host = "nin
                 .replace(/\s+for Nintendo Switch.*$/i, '')
                 .replace(/\s+/g, ' ').trim();
         };
-        let anchors = await new Promise(function(res) {
-            let tries = 0;
-            (function tick() {
-                let a = document.querySelectorAll('a[href*="/titles/"]');
-                if (a.length || ++tries > 30) return res(a);
-                setTimeout(tick, 500);
-            })();
-        });
+        let anchors = await __glWaitForAll('a[href*="/titles/"]');
         let map = {};
-        anchors.forEach(function(a) {
+        Array.prototype.forEach.call(anchors, function(a) {
             let m = (a.getAttribute('href') || '').match(/\/titles\/(\d+)/);
             if (!m) return;
             let uid = m[1];

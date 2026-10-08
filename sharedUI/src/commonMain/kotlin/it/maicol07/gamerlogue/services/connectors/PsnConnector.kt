@@ -33,17 +33,10 @@ class PsnConnector(private val api: PsnApi) :
 
     // Click the header sign-in button once it renders (React). No-op on the Sony sign-in page (button
     // absent there), so it's safe to inject on any load during the login wait.
-    override val loginTriggerScript = """
-        (function() {
-            var tries = 0;
-            (function tick() {
-                var btn = document.querySelector('[data-qa="web-toolbar#profile-container#signin-button"]');
-                if (btn) { btn.click(); return; }
-                if (++tries > 40) return;
-                setTimeout(tick, 500);
-            })();
-        })();
-    """.trimIndent()
+    override val loginTriggerScript = SyncScripts.clickWhenPresent(
+        label = "psn signin",
+        finder = """function() { return document.querySelector('[data-qa="web-toolbar#profile-container#signin-button"]'); }""",
+    )
 
     // The post-login URL is just the store host (no reliable path marker), so detect the session from
     // cookies: the client-readable isSignedIn flag, or the session/userinfo cookies the account sets.
@@ -95,16 +88,9 @@ class PsnConnector(private val api: PsnApi) :
             SyncScripts.wrap(
                 """
                 console.log('[GL] psn wishlist at ' + location.href);
-                // Tiles render late (React); poll until they appear instead of reading once on an empty DOM
+                // Tiles render late (React); wait for them instead of reading once on an empty DOM
                 // (that one-shot read was returning an empty wishlist).
-                let tiles = await new Promise(function(res) {
-                    let tries = 0;
-                    (function tick() {
-                        let t = document.querySelectorAll('[data-track-click="web:product-tile-click"]');
-                        if (t.length || ++tries > 30) return res(t);
-                        setTimeout(tick, 500);
-                    })();
-                });
+                let tiles = await __glWaitForAll('[data-track-click="web:product-tile-click"]');
                 // Each tile carries a clean name + product id in its data-telemetry-meta JSON, and the store
                 // URL in its href — no text parsing/cleanup needed.
                 let res = {};
@@ -133,27 +119,14 @@ class PsnConnector(private val api: PsnApi) :
             storeUrl,
             SyncScripts.wrap(
                 """
-                // Click then VERIFY, with retry. The store is React+SSR: the add button's HTML renders before
-                // its onClick is bound, so a single early click hits a dead handler and silently does nothing
-                // (this was the bug — clicked=true but nothing added). Success = the button flips to the
-                // already-wishlisted "removeFromWishlist" variant, so we re-click until that appears.
-                let wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
-                let confirmed = function() { return !!document.querySelector('button[data-track-click*="removeFromWishlist"]'); };
-                let attempts = 0;
-                for (let i = 0; i < 5 && !confirmed(); i++) {
-                    // First VISIBLE add button (offsetParent!==null skips hidden edition-picker duplicates).
-                    let btn = Array.prototype.find.call(
-                        document.querySelectorAll('button[data-track-click*="addToWishlist"]'),
-                        function(b) { return b.offsetParent !== null; },
-                    );
-                    if (!btn) { await wait(500); continue; } // still rendering
-                    attempts++;
-                    btn.click();
-                    await wait(1200); // let React handle the click + the add request fire
-                }
-                let ok = confirmed();
+                // Success = the button flips to the already-wishlisted "removeFromWishlist" variant.
+                // __glVisible skips the hidden edition-picker duplicates of the add button.
+                let ok = await __glClickUntil(
+                    function() { return __glVisible('button[data-track-click*="addToWishlist"]'); },
+                    function() { return !!document.querySelector('button[data-track-click*="removeFromWishlist"]'); }
+                );
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
-                console.log('[GL] psn wishlist push added=' + ok + ' attempts=' + attempts + ' ' + location.href);
+                console.log('[GL] psn wishlist push added=' + ok + ' ' + location.href);
                 """.trimIndent(),
             ),
         )
