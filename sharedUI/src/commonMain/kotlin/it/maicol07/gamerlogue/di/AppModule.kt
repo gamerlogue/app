@@ -30,19 +30,24 @@ object AppModule {
     @Single
     fun provideSettings(): ObservableSettings = Settings().makeObservable()
 
+    /**
+     * Every connector, keyed by the service it declares. Built with `associateBy` rather than a
+     * hand-written map: the key is already on the connector, and a map literal lets the two drift —
+     * a new [ExternalService] would compile and then crash on the first lookup.
+     */
     @Single
     fun provideConnectors(
         psnApi: PsnApi,
         xboxApi: XboxApi,
         epicApi: EpicApi,
         ubisoftApi: UbisoftApi,
-    ): Map<ExternalService, ServiceConnector> = mapOf(
-        ExternalService.STEAM to SteamConnector(),
-        ExternalService.PLAYSTATION to PsnConnector(psnApi),
-        ExternalService.XBOX to XboxConnector(xboxApi),
-        ExternalService.GOG to GogConnector(),
-        ExternalService.EPIC to EpicConnector(epicApi),
-        ExternalService.NINTENDO to NintendoConnector(),
-        ExternalService.UBISOFT to UbisoftConnector(ubisoftApi),
-    )
+    ): Map<ExternalService, ServiceConnector> = listOf(
+        SteamConnector(),
+        PsnConnector(psnApi),
+        XboxConnector(xboxApi),
+        GogConnector(),
+        EpicConnector(epicApi),
+        NintendoConnector(),
+        UbisoftConnector(ubisoftApi),
+    ).associateBy { it.service }
 }
