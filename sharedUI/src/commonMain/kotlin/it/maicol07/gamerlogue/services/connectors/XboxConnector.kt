@@ -62,9 +62,9 @@ class XboxConnector(private val api: XboxApi) :
             try {
                 let m = (location.hash || '').match(/access_token=([^&]+)/);
                 let token = m ? decodeURIComponent(m[1]) : '';
-                out = token ? [{ uid: token, name: 'xbl' }] : [];
+                out = token;
                 console.log('[GL] xbox token got=' + !!token);
-            } catch (e) { console.log('[GL] xbox token err ' + e); out = []; }
+            } catch (e) { console.log('[GL] xbox token err ' + e); out = ''; }
             """.trimIndent(),
         ),
     )

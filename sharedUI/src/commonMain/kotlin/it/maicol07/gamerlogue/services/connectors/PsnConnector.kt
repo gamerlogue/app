@@ -63,15 +63,15 @@ class PsnConnector(private val api: PsnApi) :
     override fun uidFromUrl(url: String): String? =
         Regex("/(?:concept|product)/([^/?#]+)").find(url)?.groupValues?.get(1)
 
-    // Read the npsso JSON same-origin and deliver it as the single ref's uid; shared by owned + profile.
+    // Read the npsso JSON same-origin and deliver the cookie itself; shared by owned + profile.
     private val credentialStep = WebStep(
         "https://ca.account.sony.com/api/v1/ssocookie",
         SyncScripts.wrap(
             """
             try {
                 let npsso = (JSON.parse(document.body.innerText || '{}').npsso) || '';
-                out = npsso ? [{ uid: npsso, name: 'npsso' }] : [];
-            } catch (e) { console.log('[GL] psn npsso err ' + e); out = []; }
+                out = npsso;
+            } catch (e) { console.log('[GL] psn npsso err ' + e); out = ''; }
             """.trimIndent(),
         ),
     )

@@ -68,7 +68,7 @@ class EpicConnector(private val api: EpicApi) :
             } catch (e) {}
             if (!code) code = (location.href.match(/code=([^&]+)/) || [])[1] || '';
             console.log('[GL] epic code=' + (code ? 'ok' : 'empty'));
-            out = code ? [{ uid: code, name: 'code' }] : [];
+            out = code;
             """.trimIndent(),
         ),
     )

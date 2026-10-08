@@ -33,6 +33,7 @@ import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.configureServiceWebView
+import it.maicol07.gamerlogue.services.parseCredentialJson
 import it.maicol07.gamerlogue.services.parseRefsJson
 import it.maicol07.gamerlogue.services.webViewNestedScrollModifier
 import kotlinx.coroutines.CompletableDeferred
@@ -250,8 +251,8 @@ class ServiceWebViewSession internal constructor(
     override suspend fun <T> read(source: DataSource<T>): T = when (source) {
         is DataSource.Web -> source.parse(runStep(source.step))
         is DataSource.Api -> {
-            // The credential step delivers the credential as its single ref's uid (e.g. PSN npsso).
-            val credential = parseRefsJson(runStep(source.credentialStep)).firstOrNull()?.uid.orEmpty()
+            // The credential step delivers the credential as a plain string (e.g. the PSN npsso cookie).
+            val credential = parseCredentialJson(runStep(source.credentialStep))
             if (credential.isBlank()) {
                 source.default
             } else {

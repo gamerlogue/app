@@ -25,4 +25,20 @@ class WebResultTest : StringSpec({
         parseRefsJson("") shouldBe emptyList()
         parseRefsJson("not json") shouldBe emptyList()
     }
+
+    "reads a credential delivered as a quoted string" {
+        parseCredentialJson("\"npsso-token\"") shouldBe "npsso-token"
+    }
+
+    "reads a credential whose own payload is JSON (Ubisoft's ticket + session id)" {
+        val json = """{"ticket":"t","sessionId":"s"}"""
+        // The bridge quotes and escapes it on the way out, as it does for any string.
+        parseCredentialJson("\"{\\\"ticket\\\":\\\"t\\\",\\\"sessionId\\\":\\\"s\\\"}\"") shouldBe json
+    }
+
+    "a missing credential is blank, not the wrapper's empty-array sentinel" {
+        parseCredentialJson("[]") shouldBe ""
+        parseCredentialJson(null) shouldBe ""
+        parseCredentialJson("") shouldBe ""
+    }
 })

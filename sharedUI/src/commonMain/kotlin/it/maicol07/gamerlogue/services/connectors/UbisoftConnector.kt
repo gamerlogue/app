@@ -74,10 +74,7 @@ class UbisoftConnector(private val api: UbisoftApi) :
                 } catch (e) {}
             }
             console.log('[GL] ubisoft session=' + (session ? 'ok' : 'empty'));
-            out = session ? [{
-                uid: JSON.stringify({ ticket: session.ticket, sessionId: session.sessionId }),
-                name: 'session',
-            }] : [];
+            out = session ? JSON.stringify({ ticket: session.ticket, sessionId: session.sessionId }) : '';
             """.trimIndent(),
         ),
     )

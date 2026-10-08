@@ -223,6 +223,16 @@ internal fun parseProfileJson(raw: String?): ServiceProfile? {
         .getOrNull()?.takeIf { it.username.isNotBlank() }
 }
 
+/**
+ * Parse the credential a [DataSource.Api] credential script delivers through the bridge: a plain
+ * string (`out = token`). Blank when the script found none — an empty or missing value makes the
+ * wrapper fall back to its `[]` sentinel, as a thrown error does.
+ */
+internal fun parseCredentialJson(raw: String?): String {
+    val s = cleanJsResult(raw) ?: return ""
+    return if (s.startsWith("[")) "" else s
+}
+
 /** Shared JS plumbing for connectors: bridge delivery, DOM waiting helpers, desktop/CEF native polyfill. */
 object SyncScripts {
     /** Injected JS object name (see [WebViewJsBridge][com.parkwoocheol.composewebview.WebViewJsBridge]). */
