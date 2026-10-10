@@ -128,7 +128,11 @@ jobs:
     needs: [prepare_release, build]
     if: ${{ !cancelled() && needs.prepare_release.result == 'success' }}
     permissions:
-      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Download Web Artifact
@@ -137,11 +141,14 @@ jobs:
           name: web-app
           path: web-app
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: web-app
+          path: web-app
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
 
   # ----------------------------------------------------------------
   # Play Store Job
