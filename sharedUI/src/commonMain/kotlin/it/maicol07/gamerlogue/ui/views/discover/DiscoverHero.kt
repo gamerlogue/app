@@ -33,6 +33,7 @@ import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__section_error
+import it.maicol07.gamerlogue.extensions.igdb.mediaArtworks
 import it.maicol07.gamerlogue.extensions.igdb.ratingLabel
 import it.maicol07.gamerlogue.extensions.mouseScrollsHorizontally
 import it.maicol07.gamerlogue.ui.components.SectionIcon
@@ -179,7 +180,7 @@ private fun ImmersivePage(section: DiscoverSection, game: Game, rank: Int, onGam
 /** The game's first artwork or screenshot, falling back to the cover. */
 @Composable
 private fun GameBanner(game: Game, modifier: Modifier) = when (
-    val bannerId = game.artworks.firstOrNull()?.image_id ?: game.screenshots.firstOrNull()?.image_id
+    val bannerId = game.mediaArtworks.firstOrNull()?.image_id ?: game.screenshots.firstOrNull()?.image_id
 ) {
     null -> game.CoverImage(modifier, sizeModifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
     else -> GameBannerImage(

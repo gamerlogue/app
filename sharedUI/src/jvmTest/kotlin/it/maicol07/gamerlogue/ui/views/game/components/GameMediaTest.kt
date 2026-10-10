@@ -6,12 +6,19 @@ import at.released.igdbclient.model.GameVideo
 import at.released.igdbclient.model.Screenshot
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import okio.ByteString.Companion.decodeHex
+
+/** `artwork_type { id: 7 }` (color logo) as IGDB encodes it, which igdbclient keeps as an unknown field. */
+private val COLOR_LOGO_TYPE = "52020807".decodeHex()
 
 class GameMediaTest : StringSpec({
-    "viewer images exclude videos and preserve the carousel image order" {
+    "viewer images exclude videos and logos and preserve the carousel image order" {
         val game = Game(
             videos = listOf(GameVideo(video_id = "video")),
-            artworks = listOf(Artwork(image_id = "artwork")),
+            artworks = listOf(
+                Artwork(image_id = "artwork"),
+                Artwork(image_id = "logo", unknownFields = COLOR_LOGO_TYPE),
+            ),
             screenshots = listOf(Screenshot(image_id = "first"), Screenshot(image_id = "second"))
         )
 

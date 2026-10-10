@@ -15,6 +15,7 @@ class GameDetailFieldsTest : StringSpec({
             "aggregated_rating_count",
             "alternative_names.comment",
             "alternative_names.name",
+            "artworks.artwork_type",
             "artworks.image_id",
             "bundles.cover.image_id",
             "bundles.first_release_date",
@@ -124,7 +125,7 @@ class GameDetailFieldsTest : StringSpec({
         )
 
         // The builder emits the short query form.
-        val query = ApicalypseQueryBuilder().fields(*DetailFields.toTypedArray()).build().toString()
+        val query = ApicalypseQueryBuilder().fields(*DetailFieldNames.toTypedArray()).build().toString()
         val actual = query.removePrefix("f ").removeSuffix(";").split(",").map { it.trim() }.toSet()
 
         // Split assertions: the two diffs read better than one 100-element mismatch.

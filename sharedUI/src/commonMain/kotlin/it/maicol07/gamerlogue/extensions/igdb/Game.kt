@@ -1,10 +1,14 @@
 package it.maicol07.gamerlogue.extensions.igdb
 
+import at.released.igdbclient.model.Artwork
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameCategoryEnum
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import net.sergeych.sprintf.sprintf
 import kotlin.time.Clock
+
+/** Artworks that picture the game, without its bare logos; needs [ARTWORKS_TYPE_FIELD] in the query. */
+val Game.mediaArtworks: List<Artwork> get() = artworks.filterNot { it.isLogo }
 
 /**
  * The detail destination for this game, carrying the cover and name so the target screen can draw

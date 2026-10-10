@@ -46,6 +46,7 @@ import at.released.igdbclient.util.igdbImageUrl
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
+import it.maicol07.gamerlogue.extensions.igdb.mediaArtworks
 import it.maicol07.gamerlogue.extensions.isVisible
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
@@ -179,7 +180,7 @@ private fun Modifier.detailCover() = offset(y = CoverOverlap)
 
 @Composable
 private fun GameBanner(game: Game, onClick: () -> Unit) {
-    val banner = game.artworks.firstOrNull() ?: game.screenshots.firstOrNull()
+    val banner = game.mediaArtworks.firstOrNull() ?: game.screenshots.firstOrNull()
     val backgroundColor = MaterialTheme.colorScheme.background
     val bannerModifier = Modifier
         .fillMaxWidth()

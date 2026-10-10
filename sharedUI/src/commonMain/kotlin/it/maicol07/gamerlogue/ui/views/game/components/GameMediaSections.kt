@@ -88,6 +88,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Yout
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.isBaseGame
+import it.maicol07.gamerlogue.extensions.igdb.mediaArtworks
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
 import it.maicol07.gamerlogue.ui.components.ConnectedActionButtonGroup
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
@@ -107,7 +108,7 @@ private val RelatedCarouselHeight = 180.dp
 private const val CollapsedTextLines = 5
 
 internal fun gameMediaImageIds(game: Game): List<String> =
-    game.artworks.map { it.image_id } + game.screenshots.map { it.image_id }
+    game.mediaArtworks.map { it.image_id } + game.screenshots.map { it.image_id }
 
 /** Videos, artworks and screenshots in one carousel, with a fullscreen viewer for the images. */
 @Composable

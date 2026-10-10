@@ -14,6 +14,7 @@ import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
+import it.maicol07.gamerlogue.extensions.igdb.ARTWORKS_TYPE_FIELD
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.quickDraft
@@ -126,6 +127,9 @@ internal val DetailFields: List<IgdbRequestField<*>> = with(Game.field) {
     ).flatMap { it.relatedGameFields() }
 }
 
+/** [DetailFields] plus the artwork type, which the typed DSL lacks and `Artwork.isLogo` reads. */
+internal val DetailFieldNames: List<String> = DetailFields.map { it.igdbFullName } + ARTWORKS_TYPE_FIELD
+
 @KoinViewModel
 class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameDetailViewModel.UiState>(UiState()) {
     /** Immutable state of the Game detail screen. */
@@ -174,7 +178,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
                 query(IgdbEndpoint.GAME, GAME_QUERY) {
                     // fields() only takes varargs; copying ~100 references once per load is noise next to the request.
                     @Suppress("SpreadOperator")
-                    fields(*DetailFields.toTypedArray())
+                    fields(*DetailFieldNames.toTypedArray())
                     where { Game.field.id equalTo gameId.toString() }
                     limit(1)
                 }

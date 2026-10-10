@@ -9,6 +9,7 @@ import at.released.igdbclient.model.PopularityPrimitive
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.igdb.ARTWORKS_TYPE_FIELD
 import it.maicol07.gamerlogue.extensions.igdb.sortedByIds
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.noBundlesOrAddons
@@ -71,12 +72,13 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
                 for (section in sections) {
                     query(IgdbEndpoint.GAME, section.name) {
                         fields(
-                            Game.field.name,
-                            Game.field.cover.image_id,
-                            Game.field.rating,
-                            Game.field.first_release_date,
-                            Game.field.artworks.image_id,
-                            Game.field.screenshots.image_id,
+                            Game.field.name.igdbFullName,
+                            Game.field.cover.image_id.igdbFullName,
+                            Game.field.rating.igdbFullName,
+                            Game.field.first_release_date.igdbFullName,
+                            Game.field.artworks.image_id.igdbFullName,
+                            ARTWORKS_TYPE_FIELD,
+                            Game.field.screenshots.image_id.igdbFullName,
                         )
                         // A section with its own `where` replaces this one, so it repeats these exclusions.
                         where {
