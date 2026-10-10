@@ -51,6 +51,7 @@ import gamerlogue.sharedui.generated.resources.home__release_today
 import gamerlogue.sharedui.generated.resources.home__release_tomorrow
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.ratingScore
+import it.maicol07.gamerlogue.extensions.focusableOnlyByKeyboard
 import it.maicol07.gamerlogue.extensions.mouseDragScrollsHorizontally
 import it.maicol07.gamerlogue.ui.components.CarouselWithArrows
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
@@ -154,7 +155,7 @@ private fun RankedItems(state: CarouselState, games: List<Game>, onGameClick: (G
     ) { i ->
         val game = games[i]
         val interactionSource = remember { MutableInteractionSource() }
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().focusableOnlyByKeyboard()) {
             // The strip left of the cover fits one digit: longer ranks stack one digit per line.
             val rank = "${i + 1}"
             val numeralSize = if (rank.length == 1) RankedNumeralSize else RankedStackedNumeralSize

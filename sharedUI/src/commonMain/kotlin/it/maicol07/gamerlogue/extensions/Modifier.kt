@@ -7,6 +7,9 @@ import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellati
 import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -43,6 +46,18 @@ fun Modifier.mouseDragScrollsHorizontally(state: ScrollableState) =
             }
         }
     }
+
+/**
+ * Keeps a pointer press from focusing the content, while keyboard navigation still can.
+ *
+ * Compose desktop focuses a `clickable` on mouse down, and a carousel scrolls its focused item to
+ * the focal keyline (`CarouselBringIntoViewSpec`): the card moves away under the pointer and the
+ * click is cancelled. A button press switches the input mode to [InputMode.Touch] before dispatch.
+ */
+fun Modifier.focusableOnlyByKeyboard() = composed {
+    val inputModeManager = LocalInputModeManager.current
+    Modifier.focusProperties { canFocus = inputModeManager.inputMode == InputMode.Keyboard }
+}
 
 // Source - https://stackoverflow.com/a/77222327
 // Posted by Thracian, modified by community. See post 'Timeline' for change history

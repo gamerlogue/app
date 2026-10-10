@@ -33,6 +33,7 @@ import io.github.kdroidfilter.platformtools.getPlatform
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
+import it.maicol07.gamerlogue.extensions.focusableOnlyByKeyboard
 import it.maicol07.gamerlogue.extensions.mouseDragScrollsHorizontally
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import kotlinx.coroutines.launch
@@ -70,9 +71,11 @@ fun GameCoverCarousel(
                 .then(modifier)
                 .mouseDragScrollsHorizontally(state),
             preferredItemWidth = preferredItemWidth,
-            itemSpacing = itemSpacing,
-            content = content
-        )
+            itemSpacing = itemSpacing
+        ) { i ->
+            val itemScope = this
+            Box(Modifier.focusableOnlyByKeyboard(), propagateMinConstraints = true) { itemScope.content(i) }
+        }
     }
 }
 
