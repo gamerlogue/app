@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Identity of an external gaming platform — a stable key for DI lookup, navigation, settings keys and
- * UI iteration. All per-service data and behaviour live on its [ServiceConnector]; icon/label are
+ * UI iteration. All per-service data and behavior live on its [ServiceConnector]; icon/label are
  * mapped in the UI layer.
  */
 @Serializable

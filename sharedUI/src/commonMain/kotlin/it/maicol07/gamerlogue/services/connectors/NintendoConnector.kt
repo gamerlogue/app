@@ -8,6 +8,7 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
+import it.maicol07.gamerlogue.services.GameMatcher
 
 /**
  * Nintendo. Login is the global Nintendo Account portal (accounts.nintendo.com). The library is read from
