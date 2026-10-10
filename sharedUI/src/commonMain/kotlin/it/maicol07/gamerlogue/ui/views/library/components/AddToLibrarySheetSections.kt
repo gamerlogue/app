@@ -175,9 +175,11 @@ internal fun LazyItemScope.EditionSection(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        val gameId = game.id.toInt()
+        // Opened from an edition's page, the standard edition is its base game.
+        val baseGame = game.version_parent ?: game
+        val gameId = baseGame.id.toInt()
         EditionCover(
-            game = game,
+            game = baseGame,
             label = stringResource(Res.string.library__standard_edition),
             selected = gameId in viewModel.selectedEditions,
             onClick = { viewModel.toggleEditionSelection(gameId) }

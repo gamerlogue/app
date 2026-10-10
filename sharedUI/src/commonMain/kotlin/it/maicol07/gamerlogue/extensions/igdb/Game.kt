@@ -23,6 +23,13 @@ val Game.detailNavKey: RootNavTree.GameDetail
 fun Game.isReleased(): Boolean =
     first_release_date?.let { it.getEpochSecond() <= Clock.System.now().epochSeconds } ?: false
 
+/**
+ * The game a library entry is keyed by: the base game for an edition, the game itself otherwise.
+ * Needs `version_parent.id` among the fetched fields, or an edition reads as a base game.
+ */
+val Game.baseGameId: Int
+    get() = (version_parent ?: this).id.toInt()
+
 /** Score (0-10) with one decimal, or null when the game has no rating. */
 fun Game.ratingScore(): String? = rating.takeIf { it > 0.0 }?.let { "%.1f".sprintf(it / 10) }
 

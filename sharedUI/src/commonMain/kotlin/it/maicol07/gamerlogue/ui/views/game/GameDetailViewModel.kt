@@ -14,6 +14,7 @@ import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
+import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.extensions.self
@@ -151,10 +152,12 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
     }
 
     init {
-        loadGameDetails()
+        val details = loadGameDetails()
         viewModelScope.launch {
             authProvider.session.map { it.isAuthenticated }.distinctUntilChanged().collect { authenticated ->
                 update { copy(isAuthenticated = authenticated, libraryEntry = null) }
+                // The entry is keyed by the base game, known only once the game says whether it is an edition.
+                details.join()
                 if (authenticated) loadLibraryEntry()
             }
         }
@@ -202,7 +205,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
     }
 
     fun loadLibraryEntry(): Job = viewModelScope.launch {
-        val result = safeRequest { LibraryEntry.currentUserEntryForGame(gameId).firstOrNull().data }
+        val result = safeRequest { LibraryEntry.currentUserEntryForGame(state.game?.baseGameId ?: gameId).firstOrNull().data }
         // A failed reload keeps the known entry: clearing it would offer "add" and invite a duplicate.
         if (result.isOk) update { copy(libraryEntry = result.unwrap()) }
     }
@@ -225,11 +228,16 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
     private suspend fun applyStatus(status: GameLibraryStatus) {
         val game = state.game ?: return
         val draft = LibraryEntry.quickDraft(
-            game = game,
+            game = game.version_parent ?: game,
             status = status,
             user = null,
             existing = state.libraryEntry
         )
+        // Added from an edition's page: the entry is the base game's, with that edition selected.
+        if (game.version_parent != null) {
+            val editionsIds = runCatching { draft.editionsIds }.getOrNull().orEmpty()
+            draft.editionsIds = (editionsIds + game.id.toInt()).distinct()
+        }
         val result = safeRequest { draft.save() }
         if (result.isOk) {
             update { copy(libraryEntry = draft) }

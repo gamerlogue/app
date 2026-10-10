@@ -16,6 +16,7 @@ import gamerlogue.sharedui.generated.resources.library__error_select_status
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.isReleased
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
@@ -41,7 +42,8 @@ class AddToLibrarySheetViewModel(
     var owned by mutableStateOf(existingEntry?.owned ?: false)
     // editionsIds/platformsIds throw NoSuchElementException on a never-set attribute (older entries
     // predating this feature) rather than defaulting to an empty list, so guard the read. A brand-new
-    // entry defaults to the standard edition (the base game itself) preselected.
+    // entry defaults to the game the sheet was opened from preselected: the standard edition (the base
+    // game itself), or the edition whose page it is, since the entry is the base game's either way.
     val selectedEditions = mutableStateListOf<Int>().apply {
         val existingIds = runCatching { existingEntry?.editionsIds }.getOrNull() ?: emptyList()
         addAll(if (existingEntry == null) listOf(game.id.toInt()) else existingIds)
@@ -69,7 +71,7 @@ class AddToLibrarySheetViewModel(
         viewModelScope.launch {
             val result = safeRequest {
                 igdb.getGames {
-                    where("version_parent = ${game.id}")
+                    where("version_parent = ${game.baseGameId}")
                     fields("id", "name", "version_title", "cover.image_id")
                     limit(EDITIONS_LIMIT)
                 }
@@ -128,7 +130,7 @@ class AddToLibrarySheetViewModel(
 
         val entry = existingEntry ?: LibraryEntry()
 
-        entry.gameId = game.id.toInt()
+        entry.gameId = game.baseGameId
         entry.user = authTokenProvider.session.value.user
         entry.status = selectedStatus!!
         entry.completionStatus = completionStatus
