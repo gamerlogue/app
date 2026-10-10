@@ -36,7 +36,7 @@ private val Configuration = SavedStateConfiguration {
 
 class NavBackStackSerializationTest : StringSpec({
     "the back stack round-trips through saved state" {
-        val backStack = NavBackStack<NavKey>(
+        val backStack = NavBackStack(
             RootNavTree.Discover,
             RootNavTree.GameList(
                 section = DiscoverSection.POPULAR,

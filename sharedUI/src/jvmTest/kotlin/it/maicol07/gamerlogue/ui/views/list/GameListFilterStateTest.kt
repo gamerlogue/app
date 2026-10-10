@@ -5,7 +5,6 @@ import io.kotest.matchers.shouldBe
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 /**
  * [isActive] is what decides whether the list replays a Discover section's query or runs a filtered
