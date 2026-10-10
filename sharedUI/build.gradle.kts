@@ -138,7 +138,7 @@ kotlin {
         }
 
         jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
+            // compose.ui already ships the Skiko runtime for every desktop OS (skiko-awt-runtime-all).
             implementation(libs.compose.ui)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
