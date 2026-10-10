@@ -125,6 +125,24 @@ jobs:
             (cd bundles/web-app && zip -qr "$GITHUB_WORKSPACE/artifacts/web-app-$VERSION.zip" .)
           fi
 
+      - name: Download Android debug symbols
+        uses: actions/download-artifact@v8
+        with:
+          pattern: android-debug-symbols
+          path: bundles
+
+      # One zip per flavor: R8 mapping and native symbols share file names across flavors
+      - name: Package Android debug symbols
+        env:
+          VERSION: ${{ needs.prepare_release.outputs.version }}
+        run: |
+          shopt -s nullglob
+          cd bundles/android-debug-symbols 2>/dev/null || exit 0
+          for dir in mapping/*Release; do
+            flavor=$(basename "$dir" Release)
+            find . -path "*/${flavor}Release/*" -type f | zip -q "$GITHUB_WORKSPACE/artifacts/debug-symbols-$flavor-$VERSION.zip" -@
+          done
+
       - name: Display downloaded files
         run: ls -R artifacts
 

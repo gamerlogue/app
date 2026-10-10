@@ -96,7 +96,7 @@ jobs:
             androidApp/build/outputs/bundle/**/*.aab
           if-no-files-found: error
 
-      # Separate artifact: per-flavor files share names, so they can't be attached to the release flat
+      # Separate artifact: per-flavor files share names, so the release job zips them per flavor
       - name: Upload Release Debug Symbols
         if: inputs.release
         uses: actions/upload-artifact@v7
