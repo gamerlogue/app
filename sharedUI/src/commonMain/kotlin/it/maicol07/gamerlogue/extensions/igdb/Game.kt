@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.extensions.igdb
 
 import at.released.igdbclient.model.Game
+import at.released.igdbclient.model.GameCategoryEnum
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import net.sergeych.sprintf.sprintf
 import kotlin.time.Clock
@@ -29,6 +30,20 @@ fun Game.isReleased(): Boolean =
  */
 val Game.baseGameId: Int
     get() = (version_parent ?: this).id.toInt()
+
+/**
+ * Bundles and minor add-ons (DLC, packs, updates): they belong on their game's page, not in a list of
+ * games. Expansions stay, since they are played and tracked on their own.
+ */
+val BUNDLE_OR_ADDON_GAME_TYPES: List<GameCategoryEnum> =
+    listOf(GameCategoryEnum.DLC_ADDON, GameCategoryEnum.BUNDLE, GameCategoryEnum.PACK, GameCategoryEnum.UPDATE)
+
+/**
+ * Whether the game belongs in a list of games: neither an edition nor one of the [BUNDLE_OR_ADDON_GAME_TYPES].
+ * Needs `game_type` and `version_parent` among the fetched fields, or every game passes.
+ */
+val Game.isBaseGame: Boolean
+    get() = version_parent == null && BUNDLE_OR_ADDON_GAME_TYPES.none { it.value.toLong() == game_type?.id }
 
 /** Score (0-10) with one decimal, or null when the game has no rating. */
 fun Game.ratingScore(): String? = rating.takeIf { it > 0.0 }?.let { "%.1f".sprintf(it / 10) }

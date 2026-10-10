@@ -71,6 +71,9 @@ internal val DetailFields: List<IgdbRequestField<*>> = with(Game.field) {
         franchises.name,
         collections.name,
         collections.type.name,
+        // Lets the collection carousels skip editions, bundles and minor add-ons.
+        collections.games.game_type.self,
+        collections.games.version_parent.self,
         platforms.id,
         platforms.name,
         platforms.platform_logo.image_id,

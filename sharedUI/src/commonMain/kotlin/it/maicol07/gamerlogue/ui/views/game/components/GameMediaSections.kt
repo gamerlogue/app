@@ -84,6 +84,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.XSim
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.YoutubeSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
+import it.maicol07.gamerlogue.extensions.igdb.isBaseGame
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
 import it.maicol07.gamerlogue.ui.components.ConnectedActionButtonGroup
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
@@ -316,7 +317,7 @@ internal fun GameRelatedCarousels(
         game.collections
             .map { collection ->
                 collection to collection.games
-                    .filter { it.id != game.id }
+                    .filter { it.id != game.id && it.isBaseGame }
                     .sortedWith(compareBy(nullsLast()) { it.first_release_date?.getEpochSecond() })
             }
             .filter { (_, games) -> games.isNotEmpty() }

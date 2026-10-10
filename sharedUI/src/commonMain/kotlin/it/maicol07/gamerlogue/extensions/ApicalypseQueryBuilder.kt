@@ -6,7 +6,7 @@ import at.released.igdbclient.dsl.field.IgdbRequestField
 import at.released.igdbclient.dsl.field.IgdbRequestFieldDsl
 import at.released.igdbclient.dsl.field.field
 import at.released.igdbclient.model.Game
-import at.released.igdbclient.model.GameCategoryEnum
+import it.maicol07.gamerlogue.extensions.igdb.BUNDLE_OR_ADDON_GAME_TYPES
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -252,12 +252,10 @@ fun ApicalypseQueryBuilderWhereBuilder.notYetReleased() {
 }
 
 /**
- * Drops bundles and minor add-ons (DLC, packs, updates): they belong on their game's page, not in a
- * list of games. Expansions stay, since they are played and tracked on their own.
+ * Drops the [BUNDLE_OR_ADDON_GAME_TYPES].
  *
  * Spelled `!= (…)`: IGDB answers `= !(…)` with a syntax error.
  */
 fun ApicalypseQueryBuilderWhereBuilder.noBundlesOrAddons() {
-    val hidden = listOf(GameCategoryEnum.DLC_ADDON, GameCategoryEnum.BUNDLE, GameCategoryEnum.PACK, GameCategoryEnum.UPDATE)
-    Game.field.game_type notEqualTo hidden.joinToString(",", "(", ")") { it.value.toString() }
+    Game.field.game_type notEqualTo BUNDLE_OR_ADDON_GAME_TYPES.joinToString(",", "(", ")") { it.value.toString() }
 }
