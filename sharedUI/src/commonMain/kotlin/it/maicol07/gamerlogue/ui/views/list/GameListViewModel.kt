@@ -34,6 +34,7 @@ import it.maicol07.gamerlogue.extensions.alreadyReleased
 import it.maicol07.gamerlogue.extensions.currentUserEntries
 import it.maicol07.gamerlogue.extensions.igdb.sortedByIds
 import it.maicol07.gamerlogue.extensions.multiqueryResults
+import it.maicol07.gamerlogue.extensions.noBundlesOrAddons
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
@@ -499,15 +500,19 @@ class GameListViewModel(
                     applyFilters(filter)
                     // Editions show up on their base game's page only. The library keeps them, so an
                     // entry saved against an edition before entries moved to base games stays visible.
-                    if (libraryStatus == null) Game.field.version_parent.isNull()
+                    if (libraryStatus == null) {
+                        Game.field.version_parent.isNull()
+                        // A category the user picked explicitly wins, bundles and add-ons included.
+                        if (filter.categoryIds.isEmpty()) noBundlesOrAddons()
+                    }
                 }
 
                 // With an id source the page is already chosen upstream: sorting and offsetting
                 // here would reshuffle and skip within that page.
                 if (gameIds == null) {
                     // The section's query only runs with no custom filter, when the clause above holds
-                    // just the edition exclusion: the library's `where` replaces instead of appending,
-                    // so a section with its own `where` repeats that exclusion.
+                    // just the base-game exclusions: the library's `where` replaces instead of appending,
+                    // so a section with its own `where` repeats them.
                     if (isCustomFilterActive) applySort(filter) else section?.baseQuery?.invoke(this)
                     offset(offset)
                 }

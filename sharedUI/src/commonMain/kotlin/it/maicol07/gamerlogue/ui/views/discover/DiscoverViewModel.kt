@@ -11,6 +11,7 @@ import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.extensions.igdb.sortedByIds
 import it.maicol07.gamerlogue.extensions.multiqueryResults
+import it.maicol07.gamerlogue.extensions.noBundlesOrAddons
 import it.maicol07.gamerlogue.extensions.where
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
@@ -77,10 +78,11 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
                             Game.field.artworks.image_id,
                             Game.field.screenshots.image_id,
                         )
-                        // A section with its own `where` replaces this one, so it repeats the edition exclusion.
+                        // A section with its own `where` replaces this one, so it repeats these exclusions.
                         where {
                             gameIds[section]?.let { ids -> Game.field.id inAny ids.map(Int::toString) }
                             Game.field.version_parent.isNull()
+                            noBundlesOrAddons()
                         }
                         section.baseQuery(this)
                         limit(SectionGameLimit)

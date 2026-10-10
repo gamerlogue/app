@@ -20,6 +20,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Upc
 import it.maicol07.gamerlogue.extensions.alreadyReleased
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.ratingLabel
+import it.maicol07.gamerlogue.extensions.noBundlesOrAddons
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
 import it.maicol07.gamerlogue.extensions.where
@@ -66,6 +67,7 @@ enum class DiscoverSection(
             where {
                 Game.field.parent_game.isNull()
                 Game.field.version_parent.isNull()
+                noBundlesOrAddons()
                 alreadyReleased()
             }
         }
@@ -77,6 +79,7 @@ enum class DiscoverSection(
             sort(Game.field.first_release_date, SortOrder.ASC)
             where {
                 Game.field.version_parent.isNull()
+                noBundlesOrAddons()
                 notYetReleased()
             }
         }
