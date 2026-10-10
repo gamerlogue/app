@@ -35,6 +35,7 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameVideo
 import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.model.ReleaseDate
+import at.released.igdbclient.model.Website
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__bundles_title
@@ -51,6 +52,7 @@ import gamerlogue.sharedui.generated.resources.game__show_less
 import gamerlogue.sharedui.generated.resources.game__show_more
 import gamerlogue.sharedui.generated.resources.game__similar_games_title
 import gamerlogue.sharedui.generated.resources.game__standalone_expansions_title
+import gamerlogue.sharedui.generated.resources.game__stores_title
 import gamerlogue.sharedui.generated.resources.game__storyline_title
 import gamerlogue.sharedui.generated.resources.game__websites_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -66,6 +68,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Lay
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StorefrontW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AndroidSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AppleSimpleIcons
@@ -242,54 +245,62 @@ private fun ExpandableText(text: String) = Surface(
     }
 }
 
+/** The game's links in two rows: where to buy it, then everything else. */
 @Composable
 internal fun GameWebsites(game: Game) {
-    if (game.websites.isEmpty()) return
-    val uriHandler = LocalUriHandler.current
-    val validWebsites = remember(game.websites) { game.websites.filter { it.url.isNotBlank() } }
-    if (validWebsites.isEmpty()) return
+    val (stores, resources) = remember(game.websites) {
+        game.websites.filter { it.url.isNotBlank() }.partition { websiteInfo(it.url).isStore }
+    }
+    WebsitesSection(Res.string.game__stores_title, Icons.StorefrontW500Rounded, stores)
+    WebsitesSection(Res.string.game__websites_title, Icons.LanguageW500Rounded, resources)
+}
 
-    GameSection(stringResource(Res.string.game__websites_title), Icons.LanguageW500Rounded) {
+@Composable
+private fun WebsitesSection(titleRes: StringResource, icon: ImageVector, websites: List<Website>) {
+    if (websites.isEmpty()) return
+    val uriHandler = LocalUriHandler.current
+    GameSection(stringResource(titleRes), icon) {
         ConnectedActionButtonGroup(
-            options = validWebsites,
+            options = websites,
             onClick = { website ->
                 val url = website.url
                 val formattedUrl = if (url.startsWith("http://") || url.startsWith("https://")) url else "https://$url"
                 runCatching { uriHandler.openUri(formattedUrl) }
             },
-            buttonText = { website -> websiteInfo(website.url).first },
-            buttonIcon = { website -> websiteInfo(website.url).second },
-            trailingIcon = Icons.OpenInNewW500Rounded,
-            modifier = Modifier.fillMaxWidth()
+            buttonText = { website -> websiteInfo(website.url).label },
+            buttonIcon = { website -> websiteInfo(website.url).icon },
+            trailingIcon = Icons.OpenInNewW500Rounded
         )
     }
 }
 
+internal class WebsiteInfo(val label: String, val icon: ImageVector, val isStore: Boolean = false)
+
 /** Label and icon for a store/social/media URL; falls back to the bare domain. */
-private val WEBSITE_INFO: List<Pair<List<String>, Pair<String, ImageVector>>> = listOf(
-    listOf("steampowered.com", "steam.com") to ("Steam" to SimpleIconsRoot.SteamSimpleIcons),
-    listOf("gog.com") to ("GOG" to SimpleIconsRoot.GogdotcomSimpleIcons),
-    listOf("epicgames.com") to ("Epic Games" to SimpleIconsRoot.EpicgamesSimpleIcons),
-    listOf("playstation.com") to ("PlayStation" to SimpleIconsRoot.PlaystationSimpleIcons),
-    listOf("xbox.com", "microsoft.com") to ("Xbox" to SvglIconsRoot.XboxSvgl),
-    listOf("nintendo.com") to ("Nintendo" to Icons.JoystickW500Rounded),
-    listOf("facebook.com", "fb.com") to ("Facebook" to SimpleIconsRoot.FacebookSimpleIcons),
-    listOf("fandom.com", "wikia.com", "wikia.org") to ("Fandom" to SimpleIconsRoot.FandomSimpleIcons),
-    listOf("instagram.com") to ("Instagram" to SimpleIconsRoot.InstagramSimpleIcons),
-    listOf("x.com", "twitter.com") to ("X" to SimpleIconsRoot.XSimpleIcons),
-    listOf("twitch.tv", "twitch.com") to ("Twitch" to SimpleIconsRoot.TwitchSimpleIcons),
-    listOf("wikipedia.org") to ("Wikipedia" to SimpleIconsRoot.WikipediaSimpleIcons),
-    listOf("reddit.com") to ("Reddit" to SimpleIconsRoot.RedditSimpleIcons),
-    listOf("discord.gg", "discord.com") to ("Discord" to SimpleIconsRoot.DiscordSimpleIcons),
-    listOf("youtube.com", "youtu.be") to ("YouTube" to SimpleIconsRoot.YoutubeSimpleIcons),
-    listOf("apple.com") to ("App Store" to SimpleIconsRoot.AppleSimpleIcons),
-    listOf("play.google.com") to ("Google Play" to SimpleIconsRoot.AndroidSimpleIcons),
+private val WEBSITE_INFO: List<Pair<List<String>, WebsiteInfo>> = listOf(
+    listOf("steampowered.com", "steam.com") to WebsiteInfo("Steam", SimpleIconsRoot.SteamSimpleIcons, isStore = true),
+    listOf("gog.com") to WebsiteInfo("GOG", SimpleIconsRoot.GogdotcomSimpleIcons, isStore = true),
+    listOf("epicgames.com") to WebsiteInfo("Epic Games", SimpleIconsRoot.EpicgamesSimpleIcons, isStore = true),
+    listOf("playstation.com") to WebsiteInfo("PlayStation", SimpleIconsRoot.PlaystationSimpleIcons, isStore = true),
+    listOf("xbox.com", "microsoft.com") to WebsiteInfo("Xbox", SvglIconsRoot.XboxSvgl, isStore = true),
+    listOf("nintendo.com") to WebsiteInfo("Nintendo", Icons.JoystickW500Rounded, isStore = true),
+    listOf("apple.com") to WebsiteInfo("App Store", SimpleIconsRoot.AppleSimpleIcons, isStore = true),
+    listOf("play.google.com") to WebsiteInfo("Google Play", SimpleIconsRoot.AndroidSimpleIcons, isStore = true),
+    listOf("facebook.com", "fb.com") to WebsiteInfo("Facebook", SimpleIconsRoot.FacebookSimpleIcons),
+    listOf("fandom.com", "wikia.com", "wikia.org") to WebsiteInfo("Fandom", SimpleIconsRoot.FandomSimpleIcons),
+    listOf("instagram.com") to WebsiteInfo("Instagram", SimpleIconsRoot.InstagramSimpleIcons),
+    listOf("x.com", "twitter.com") to WebsiteInfo("X", SimpleIconsRoot.XSimpleIcons),
+    listOf("twitch.tv", "twitch.com") to WebsiteInfo("Twitch", SimpleIconsRoot.TwitchSimpleIcons),
+    listOf("wikipedia.org") to WebsiteInfo("Wikipedia", SimpleIconsRoot.WikipediaSimpleIcons),
+    listOf("reddit.com") to WebsiteInfo("Reddit", SimpleIconsRoot.RedditSimpleIcons),
+    listOf("discord.gg", "discord.com") to WebsiteInfo("Discord", SimpleIconsRoot.DiscordSimpleIcons),
+    listOf("youtube.com", "youtu.be") to WebsiteInfo("YouTube", SimpleIconsRoot.YoutubeSimpleIcons),
 )
 
-internal fun websiteInfo(url: String): Pair<String, ImageVector> {
+internal fun websiteInfo(url: String): WebsiteInfo {
     val lower = url.lowercase()
     return WEBSITE_INFO.firstOrNull { (domains, _) -> domains.any { it in lower } }?.second
-        ?: (cleanDomain(url) to Icons.LanguageW500Rounded)
+        ?: WebsiteInfo(cleanDomain(url), Icons.LanguageW500Rounded)
 }
 
 private fun cleanDomain(url: String): String {

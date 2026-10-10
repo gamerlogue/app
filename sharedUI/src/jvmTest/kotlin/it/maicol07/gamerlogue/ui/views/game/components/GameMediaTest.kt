@@ -23,10 +23,12 @@ class GameMediaTest : StringSpec({
         gameMediaImageIds(Game(videos = listOf(GameVideo(video_id = "video")))) shouldBe emptyList()
     }
     "website labels preserve alias matching and the domain fallback" {
-        websiteInfo("https://store.steampowered.com/app/1").first shouldBe "Steam"
-        websiteInfo("https://steam.com").first shouldBe "Steam"
-        websiteInfo("https://xbox.com").first shouldBe "Xbox"
-        websiteInfo("https://example.wikia.org").first shouldBe "Fandom"
-        websiteInfo("https://www.example.org/game").first shouldBe "Example.org"
+        websiteInfo("https://store.steampowered.com/app/1").label shouldBe "Steam"
+        websiteInfo("https://steam.com").label shouldBe "Steam"
+        websiteInfo("https://xbox.com").label shouldBe "Xbox"
+        websiteInfo("https://example.wikia.org").label shouldBe "Fandom"
+        websiteInfo("https://www.example.org/game").label shouldBe "Example.org"
+        websiteInfo("https://store.steampowered.com/app/1").isStore shouldBe true
+        websiteInfo("https://reddit.com/r/game").isStore shouldBe false
     }
 })

@@ -337,6 +337,7 @@ symbolCraft {
         "stadium",
         "star",
         "star_shine",
+        "storefront",
         "strategy",
         "style",
         "swords",

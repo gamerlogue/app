@@ -8,7 +8,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
@@ -96,8 +100,12 @@ private fun connectedShapes(index: Int, lastIndex: Int): ToggleButtonShapes = wh
 }
 
 /**
- * Connected group of plain action buttons: the look of [ConnectedButtonGroup] without toggle
- * semantics, for options that act (open a link) rather than select.
+ * One connected row of plain action buttons, for options that act (open a link) rather than select:
+ * the ones that don't fit move to a menu behind a tonal overflow button, which then closes the row
+ * as its trailing piece.
+ *
+ * Never give it a minimum width (e.g. `fillMaxWidth`): ButtonGroup keeps it while measuring the
+ * overflow button and crashes with maxWidth < minWidth.
  */
 @Composable
 fun <T> ConnectedActionButtonGroup(
@@ -107,24 +115,46 @@ fun <T> ConnectedActionButtonGroup(
     buttonIcon: (T) -> ImageVector,
     trailingIcon: ImageVector,
     modifier: Modifier = Modifier,
-) = FlowRow(
+) = ButtonGroup(
+    overflowIndicator = { menuState ->
+        ButtonGroupDefaults.OverflowIndicator(
+            menuState,
+            shape = ButtonGroupDefaults.connectedTrailingButtonShapes().shape,
+            colors = IconButtonDefaults.filledTonalIconButtonColors()
+        )
+    },
     modifier = modifier,
     horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
 ) {
     for ((index, option) in options.withIndex()) {
-        val shapes = connectedShapes(index, options.lastIndex)
-        Button(
-            onClick = { onClick(option) },
-            shapes = ButtonDefaults.shapes(shapes.shape, shapes.pressedShape),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
-            ButtonIcon(buttonIcon(option))
-            Text(buttonText(option))
-            ButtonIcon(trailingIcon, end = true)
-        }
+        customItem(
+            buttonGroupContent = {
+                val shapes = connectedShapes(index, options.lastIndex)
+                Button(
+                    onClick = { onClick(option) },
+                    shapes = ButtonDefaults.shapes(shapes.shape, shapes.pressedShape),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    ButtonIcon(buttonIcon(option))
+                    Text(buttonText(option))
+                    ButtonIcon(trailingIcon, end = true)
+                }
+            },
+            menuContent = { menuState ->
+                DropdownMenuItem(
+                    text = { Text(buttonText(option)) },
+                    leadingIcon = { Icon(buttonIcon(option), contentDescription = null) },
+                    trailingIcon = { Icon(trailingIcon, contentDescription = null) },
+                    onClick = {
+                        menuState.dismiss()
+                        onClick(option)
+                    }
+                )
+            }
+        )
     }
 }
 

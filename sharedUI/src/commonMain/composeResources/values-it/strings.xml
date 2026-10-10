@@ -82,7 +82,8 @@
     <string name="game__details_franchise">Franchise</string>
     <string name="game__details_collection">Collezione</string>
     <string name="game__details_parent_game">Gioco base</string>
-    <string name="game__websites_title">Link e risorse</string>
+    <string name="game__stores_title">Store</string>
+    <string name="game__websites_title">Risorse</string>
     <string name="game__dlcs_expansions_title">DLC ed espansioni</string>
     <string name="game__details_status">Stato del gioco</string>
     <string name="game__details_type">Tipo di gioco</string>
