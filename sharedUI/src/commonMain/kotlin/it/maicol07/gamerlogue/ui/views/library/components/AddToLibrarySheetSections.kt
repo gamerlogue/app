@@ -184,7 +184,7 @@ internal fun LazyItemScope.EditionSection(
             val editionId = edition.id.toInt()
             EditionCover(
                 game = edition,
-                label = edition.version_title ?: edition.name.orEmpty(),
+                label = edition.version_title.ifEmpty { edition.name },
                 selected = editionId in viewModel.selectedEditions,
                 onClick = { viewModel.toggleEditionSelection(editionId) }
             )

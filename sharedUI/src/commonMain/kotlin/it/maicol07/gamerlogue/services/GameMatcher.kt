@@ -162,7 +162,7 @@ class GameMatcher(
             }
             response?.externalgames?.forEach { ext ->
                 val game = ext.game ?: return@forEach
-                val url = ext.url ?: return@forEach
+                val url = ext.url.ifEmpty { return@forEach }
                 val uid = connector.uidFromUrl(url) ?: urlToUid[url] ?: return@forEach
                 byUid[uid] = game
             }
@@ -214,7 +214,7 @@ class GameMatcher(
             }
             response?.externalgames?.forEach { ext ->
                 val gid = ext.game?.id?.toInt() ?: return@forEach
-                val url = ext.url ?: return@forEach
+                val url = ext.url.ifEmpty { return@forEach }
                 if (gid !in byGame) byGame[gid] = url
             }
         }
@@ -231,7 +231,7 @@ class GameMatcher(
             }
             response?.websites?.forEach { web ->
                 val gid = web.game?.id?.toInt() ?: return@forEach
-                val url = web.url ?: return@forEach
+                val url = web.url.ifEmpty { return@forEach }
                 if (gid !in byGame && connector.uidFromUrl(url) != null) byGame[gid] = url
             }
         }
