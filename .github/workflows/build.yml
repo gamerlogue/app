@@ -74,7 +74,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: android-debug-apk
-          path: androidApp/build/outputs/apk/debug/*.apk
+          path: androidApp/build/outputs/apk/**/*.apk
 
       - name: Build Release Bundle & APK
         if: inputs.release
@@ -91,8 +91,8 @@ jobs:
         with:
           name: android-release
           path: |
-            androidApp/build/outputs/apk/release/*.apk
-            androidApp/build/outputs/bundle/release/*.aab
+            androidApp/build/outputs/apk/**/*.apk
+            androidApp/build/outputs/bundle/**/*.aab
 
   # ----------------------------------------------------------------
   # Desktop Build Job (Matrix)
