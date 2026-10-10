@@ -298,20 +298,14 @@ private fun cleanDomain(url: String): String {
     return if (domain.isNotBlank()) domain.replaceFirstChar { it.uppercase() } else "Website"
 }
 
+/** The game's own editions and add-ons, then the series it belongs to. */
 @Composable
-internal fun GameRelatedCarousels(
+internal fun GameFamily(
     game: Game,
     editions: List<Game>,
     onGameClick: (Game) -> Unit
 ) {
-    val parentGames = remember(game) { listOfNotNull(game.parent_game, game.version_parent).distinctBy { it.id } }
     val dlcsAndExpansions = remember(game) { (game.dlcs + game.expansions).distinctBy { it.id } }
-    val standaloneExpansions = remember(game) { game.standalone_expansions.distinctBy { it.id } }
-    val expandedVersions = remember(game) { game.expanded_games.distinctBy { it.id } }
-    val bundles = remember(game) { game.bundles.distinctBy { it.id } }
-    val ports = remember(game) { game.ports.distinctBy { it.id } }
-    val remakesAndRemasters = remember(game) { (game.remakes + game.remasters).distinctBy { it.id } }
-    val similarGames = remember(game) { game.similar_games.distinctBy { it.id } }
     // The rest of each series in release order; the game itself is the page being shown, undated games go last.
     val collections = remember(game) {
         game.collections
@@ -323,28 +317,37 @@ internal fun GameRelatedCarousels(
             .filter { (_, games) -> games.isNotEmpty() }
     }
 
-    val sections = listOf(
-        // A single parent game is already shown by the header, so it only earns a carousel when there are several.
-        Triple(
-            Res.string.game__parent_games_title,
-            Icons.JoystickW500Rounded,
-            parentGames.takeIf { it.size > 1 }.orEmpty()
-        ),
-        Triple(Res.string.game__editions_title, Icons.StyleW500Rounded, editions),
-        Triple(Res.string.game__dlcs_expansions_title, Icons.Inventory2W500Rounded, dlcsAndExpansions),
-        Triple(Res.string.game__standalone_expansions_title, Icons.LayersW500Rounded, standaloneExpansions),
-        Triple(Res.string.game__expanded_games_title, Icons.CategoryW500Rounded, expandedVersions),
-        Triple(Res.string.game__bundles_title, Icons.Inventory2W500Rounded, bundles),
-        Triple(Res.string.game__ports_title, Icons.DevicesW500Rounded, ports),
-        Triple(Res.string.game__remakes_remasters_title, Icons.RefreshW500Rounded, remakesAndRemasters),
-        Triple(Res.string.game__similar_games_title, Icons.ExploreW500Rounded, similarGames),
-    )
-
-    for ((titleRes, icon, gamesList) in sections) {
-        if (gamesList.isEmpty()) continue
-        RelatedGameCarousel(titleRes, icon, gamesList, onGameClick)
-    }
+    RelatedGameCarousel(Res.string.game__editions_title, Icons.StyleW500Rounded, editions, onGameClick)
+    RelatedGameCarousel(Res.string.game__dlcs_expansions_title, Icons.Inventory2W500Rounded, dlcsAndExpansions, onGameClick)
     GameCollections(collections, onGameClick)
+}
+
+/** Other releases of the same game: remakes, ports, bigger or bundled versions, and its parents. */
+@Composable
+internal fun GameOtherVersions(game: Game, onGameClick: (Game) -> Unit) {
+    val remakesAndRemasters = remember(game) { (game.remakes + game.remasters).distinctBy { it.id } }
+    val ports = remember(game) { game.ports.distinctBy { it.id } }
+    val standaloneExpansions = remember(game) { game.standalone_expansions.distinctBy { it.id } }
+    val expandedVersions = remember(game) { game.expanded_games.distinctBy { it.id } }
+    val bundles = remember(game) { game.bundles.distinctBy { it.id } }
+    // A single parent game is already shown by the header, so it only earns a carousel when there are several.
+    val parentGames = remember(game) {
+        listOfNotNull(game.parent_game, game.version_parent).distinctBy { it.id }.takeIf { it.size > 1 }.orEmpty()
+    }
+
+    RelatedGameCarousel(Res.string.game__remakes_remasters_title, Icons.RefreshW500Rounded, remakesAndRemasters, onGameClick)
+    RelatedGameCarousel(Res.string.game__ports_title, Icons.DevicesW500Rounded, ports, onGameClick)
+    RelatedGameCarousel(Res.string.game__standalone_expansions_title, Icons.LayersW500Rounded, standaloneExpansions, onGameClick)
+    RelatedGameCarousel(Res.string.game__expanded_games_title, Icons.CategoryW500Rounded, expandedVersions, onGameClick)
+    RelatedGameCarousel(Res.string.game__bundles_title, Icons.Inventory2W500Rounded, bundles, onGameClick)
+    RelatedGameCarousel(Res.string.game__parent_games_title, Icons.JoystickW500Rounded, parentGames, onGameClick)
+}
+
+/** Last on the page: the way out toward other games. */
+@Composable
+internal fun GameSimilarGames(game: Game, onGameClick: (Game) -> Unit) {
+    val similarGames = remember(game) { game.similar_games.distinctBy { it.id } }
+    RelatedGameCarousel(Res.string.game__similar_games_title, Icons.ExploreW500Rounded, similarGames, onGameClick)
 }
 
 @Composable
@@ -353,12 +356,15 @@ private fun RelatedGameCarousel(
     icon: ImageVector,
     gamesList: List<Game>,
     onGameClick: (Game) -> Unit
-) = Column(
-    Modifier.padding(top = SectionSpacing),
-    verticalArrangement = Arrangement.spacedBy(12.dp)
 ) {
-    SectionHeader(stringResource(titleRes), icon, Modifier.padding(horizontal = Dimens.ScreenPadding))
-    RelatedGamesRow(gamesList, onGameClick)
+    if (gamesList.isEmpty()) return
+    Column(
+        Modifier.padding(top = SectionSpacing),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SectionHeader(stringResource(titleRes), icon, Modifier.padding(horizontal = Dimens.ScreenPadding))
+        RelatedGamesRow(gamesList, onGameClick)
+    }
 }
 
 /**

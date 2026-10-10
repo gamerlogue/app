@@ -29,18 +29,23 @@ internal fun LazyListScope.gameDetailContent(
     onGameClick: (Game) -> Unit,
     onPresetClick: (GameListPreset) -> Unit
 ) {
+    // Ordered by the questions a visitor asks: what it is and whether it is good, what it looks like,
+    // how it plays, what else belongs to it, its other releases; then reference data, and similar
+    // games last as the way out.
     item { GameHeader(game, onTitleVisibilityChange, onPresetClick) }
     item { GameRatings(game) }
-    item { GameAgeRatings(game) }
-    item { GameTimeToBeatSection(timeToBeat) }
-    item { GameGenresAndThemes(game, onPresetClick) }
-    item { GameMultiplayerDetails(game) }
-    item { GameMedia(game) }
     item { GameDescription(game) }
-    item { GameKeywords(game, onPresetClick) }
+    item { GameMedia(game) }
+    item { GameGenresAndThemes(game, onPresetClick) }
+    item { GameTimeToBeatSection(timeToBeat) }
+    item { GameMultiplayerDetails(game) }
+    item { GameFamily(game, editions, onGameClick) }
+    item { GameOtherVersions(game, onGameClick) }
     item { GameDetailsList(game, onGameClick = onGameClick, onPresetClick = onPresetClick) }
+    item { GameAgeRatings(game) }
+    item { GameKeywords(game, onPresetClick) }
     item { GameWebsites(game) }
-    item { GameRelatedCarousels(game, editions, onGameClick = onGameClick) }
+    item { GameSimilarGames(game, onGameClick) }
     // Room for the floating toolbar, so the last section can scroll clear of it.
     item { Spacer(Modifier.navigationBarsPadding().height(ToolbarClearance)) }
 }
