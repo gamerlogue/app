@@ -35,7 +35,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -163,7 +163,10 @@ fun ServiceSyncView(
         ServiceSyncAction.IMPORT_LIBRARY -> Res.string.settings__sync_title_import_library
     }
 
-    val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = true)
+    val sheetState = rememberBottomSheetState(
+        SheetValue.PartiallyExpanded,
+        enabledValues = setOf(SheetValue.PartiallyExpanded, SheetValue.Expanded),
+    )
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
 
     // Expand the sheet to a full, interactive WebView while login is needed; peek otherwise.

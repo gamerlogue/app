@@ -33,14 +33,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.RangeSliderState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -296,11 +298,21 @@ fun GameListFilterSheet(
                 FilterSectionHeader(icon = Icons.Grid4x4W500Rounded, title = Res.string.gamelist__grid_columns) {
                     HeaderValue(pluralStringResource(Res.plurals.gamelist__columns_count, columnCount, columnCount))
                 }
+                val sliderState = remember {
+                    SliderState(
+                        columnCount.toFloat(),
+                        steps = MaxColumns - MinColumns - 1,
+                        trackRange = MinColumns.toFloat()..MaxColumns.toFloat()
+                    )
+                }
+                // Follows external changes too, e.g. the reset button.
+                LaunchedEffect(columnCount) { sliderState.value = columnCount.toFloat() }
                 Slider(
-                    value = columnCount.toFloat(),
-                    onValueChange = { onColumnCountChange(it.toInt()) },
-                    valueRange = MinColumns.toFloat()..MaxColumns.toFloat(),
-                    steps = MaxColumns - MinColumns - 1,
+                    state = sliderState,
+                    onValueChange = {
+                        sliderState.value = it
+                        onColumnCountChange(it.toInt())
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -694,15 +706,16 @@ internal fun RangeFilterSection(
     steps: Int,
     onValueChangeFinished: (ClosedFloatingPointRange<Float>) -> Unit,
 ) {
-    var dragValue by remember(value) { mutableStateOf(value) }
+    val state = remember(value, steps, valueRange) {
+        RangeSliderState(value.start, value.endInclusive, steps, trackRange = valueRange)
+    }
     FilterCard {
-        FilterSectionHeader(icon = icon, title = title) { HeaderValue(trailingText(dragValue)) }
+        FilterSectionHeader(icon = icon, title = title) {
+            HeaderValue(trailingText(state.startValue..state.endValue))
+        }
         RangeSlider(
-            value = dragValue,
-            onValueChange = { dragValue = it },
-            onValueChangeFinished = { onValueChangeFinished(dragValue) },
-            valueRange = valueRange,
-            steps = steps,
+            state = state,
+            onValueChangeFinished = { onValueChangeFinished(state.startValue..state.endValue) },
             modifier = Modifier.fillMaxWidth()
         )
     }

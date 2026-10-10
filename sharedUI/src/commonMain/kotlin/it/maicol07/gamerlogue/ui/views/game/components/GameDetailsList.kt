@@ -273,15 +273,18 @@ private fun GameDetailsGrid(details: List<GameDetailEntry>) = BoxWithConstraints
 }
 
 @Composable
-private fun GameDetailRow(detail: GameDetailEntry, first: Boolean, last: Boolean) = ListItem(
-    modifier = Modifier.clip(ListItemDefaults.expressiveShape(first, last))
-        .let { modifier -> detail.onClick?.let { modifier.clickable(onClick = it) } ?: modifier },
-    leadingContent = { Icon(detail.leadingIcon, contentDescription = null) },
-    headlineContent = { Text(stringResource(detail.headline)) },
-    supportingContent = detail.supporting?.let { { Text(it) } },
-    trailingContent = detail.trailingIcon?.let { { Icon(it, contentDescription = null) } },
-    colors = ListItemDefaults.expressiveSegmentedColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-)
+private fun GameDetailRow(detail: GameDetailEntry, first: Boolean, last: Boolean) {
+    val shape = ListItemDefaults.expressiveShape(first, last)
+    ListItem(
+        modifier = Modifier.clip(shape)
+            .let { modifier -> detail.onClick?.let { modifier.clickable(onClick = it) } ?: modifier },
+        leadingContent = { Icon(detail.leadingIcon, contentDescription = null) },
+        supportingContent = detail.supporting?.let { { Text(it) } },
+        trailingContent = detail.trailingIcon?.let { { Icon(it, contentDescription = null) } },
+        shapes = ListItemDefaults.shapes(shape = shape),
+        colors = ListItemDefaults.expressiveSegmentedColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) { Text(stringResource(detail.headline)) }
+}
 
 private data class GameDetailEntry(
     val leadingIcon: ImageVector,

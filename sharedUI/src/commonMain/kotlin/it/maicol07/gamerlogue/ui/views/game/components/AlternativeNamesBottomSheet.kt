@@ -11,11 +11,11 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
@@ -23,7 +23,7 @@ import gamerlogue.sharedui.generated.resources.game__alternative_names_title
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Book4W500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
-import it.maicol07.gamerlogue.extensions.expressiveShape
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,7 +33,7 @@ fun AlternativeNamesBottomSheet(
     onDismissRequest: () -> Unit = { }
 ) = ModalBottomSheet(
     onDismissRequest = onDismissRequest,
-    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    sheetState = rememberBottomSheetState(SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
 ) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp), contentPadding = PaddingValues(16.dp)) {
         item {
@@ -49,13 +49,10 @@ fun AlternativeNamesBottomSheet(
                 leadingContent = {
                     Icon(Icons.Book4W500Rounded, contentDescription = null)
                 },
-                headlineContent = { Text(alt.name) },
                 supportingContent = alt.comment.takeIf { !it.isNullOrBlank() }?.let { { Text(it) } },
                 colors = ListItemDefaults.expressiveSegmentedColors(),
-                modifier = Modifier.clip(
-                    ListItemDefaults.expressiveShape(index == 0, index == game.alternative_names.lastIndex)
-                )
-            )
+                shapes = ListItemDefaults.expressiveSegmentedShapes(index, game.alternative_names.size),
+            ) { Text(alt.name) }
         }
     }
 }

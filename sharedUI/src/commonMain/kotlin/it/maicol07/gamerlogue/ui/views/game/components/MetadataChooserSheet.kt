@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.game.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -12,17 +11,17 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
-import it.maicol07.gamerlogue.extensions.expressiveShape
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.ui.views.list.GameListPreset
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -38,7 +37,7 @@ fun MetadataChooserSheet(
     onDismissRequest: () -> Unit
 ) = ModalBottomSheet(
     onDismissRequest = onDismissRequest,
-    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    sheetState = rememberBottomSheetState(SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
 ) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp), contentPadding = PaddingValues(16.dp)) {
         item {
@@ -51,14 +50,12 @@ fun MetadataChooserSheet(
 
         itemsIndexed(choice.options) { index, option ->
             ListItem(
+                onClick = { onPick(option) },
                 leadingContent = { Icon(choice.icon, contentDescription = null) },
-                headlineContent = { Text(option.name) },
                 trailingContent = { Icon(Icons.KeyboardArrowRightW500Rounded, contentDescription = null) },
                 colors = ListItemDefaults.expressiveSegmentedColors(),
-                modifier = Modifier
-                    .clip(ListItemDefaults.expressiveShape(index == 0, index == choice.options.lastIndex))
-                    .clickable { onPick(option) }
-            )
+                shapes = ListItemDefaults.expressiveSegmentedShapes(index, choice.options.size),
+            ) { Text(option.name) }
         }
     }
 }
