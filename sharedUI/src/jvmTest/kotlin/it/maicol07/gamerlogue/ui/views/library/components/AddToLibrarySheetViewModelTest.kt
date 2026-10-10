@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.setMain
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
+import java.time.Instant
 
 // The ViewModel's init block loads game editions via IgdbClient (see AddToLibrarySheetViewModel);
 // this fake lets it fail harmlessly (caught by safeRequest) without a real IGDB backend.
@@ -50,7 +51,9 @@ class AddToLibrarySheetViewModelTest : StringSpec({
 
     "saveEntry without a selected status sets an error and skips save" {
         runTest {
-            val viewModel = AddToLibrarySheetViewModel(game = Game(id = 1L), existingEntry = null)
+            // Released: an unreleased game preselects the backlog, so the status would never be missing.
+            val game = Game(id = 1L, first_release_date = Instant.EPOCH)
+            val viewModel = AddToLibrarySheetViewModel(game = game, existingEntry = null)
             @Suppress("CanBeVal")
             var savedEntry = false
 
