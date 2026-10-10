@@ -1,7 +1,5 @@
 import com.google.devtools.ksp.gradle.KspAATask
 import io.github.kingsword09.symbolcraft.model.SymbolVariant
-import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -182,7 +180,7 @@ dependencies {
 }
 
 // Kotest's JUnit5 runner needs the JUnit Platform on the JVM test task.
-tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
