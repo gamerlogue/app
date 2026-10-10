@@ -9,7 +9,8 @@ import java.util.Properties
 val appPackageName = project.findProperty("appPackageName").toString()
 
 val localProperties = Properties().apply {
-    load(project.rootProject.file("local.properties").inputStream())
+    // Missing on CI jobs that don't create it (e.g. GitHub's automatic dependency submission)
+    project.rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
 
 plugins {
