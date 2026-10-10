@@ -50,7 +50,12 @@ kotlin {
 
     jvm()
 
-    js { browser() }
+    js {
+        browser()
+        // The tests reach Skiko through Compose UI, and only an executable bundles its runtime with webpack:
+        // without one, checkComposeUiTestConfigurationForJs fails the JS tests (CMP-4906).
+        binaries.executable()
+    }
 //    wasmJs { browser() }
 
     sourceSets {
