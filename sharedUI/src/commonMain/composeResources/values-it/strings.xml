@@ -98,6 +98,7 @@
     <string name="game__bundles_title">Bundle</string>
     <string name="game__ports_title">Porting</string>
     <string name="game__standalone_expansions_title">Espansioni Standalone</string>
+    <string name="game__editions_title">Edizioni</string>
     <string name="game__expanded_games_title">Versioni Espanse</string>
     <string name="game__parent_games_title">Giochi Originali / Base</string>
     <string name="game__collections_carousel_title">Collezioni</string>

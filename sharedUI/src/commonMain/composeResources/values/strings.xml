@@ -97,6 +97,7 @@
     <string name="game__bundles_title">Bundles</string>
     <string name="game__ports_title">Ports</string>
     <string name="game__standalone_expansions_title">Standalone Expansions</string>
+    <string name="game__editions_title">Editions</string>
     <string name="game__expanded_games_title">Expanded Versions</string>
     <string name="game__parent_games_title">Base &amp; Original Games</string>
     <string name="game__collections_carousel_title">Collections</string>

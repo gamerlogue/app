@@ -100,6 +100,7 @@ fun GameDetailView(
                 ) {
                     gameDetailContent(
                         game,
+                        editions = uiState.editions,
                         timeToBeat = uiState.timeToBeat,
                         onTitleVisibilityChange = { titleVisible = it },
                         onGameClick = { navigationState.backStack.add(it.detailNavKey) },

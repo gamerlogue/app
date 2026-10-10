@@ -39,6 +39,7 @@ import gamerlogue.sharedui.generated.resources.game__bundles_title
 import gamerlogue.sharedui.generated.resources.game__collections_carousel_title
 import gamerlogue.sharedui.generated.resources.game__description_title
 import gamerlogue.sharedui.generated.resources.game__dlcs_expansions_title
+import gamerlogue.sharedui.generated.resources.game__editions_title
 import gamerlogue.sharedui.generated.resources.game__expanded_games_title
 import gamerlogue.sharedui.generated.resources.game__no_description
 import gamerlogue.sharedui.generated.resources.game__parent_games_title
@@ -63,6 +64,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Lay
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AndroidSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AppleSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.DiscordSimpleIcons
@@ -295,6 +297,7 @@ private fun cleanDomain(url: String): String {
 @Composable
 internal fun GameRelatedCarousels(
     game: Game,
+    editions: List<Game>,
     onGameClick: (Game) -> Unit
 ) {
     val parentGames = remember(game) { listOfNotNull(game.parent_game, game.version_parent).distinctBy { it.id } }
@@ -314,6 +317,7 @@ internal fun GameRelatedCarousels(
             Icons.JoystickW500Rounded,
             parentGames.takeIf { it.size > 1 }.orEmpty()
         ),
+        Triple(Res.string.game__editions_title, Icons.StyleW500Rounded, editions),
         Triple(Res.string.game__dlcs_expansions_title, Icons.Inventory2W500Rounded, dlcsAndExpansions),
         Triple(Res.string.game__standalone_expansions_title, Icons.LayersW500Rounded, standaloneExpansions),
         Triple(Res.string.game__expanded_games_title, Icons.CategoryW500Rounded, expandedVersions),

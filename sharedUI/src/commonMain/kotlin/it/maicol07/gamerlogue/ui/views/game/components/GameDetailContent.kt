@@ -23,6 +23,7 @@ private val ToolbarClearance = 96.dp
  */
 internal fun LazyListScope.gameDetailContent(
     game: Game,
+    editions: List<Game>,
     timeToBeat: GameTimeToBeat?,
     onTitleVisibilityChange: (Boolean) -> Unit,
     onGameClick: (Game) -> Unit,
@@ -39,7 +40,7 @@ internal fun LazyListScope.gameDetailContent(
     item { GameKeywords(game, onPresetClick) }
     item { GameDetailsList(game, onGameClick = onGameClick, onPresetClick = onPresetClick) }
     item { GameWebsites(game) }
-    item { GameRelatedCarousels(game, onGameClick = onGameClick) }
+    item { GameRelatedCarousels(game, editions, onGameClick = onGameClick) }
     // Room for the floating toolbar, so the last section can scroll clear of it.
     item { Spacer(Modifier.navigationBarsPadding().height(ToolbarClearance)) }
 }

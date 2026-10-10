@@ -126,6 +126,8 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
     /** Immutable state of the Game detail screen. */
     data class UiState(
         val game: Game? = null,
+        /** Other editions of [game] (IGDB versions whose `version_parent` it is). */
+        val editions: List<Game> = emptyList(),
         val timeToBeat: GameTimeToBeat? = null,
         val libraryEntry: LibraryEntry? = null,
         val isLoading: Boolean = true,
@@ -144,6 +146,8 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         /** Sub-query names of the detail multiquery; they pick the results apart again below. */
         private const val GAME_QUERY = "game"
         private const val TIME_TO_BEAT_QUERY = "ttb"
+        private const val EDITIONS_QUERY = "editions"
+        private const val EDITIONS_LIMIT = 50
     }
 
     init {
@@ -177,6 +181,12 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
                     where { GameTimeToBeat.field.game_id equalTo gameId.toString() }
                     limit(1)
                 }
+                query(IgdbEndpoint.GAME, EDITIONS_QUERY) {
+                    @Suppress("SpreadOperator")
+                    fields(*Game.field.relatedGameFields().toTypedArray())
+                    where { Game.field.version_parent equalTo gameId.toString() }
+                    limit(EDITIONS_LIMIT)
+                }
             }
         }
 
@@ -184,7 +194,8 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
             val responses = result.unwrap()
             val fetchedGame = responses.multiqueryResults<Game>(GAME_QUERY).firstOrNull()
             val fetchedTtb = responses.multiqueryResults<GameTimeToBeat>(TIME_TO_BEAT_QUERY).firstOrNull()
-            update { copy(game = fetchedGame ?: state.game, timeToBeat = fetchedTtb, isLoading = false) }
+            val editions = responses.multiqueryResults<Game>(EDITIONS_QUERY)
+            update { copy(game = fetchedGame ?: state.game, editions = editions, timeToBeat = fetchedTtb, isLoading = false) }
         } else {
             update { copy(isLoading = false, isLoadError = true) }
         }
