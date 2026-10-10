@@ -1,7 +1,7 @@
 # Changelog
 
-<a name="0.6"></a>
-## 0.6
+<a name="0.6.0"></a>
+## 0.6.0
 
 > Released on October 10, 2026
 
@@ -1525,6 +1525,20 @@
 - [`5b86d35`](https://github.com/gamerlogue/app/commit/5b86d3589ccf4951c1d650917fe72b138bf44fde) **ui:** 🐛 let the mouse wheel scroll the page over carousels
 - [`d0ec83d`](https://github.com/gamerlogue/app/commit/d0ec83d4b9314fec6ba109cd4dfb1c1bc0233794) **discover:** 🐛 align the upcoming date pill with the other badges
 - [`0fb33c2`](https://github.com/gamerlogue/app/commit/0fb33c2a1ca8b2434b2a02d99c87b14d9c6d28a6) **ui:** 🐛 keep a mouse click from scrolling the carousel instead of opening the game
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/d17274f3fec8fce66535f9db061b379b81874d3c"><code>d17274f</code></a> 🐛 make gradlew executable</summary>
+
+  > The automatic dependency submission job runs ./gradlew without a chmod
+  > step and failed with "Permission denied", falling back to the runner's
+  > system Gradle.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/c611e1e74a522e2af4e7a90864aa3a021694facd"><code>c611e1e</code></a> 🐛 make local.properties optional in sharedUI build</summary>
+
+  > GitHub's automatic dependency submission doesn't create local.properties,
+  > so configuring sharedUI failed. All values read from it already have
+  > defaults.
+
+  </details>
 
 ### ⚡ Performance Improvements
 
@@ -3017,6 +3031,15 @@
 
   </details>
 - [`6f7bff4`](https://github.com/gamerlogue/app/commit/6f7bff42473b882281b51863e67d82cef4fca731) **release:** 🚧 disable Play Store publishing until the app is ready
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/8f9fbe1bb871a711ab02434544f4855ce59e6405"><code>8f9fbe1</code></a> <b>release:</b> 👷 compute the version from the commits when none is given</summary>
+
+  > git cliff --bumped-version picks the next version from the conventional
+  > commits since the latest tag, which must be a full x.y.z. In 0.x a
+  > breaking change bumps the minor, so 1.0.0 stays an explicit choice.
+  > git-cliff is now installed and run directly, since the action can't
+  > feed a computed version to the next steps.
+
+  </details>
 
 ### Other changes
 
