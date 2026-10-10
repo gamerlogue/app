@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -21,6 +22,7 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.carousel.CarouselState
 import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.toShape
@@ -47,6 +49,7 @@ import gamerlogue.sharedui.generated.resources.home__release_tomorrow
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.ratingScore
 import it.maicol07.gamerlogue.extensions.mouseDragScrollsHorizontally
+import it.maicol07.gamerlogue.ui.components.CarouselWithArrows
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.pressMorphShape
@@ -126,6 +129,19 @@ internal fun GameCarousel(
 @Composable
 internal fun RankedCarousel(games: List<Game>, onGameClick: (Game) -> Unit) {
     val state = rememberCarouselState { games.size }
+    val step = with(LocalDensity.current) { (RankedItemWidth + Dimens.ItemGap).toPx() }
+    CarouselWithArrows(
+        state = state,
+        modifier = Modifier,
+        onBack = { state.animateScrollBy(-step) },
+        onForward = { state.animateScrollBy(step) }
+    ) {
+        RankedItems(state, games, onGameClick)
+    }
+}
+
+@Composable
+private fun RankedItems(state: CarouselState, games: List<Game>, onGameClick: (Game) -> Unit) =
     HorizontalUncontainedCarousel(
         state = state,
         itemWidth = RankedItemWidth,
@@ -167,7 +183,6 @@ internal fun RankedCarousel(games: List<Game>, onGameClick: (Game) -> Unit) {
             }
         }
     }
-}
 
 @Composable
 private fun SectionBadge(

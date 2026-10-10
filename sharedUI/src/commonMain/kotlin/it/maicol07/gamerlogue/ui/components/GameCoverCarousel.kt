@@ -1,8 +1,14 @@
 package it.maicol07.gamerlogue.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -13,6 +19,8 @@ import androidx.compose.material3.carousel.CarouselState
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,16 +37,15 @@ import it.maicol07.gamerlogue.extensions.mouseDragScrollsHorizontally
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import kotlinx.coroutines.launch
 
-/** Gap between an arrow button and the carousel it drives. */
-private val ArrowGap = 4.dp
+/** Inset of an arrow button from the carousel edge it overlays. */
+private val ArrowInset = 8.dp
 
 /**
  * The app's horizontal carousel: a [HorizontalMultiBrowseCarousel] with the side padding, the mouse
- * affordances and the previous/next buttons every carousel in the app wants.
+ * affordances and the previous/next buttons ([CarouselWithArrows]) every carousel in the app wants.
  *
- * The padding is on the row rather than the carousel's `contentPadding`, which MultiBrowse only
- * honours on the leading edge. The arrows are pointer chrome: they are left out on Android, and
- * elsewhere they flank the carousel instead of overlaying the cards at the edges.
+ * The padding is on the box rather than the carousel's `contentPadding`, which MultiBrowse only
+ * honours on the leading edge.
  */
 @Composable
 fun GameCoverCarousel(
@@ -49,48 +56,68 @@ fun GameCoverCarousel(
     content: @Composable CarouselItemScope.(Int) -> Unit
 ) {
     val state = rememberCarouselState { itemCount }
-    val scope = rememberCoroutineScope()
     val step = with(LocalDensity.current) { (preferredItemWidth + itemSpacing).toPx() }
-
-    val showArrows = getPlatform() != Platform.ANDROID
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.ScreenPadding),
-        horizontalArrangement = Arrangement.spacedBy(ArrowGap),
-        verticalAlignment = Alignment.CenterVertically
+    CarouselWithArrows(
+        state = state,
+        modifier = Modifier.padding(horizontal = Dimens.ScreenPadding),
+        onBack = { state.animateScrollBy(-step) },
+        onForward = { state.animateScrollBy(step) }
     ) {
-        if (showArrows) {
-            CarouselArrow(Icons.ArrowBackW500Rounded, state.canScrollBackward) {
-                scope.launch { state.animateScrollBy(-step) }
-            }
-        }
         HorizontalMultiBrowseCarousel(
             state = state,
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .then(modifier)
                 .mouseDragScrollsHorizontally(state),
             preferredItemWidth = preferredItemWidth,
             itemSpacing = itemSpacing,
             content = content
         )
-        if (showArrows) {
-            CarouselArrow(Icons.ArrowForwardW500Rounded, state.canScrollForward) {
-                scope.launch { state.animateScrollBy(step) }
-            }
-        }
     }
 }
 
 /**
- * Disabled rather than hidden at the ends of the carousel: removing it would resize the carousel
- * mid-scroll and make the cards jump.
+ * Overlays previous/next buttons on [carousel], each shown while [state] can still scroll its way.
+ * They are pointer chrome: left out on Android, and elsewhere shown only while the pointer hovers.
  */
+@Composable
+fun CarouselWithArrows(
+    state: ScrollableState,
+    modifier: Modifier,
+    onBack: suspend () -> Unit,
+    onForward: suspend () -> Unit,
+    carousel: @Composable () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val hoverSource = remember { MutableInteractionSource() }
+    val hovered by hoverSource.collectIsHoveredAsState()
+
+    Box(modifier.fillMaxWidth().hoverable(hoverSource)) {
+        carousel()
+        if (getPlatform() != Platform.ANDROID) {
+            CarouselArrow(
+                icon = Icons.ArrowBackW500Rounded,
+                visible = hovered && state.canScrollBackward,
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) { scope.launch { onBack() } }
+            CarouselArrow(
+                icon = Icons.ArrowForwardW500Rounded,
+                visible = hovered && state.canScrollForward,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) { scope.launch { onForward() } }
+        }
+    }
+}
+
+/** Hidden rather than disabled at the ends: as an overlay it no longer affects the layout. */
 @Composable
 private fun CarouselArrow(
     icon: ImageVector,
-    enabled: Boolean,
+    visible: Boolean,
+    modifier: Modifier,
     onClick: () -> Unit
-) = FilledTonalIconButton(onClick = onClick, enabled = enabled) {
-    Icon(icon, contentDescription = null)
+) = AnimatedVisibility(visible, modifier.padding(horizontal = ArrowInset), enter = fadeIn(), exit = fadeOut()) {
+    FilledTonalIconButton(onClick = onClick) {
+        Icon(icon, contentDescription = null)
+    }
 }
