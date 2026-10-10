@@ -8,8 +8,8 @@ import io.kotest.matchers.shouldBe
 class GameDetailFieldsTest : StringSpec({
     "the detail query asks for exactly the fields the screen renders" {
         val expected = setOf(
-            "age_ratings.category",
-            "age_ratings.rating",
+            "age_ratings.organization.name",
+            "age_ratings.rating_category.rating",
             "age_ratings.rating_cover_url",
             "aggregated_rating",
             "aggregated_rating_count",
