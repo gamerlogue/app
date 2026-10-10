@@ -51,6 +51,7 @@ class AddToLibrarySheetViewModelTest : StringSpec({
     "saveEntry without a selected status sets an error and skips save" {
         runTest {
             val viewModel = AddToLibrarySheetViewModel(game = Game(id = 1L), existingEntry = null)
+            @Suppress("CanBeVal")
             var savedEntry = false
 
             viewModel.saveEntry { savedEntry = true }

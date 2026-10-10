@@ -13,6 +13,7 @@ import io.ktor.client.request.post
  */
 class IgdbBaseUrlTest : StringSpec({
     "a placeholder request is sent to the current endpoint, path and query preserved" {
+        @Suppress("CanBeVal")
         var baseUrl = "http://10.0.2.2/api/igdb"
         val sent = mutableListOf<String>()
         val client = HttpClient(MockEngine { request -> sent += request.url.toString(); respondOk() }) {

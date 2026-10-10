@@ -30,6 +30,7 @@ import org.koin.plugin.module.dsl.module
 @OptIn(KoinInternalApi::class)
 class HttpCacheAuthTest : StringSpec({
     "HttpCache ignores the bearer token, which is why authed clients must not install it" {
+        @Suppress("CanBeVal")
         var token = "user-a-token"
         val engine = MockEngine {
             respond(
