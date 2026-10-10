@@ -96,7 +96,6 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      # The web app is deployed to Pages, not attached to the release
       - name: Download Android artifacts
         uses: actions/download-artifact@v8
         with:
@@ -109,6 +108,22 @@ jobs:
           pattern: desktop-*
           merge-multiple: true
           path: artifacts
+
+      # Multi-file artifacts are zipped below, so they're downloaded outside the flat upload dir
+      - name: Download web artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: web-app
+          path: bundles
+
+      - name: Package web app
+        env:
+          VERSION: ${{ needs.prepare_release.outputs.version }}
+        run: |
+          mkdir -p artifacts
+          if [ -d bundles/web-app ]; then
+            (cd bundles/web-app && zip -qr "$GITHUB_WORKSPACE/artifacts/web-app-$VERSION.zip" .)
+          fi
 
       - name: Display downloaded files
         run: ls -R artifacts
