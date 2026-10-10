@@ -15,8 +15,9 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -64,7 +65,7 @@ fun GameIgdbMenu(igdbUrl: String) = Box {
     var expanded by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
 
-    IconButton(onClick = { expanded = true }) {
+    FilledTonalIconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
         Icon(Icons.MoreVertW500Rounded, contentDescription = stringResource(Res.string.common__more_options))
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
