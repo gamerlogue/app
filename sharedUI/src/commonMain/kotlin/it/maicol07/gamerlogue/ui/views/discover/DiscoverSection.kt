@@ -65,6 +65,7 @@ enum class DiscoverSection(
             sort(Game.field.first_release_date, SortOrder.DESC)
             where {
                 Game.field.parent_game.isNull()
+                Game.field.version_parent.isNull()
                 alreadyReleased()
             }
         }
@@ -75,6 +76,7 @@ enum class DiscoverSection(
         {
             sort(Game.field.first_release_date, SortOrder.ASC)
             where {
+                Game.field.version_parent.isNull()
                 notYetReleased()
             }
         }

@@ -497,13 +497,17 @@ class GameListViewModel(
                         Game.field.id inAny gameIds.map(Int::toString)
                     }
                     applyFilters(filter)
+                    // Editions show up on their base game's page only. The library keeps them, so an
+                    // entry saved against an edition before entries moved to base games stays visible.
+                    if (libraryStatus == null) Game.field.version_parent.isNull()
                 }
 
                 // With an id source the page is already chosen upstream: sorting and offsetting
                 // here would reshuffle and skip within that page.
                 if (gameIds == null) {
-                    // The section's query only runs with no custom filter, when the clause above is
-                    // empty and emits nothing: the library's `where` replaces instead of appending.
+                    // The section's query only runs with no custom filter, when the clause above holds
+                    // just the edition exclusion: the library's `where` replaces instead of appending,
+                    // so a section with its own `where` repeats that exclusion.
                     if (isCustomFilterActive) applySort(filter) else section?.baseQuery?.invoke(this)
                     offset(offset)
                 }

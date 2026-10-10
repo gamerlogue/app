@@ -77,8 +77,10 @@ class DiscoverViewModel : StateViewModel<DiscoverViewModel.UiState>(UiState()) {
                             Game.field.artworks.image_id,
                             Game.field.screenshots.image_id,
                         )
-                        gameIds[section]?.let { ids ->
-                            where { Game.field.id inAny ids.map(Int::toString) }
+                        // A section with its own `where` replaces this one, so it repeats the edition exclusion.
+                        where {
+                            gameIds[section]?.let { ids -> Game.field.id inAny ids.map(Int::toString) }
+                            Game.field.version_parent.isNull()
                         }
                         section.baseQuery(this)
                         limit(SectionGameLimit)
