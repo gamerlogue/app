@@ -26,6 +26,10 @@ One version warning is expected and was left unresolved on purpose — do **not*
 
 A local backend is reached from the emulator at `http://10.0.2.2`, the emulator default. Since API 36, Local Network Protections make every RFC 1918 destination time out unless the app holds `ACCESS_LOCAL_NETWORK`: the debug manifest declares it and the `grantLocalNetworkAccess` task grants it after each debug install. The web backend needs a plaintext site for that address — `CADDY_HTTP_SERVER_ADDRESS` plus `SSL_MODE: mixed` on the `laravel` service in the `gamerlogue_web` repo — otherwise its Caddy answers `308` to https for any host but its own.
 
+## Release
+
+Releases are cut by CI — publishing one from the GitHub UI triggers nothing (no build, notes or changelog). Run the "Multiplatform Build & Release" workflow with a `version` (and `prerelease` for the Play Store beta track). It commits the git-cliff (`cliff.toml`) `CHANGELOG.md` to the default branch as `docs(changelog)` (a scope left out of the changelog), tags that commit (app versions come from the tag via gitSemVer), creates the release with that version's notes and builds/publishes from the tag. So commit subjects and bodies are the release notes; don't edit `CHANGELOG.md` by hand, and pull after a release.
+
 ## Conventions (enforced)
 
 - **detekt**: new constants use Kotlin's `UPPER_SNAKE_CASE`; `constantPattern` still accepts legacy PascalCase constants until they are migrated. Max line length 150. Comments in English only.
