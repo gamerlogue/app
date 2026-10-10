@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import at.released.igdbclient.model.Collection
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameVideo
 import at.released.igdbclient.model.IgdbImageSize
@@ -36,7 +38,7 @@ import at.released.igdbclient.model.ReleaseDate
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__bundles_title
-import gamerlogue.sharedui.generated.resources.game__collections_carousel_title
+import gamerlogue.sharedui.generated.resources.game__collections_title
 import gamerlogue.sharedui.generated.resources.game__description_title
 import gamerlogue.sharedui.generated.resources.game__dlcs_expansions_title
 import gamerlogue.sharedui.generated.resources.game__editions_title
@@ -82,6 +84,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.XSim
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.YoutubeSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
+import it.maicol07.gamerlogue.extensions.igdb.localizedName
 import it.maicol07.gamerlogue.ui.components.ConnectedActionButtonGroup
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.RemoteImage
@@ -308,7 +311,16 @@ internal fun GameRelatedCarousels(
     val ports = remember(game) { game.ports.distinctBy { it.id } }
     val remakesAndRemasters = remember(game) { (game.remakes + game.remasters).distinctBy { it.id } }
     val similarGames = remember(game) { game.similar_games.distinctBy { it.id } }
-    val collectionsGames = remember(game) { game.collections.flatMap { it.games }.distinctBy { it.id } }
+    // The rest of each series in release order; the game itself is the page being shown, undated games go last.
+    val collections = remember(game) {
+        game.collections
+            .map { collection ->
+                collection to collection.games
+                    .filter { it.id != game.id }
+                    .sortedWith(compareBy(nullsLast()) { it.first_release_date?.getEpochSecond() })
+            }
+            .filter { (_, games) -> games.isNotEmpty() }
+    }
 
     val sections = listOf(
         // A single parent game is already shown by the header, so it only earns a carousel when there are several.
@@ -325,13 +337,13 @@ internal fun GameRelatedCarousels(
         Triple(Res.string.game__ports_title, Icons.DevicesW500Rounded, ports),
         Triple(Res.string.game__remakes_remasters_title, Icons.RefreshW500Rounded, remakesAndRemasters),
         Triple(Res.string.game__similar_games_title, Icons.ExploreW500Rounded, similarGames),
-        Triple(Res.string.game__collections_carousel_title, Icons.CategoryW500Rounded, collectionsGames)
     )
 
     for ((titleRes, icon, gamesList) in sections) {
         if (gamesList.isEmpty()) continue
         RelatedGameCarousel(titleRes, icon, gamesList, onGameClick)
     }
+    GameCollections(collections, onGameClick)
 }
 
 @Composable
@@ -345,7 +357,49 @@ private fun RelatedGameCarousel(
     verticalArrangement = Arrangement.spacedBy(12.dp)
 ) {
     SectionHeader(stringResource(titleRes), icon, Modifier.padding(horizontal = Dimens.ScreenPadding))
+    RelatedGamesRow(gamesList, onGameClick)
+}
 
+/**
+ * Every series the game belongs to, each with its name, type and games, grouped in one tonal card
+ * like the events block on Discover.
+ */
+@Composable
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun GameCollections(collections: List<Pair<Collection, List<Game>>>, onGameClick: (Game) -> Unit) {
+    if (collections.isEmpty()) return
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        shape = MaterialTheme.shapes.extraLarge,
+        modifier = Modifier.fillMaxWidth().padding(start = Dimens.ItemGap, end = Dimens.ItemGap, top = SectionSpacing)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = Dimens.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SectionGap)
+        ) {
+            SectionHeader(
+                stringResource(Res.string.game__collections_title),
+                Icons.CategoryW500Rounded,
+                Modifier.padding(horizontal = Dimens.ScreenPadding)
+            )
+            for ((collection, gamesList) in collections) {
+                Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
+                    Column(Modifier.padding(horizontal = Dimens.ScreenPadding)) {
+                        Text(collection.name, style = MaterialTheme.typography.titleMediumEmphasized)
+                        collection.type?.localizedName?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    RelatedGamesRow(gamesList, onGameClick)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RelatedGamesRow(gamesList: List<Game>, onGameClick: (Game) -> Unit) =
     GameCoverCarousel(
         itemCount = gamesList.size,
         preferredItemWidth = RelatedItemWidth,
@@ -361,4 +415,3 @@ private fun RelatedGameCarousel(
             onClick = onGameClick
         )
     }
-}

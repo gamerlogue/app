@@ -70,6 +70,7 @@ internal val DetailFields: List<IgdbRequestField<*>> = with(Game.field) {
         franchise.name,
         franchises.name,
         collections.name,
+        collections.type.name,
         platforms.id,
         platforms.name,
         platforms.platform_logo.image_id,

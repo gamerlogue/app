@@ -100,9 +100,9 @@
     <string name="game__editions_title">Editions</string>
     <string name="game__expanded_games_title">Expanded Versions</string>
     <string name="game__parent_games_title">Base &amp; Original Games</string>
-    <string name="game__collections_carousel_title">Collections</string>
     <string name="game__franchises_title">Franchises</string>
     <string name="game__similar_games_title">Similar Games</string>
+    <string name="game__collections_title">Collections</string>
     <string name="game__remakes_remasters_title">Remakes &amp; Remasters</string>
 
     <!-- Game Modes -->
@@ -152,6 +152,7 @@
     <string name="game_category__pack_addon">Pack / Addon</string>
     <string name="game_category__update">Update</string>
     <string name="game_category__unknown">Unknown Category</string>
+    <string name="collection_type__series">Series</string>
 
     <!-- Regions -->
     <string name="region__europe">Europe</string>

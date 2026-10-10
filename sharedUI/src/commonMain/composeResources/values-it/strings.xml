@@ -101,9 +101,9 @@
     <string name="game__editions_title">Edizioni</string>
     <string name="game__expanded_games_title">Versioni Espanse</string>
     <string name="game__parent_games_title">Giochi Originali / Base</string>
-    <string name="game__collections_carousel_title">Collezioni</string>
     <string name="game__franchises_title">Franchise</string>
     <string name="game__similar_games_title">Giochi simili</string>
+    <string name="game__collections_title">Collezioni</string>
     <string name="game__remakes_remasters_title">Remake e Remaster</string>
 
     <!-- Game Modes -->
@@ -153,6 +153,7 @@
     <string name="game_category__pack_addon">Pack / Addon</string>
     <string name="game_category__update">Aggiornamento</string>
     <string name="game_category__unknown">Tipo di gioco sconosciuto</string>
+    <string name="collection_type__series">Serie</string>
 
     <!-- Regions -->
     <string name="region__europe">Europa</string>
