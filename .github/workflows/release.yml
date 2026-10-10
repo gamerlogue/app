@@ -11,7 +11,7 @@ on:
         type: string
         required: true
       prerelease:
-        description: Pre-release (Play Store beta track)
+        description: Pre-release
         type: boolean
         default: false
 
@@ -135,9 +135,11 @@ jobs:
   # ----------------------------------------------------------------
   # Play Store Job
   # ----------------------------------------------------------------
+  # TODO: enable (drop `if: false`) once the app is ready for the Play Store
   publish_play_store:
     name: Publish to Play Store
     needs: build
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Download Android Artifacts
