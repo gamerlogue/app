@@ -96,10 +96,17 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      # The web app is deployed to Pages, not attached to the release
+      - name: Download Android artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: '*'
+          pattern: android-release
+          path: artifacts
+
+      - name: Download desktop artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: desktop-*
           merge-multiple: true
           path: artifacts
 
