@@ -471,6 +471,7 @@
     <string name="settings__server_save">Save</string>
     <string name="settings__server_restore">Restore defaults</string>
     <string name="settings__server_status_checking">Checking…</string>
+    <!--suppress HttpUrlsUsage -->
     <string name="settings__server_status_invalid">Enter a full http:// or https:// address</string>
     <string name="settings__server_status_server_ok">Gamerlogue server reachable</string>
     <string name="settings__server_status_igdb_ok">IGDB endpoint working</string>
