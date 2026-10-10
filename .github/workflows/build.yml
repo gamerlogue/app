@@ -96,6 +96,17 @@ jobs:
             androidApp/build/outputs/bundle/**/*.aab
           if-no-files-found: error
 
+      # Separate artifact: per-flavor files share names, so they can't be attached to the release flat
+      - name: Upload Release Debug Symbols
+        if: inputs.release
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-debug-symbols
+          path: |
+            androidApp/build/outputs/mapping/
+            androidApp/build/outputs/native-debug-symbols/
+          if-no-files-found: error
+
   # ----------------------------------------------------------------
   # Desktop Build Job (Matrix)
   # ----------------------------------------------------------------

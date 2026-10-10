@@ -97,6 +97,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+
+            // Packages native debug symbols into the bundle and native-debug-symbols.zip for crash symbolication
+            ndk.debugSymbolLevel = "FULL"
         }
         getByName("debug") {
             isDebuggable = true
