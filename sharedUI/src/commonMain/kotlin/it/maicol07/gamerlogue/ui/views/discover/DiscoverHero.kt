@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -90,7 +92,7 @@ internal fun ImmersiveHero(
                 onForward = { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
             ) {
                 HorizontalPager(pagerState, Modifier.fillMaxSize().mouseDragScrollsHorizontally(pagerState)) { page ->
-                    ImmersivePage(section, games[page], rank = page + 1, onGameClick)
+                    ImmersivePage(games[page], rank = page + 1, onGameClick)
                 }
             }
             // Keeps the status bar and the floating search bar legible over bright artwork.
@@ -103,6 +105,7 @@ internal fun ImmersiveHero(
                         Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surface, Color.Transparent))
                     )
             )
+            HeroTitle(section, Modifier.align(Alignment.TopStart))
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -137,8 +140,33 @@ private fun PageSegments(pageCount: Int, currentPage: Int, modifier: Modifier) =
     }
 }
 
+/**
+ * The section title, pinned at the top of the hero (not paged) just below the floating search bar.
+ * Drawn over the surface-colored top scrim, hence the on-surface color.
+ */
 @Composable
-private fun ImmersivePage(section: DiscoverSection, game: Game, rank: Int, onGameClick: (Game) -> Unit) = Box(
+private fun HeroTitle(section: DiscoverSection, modifier: Modifier) = Row(
+    modifier = modifier
+        .windowInsetsPadding(SearchBarDefaults.windowInsets)
+        .padding(start = Dimens.ScreenPadding, top = SearchBarDefaults.InputFieldHeight + Dimens.ScreenPadding),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
+) {
+    SectionIcon(
+        icon = section.icon,
+        shape = section.iconShape,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    )
+    Text(
+        text = stringResource(section.sectionTitle),
+        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.titleMediumEmphasized
+    )
+}
+
+@Composable
+private fun ImmersivePage(game: Game, rank: Int, onGameClick: (Game) -> Unit) = Box(
     modifier = Modifier.fillMaxSize().clickable { onGameClick(game) },
     contentAlignment = Alignment.BottomStart
 ) {
@@ -151,22 +179,6 @@ private fun ImmersivePage(section: DiscoverSection, game: Game, rank: Int, onGam
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap)
-        ) {
-            SectionIcon(
-                icon = section.icon,
-                shape = section.iconShape,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                text = stringResource(section.sectionTitle),
-                color = Color.White,
-                style = MaterialTheme.typography.titleMediumEmphasized
-            )
-        }
         Text(
             text = "#$rank",
             color = MaterialTheme.colorScheme.primaryFixed,
