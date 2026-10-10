@@ -660,7 +660,8 @@ private fun ApicalypseQueryBuilderWhereBuilder.applyFilters(filter: GameListFilt
 
     anyOf(Game.field.platforms, filter.platformIds)
     anyOf(Game.field.player_perspectives, filter.playerPerspectiveIds)
-    anyOf(Game.field.category, filter.categoryIds)
+    // IGDB no longer fills the deprecated `category`; `game_type` ids match its values.
+    anyOf(Game.field.game_type, filter.categoryIds)
     anyOf(Game.field.status, filter.statusIds)
     anyOf(Game.field.genres, filter.genreIds)
     anyOf(Game.field.themes, filter.themeIds)
