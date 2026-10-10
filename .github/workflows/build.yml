@@ -75,6 +75,7 @@ jobs:
         with:
           name: android-debug-apk
           path: androidApp/build/outputs/apk/**/*.apk
+          if-no-files-found: error
 
       - name: Build Release Bundle & APK
         if: inputs.release
@@ -93,6 +94,7 @@ jobs:
           path: |
             androidApp/build/outputs/apk/**/*.apk
             androidApp/build/outputs/bundle/**/*.aab
+          if-no-files-found: error
 
   # ----------------------------------------------------------------
   # Desktop Build Job (Matrix)
@@ -199,3 +201,4 @@ jobs:
         with:
           name: web-app
           path: webApp/build/dist/js/productionExecutable/
+          if-no-files-found: error
