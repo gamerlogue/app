@@ -204,9 +204,9 @@ internal fun GameTimeToBeatSection(timeToBeat: GameTimeToBeat?) {
     if (timeToBeat == null) return
     // Shortest to longest, so the connected tiles read as a progression.
     val entries = listOfNotNull(
-        formatTimeToBeat(timeToBeat.hastily?.toInt())?.let { Res.string.game__time_to_beat_hastly to it },
-        formatTimeToBeat(timeToBeat.normally?.toInt())?.let { Res.string.game__time_to_beat_main to it },
-        formatTimeToBeat(timeToBeat.completely?.toInt())?.let { Res.string.game__time_to_beat_completionist to it },
+        formatTimeToBeat(timeToBeat.hastily)?.let { Res.string.game__time_to_beat_hastly to it },
+        formatTimeToBeat(timeToBeat.normally)?.let { Res.string.game__time_to_beat_main to it },
+        formatTimeToBeat(timeToBeat.completely)?.let { Res.string.game__time_to_beat_completionist to it },
     )
     if (entries.isEmpty()) return
 
