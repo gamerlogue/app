@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
@@ -121,18 +122,13 @@ fun ServiceSyncView(
             ServiceSyncAction.CONNECT -> viewModel.runConnect(service, session)
             ServiceSyncAction.REFRESH_PROFILE -> viewModel.runRefreshProfile(service, session)
             ServiceSyncAction.SYNC_WISHLIST -> viewModel.runWishlistSync(service, session)
-            ServiceSyncAction.IMPORT_LIBRARY -> {
-                val refs = viewModel.runReadOwned(service, session)
+            ServiceSyncAction.IMPORT_LIBRARY, ServiceSyncAction.PREVIEW_WISHLIST -> {
+                val wishlist = action == ServiceSyncAction.PREVIEW_WISHLIST
+                val refs =
+                    if (wishlist) viewModel.runWishlistPreview(service, session) else viewModel.runReadOwned(service, session)
                 ImportHandoff.put(service, refs)
                 navigatedAway = true
-                navigateToImportPreview(service, ImportMode.OWNED)
-            }
-
-            ServiceSyncAction.PREVIEW_WISHLIST -> {
-                val refs = viewModel.runWishlistPreview(service, session)
-                ImportHandoff.put(service, refs)
-                navigatedAway = true
-                navigateToImportPreview(service, ImportMode.WISHLIST)
+                navigateToImportPreview(service, if (wishlist) ImportMode.WISHLIST else ImportMode.OWNED)
             }
         }
     }
@@ -171,7 +167,7 @@ fun ServiceSyncView(
             )
         },
         sheetContent = {
-            Box(Modifier.fillMaxWidth().fillMaxSize()) {
+            Box(Modifier.fillMaxSize()) {
                 host.webView(Modifier.fillMaxSize())
                 // Non-interactive while working: a scrim hides the page and tells the user it can't be used
                 // right now. It does NOT consume pointer events, so vertical drags still reach the WebView's
@@ -269,18 +265,18 @@ private fun PushChecklist(
     // push by searching the store's title (no store URL from IGDB), a confirmed publisher match — so an
     // unrelated backlog game from another publisher isn't searched for and pushed onto the wrong store.
     val selected = remember(games) {
-        mutableStateMapOf<String, Boolean>().apply {
-            games.forEach {
-                put(
-                    it.uid,
-                    (it.storeUrl != null || (matchesByName && it.matchesPublisher)) && it.onPlatform && !it.alreadyOnWishlist
-                )
-            }
-        }
+        mutableStateMapOf<String, Boolean>().apply { games.forEach { put(it.uid, it.isPushable(matchesByName)) } }
     }
     val onPlatform = games.filter { it.onPlatform }
     val offPlatform = games.filter { !it.onPlatform }
     val uriHandler = LocalUriHandler.current
+    val rows: LazyListScope.(List<LibrarySync.OutgoingGame>) -> Unit = { group ->
+        itemsIndexed(group) { index, game ->
+            PushRow(game, index, group.size, selected[game.uid] == true, matchesByName, uriHandler::openURL) {
+                selected[game.uid] = it
+            }
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         Text(
@@ -293,18 +289,10 @@ private fun PushChecklist(
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
-            itemsIndexed(onPlatform) { index, game ->
-                PushRow(game, index, onPlatform.size, selected[game.uid] == true, matchesByName, uriHandler::openURL) {
-                    selected[game.uid] = it
-                }
-            }
+            rows(onPlatform)
             if (offPlatform.isNotEmpty()) {
                 item { SettingsGroupHeader(stringResource(Res.string.settings__wishlist_push_off_platform)) }
-                itemsIndexed(offPlatform) { index, game ->
-                    PushRow(game, index, offPlatform.size, selected[game.uid] == true, matchesByName, uriHandler::openURL) {
-                        selected[game.uid] = it
-                    }
-                }
+                rows(offPlatform)
             }
         }
         Row(
@@ -336,22 +324,21 @@ private fun PushRow(
     onOpenStore: (String) -> Unit,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    val pushable =
-        (game.storeUrl != null || (matchesByName && game.matchesPublisher)) && game.onPlatform && !game.alreadyOnWishlist
     SegmentedListItem(
         selected = checked,
-        enabled = pushable,
+        enabled = game.isPushable(matchesByName),
         onClick = { onCheckedChange(!checked) },
         shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
         colors = ListItemDefaults.expressiveSegmentedColors(),
         leadingContent = {
             val cover = game.coverImageId
             if (cover != null) {
+                val coverModifier = Modifier.size(width = 40.dp, height = 53.dp).clip(RoundedCornerShape(6.dp))
                 RemoteImage(
                     url = igdbImageUrl(cover, IgdbImageSize.COVER_SMALL),
                     contentDescription = game.name,
-                    modifier = Modifier.size(width = 40.dp, height = 53.dp).clip(RoundedCornerShape(6.dp)),
-                    loadingModifier = Modifier.size(width = 40.dp, height = 53.dp).clip(RoundedCornerShape(6.dp)),
+                    modifier = coverModifier,
+                    loadingModifier = coverModifier,
                 )
             }
         },
@@ -365,8 +352,7 @@ private fun PushRow(
         supportingContent = {
             val subtitle = when {
                 game.alreadyOnWishlist -> stringResource(Res.string.settings__wishlist_already_present)
-                game.onPlatform && game.storeUrl == null && !(matchesByName && game.matchesPublisher) ->
-                    stringResource(Res.string.settings__import_no_match)
+                game.onPlatform && !game.hasPushTarget(matchesByName) -> stringResource(Res.string.settings__import_no_match)
 
                 else -> null
             }
@@ -374,3 +360,10 @@ private fun PushRow(
         },
     ) { Text(game.name) }
 }
+
+/** A store page, or — for connectors that push by searching the store's title — a confirmed publisher match. */
+private fun LibrarySync.OutgoingGame.hasPushTarget(matchesByName: Boolean) =
+    storeUrl != null || (matchesByName && matchesPublisher)
+
+private fun LibrarySync.OutgoingGame.isPushable(matchesByName: Boolean) =
+    hasPushTarget(matchesByName) && onPlatform && !alreadyOnWishlist
