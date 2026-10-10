@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.services
 
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.IgdbEndpoint
+import at.released.igdbclient.apicalypse.ApicalypseQueryBuilder
 import at.released.igdbclient.getExternalGames
 import at.released.igdbclient.getGames
 import at.released.igdbclient.getWebsites
@@ -24,7 +25,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * mapping (common for PSN/Xbox), callers fall back to [searchByName]. Alternatives for the editable
  * import preview are fetched on demand via [searchByName] rather than eagerly, to keep IGDB calls down.
  */
-@Single()
+@Single
 class GameMatcher(
     private val igdb: IgdbClient,
     private val exceptionReporter: ExceptionReporter,
@@ -43,17 +44,12 @@ class GameMatcher(
         val confident: Boolean,
     )
 
-    private val externalFields = arrayOf(
-        "url", "uid", "game.id", "game.name", "game.cover.image_id",
-        "game.platforms.id", "game.platforms.platform_family",
-    )
-
     /**
-     * Match [refs] of [service] to IGDB games. Tries the `external_games` store-id mapping first; for
-     * any ref it can't map that way (the `category` field is deprecated in IGDB, so this often returns
-     * nothing) it falls back to a fuzzy name search — hence reading store game names matters.
+     * Match [refs] of [connector] to IGDB games, collecting every result (no streaming). Tries the
+     * `external_games` store-id mapping first; for any ref it can't map that way (the `category` field
+     * is deprecated in IGDB, so this often returns nothing) it falls back to a fuzzy name search —
+     * hence reading store game names matters.
      */
-    /** Collecting overload (no streaming). */
     suspend fun match(connector: ServiceConnector, refs: List<ExternalGameRef>): List<Match> {
         val all = ArrayList<Match>(refs.size)
         match(connector, refs) { all.addAll(it) }
@@ -91,10 +87,12 @@ class GameMatcher(
         unmatched.chunked(MULTIQUERY_CHUNK).forEachIndexed { batchIndex, batch ->
             if (batchIndex > 0) delay(THROTTLE_MS.milliseconds)
             val candidates = nameSearchBatch(batch)
-            onBatch(batch.map { ref ->
-                val c = candidates[ref.uid].orEmpty()
-                Match(ref, c.firstOrNull(), c, confident = false)
-            })
+            onBatch(
+                batch.map { ref ->
+                    val c = candidates[ref.uid].orEmpty()
+                    Match(ref, c.firstOrNull(), c, confident = false)
+                }
+            )
         }
     }
 
@@ -106,7 +104,9 @@ class GameMatcher(
     private suspend fun nameSearchBatch(batch: List<ExternalGameRef>): Map<String, List<Game>> {
         val viaSearch = nameMultiquery(batch, useSearch = true)
         if (viaSearch.values.any { it.isNotEmpty() }) {
-            Logger.i(tag = TAG) { "name batch (search): ${viaSearch.values.sumOf { it.size }} candidates / ${batch.size}" }
+            Logger.i(tag = TAG) {
+                "name batch (search): ${viaSearch.values.sumOf { it.size }} candidates / ${batch.size}"
+            }
             return viaSearch
         }
         val viaWhere = nameMultiquery(batch, useSearch = false)
@@ -139,7 +139,7 @@ class GameMatcher(
 
     /**
      * Store-id → IGDB game map via `external_games`, matching on the modern `external_game_source` +
-     * `url` (the `category`/`uid` pair is deprecated). Only services with a [ExternalService.storeUrl]
+     * `url` (the `category`/`uid` pair is deprecated). Only connectors with a [ServiceConnector.storeUrl]
      * mapping participate; the rest fall through to the name search.
      */
     private suspend fun matchByStoreId(connector: ServiceConnector, refs: List<ExternalGameRef>): Map<String, Game> {
@@ -148,14 +148,13 @@ class GameMatcher(
         val urlToUid = refs.asSequence()
             .mapNotNull { ref -> connector.storeUrl(ref.uid)?.let { it to ref.uid } }
             .toMap()
-        if (urlToUid.isEmpty()) return emptyMap()
 
         val byUid = mutableMapOf<String, Game>()
         urlToUid.keys.chunked(UID_CHUNK).forEach { chunk ->
             val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
             val response = igdbCall("external_games lookup failed") {
                 igdb.getExternalGames {
-                    fields(*externalFields)
+                    externalGameFields()
                     where("external_game_source = $source & url = ($quoted)")
                     limit(chunk.size)
                 }
@@ -180,7 +179,7 @@ class GameMatcher(
             val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
             val response = igdbCall("external_games uid lookup failed") {
                 igdb.getExternalGames {
-                    fields(*externalFields)
+                    externalGameFields()
                     where("external_game_source = $source & uid = ($quoted)")
                     limit(chunk.size)
                 }
@@ -219,7 +218,7 @@ class GameMatcher(
             }
         }
         // Fallback: some games carry the store page only in `websites`, not `external_games`. Accept a
-        // website URL when the connector recognises it as one of its store pages (uidFromUrl matches).
+        // website URL when the connector recognizes it as one of its store pages (uidFromUrl matches).
         val missing = gameIds.distinct().filter { it !in byGame }
         missing.chunked(WEBSITE_GAME_CHUNK).forEach { chunk ->
             val response = igdbCall("websites lookup failed") {
@@ -248,7 +247,10 @@ class GameMatcher(
             igdbCall("games by-id lookup failed") {
                 igdb.getGames {
                     fields(
-                        "id", "name", "cover.image_id", "platforms.platform_family",
+                        "id",
+                        "name",
+                        "cover.image_id",
+                        "platforms.platform_family",
                         "involved_companies.company.name",
                     )
                     where("id = (${chunk.joinToString(",")})")
@@ -281,12 +283,6 @@ class GameMatcher(
         return result.get()
     }
 
-    private fun String.escapeApicalypse() = replace("\"", "")
-
-    /** Drop trademark glyphs and quotes that hurt IGDB's fuzzy search; collapse whitespace. */
-    private fun String.sanitizeForSearch() =
-        replace(Regex("[™®©\"]"), " ").replace(Regex("\\s+"), " ").trim()
-
     companion object {
         private const val TAG = "GameMatcher"
         private const val UID_CHUNK = 100
@@ -302,3 +298,20 @@ class GameMatcher(
         private const val WEBSITE_LIMIT = 500
     }
 }
+
+/** The `external_games` fields the store-id matchers read. */
+private fun ApicalypseQueryBuilder.externalGameFields() = fields(
+    "url",
+    "uid",
+    "game.id",
+    "game.name",
+    "game.cover.image_id",
+    "game.platforms.id",
+    "game.platforms.platform_family",
+)
+
+private fun String.escapeApicalypse() = replace("\"", "")
+
+/** Drop trademark glyphs and quotes that hurt IGDB's fuzzy search; collapse whitespace. */
+private fun String.sanitizeForSearch() =
+    replace(Regex("[™®©\"]"), " ").replace(Regex("\\s+"), " ").trim()

@@ -50,7 +50,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * injected scripts survive login → work. It's created and hosted by [rememberServiceWebViewHost];
  * the caller (ServiceSyncView) reads the session's observable flags to decide when the WebView
  * needs to be interactive (login) versus visible-but-passive (working), and renders the WebView slot
- * wherever it wants (e.g. inside a bottom sheet). When the [flow] returns the host calls `onClose`.
+ * wherever it wants (e.g. inside a bottom sheet). When the flow returns the host calls `onClose`.
  */
 interface WebSession {
     val currentUrl: String?
@@ -85,6 +85,9 @@ fun SyncPhase.label() = stringResource(
     }
 )
 
+/** WebView page-load progress value (0..100) meaning fully loaded. */
+private const val PROGRESS_COMPLETE = 100
+
 /** The single WebView instance plus the composable slot that renders it. */
 class ServiceWebViewHost internal constructor(
     val session: ServiceWebViewSession,
@@ -94,7 +97,7 @@ class ServiceWebViewHost internal constructor(
 /**
  * Sets up the WebView (controller, state, JS bridge) once, wires the result bridge and runs [flow],
  * calling [onClose] when it returns. Returns a [ServiceWebViewHost] whose [ServiceWebViewHost.session]
- * exposes the flow's observable state and whose [ServiceWebViewHost.WebView] renders the live WebView
+ * exposes the flow's observable state and whose [ServiceWebViewHost.webView] renders the live WebView
  * into a caller-provided slot.
  */
 @Composable
@@ -149,10 +152,10 @@ fun rememberServiceWebViewHost(
             )
             // The WebView surface paints black until the page's first frame; cover it with a progress
             // indicator while it loads so the user sees progress instead of a black screen.
-            if (progress < 100) {
+            if (progress < PROGRESS_COMPLETE) {
                 Surface(Modifier.fillMaxSize()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(progress = { progress / 100f })
+                        CircularProgressIndicator(progress = { progress / PROGRESS_COMPLETE.toFloat() })
                     }
                 }
             }
@@ -223,21 +226,22 @@ class ServiceWebViewSession internal constructor(
 
     private suspend fun awaitLoginLoop(connector: ServiceConnector) {
         Logger.i(tag = TAG) { "awaitLogin(${connector.service}) — current=${state.lastLoadedUrl}" }
-        val trigger = connector.loginTriggerScript
         val reached = withTimeoutOrNull(LOGIN_TIMEOUT.milliseconds) {
-            var triggered = false
+            // Null once injected (or when the store needs none).
+            var trigger = connector.loginTriggerScript
             while (true) {
                 val url = state.lastLoadedUrl
                 if (url != null && connector.isLoggedIn(url)) return@withTimeoutOrNull true
                 // Once the landing page has loaded, kick off the store's sign-in flow (e.g. PSN: click
                 // the header sign-in button). Fire-and-forget and idempotent, so injecting once is enough.
-                if (!triggered && trigger != null && url != null && !state.isLoading) {
+                if (trigger != null && url != null && !state.isLoading) {
                     controller.evaluateJavascript(trigger) {}
-                    triggered = true
+                    trigger = null
                 }
                 delay(POLL_INTERVAL.milliseconds)
             }
-            @Suppress("UNREACHABLE_CODE") false
+            @Suppress("UNREACHABLE_CODE")
+            false
         }
         Logger.i(tag = TAG) { "awaitLogin done reached=$reached url=${state.lastLoadedUrl}" }
         if (reached == true) {

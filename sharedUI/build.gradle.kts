@@ -197,10 +197,8 @@ tasks.named<org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile<*>>("compile
                     config.allOptions().forEach { (pluginId, options) ->
                         options.forEach { option ->
                             val koinSafety = pluginId == "io.insert-koin.compiler.plugin" && option.key == "compileSafety"
-                            addPluginArgument(
-                                pluginId,
-                                if (koinSafety) org.jetbrains.kotlin.gradle.plugin.SubpluginOption("compileSafety", "false") else option,
-                            )
+                            val override = org.jetbrains.kotlin.gradle.plugin.SubpluginOption("compileSafety", "false")
+                            addPluginArgument(pluginId, if (koinSafety) override else option)
                         }
                     }
                 }

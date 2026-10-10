@@ -48,7 +48,7 @@ sealed interface DataSource<T> {
 /**
  * How wishlist writes are performed. [Batch] sends all refs in a single step (stores with a write
  * endpoint, e.g. Steam/GOG); [PerGame] opens each game's store page and acts on it (PSN/Xbox/Epic);
- * [PerGameResolved] first loads an intermediate page ([resolve]) whose result's first uid is the real
+ * [PerGameResolved] first loads an intermediate page ([PerGameResolved.resolve]) whose result's first uid is the real
  * product URL, then acts on that (Nintendo: the IGDB URL is a www.nintendo.com page whose eShop link
  * carries the numeric title id needed to reach the ec.nintendo.com product page with the add button);
  * [SearchByName] searches the store by title and acts on the matching result (Ubisoft: games are
@@ -204,8 +204,7 @@ private val resultJson = Json {
 
 /** Unwrap one optional layer of JSON-string quoting some transports add around the bridge result. */
 internal fun cleanJsResult(raw: String?): String? {
-    val s = raw?.trim() ?: return null
-    if (s.isEmpty() || s == "null") return null
+    val s = raw?.trim()?.takeUnless { it.isEmpty() || it == "null" } ?: return null
     return runCatching { resultJson.decodeFromString<String>(s) }.getOrDefault(s)
 }
 

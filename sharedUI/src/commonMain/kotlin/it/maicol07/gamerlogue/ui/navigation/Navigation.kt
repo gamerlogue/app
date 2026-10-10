@@ -76,16 +76,6 @@ fun rememberAppNavigationState(): AppNavigationState {
  * @property currentRoot The navigation key corresponding to the currently selected top-level
  * navigation destination.
  * @property backStack The back stack associated with the current root navigation key.
- *
- * @function selectRoot Updates the selected root navigation key. If the specified root is
- * already selected, it clears the back stack to retain only the initial destination. If a new
- * root is selected, it switches to the corresponding back stack.
- * @param root The navigation key of the root to be selected.
- * @throws IllegalArgumentException if the provided navigation key is not a valid top-level
- * destination.
- *
- * @function navigateBack Navigates backward by removing the last entry in the current back stack,
- * provided there is more than one entry remaining.
  */
 class AppNavigationState(
     private val selectedRootIndex: MutableIntState,
@@ -94,6 +84,12 @@ class AppNavigationState(
     val currentRoot: NavKey get() = TopLevelNavKeys[selectedRootIndex.intValue]
     val backStack: AppNavBackStack get() = backStacks.getValue(currentRoot)
 
+    /**
+     * Updates the selected root navigation key. If [root] is already selected, it clears the back
+     * stack to retain only the initial destination; otherwise it switches to the corresponding back stack.
+     *
+     * @throws IllegalArgumentException if [root] is not a valid top-level destination.
+     */
     fun selectRoot(root: NavKey) {
         val index = TopLevelNavKeys.indexOf(root)
         require(index >= 0) { "Not a top-level destination: $root" }
@@ -104,6 +100,7 @@ class AppNavigationState(
         }
     }
 
+    /** Removes the last entry of the current back stack, provided more than one entry remains. */
     fun navigateBack() {
         if (backStack.size > 1) backStack.removeLast()
     }
