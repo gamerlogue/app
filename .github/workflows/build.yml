@@ -192,10 +192,10 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Web Distribution
-        run: ./gradlew :webApp:composeCompatibilityBrowserDistribution
+        run: ./gradlew :webApp:jsBrowserDistribution
 
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v7
         with:
           name: web-app
-          path: webApp/build/dist/composeWebCompatibility/productionExecutable/
+          path: webApp/build/dist/js/productionExecutable/
