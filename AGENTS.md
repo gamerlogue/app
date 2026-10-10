@@ -28,7 +28,7 @@ A local backend is reached from the emulator at `http://10.0.2.2`, the emulator 
 
 ## Release
 
-Releases are cut by CI — publishing one from the GitHub UI triggers nothing (no build, notes or changelog). Run the "Multiplatform Build & Release" workflow with a `version` (and `prerelease` for the Play Store beta track). It commits the git-cliff (`cliff.toml`) `CHANGELOG.md` to the default branch as `docs(changelog)` (a scope left out of the changelog), tags that commit (app versions come from the tag via gitSemVer), creates the release with that version's notes and builds/publishes from the tag. So commit subjects and bodies are the release notes; don't edit `CHANGELOG.md` by hand, and pull after a release.
+Releases are cut by CI — publishing one from the GitHub UI triggers nothing (no build, notes or changelog). Run the "Release" workflow (`release.yml`) with a `version` (and `prerelease`). It commits the git-cliff (`cliff.toml`) `CHANGELOG.md` to the default branch as `docs(changelog)` (a scope left out of the changelog), tags that commit (app versions come from the tag via gitSemVer), creates the release with that version's notes and builds/publishes from the tag. So commit subjects and bodies are the release notes; don't edit `CHANGELOG.md` by hand, and pull after a release. Builds live in the reusable, read-only `build.yml`, called by `ci.yml` (every push) and `release.yml`; publishing jobs stay in the callers.
 
 ## Conventions (enforced)
 

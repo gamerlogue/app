@@ -1,0 +1,156 @@
+name: Release
+
+# The changelog commit gets the tag, then the builds run on that tag.
+# A release created with GITHUB_TOKEN doesn't trigger workflows,
+# so it all happens in this run.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (e.g. 0.6)
+        type: string
+        required: true
+      prerelease:
+        description: Pre-release (Play Store beta track)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  # ----------------------------------------------------------------
+  # Release Preparation Job
+  # ----------------------------------------------------------------
+  prepare_release:
+    name: Prepare Release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --tag ${{ inputs.version }}
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit changelog and tag it
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898233+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): 📝 update the changelog for $VERSION"
+          git tag "$VERSION"
+          git push --atomic origin HEAD "refs/tags/$VERSION"
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --current --strip header
+        env:
+          OUTPUT: RELEASE_NOTES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: gh release create "$VERSION" --verify-tag --notes-file RELEASE_NOTES.md --prerelease="$PRERELEASE"
+
+  build:
+    name: Build
+    needs: prepare_release
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ inputs.version }}
+      release: true
+    secrets: inherit
+
+  # ----------------------------------------------------------------
+  # Release Assets Job
+  # ----------------------------------------------------------------
+  # Also uploads what was built when another platform failed
+  release_assets:
+    name: Upload Release Assets
+    needs: [prepare_release, build]
+    if: ${{ !cancelled() && needs.prepare_release.result == 'success' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '*'
+          merge-multiple: true
+          path: artifacts
+
+      - name: Display downloaded files
+        run: ls -R artifacts
+
+      # Upload only: the release metadata stays as prepare_release set it
+      - name: Upload to Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: find artifacts -type f -exec gh release upload "$VERSION" --repo "$GITHUB_REPOSITORY" --clobber {} +
+
+  # ----------------------------------------------------------------
+  # GitHub Pages Job
+  # ----------------------------------------------------------------
+  deploy_web:
+    name: Deploy to GitHub Pages
+    needs: [prepare_release, build]
+    if: ${{ !cancelled() && needs.prepare_release.result == 'success' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Web Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: web-app
+          path: web-app
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web-app
+
+  # ----------------------------------------------------------------
+  # Play Store Job
+  # ----------------------------------------------------------------
+  publish_play_store:
+    name: Publish to Play Store
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: android-release
+          path: android-release
+
+      - name: Publish to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName: com.maicol07.gamerlogue # Update with actual package name if different
+          releaseFiles: android-release/bundle/release/*.aab
+          track: ${{ inputs.prerelease && 'beta' || 'production' }}
+          status: completed
