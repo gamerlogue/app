@@ -8,27 +8,32 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -41,16 +46,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_close
+import gamerlogue.sharedui.generated.resources.settings__import_deselect_all
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
+import gamerlogue.sharedui.generated.resources.settings__import_select_all
+import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__open_store
+import gamerlogue.sharedui.generated.resources.settings__service_sync_added
 import gamerlogue.sharedui.generated.resources.settings__service_sync_error
+import gamerlogue.sharedui.generated.resources.settings__service_sync_pushed
 import gamerlogue.sharedui.generated.resources.settings__service_sync_summary
 import gamerlogue.sharedui.generated.resources.settings__service_webview_busy
 import gamerlogue.sharedui.generated.resources.settings__service_working
@@ -65,10 +79,14 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DownloadW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
@@ -84,6 +102,7 @@ import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -93,7 +112,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * peek while working (so the user can see what's happening). The body shows the loading log, the
  * outgoing push checklist, or a completion state. Import/preview flows hand off to the preview screen.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
 fun ServiceSyncView(
@@ -135,14 +154,13 @@ fun ServiceSyncView(
     val session = host.session
     val loginRequired = session.loginRequired
 
-    val serviceName = stringResource(service.labelRes())
     val title = when (action) {
-        ServiceSyncAction.CONNECT -> stringResource(Res.string.settings__sync_title_connect, serviceName)
-        ServiceSyncAction.REFRESH_PROFILE -> stringResource(Res.string.settings__sync_title_refresh_profile, serviceName)
+        ServiceSyncAction.CONNECT -> Res.string.settings__sync_title_connect
+        ServiceSyncAction.REFRESH_PROFILE -> Res.string.settings__sync_title_refresh_profile
         ServiceSyncAction.SYNC_WISHLIST,
-        ServiceSyncAction.PREVIEW_WISHLIST -> stringResource(Res.string.settings__sync_title_sync_wishlist, serviceName)
+        ServiceSyncAction.PREVIEW_WISHLIST -> Res.string.settings__sync_title_sync_wishlist
 
-        ServiceSyncAction.IMPORT_LIBRARY -> stringResource(Res.string.settings__sync_title_import_library, serviceName)
+        ServiceSyncAction.IMPORT_LIBRARY -> Res.string.settings__sync_title_import_library
     }
 
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = true)
@@ -157,8 +175,9 @@ fun ServiceSyncView(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 220.dp,
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
+            MediumFlexibleTopAppBar(
+                title = { Text(stringResource(title)) },
+                subtitle = { Text(stringResource(service.labelRes())) },
                 navigationIcon = {
                     IconButton(onClick = onFinish) {
                         Icon(Icons.CloseW500Rounded, contentDescription = stringResource(Res.string.common_close))
@@ -173,16 +192,26 @@ fun ServiceSyncView(
                 // right now. It does NOT consume pointer events, so vertical drags still reach the WebView's
                 // nested-scroll bridge and keep the bottom sheet draggable.
                 if (!loginRequired) {
+                    // Top-aligned so the notice stays inside the collapsed peek.
                     Box(
                         Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
-                        contentAlignment = Alignment.Center,
+                        contentAlignment = Alignment.TopCenter,
                     ) {
-                        Text(
-                            stringResource(Res.string.settings__service_webview_busy),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(24.dp),
-                        )
+                        Row(
+                            Modifier
+                                .padding(24.dp)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.extraLarge)
+                                .padding(horizontal = 20.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.HourglassW500Rounded, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text(
+                                stringResource(Res.string.settings__service_webview_busy),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -213,17 +242,52 @@ fun ServiceSyncView(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LoadingContent(log: List<SyncPhase>) {
+    // Each WebView step logs READING again: show every phase once.
+    val steps = log.distinct()
     Column(
         Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ContainedLoadingIndicator()
-        Text(stringResource(Res.string.settings__service_working), style = MaterialTheme.typography.titleMediumEmphasized)
-        log.forEach { phase ->
-            Text(phase.label(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ContainedLoadingIndicator(Modifier.size(96.dp))
+        Text(stringResource(Res.string.settings__service_working), style = MaterialTheme.typography.headlineSmallEmphasized)
+        if (steps.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                steps.forEachIndexed { index, phase ->
+                    // LOGGED_IN is a milestone; READING is ongoing while it's the latest phase.
+                    PhaseStep(phase, inProgress = phase == SyncPhase.READING && index == steps.lastIndex)
+                }
+            }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun PhaseStep(phase: SyncPhase, inProgress: Boolean) = Row(
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    if (inProgress) {
+        LoadingIndicator(Modifier.size(32.dp))
+    } else {
+        Box(
+            Modifier.size(32.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.CheckW500Rounded,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+    Text(
+        phase.label(),
+        style = if (inProgress) MaterialTheme.typography.titleMediumEmphasized else MaterialTheme.typography.bodyLarge,
+        color = if (inProgress) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -245,11 +309,52 @@ private fun WishlistSummary(
     onFinish: () -> Unit,
 ) = StatusMessage(
     Icons.CheckCircleW500Rounded,
-    stringResource(Res.string.settings__service_sync_summary, outcome.added, outcome.pushed),
-    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    stringResource(Res.string.settings__service_sync_summary),
+    containerColor = MaterialTheme.colorScheme.primaryContainer,
+    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    shape = MaterialShapes.Sunny,
 ) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        SummaryTile(
+            outcome.added,
+            stringResource(Res.string.settings__service_sync_added),
+            Icons.DownloadW500Rounded,
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+            Modifier.weight(1f),
+        )
+        SummaryTile(
+            outcome.pushed,
+            stringResource(Res.string.settings__service_sync_pushed),
+            Icons.PublishW500Rounded,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer,
+            Modifier.weight(1f),
+        )
+    }
     Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SummaryTile(
+    count: Int,
+    label: String,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier,
+) = Column(
+    modifier
+        .background(containerColor, MaterialTheme.shapes.extraLarge)
+        .padding(16.dp)
+        .semantics(mergeDescendants = true) {},
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+    horizontalAlignment = Alignment.CenterHorizontally,
+) {
+    Icon(icon, contentDescription = null, tint = contentColor)
+    Text(count.toString(), style = MaterialTheme.typography.displaySmallEmphasized, color = contentColor)
+    Text(label, style = MaterialTheme.typography.labelLarge, color = contentColor, textAlign = TextAlign.Center)
 }
 
 /** Outgoing-direction preview: pick which backlog games to add to the store wishlist. */
@@ -269,6 +374,9 @@ private fun PushChecklist(
     }
     val onPlatform = games.filter { it.onPlatform }
     val offPlatform = games.filter { !it.onPlatform }
+    val pushable = games.filter { it.isPushable(matchesByName) }
+    val selectedCount = games.count { selected[it.uid] == true }
+    val allSelected = pushable.isNotEmpty() && selectedCount == pushable.size
     val uriHandler = LocalUriHandler.current
     val rows: LazyListScope.(List<LibrarySync.OutgoingGame>) -> Unit = { group ->
         itemsIndexed(group) { index, game ->
@@ -279,11 +387,34 @@ private fun PushChecklist(
     }
 
     Column(Modifier.fillMaxSize()) {
-        Text(
-            stringResource(Res.string.settings__wishlist_push_title),
-            style = MaterialTheme.typography.titleMediumEmphasized,
-            modifier = Modifier.padding(16.dp),
-        )
+        Row(
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(Res.string.settings__wishlist_push_title),
+                    style = MaterialTheme.typography.titleLargeEmphasized,
+                )
+                Text(
+                    pluralStringResource(Res.plurals.settings__import_selected, selectedCount, selectedCount, pushable.size),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(
+                onClick = { pushable.forEach { selected[it.uid] = !allSelected } },
+                enabled = pushable.isNotEmpty(),
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(
+                    stringResource(
+                        if (allSelected) Res.string.settings__import_deselect_all
+                        else Res.string.settings__import_select_all
+                    )
+                )
+            }
+        }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -297,17 +428,27 @@ private fun PushChecklist(
         }
         Row(
             Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
-            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes(), modifier = Modifier.weight(1f)) {
-                Text(stringResource(Res.string.settings__wishlist_push_skip))
+            val height = ButtonDefaults.MediumContainerHeight
+            val leading = ButtonGroupDefaults.connectedLeadingButtonShapes()
+            val trailing = ButtonGroupDefaults.connectedTrailingButtonShapes()
+            FilledTonalButton(
+                onClick = onSkip,
+                shapes = ButtonDefaults.shapes(leading.shape, leading.pressedShape),
+                contentPadding = ButtonDefaults.contentPaddingFor(height),
+                modifier = Modifier.weight(1f).heightIn(min = height),
+            ) {
+                Text(stringResource(Res.string.settings__wishlist_push_skip), style = ButtonDefaults.textStyleFor(height))
             }
             Button(
                 onClick = { onConfirm(games.filter { selected[it.uid] == true }) },
-                shapes = ButtonDefaults.shapes(),
-                modifier = Modifier.weight(1f),
+                enabled = selectedCount > 0,
+                shapes = ButtonDefaults.shapes(trailing.shape, trailing.pressedShape),
+                contentPadding = ButtonDefaults.contentPaddingFor(height),
+                modifier = Modifier.weight(1f).heightIn(min = height),
             ) {
-                Text(stringResource(Res.string.settings__wishlist_push_confirm))
+                Text(stringResource(Res.string.settings__wishlist_push_confirm), style = ButtonDefaults.textStyleFor(height))
             }
         }
     }
@@ -333,7 +474,7 @@ private fun PushRow(
         leadingContent = {
             val cover = game.coverImageId
             if (cover != null) {
-                val coverModifier = Modifier.size(width = 40.dp, height = 53.dp).clip(RoundedCornerShape(6.dp))
+                val coverModifier = Modifier.size(width = 40.dp, height = 53.dp).clip(MaterialTheme.shapes.medium)
                 RemoteImage(
                     url = igdbImageUrl(cover, IgdbImageSize.COVER_SMALL),
                     contentDescription = game.name,
