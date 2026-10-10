@@ -1,5 +1,36 @@
 # Changelog
 
+<a name="0.6.1"></a>
+## [0.6.1](https://github.com/gamerlogue/app/compare/0.6.0...0.6.1)
+
+> Released on October 10, 2026
+
+### 🐛 Bug Fixes
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/8974e158504eace16efca755b521ebb783f5ee03"><code>8974e15</code></a> <b>android:</b> 🐛 resolve the release keystore path from the root project</summary>
+
+  > A relative ANDROID_KEYSTORE_PATH was resolved against the Gradle daemon
+  > working directory instead of the repository root, so CI couldn't find
+  > the keystore decoded by the workflow.
+
+  </details>
+
+### 👷 CI changes
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/adf158be062589a82ffe936d383a06920f844592"><code>adf158b</code></a> <b>android:</b> 👷 match flavored output paths when uploading artifacts</summary>
+
+  > With the alpha/beta product flavors, APKs and bundles are written to
+  > per-flavor directories, so the previous globs uploaded nothing.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/55d8eb0e9a452567a86f7492c7dfccee67e72cb4"><code>55d8eb0</code></a> <b>web:</b> 🐛 build and upload the JS distribution</summary>
+
+  > The wasmJs target is disabled, so composeCompatibilityBrowserDistribution
+  > was skipped and the upload found no files, breaking the Pages deploy.
+
+  </details>
+- [`5280819`](https://github.com/gamerlogue/app/commit/52808192f3f623a5d6a228e66089f9bc60b04cd3) 👷 fail uploads when no artifact files are found
+
 <a name="0.6.0"></a>
 ## [0.6.0](https://github.com/gamerlogue/app/compare/0.5...0.6.0)
 
