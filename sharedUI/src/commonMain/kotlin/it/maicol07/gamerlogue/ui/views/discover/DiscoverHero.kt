@@ -35,7 +35,7 @@ import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__section_error
 import it.maicol07.gamerlogue.extensions.igdb.mediaArtworks
 import it.maicol07.gamerlogue.extensions.igdb.ratingLabel
-import it.maicol07.gamerlogue.extensions.mouseScrollsHorizontally
+import it.maicol07.gamerlogue.extensions.mouseDragScrollsHorizontally
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.game.GameBannerImage
@@ -82,7 +82,7 @@ internal fun ImmersiveHero(
         else -> {
             val games = state.games.take(HERO_GAME_COUNT)
             val pagerState = rememberPagerState { games.size }
-            HorizontalPager(pagerState, Modifier.fillMaxSize().mouseScrollsHorizontally(pagerState)) { page ->
+            HorizontalPager(pagerState, Modifier.fillMaxSize().mouseDragScrollsHorizontally(pagerState)) { page ->
                 ImmersivePage(section, games[page], rank = page + 1, onGameClick)
             }
             // Keeps the status bar and the floating search bar legible over bright artwork.

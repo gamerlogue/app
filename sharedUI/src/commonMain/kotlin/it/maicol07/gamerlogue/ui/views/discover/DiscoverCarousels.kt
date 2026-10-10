@@ -46,7 +46,7 @@ import gamerlogue.sharedui.generated.resources.home__release_today
 import gamerlogue.sharedui.generated.resources.home__release_tomorrow
 import it.maicol07.gamerlogue.extensions.igdb.displayDate
 import it.maicol07.gamerlogue.extensions.igdb.ratingScore
-import it.maicol07.gamerlogue.extensions.mouseScrollsHorizontally
+import it.maicol07.gamerlogue.extensions.mouseDragScrollsHorizontally
 import it.maicol07.gamerlogue.ui.components.GameCoverCarousel
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
 import it.maicol07.gamerlogue.ui.components.pressMorphShape
@@ -129,7 +129,7 @@ internal fun RankedCarousel(games: List<Game>, onGameClick: (Game) -> Unit) {
     HorizontalUncontainedCarousel(
         state = state,
         itemWidth = RankedItemWidth,
-        modifier = Modifier.fillMaxWidth().height(CardHeight).mouseScrollsHorizontally(state),
+        modifier = Modifier.fillMaxWidth().height(CardHeight).mouseDragScrollsHorizontally(state),
         itemSpacing = Dimens.ItemGap,
         contentPadding = PaddingValues(horizontal = Dimens.ScreenPadding)
     ) { i ->

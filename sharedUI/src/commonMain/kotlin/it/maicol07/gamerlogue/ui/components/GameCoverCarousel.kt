@@ -25,7 +25,7 @@ import io.github.kdroidfilter.platformtools.getPlatform
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
-import it.maicol07.gamerlogue.extensions.mouseScrollsHorizontally
+import it.maicol07.gamerlogue.extensions.mouseDragScrollsHorizontally
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import kotlinx.coroutines.launch
 
@@ -69,7 +69,7 @@ fun GameCoverCarousel(
             modifier = Modifier
                 .weight(1f)
                 .then(modifier)
-                .mouseScrollsHorizontally(state),
+                .mouseDragScrollsHorizontally(state),
             preferredItemWidth = preferredItemWidth,
             itemSpacing = itemSpacing,
             content = content
