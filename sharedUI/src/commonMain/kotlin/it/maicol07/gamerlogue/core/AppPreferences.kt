@@ -89,6 +89,11 @@ class AppPreferences(private val settings: ObservableSettings) {
     /** Null makes IGDB follow [serverUrl] again. */
     fun setIgdbApiUrlOverride(url: String?) = putOrRemove(SettingsKeys.IGDB_API_URL, url)
 
+    /** The calendar's last "only my backlog" choice, restored when it opens again. */
+    var calendarBacklogOnly: Boolean
+        get() = settings.getBoolean(SettingsKeys.CALENDAR_BACKLOG_ONLY.name, false)
+        set(value) = settings.putBoolean(SettingsKeys.CALENDAR_BACKLOG_ONLY.name, value)
+
     private fun putOrRemove(key: SettingsKeys, value: String?) =
         if (value == null) settings.remove(key.name) else settings.putString(key.name, value)
 

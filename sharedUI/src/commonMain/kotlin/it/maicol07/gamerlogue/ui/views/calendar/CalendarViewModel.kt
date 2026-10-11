@@ -10,6 +10,8 @@ import at.released.igdbclient.getGames
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.get
+import it.maicol07.gamerlogue.core.AppPreferences
+import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.ApicalypseQueryBuilderWhereBuilder
@@ -36,10 +38,16 @@ import kotlin.time.Clock
 
 /**
  * Upcoming releases from today on, in release order, filtered like a game list; with
- * [GameListFilterState.backlogOnly] only the games in the user's backlog.
+ * [GameListFilterState.backlogOnly] only the games in the user's backlog. That choice is remembered
+ * across openings, and the backlog is refetched whenever the library changes.
  */
 @KoinViewModel
-class CalendarViewModel : StateViewModel<CalendarViewModel.UiState>(UiState()) {
+class CalendarViewModel(
+    private val preferences: AppPreferences,
+    libraryChanges: LibraryChanges,
+) : StateViewModel<CalendarViewModel.UiState>(
+    UiState(filterState = GameListFilterState(backlogOnly = preferences.calendarBacklogOnly))
+) {
     data class UiState(
         val games: List<Game> = emptyList(),
         val loading: Boolean = false,
@@ -68,6 +76,7 @@ class CalendarViewModel : StateViewModel<CalendarViewModel.UiState>(UiState()) {
 
     init {
         load(reset = true)
+        viewModelScope.launch { libraryChanges.changes.collect { refreshBacklog() } }
     }
 
     fun toggleFilterSheet(show: Boolean) {
@@ -77,13 +86,13 @@ class CalendarViewModel : StateViewModel<CalendarViewModel.UiState>(UiState()) {
 
     fun updateFilter(newFilterState: GameListFilterState) {
         update { copy(filterState = newFilterState) }
+        preferences.calendarBacklogOnly = newFilterState.backlogOnly
         load(reset = true)
     }
 
     fun resetFilter() {
-        update { copy(filterState = GameListFilterState()) }
+        updateFilter(GameListFilterState())
         filterOptions.clearSearches()
-        load(reset = true)
     }
 
     /** Loads the next page once the last day of the timeline is on screen. */
@@ -104,6 +113,20 @@ class CalendarViewModel : StateViewModel<CalendarViewModel.UiState>(UiState()) {
     }
 
     fun onScrolledToTarget() = update { copy(scrollTarget = null) }
+
+    /**
+     * Refetches the backlog in place: its page replaces the games rather than appending, so the
+     * timeline keeps its scroll position. The full timeline does not depend on the library.
+     */
+    private fun refreshBacklog() {
+        if (!state.filterState.backlogOnly) return
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            appendPage(PAGE_SIZE)
+            // A load this one cancelled may have left the indicator on.
+            update { copy(loading = false) }
+        }
+    }
 
     /** Loads a page, replacing any load still in flight so a stale page never lands on a new filter. */
     private fun load(reset: Boolean) {

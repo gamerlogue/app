@@ -11,6 +11,7 @@ import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
@@ -150,6 +151,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
 
     private val igdb by inject<IgdbClient>()
     private val authProvider by inject<AuthTokenProvider>()
+    private val libraryChanges by inject<LibraryChanges>()
 
     companion object {
         /** Sub-query names of the detail multiquery; they pick the results apart again below. */
@@ -248,6 +250,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val result = safeRequest { draft.save() }
         if (result.isOk) {
             update { copy(libraryEntry = draft) }
+            libraryChanges.notifyChanged()
         }
     }
 
@@ -256,6 +259,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val result = safeRequest { current.destroy() }
         if (result.isOk) {
             update { copy(libraryEntry = null) }
+            libraryChanges.notifyChanged()
         }
     }
 }

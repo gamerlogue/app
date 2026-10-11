@@ -14,6 +14,7 @@ import com.github.michaelbull.result.get
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__error_select_status
 import it.maicol07.gamerlogue.core.BaseViewModel
+import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.isReleased
@@ -30,6 +31,7 @@ class AddToLibrarySheetViewModel(
     @InjectedParam private val existingEntry: LibraryEntry?
 ) : BaseViewModel() {
     private val igdb by inject<IgdbClient>()
+    private val libraryChanges by inject<LibraryChanges>()
 
     /** An unreleased game can only be backlogged, and not owned yet. */
     val released = game.isReleased()
@@ -99,7 +101,7 @@ class AddToLibrarySheetViewModel(
         deleteLoading = true
         error = null
         if (existingEntry != null) {
-            safeRequest { existingEntry.destroy() }
+            if (safeRequest { existingEntry.destroy() }.isOk) libraryChanges.notifyChanged()
             onDelete()
         }
         deleteLoading = false
@@ -116,7 +118,7 @@ class AddToLibrarySheetViewModel(
         }
 
         val entry = getEntryToSave()
-        safeRequest { entry.save() }
+        if (safeRequest { entry.save() }.isOk) libraryChanges.notifyChanged()
         onSave(entry)
 
         saveLoading = false

@@ -6,4 +6,5 @@ enum class SettingsKeys {
     USE_DYNAMIC_COLORS,
     SERVER_URL,
     IGDB_API_URL,
+    CALENDAR_BACKLOG_ONLY,
 }

@@ -5,6 +5,7 @@ import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.allPages
@@ -27,6 +28,7 @@ import org.koin.core.annotation.Single
 class LibrarySync(
     private val matcher: GameMatcher,
     private val exceptionReporter: ExceptionReporter,
+    private val libraryChanges: LibraryChanges,
 ) {
     private companion object {
         /** Parallel save requests during an import. */
@@ -108,7 +110,7 @@ class LibrarySync(
                     false
                 }
             }
-        }.count { it.await() }
+        }.count { it.await() }.also { if (it > 0) libraryChanges.notifyChanged() }
     }
 
     /**
