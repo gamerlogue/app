@@ -4,7 +4,6 @@ import at.released.igdbclient.model.Game
 import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.data.LibraryEntry
@@ -27,7 +26,6 @@ import org.koin.core.annotation.Single
 @Single
 class LibrarySync(
     private val matcher: GameMatcher,
-    private val authProvider: AuthTokenProvider,
     private val exceptionReporter: ExceptionReporter,
 ) {
     private companion object {
@@ -65,7 +63,6 @@ class LibrarySync(
             LibraryEntry.quickDraft(
                 game,
                 existing[game.id.toInt()]?.status ?: GameLibraryStatus.BACKLOG,
-                authProvider.session.value.user,
                 existing = existing[game.id.toInt()],
                 platformsIds = connector.platformIdsFor(game),
             ).apply { owned = true }
@@ -87,7 +84,6 @@ class LibrarySync(
             LibraryEntry.quickDraft(
                 game,
                 GameLibraryStatus.BACKLOG,
-                authProvider.session.value.user,
                 platformsIds = connector.platformIdsFor(game),
             )
         }

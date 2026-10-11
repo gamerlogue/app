@@ -238,7 +238,6 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val draft = LibraryEntry.quickDraft(
             game = game.version_parent ?: game,
             status = status,
-            user = null,
             existing = state.libraryEntry
         )
         // Added from an edition's page: the entry is the base game's, with that edition selected.

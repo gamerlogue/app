@@ -2,15 +2,18 @@ package it.maicol07.gamerlogue.extensions
 
 import at.released.igdbclient.model.Game
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 
 class LibraryEntryTest : StringSpec({
     "quickDraft builds entry from game and status" {
-        val entry = LibraryEntry.quickDraft(Game(id = 7L), GameLibraryStatus.PLAYING, user = null)
+        val entry = LibraryEntry.quickDraft(Game(id = 7L), GameLibraryStatus.PLAYING)
 
         entry.gameId shouldBe 7
         entry.status shouldBe GameLibraryStatus.PLAYING
@@ -18,9 +21,16 @@ class LibraryEntryTest : StringSpec({
         entry.user.shouldBeNull()
     }
 
+    "create payload never carries the user relationship" {
+        val entry = LibraryEntry.quickDraft(Game(id = 52189L), GameLibraryStatus.BACKLOG)
+
+        val data = Json.parseToJsonElement(entry.toJsonApiString()).jsonObject.getValue("data").jsonObject
+        data["relationships"]?.jsonObject?.keys.orEmpty() shouldNotContain "user"
+    }
+
     "quickDraft reuses the existing entry id" {
         val existing = LibraryEntry().apply { id = "42" }
-        val draft = LibraryEntry.quickDraft(Game(id = 1L), GameLibraryStatus.BACKLOG, user = null, existing = existing)
+        val draft = LibraryEntry.quickDraft(Game(id = 1L), GameLibraryStatus.BACKLOG, existing = existing)
 
         draft.id shouldBe "42"
         draft.status shouldBe GameLibraryStatus.BACKLOG

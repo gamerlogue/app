@@ -2,7 +2,6 @@ package it.maicol07.gamerlogue.extensions
 
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.data.LibraryEntry
-import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.spraypaintkt.CollectionProxy
 import it.maicol07.spraypaintkt.Scope
@@ -79,7 +78,8 @@ suspend fun Scope<LibraryEntry>.allPages(): List<LibraryEntry> {
 }
 
 /**
- * Build (without persisting) a quick library entry for [game] with [status], owned by [user].
+ * Build (without persisting) a quick library entry for [game] with [status]. The owner is never set:
+ * the server assigns it from the authenticated token and rejects a client-sent `user` relationship.
  * Reuses [existing] when present so an update keeps the same id. [platformsIds] (derived from the
  * store connector) is applied only when the entry has none yet, so a re-import never clobbers a
  * platform selection the user made by hand in the add/edit sheet.
@@ -87,13 +87,11 @@ suspend fun Scope<LibraryEntry>.allPages(): List<LibraryEntry> {
 fun LibraryEntry.Companion.quickDraft(
     game: Game,
     status: GameLibraryStatus,
-    user: User?,
     existing: LibraryEntry? = null,
     platformsIds: List<Int> = emptyList(),
 ): LibraryEntry = (existing ?: LibraryEntry()).apply {
     gameId = game.id.toInt()
     owned = false
-    this.user = user
     this.status = status
     // platformsIds throws NoSuchElementException on a never-set attribute rather than defaulting
     // to an empty list, so treat "not found" the same as "empty" here.

@@ -13,7 +13,6 @@ import at.released.igdbclient.model.Platform
 import com.github.michaelbull.result.get
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__error_select_status
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
@@ -30,7 +29,6 @@ class AddToLibrarySheetViewModel(
     @InjectedParam private val game: Game,
     @InjectedParam private val existingEntry: LibraryEntry?
 ) : BaseViewModel() {
-    private val authTokenProvider by inject<AuthTokenProvider>()
     private val igdb by inject<IgdbClient>()
 
     /** An unreleased game can only be backlogged, and not owned yet. */
@@ -131,7 +129,6 @@ class AddToLibrarySheetViewModel(
         val entry = existingEntry ?: LibraryEntry()
 
         entry.gameId = game.baseGameId
-        entry.user = authTokenProvider.session.value.user
         entry.status = selectedStatus!!
         entry.completionStatus = completionStatus
         entry.owned = owned
