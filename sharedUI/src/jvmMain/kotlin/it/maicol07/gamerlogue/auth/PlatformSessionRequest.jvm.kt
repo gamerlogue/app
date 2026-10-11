@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.auth
 
-import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.plugins.api.createClientPlugin
 
-internal actual fun HttpRequestBuilder.configurePlatformSession() = Unit
+// Bearer tokens carry the session here.
+internal actual fun platformSession(serverUrl: () -> String) = createClientPlugin("PlatformSession") {}

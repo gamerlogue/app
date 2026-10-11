@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.auth
 
-import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.plugins.api.ClientPlugin
 
-internal expect fun HttpRequestBuilder.configurePlatformSession()
+/** Attaches the platform's backend session to the requests sent to [serverUrl]. */
+internal expect fun platformSession(serverUrl: () -> String): ClientPlugin<Unit>

@@ -30,7 +30,7 @@ import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
-import it.maicol07.gamerlogue.auth.configurePlatformSession
+import it.maicol07.gamerlogue.auth.platformSession
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.PsnApi
@@ -42,6 +42,7 @@ import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
+import org.koin.core.scope.Scope
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -85,10 +86,6 @@ private const val RequestTimeoutMillis = 30_000L
 private const val ConnectTimeoutMillis = 15_000L
 private const val SocketTimeoutMillis = 30_000L
 
-private val PlatformSession = createClientPlugin("PlatformSession") {
-    onRequest { request, _ -> request.configurePlatformSession() }
-}
-
 /**
  * `igdbclient` fixes its base URL at construction, but the client is a singleton and the endpoint can
  * change in the settings. It is built against this placeholder host, and every request is moved onto
@@ -125,6 +122,8 @@ object HttpModule {
         httpClient {
             this.httpClient = HttpClient {
                 install(igdbBaseUrl { preferences.igdbApiUrl.value })
+                // After igdbBaseUrl, so it sees the real endpoint rather than the placeholder host.
+                install(platformSession { preferences.serverUrl.value })
                 ktorHttpClientConfig()
                 // Safe here, unlike on the user-scoped clients: IGDB responses are the same for every
                 // user, so a URL-keyed cache cannot leak one user's data to another.
@@ -138,6 +137,7 @@ object HttpModule {
     fun provideJsonApiHttpClient(
         authTokenProvider: AuthTokenProvider,
         authenticationHandler: AuthenticationHandler,
+        scope: Scope,
     ) = HttpClient {
         defaultRequest {
             accept(VndApiJson)
@@ -152,7 +152,7 @@ object HttpModule {
             // HEADERS logs the Authorization header, so it stays out of anything but a local build.
             level = if (BuildConfig.APP_ENV == AppEnvironment.LOCAL) LogLevel.HEADERS else LogLevel.NONE
         }
-        install(PlatformSession)
+        install(platformSession { scope.get<AppPreferences>().serverUrl.value })
         ktorHttpClientConfig()
         HttpResponseValidator {
             validateResponse { response ->
@@ -185,9 +185,9 @@ object HttpModule {
 
     @Single
     @Named("AuthHttpClient")
-    fun provideAuthHttpClient() = HttpClient {
+    fun provideAuthHttpClient(scope: Scope) = HttpClient {
         expectSuccess = true
-        install(PlatformSession)
+        install(platformSession { scope.get<AppPreferences>().serverUrl.value })
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
