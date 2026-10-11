@@ -384,7 +384,11 @@
 
     <!-- Profile/Calendar placeholders -->
     <string name="profile__subtitle">Your profile and settings</string>
-    <string name="calendar__placeholder">Here you'll see upcoming releases and your events</string>
+    <string name="calendar__backlog_only">Only my backlog</string>
+    <string name="calendar__jump_to_day">Go to day</string>
+    <string name="calendar__today">Today</string>
+    <string name="calendar__empty">No upcoming releases</string>
+    <string name="calendar__empty_hint">Try fewer filters</string>
 
     <!-- Library extras -->
     <string name="library__error_select_status">Please select a status.</string>

@@ -49,6 +49,10 @@ val GameListPreset.searchTarget: FilterSearchTarget?
         else -> null
     }
 
+/** The preset's own name for its searchable section, so its chip is labelled before any lookup. */
+val GameListPreset.knownOptions: Map<FilterSearchTarget, Map<Int, NamedSearchResult>>
+    get() = searchTarget?.let { mapOf(it to mapOf(id to NamedSearchResult(id, name))) }.orEmpty()
+
 private fun GameListFilterState.withCompany(id: Int, role: CompanyRole) = copy(
     companyIds = companyIds + id,
     companyRoles = companyRoles + (id to (companyRoles[id].orEmpty() + role))

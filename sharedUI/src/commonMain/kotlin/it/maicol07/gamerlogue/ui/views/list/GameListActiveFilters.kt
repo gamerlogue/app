@@ -21,6 +21,7 @@ import at.released.igdbclient.model.Genre
 import at.released.igdbclient.model.PlayerPerspective
 import at.released.igdbclient.model.Theme
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.calendar__backlog_only
 import gamerlogue.sharedui.generated.resources.gamelist__critics_rating
 import gamerlogue.sharedui.generated.resources.gamelist__filter_time_to_beat
 import gamerlogue.sharedui.generated.resources.gamelist__hours_range
@@ -190,7 +191,10 @@ private fun fixedOptionChips(
     filter: GameListFilterState,
     presetPlatform: GameListPreset?
 ): List<ActiveFilterChip> = with(filter) {
-    platformIds.map { id ->
+    listOfNotNull(
+        ActiveFilterChip("backlog", stringResource(Res.string.calendar__backlog_only)) { copy(backlogOnly = false) }
+            .takeIf { backlogOnly }
+    ) + platformIds.map { id ->
         val name = PopularPlatforms.firstOrNull { it.id == id }?.name
             ?: presetPlatform?.takeIf { it.id == id }?.name
             ?: id.toString()

@@ -384,7 +384,11 @@
 
     <!-- Profile/Calendar placeholders -->
     <string name="profile__subtitle">Il tuo profilo e le impostazioni</string>
-    <string name="calendar__placeholder">Qui vedrai le prossime uscite e i tuoi eventi</string>
+    <string name="calendar__backlog_only">Solo il mio backlog</string>
+    <string name="calendar__jump_to_day">Vai al giorno</string>
+    <string name="calendar__today">Oggi</string>
+    <string name="calendar__empty">Nessuna uscita in arrivo</string>
+    <string name="calendar__empty_hint">Prova con meno filtri</string>
 
     <!-- Library extras -->
     <string name="library__error_select_status">Seleziona uno stato.</string>

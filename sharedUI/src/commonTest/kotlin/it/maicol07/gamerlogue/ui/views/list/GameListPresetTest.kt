@@ -23,9 +23,9 @@ class GameListPresetTest {
 
     @Test
     fun searchablePresetIsNamedInInitialState() {
-        val state = GameListViewModel.UiState.from(GameListPreset(GameListPresetType.ENGINE, 3, "Unreal Engine"))
+        val preset = GameListPreset(GameListPresetType.ENGINE, 3, "Unreal Engine")
 
-        assertTrue(state.filterState.hasActiveFilters)
-        assertEquals("Unreal Engine", state.knownOptions[FilterSearchTarget.ENGINE]?.get(3)?.name)
+        assertTrue(GameListViewModel.UiState.from(preset).filterState.hasActiveFilters)
+        assertEquals("Unreal Engine", preset.knownOptions[FilterSearchTarget.ENGINE]?.get(3)?.name)
     }
 }

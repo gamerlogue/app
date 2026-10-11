@@ -4,8 +4,12 @@ import at.released.igdbclient.model.Artwork
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameCategoryEnum
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import net.sergeych.sprintf.sprintf
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /** Artworks that picture the game, without its bare logos; needs [ARTWORKS_TYPE_FIELD] in the query. */
 val Game.mediaArtworks: List<Artwork> get() = artworks.filterNot { it.isLogo }
@@ -27,6 +31,10 @@ val Game.detailNavKey: RootNavTree.GameDetail
  */
 fun Game.isReleased(): Boolean =
     first_release_date?.let { it.getEpochSecond() <= Clock.System.now().epochSeconds } ?: false
+
+/** The day of `first_release_date`, read in UTC: IGDB stores release days as UTC midnights. Null when TBA. */
+val Game.releaseDay: LocalDate?
+    get() = first_release_date?.let { Instant.fromEpochSeconds(it.getEpochSecond()).toLocalDateTime(TimeZone.UTC).date }
 
 /**
  * The game a library entry is keyed by: the base game for an edition, the game itself otherwise.

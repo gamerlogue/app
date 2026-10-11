@@ -48,6 +48,7 @@ fun GameListView(
     val navigationState = LocalNavigationState.current
     val viewModel = koinViewModel<GameListViewModel> { parametersOf(section, eventId, preset, libraryStatus) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val filterOptions by viewModel.filterOptions.state.collectAsStateWithLifecycle()
     ScreenScaffold(
         topBar = {
             GameListSearchBar(
@@ -72,7 +73,7 @@ fun GameListView(
             AnimatedVisibility(visible = uiState.filterState.hasActiveFilters) {
                 ActiveFilterChips(
                     filterState = uiState.filterState,
-                    knownOptions = uiState.knownOptions,
+                    knownOptions = filterOptions.knownOptions,
                     presetPlatform = preset?.takeIf { it.type == GameListPresetType.PLATFORM },
                     onFilterChange = viewModel::updateFilter,
                     onReset = viewModel::resetFilter,
@@ -95,17 +96,15 @@ fun GameListView(
     if (uiState.showFilterSheet) {
         GameListFilterSheet(
             filterState = uiState.filterState,
-            libraryScope = libraryStatus != null,
-            columnCount = uiState.columnCount,
-            filterSearches = uiState.filterSearches,
-            defaultOptions = uiState.defaultOptions,
-            knownOptions = uiState.knownOptions,
-            onFilterSearch = viewModel::searchFilterOptions,
-            onColumnCountChange = viewModel::setColumnCount,
+            scope = if (libraryStatus != null) FilterSheetScope.LIBRARY else FilterSheetScope.GAMES,
+            options = filterOptions,
+            onFilterSearch = viewModel.filterOptions::search,
             onFilterChange = viewModel::updateFilter,
             onReset = viewModel::resetFilter,
             onDismiss = { viewModel.toggleFilterSheet(false) }
-        )
+        ) {
+            GridColumnsSection(uiState.columnCount, viewModel::setColumnCount)
+        }
     }
 }
 
@@ -115,7 +114,7 @@ fun GameListView(
  * always opens the sheet; it never clears the filters.
  */
 @Composable
-private fun FilterButton(hasActiveFilters: Boolean, onClick: () -> Unit) = IconToggleButton(
+internal fun FilterButton(hasActiveFilters: Boolean, onClick: () -> Unit) = IconToggleButton(
     checked = hasActiveFilters,
     onCheckedChange = { onClick() },
     shapes = IconButtonDefaults.toggleableShapes(),

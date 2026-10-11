@@ -38,6 +38,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
@@ -69,6 +70,7 @@ import gamerlogue.sharedui.generated.resources.gamelist__company_role_developer
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_porting
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_publisher
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_supporting
+import gamerlogue.sharedui.generated.resources.calendar__backlog_only
 import gamerlogue.sharedui.generated.resources.gamelist__critics_rating
 import gamerlogue.sharedui.generated.resources.gamelist__filter_categories
 import gamerlogue.sharedui.generated.resources.gamelist__filter_companies
@@ -110,6 +112,7 @@ import gamerlogue.sharedui.generated.resources.gamelist__user_rating
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowDownwardW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowUpwardW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.BookmarkW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CalendarMonthW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CategoryW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
@@ -237,26 +240,38 @@ internal val PopularPlatforms = listOf(
     FilterPlatform(34, "Android", SimpleIcons.AndroidSimpleIcons),
 )
 
+/** The list a [GameListFilterSheet] filters, which decides the sections it offers. */
+enum class FilterSheetScope {
+    /** IGDB's games, in any order. */
+    GAMES,
+
+    /** The user's library entries in one status. */
+    LIBRARY,
+
+    /** Upcoming releases, always in release order. */
+    CALENDAR,
+}
+
 /**
- * In [libraryScope] the IGDB sort, which a library list ignores, gives way to the library sort and
- * filters; the time-to-beat filter is hidden for the same reason.
+ * In [FilterSheetScope.LIBRARY] the IGDB sort, which a library list ignores, gives way to the
+ * library sort and filters; in [FilterSheetScope.CALENDAR] it gives way to the backlog toggle, along
+ * with the release status. The time-to-beat filter takes over pagination with its own order, so it
+ * only shows in [FilterSheetScope.GAMES]. [leadingSections] go first, e.g. the grid columns.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Suppress("LongMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun GameListFilterSheet(
     filterState: GameListFilterState,
-    libraryScope: Boolean,
-    columnCount: Int,
-    filterSearches: Map<FilterSearchTarget, FilterSearchState>,
-    defaultOptions: Map<FilterSearchTarget, List<NamedSearchResult>>,
-    knownOptions: Map<FilterSearchTarget, Map<Int, NamedSearchResult>>,
+    scope: FilterSheetScope,
+    options: FilterOptions.State,
     onFilterSearch: (FilterSearchTarget, String) -> Unit,
-    onColumnCountChange: (Int) -> Unit,
     onFilterChange: (GameListFilterState) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
+    leadingSections: @Composable ColumnScope.() -> Unit = {},
 ) {
+    val (filterSearches, defaultOptions, knownOptions) = options
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(
@@ -293,41 +308,28 @@ fun GameListFilterSheet(
                 }
             }
 
-            // Grid column count, one slider stop per column from MinColumns to MaxColumns.
-            FilterCard {
-                FilterSectionHeader(icon = Icons.Grid4x4W500Rounded, title = Res.string.gamelist__grid_columns) {
-                    HeaderValue(pluralStringResource(Res.plurals.gamelist__columns_count, columnCount, columnCount))
-                }
-                val sliderState = remember {
-                    SliderState(
-                        columnCount.toFloat(),
-                        steps = MaxColumns - MinColumns - 1,
-                        trackRange = MinColumns.toFloat()..MaxColumns.toFloat()
-                    )
-                }
-                // Follows external changes too, e.g. the reset button.
-                LaunchedEffect(columnCount) { sliderState.value = columnCount.toFloat() }
-                Slider(
-                    state = sliderState,
-                    onValueChange = {
-                        sliderState.value = it
-                        onColumnCountChange(it.toInt())
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            leadingSections()
 
-            // In library scope the entry filters and the game filters form two titled groups: they
-            // act on different data, the user's entries versus IGDB's games.
-            if (libraryScope) {
-                FilterGroupTitle(Res.string.gamelist__group_library)
-                LibraryFilterSections(
-                    filter = filterState.library,
-                    onFilterChange = { onFilterChange(filterState.copy(library = it)) }
-                )
-                FilterGroupTitle(Res.string.gamelist__group_game)
-            } else {
-                SortSection(filterState = filterState, onFilterChange = onFilterChange)
+            when (scope) {
+                FilterSheetScope.GAMES -> SortSection(filterState = filterState, onFilterChange = onFilterChange)
+                // The entry filters and the game filters form two titled groups: they act on
+                // different data, the user's entries versus IGDB's games.
+                FilterSheetScope.LIBRARY -> {
+                    FilterGroupTitle(Res.string.gamelist__group_library)
+                    LibraryFilterSections(
+                        filter = filterState.library,
+                        onFilterChange = { onFilterChange(filterState.copy(library = it)) }
+                    )
+                    FilterGroupTitle(Res.string.gamelist__group_game)
+                }
+                FilterSheetScope.CALENDAR -> FilterCard {
+                    FilterSectionHeader(icon = Icons.BookmarkW500Rounded, title = Res.string.calendar__backlog_only) {
+                        Switch(
+                            checked = filterState.backlogOnly,
+                            onCheckedChange = { onFilterChange(filterState.copy(backlogOnly = it)) }
+                        )
+                    }
+                }
             }
 
             RangeFilterSection(
@@ -375,7 +377,7 @@ fun GameListFilterSheet(
             )
 
             // Hours of the "normal" completion time.
-            if (!libraryScope) {
+            if (scope == FilterSheetScope.GAMES) {
                 RangeFilterSection(
                     icon = Icons.HourglassW500Rounded,
                     title = Res.string.gamelist__filter_time_to_beat,
@@ -401,20 +403,22 @@ fun GameListFilterSheet(
                 )
             }
 
-            FilterCard {
-                FilterSectionHeader(
-                    icon = Icons.CalendarMonthW500Rounded,
-                    title = Res.string.gamelist__release_status
-                )
-                SingleSelectConnectedButtonGroup(
-                    options = ReleaseStatusFilter.entries,
-                    selected = filterState.releaseStatus,
-                    onSelectedChange = { newStatus ->
-                        onFilterChange(filterState.copy(releaseStatus = newStatus ?: ReleaseStatusFilter.ALL))
-                    },
-                    toggleButtonText = { status -> stringResource(status.label) },
-                    deselectable = false
-                )
+            if (scope != FilterSheetScope.CALENDAR) {
+                FilterCard {
+                    FilterSectionHeader(
+                        icon = Icons.CalendarMonthW500Rounded,
+                        title = Res.string.gamelist__release_status
+                    )
+                    SingleSelectConnectedButtonGroup(
+                        options = ReleaseStatusFilter.entries,
+                        selected = filterState.releaseStatus,
+                        onSelectedChange = { newStatus ->
+                            onFilterChange(filterState.copy(releaseStatus = newStatus ?: ReleaseStatusFilter.ALL))
+                        },
+                        toggleButtonText = { status -> stringResource(status.label) },
+                        deselectable = false
+                    )
+                }
             }
 
             MultiSelectFilterSection(
@@ -587,6 +591,32 @@ fun GameListFilterSheet(
             )
         }
     }
+}
+
+/** Grid column count, one slider stop per column from [MinColumns] to [MaxColumns]. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun GridColumnsSection(columnCount: Int, onColumnCountChange: (Int) -> Unit) = FilterCard {
+    FilterSectionHeader(icon = Icons.Grid4x4W500Rounded, title = Res.string.gamelist__grid_columns) {
+        HeaderValue(pluralStringResource(Res.plurals.gamelist__columns_count, columnCount, columnCount))
+    }
+    val sliderState = remember {
+        SliderState(
+            columnCount.toFloat(),
+            steps = MaxColumns - MinColumns - 1,
+            trackRange = MinColumns.toFloat()..MaxColumns.toFloat()
+        )
+    }
+    // Follows external changes too, e.g. the reset button.
+    LaunchedEffect(columnCount) { sliderState.value = columnCount.toFloat() }
+    Slider(
+        state = sliderState,
+        onValueChange = {
+            sliderState.value = it
+            onColumnCountChange(it.toInt())
+        },
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 private fun Set<Int>.toggle(id: Int, isChecked: Boolean) = if (isChecked) this + id else this - id

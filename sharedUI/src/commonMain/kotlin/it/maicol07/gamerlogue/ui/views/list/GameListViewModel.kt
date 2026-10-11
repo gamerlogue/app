@@ -8,20 +8,12 @@ import at.released.igdbclient.apicalypse.SortOrder
 import at.released.igdbclient.dsl.field.IgdbRequestField
 import at.released.igdbclient.dsl.field.IgdbRequestFieldDsl
 import at.released.igdbclient.dsl.field.field
-import at.released.igdbclient.getCompanies
 import at.released.igdbclient.getEvents
-import at.released.igdbclient.getFranchises
-import at.released.igdbclient.getGameEngines
 import at.released.igdbclient.getGameTimeToBeat
 import at.released.igdbclient.getGames
-import at.released.igdbclient.getKeywords
-import at.released.igdbclient.model.Company
 import at.released.igdbclient.model.Event
-import at.released.igdbclient.model.Franchise
 import at.released.igdbclient.model.Game
-import at.released.igdbclient.model.GameEngine
 import at.released.igdbclient.model.GameTimeToBeat
-import at.released.igdbclient.model.Keyword
 import at.released.igdbclient.model.PopularityPrimitive
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.get
@@ -145,6 +137,8 @@ data class GameListFilterState(
     val maxHoursToBeat: Float = MaxHoursToBeat,
     /** Only applies in library scope. */
     val library: LibraryFilterState = LibraryFilterState(),
+    /** Only applies in the calendar: just the games in the user's backlog. */
+    val backlogOnly: Boolean = false,
 )
 
 /**
@@ -175,47 +169,25 @@ class GameListViewModel(
         val columnCount: Int = 3,
         val filterState: GameListFilterState = GameListFilterState(),
         val showFilterSheet: Boolean = false,
-        val filterSearches: Map<FilterSearchTarget, FilterSearchState> = emptyMap(),
-        /** Options shown by a searchable filter section before the user types anything. */
-        val defaultOptions: Map<FilterSearchTarget, List<NamedSearchResult>> = emptyMap(),
-        /**
-         * Every option ever shown by a searchable section, by id: a selection keeps its name after
-         * the query moves on and while the sheet is closed, since the filter state only stores ids.
-         */
-        val knownOptions: Map<FilterSearchTarget, Map<Int, NamedSearchResult>> = emptyMap(),
     ) {
         companion object {
             /** Initial state, pre-filtered on [preset] when the list was opened from a game's metadata. */
-            fun from(preset: GameListPreset?): UiState {
-                if (preset == null) return UiState()
-                val target = preset.searchTarget
-                return UiState(
-                    filterState = preset.applyTo(GameListFilterState()),
-                    knownOptions = if (target != null) {
-                        mapOf(target to mapOf(preset.id to NamedSearchResult(preset.id, preset.name)))
-                    } else {
-                        emptyMap()
-                    }
-                )
-            }
+            fun from(preset: GameListPreset?): UiState =
+                if (preset == null) UiState() else UiState(filterState = preset.applyTo(GameListFilterState()))
         }
     }
 
     private companion object {
         const val PAGE_SIZE = 50
         const val PREFETCH_THRESHOLD = 6
-        const val FILTER_SEARCH_LIMIT = 10
         const val DEBOUNCE_MILLIS = 300L
         const val SECONDS_PER_HOUR = 3600
-        const val DEFAULT_OPTIONS_SAMPLE_SIZE = 60
-        const val DEFAULT_OPTIONS_PER_TARGET = 12
-        const val MIN_RATINGS_FOR_SAMPLE = 300
     }
+
+    val filterOptions = FilterOptions(viewModelScope, preset?.knownOptions.orEmpty())
 
     private val igdb: IgdbClient by inject()
     private var offset = 0
-    private val filterSearchJobs = mutableMapOf<FilterSearchTarget, Job>()
-    private var defaultOptionsJob: Job? = null
     private var loadJob: Job? = null
     private var searchJob: Job? = null
 
@@ -235,69 +207,8 @@ class GameListViewModel(
 
     fun toggleFilterSheet(show: Boolean) {
         update { copy(showFilterSheet = show) }
-        if (show) loadDefaultFilterOptions()
+        if (show) filterOptions.loadDefaults()
     }
-
-    /**
-     * Populates the empty-query options of the searchable filter sections.
-     *
-     * IGDB exposes no popularity metric on companies, franchises, engines or keywords, so the
-     * options are derived: sample the most-rated games and rank each facet by how often it occurs.
-     * That keeps names and logos authoritative instead of hardcoding ids that drift (two of the
-     * previously hardcoded company ids pointed at the wrong companies entirely).
-     */
-    private fun loadDefaultFilterOptions() {
-        if (state.defaultOptions.isNotEmpty() || defaultOptionsJob?.isActive == true) return
-        defaultOptionsJob = viewModelScope.launch {
-            val result = safeRequest {
-                igdb.getGames {
-                    fields(
-                        Game.field.involved_companies.company.name,
-                        Game.field.involved_companies.company.logo.image_id,
-                        Game.field.franchises.name,
-                        Game.field.game_engines.name,
-                        Game.field.game_engines.logo.image_id,
-                    )
-                    where { Game.field.total_rating_count greaterThan MIN_RATINGS_FOR_SAMPLE }
-                    sort(Game.field.total_rating_count, SortOrder.DESC)
-                    limit(DEFAULT_OPTIONS_SAMPLE_SIZE)
-                }
-            }
-            if (result.isErr) return@launch
-
-            val games = result.unwrap().games
-            val options = mapOf(
-                FilterSearchTarget.COMPANY to games.rankBy { game ->
-                    game.involved_companies.mapNotNull { it.company }
-                        .map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) }
-                },
-                FilterSearchTarget.FRANCHISE to games.rankBy { game ->
-                    game.franchises.map { NamedSearchResult(it.id.toInt(), it.name) }
-                },
-                FilterSearchTarget.ENGINE to games.rankBy { game ->
-                    game.game_engines.map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) }
-                },
-            )
-            update {
-                copy(
-                    defaultOptions = options,
-                    knownOptions = options.entries.fold(knownOptions) { known, (target, list) ->
-                        known.withOptions(target, list)
-                    }
-                )
-            }
-        }
-    }
-
-    /** Ranks the facet values extracted by [extract] by how many sampled games mention them. */
-    private fun List<Game>.rankBy(extract: (Game) -> List<NamedSearchResult>): List<NamedSearchResult> =
-        flatMap(extract)
-            .groupingBy { it.id }
-            .eachCount()
-            .entries
-            .sortedByDescending { it.value }
-            .take(DEFAULT_OPTIONS_PER_TARGET)
-            .mapNotNull { entry -> firstNotNullOfOrNull { game -> extract(game).firstOrNull { it.id == entry.key } } }
 
     /**
      * Applies the query typed in the search bar after [DEBOUNCE_MILLIS], so a burst of keystrokes
@@ -326,42 +237,9 @@ class GameListViewModel(
 
     /** Clears every filter but the query: that one has its own affordance, the search bar. */
     fun resetFilter() {
-        update {
-            copy(
-                filterState = GameListFilterState(searchQuery = filterState.searchQuery),
-                filterSearches = emptyMap()
-            )
-        }
+        update { copy(filterState = GameListFilterState(searchQuery = filterState.searchQuery)) }
+        filterOptions.clearSearches()
         load(reset = true)
-    }
-
-    /**
-     * Debounced lookup of the options of a filter section.
-     *
-     * These endpoints are **not** searchable on IGDB (only Characters, Collections, Games,
-     * Platforms and Themes are), so the query is a case-insensitive `name` match instead.
-     */
-    fun searchFilterOptions(target: FilterSearchTarget, query: String) {
-        update { copy(filterSearches = filterSearches.with(target) { copy(query = query) }) }
-        filterSearchJobs.remove(target)?.cancel()
-        if (query.isBlank()) {
-            update {
-                copy(filterSearches = filterSearches.with(target) { copy(results = emptyList(), loading = false) })
-            }
-            return
-        }
-
-        filterSearchJobs[target] = viewModelScope.launch {
-            delay(DEBOUNCE_MILLIS.milliseconds)
-            update { copy(filterSearches = filterSearches.with(target) { copy(loading = true) }) }
-            val results = fetchFilterOptions(target, query)
-            update {
-                copy(
-                    filterSearches = filterSearches.with(target) { copy(results = results, loading = false) },
-                    knownOptions = knownOptions.withOptions(target, results)
-                )
-            }
-        }
     }
 
     fun onEndReached(lastVisibleIndex: Int) {
@@ -369,59 +247,6 @@ class GameListViewModel(
         if (lastVisibleIndex >= state.games.lastIndex - PREFETCH_THRESHOLD) {
             load(reset = false)
         }
-    }
-
-    private fun Map<FilterSearchTarget, FilterSearchState>.with(
-        target: FilterSearchTarget,
-        reducer: FilterSearchState.() -> FilterSearchState
-    ) = this + (target to (this[target] ?: FilterSearchState()).reducer())
-
-    private fun Map<FilterSearchTarget, Map<Int, NamedSearchResult>>.withOptions(
-        target: FilterSearchTarget,
-        options: List<NamedSearchResult>
-    ) = this + (target to (this[target].orEmpty() + options.associateBy(NamedSearchResult::id)))
-
-    private suspend fun fetchFilterOptions(target: FilterSearchTarget, query: String): List<NamedSearchResult> =
-        when (target) {
-            FilterSearchTarget.COMPANY -> named({
-                igdb.getCompanies {
-                    fields(Company.field.name, Company.field.logo.image_id)
-                    where { Company.field.name contains query }
-                    limit(FILTER_SEARCH_LIMIT)
-                }
-            }) { result -> result.companies.map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) } }
-
-            FilterSearchTarget.FRANCHISE -> named({
-                igdb.getFranchises {
-                    fields(Franchise.field.name)
-                    where { Franchise.field.name contains query }
-                    limit(FILTER_SEARCH_LIMIT)
-                }
-            }) { result -> result.franchises.map { NamedSearchResult(it.id.toInt(), it.name) } }
-
-            FilterSearchTarget.ENGINE -> named({
-                igdb.getGameEngines {
-                    fields(GameEngine.field.name, GameEngine.field.logo.image_id)
-                    where { GameEngine.field.name contains query }
-                    limit(FILTER_SEARCH_LIMIT)
-                }
-            }) { result -> result.gameengines.map { NamedSearchResult(it.id.toInt(), it.name, it.logo?.image_id) } }
-
-            FilterSearchTarget.KEYWORD -> named({
-                igdb.getKeywords {
-                    fields(Keyword.field.name)
-                    where { Keyword.field.name contains query }
-                    limit(FILTER_SEARCH_LIMIT)
-                }
-            }) { result -> result.keywords.map { NamedSearchResult(it.id.toInt(), it.name) } }
-        }
-
-    private suspend fun <T> named(
-        request: suspend () -> T,
-        map: (T) -> List<NamedSearchResult>
-    ): List<NamedSearchResult> {
-        val result = safeRequest(request)
-        return if (result.isOk) map(result.unwrap()) else emptyList()
     }
 
     /**
@@ -498,13 +323,9 @@ class GameListViewModel(
                         Game.field.id inAny gameIds.map(Int::toString)
                     }
                     applyFilters(filter)
-                    // Editions show up on their base game's page only. The library keeps them, so an
-                    // entry saved against an edition before entries moved to base games stays visible.
-                    if (libraryStatus == null) {
-                        Game.field.version_parent.isNull()
-                        // A category the user picked explicitly wins, bundles and add-ons included.
-                        if (filter.categoryIds.isEmpty()) noBundlesOrAddons()
-                    }
+                    // The library keeps editions, so an entry saved against an edition before
+                    // entries moved to base games stays visible.
+                    if (libraryStatus == null) baseGamesOnly(filter)
                 }
 
                 // With an id source the page is already chosen upstream: sorting and offsetting
@@ -634,9 +455,18 @@ class GameListViewModel(
     }
 }
 
+/**
+ * Editions show up on their base game's page only, bundles and add-ons on their game's page; a
+ * category the user picked explicitly wins, bundles and add-ons included.
+ */
+internal fun ApicalypseQueryBuilderWhereBuilder.baseGamesOnly(filter: GameListFilterState) {
+    Game.field.version_parent.isNull()
+    if (filter.categoryIds.isEmpty()) noBundlesOrAddons()
+}
+
 /** The `where` clauses of every filter the user can set, ordered as they appear in the filter sheet. */
 @Suppress("CyclomaticComplexMethod")
-private fun ApicalypseQueryBuilderWhereBuilder.applyFilters(filter: GameListFilterState) {
+internal fun ApicalypseQueryBuilderWhereBuilder.applyFilters(filter: GameListFilterState) {
     if (filter.minUserRating > 0f) {
         Game.field.rating greaterThanOrEqual filter.minUserRating.toDouble()
     }
