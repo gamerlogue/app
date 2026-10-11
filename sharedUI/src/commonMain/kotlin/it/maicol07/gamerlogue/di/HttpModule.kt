@@ -20,6 +20,7 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.accept
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendEncodedPathSegments
@@ -124,6 +125,10 @@ object HttpModule {
                 install(igdbBaseUrl { preferences.igdbApiUrl.value })
                 // After igdbBaseUrl, so it sees the real endpoint rather than the placeholder host.
                 install(platformSession { preferences.serverUrl.value })
+                // Only appends to igdbclient's protobuf Accept, so error bodies come back as JSON.
+                install(createClientPlugin("IgdbJsonErrors") {
+                    onRequest { request, _ -> request.accept(ContentType.Application.Json) }
+                })
                 ktorHttpClientConfig()
                 // Safe here, unlike on the user-scoped clients: IGDB responses are the same for every
                 // user, so a URL-keyed cache cannot leak one user's data to another.
