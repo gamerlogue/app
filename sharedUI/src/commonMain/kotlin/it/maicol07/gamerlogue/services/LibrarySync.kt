@@ -8,6 +8,7 @@ import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.data.ProfileApi
 import it.maicol07.gamerlogue.extensions.allPages
 import it.maicol07.gamerlogue.extensions.currentUserEntries
 import it.maicol07.gamerlogue.extensions.quickDraft
@@ -17,6 +18,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.koin.core.annotation.Single
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Writes Gamerlogue [LibraryEntry]s from data read off an external store, reusing the JSON:API CRUD.
@@ -29,6 +32,7 @@ class LibrarySync(
     private val matcher: GameMatcher,
     private val exceptionReporter: ExceptionReporter,
     private val libraryChanges: LibraryChanges,
+    private val profileApi: ProfileApi,
 ) {
     private companion object {
         /** Parallel save requests during an import. */
@@ -91,7 +95,10 @@ class LibrarySync(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private suspend fun persistEach(games: List<Game>, draft: (Game) -> LibraryEntry): Int = coroutineScope {
+        // One import batch per sync: the server sums its new entries into one `library_imported` activity.
+        val batch = Uuid.random().toString()
         // Distinct by id: several store entries (game + demo/DLC) can map to one IGDB game; saving the
         // same gameId twice would create a duplicate / be rejected, leaving fewer entries than expected.
         val distinct = games.distinctBy { it.id }
@@ -100,7 +107,9 @@ class LibrarySync(
         val inFlight = Semaphore(MaxConcurrentSaves)
         distinct.map { game ->
             async {
-                val result = inFlight.withPermit { exceptionReporter.safeRequest { draft(game).save() } }
+                val result = inFlight.withPermit {
+                    exceptionReporter.safeRequest { profileApi.saveImported(draft(game), batch) }
+                }
                 if (result.get() != null) {
                     true
                 } else {

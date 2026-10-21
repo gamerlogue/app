@@ -28,6 +28,23 @@ class UserSerializationTest : StringSpec({
         User.endpoint shouldBe "users"
     }
 
+    "a private profile without the optional attributes reads as defaults" {
+        val user = User()
+        user.fromJsonApi(
+            JsonApiResource(
+                id = "V",
+                type = "User",
+                attributes = mapOf("nickname" to JsonPrimitive("player"), "visibility" to JsonPrimitive("private"))
+            )
+        )
+
+        user.isPrivate shouldBe true
+        user.email.shouldBeNull()
+        user.platformsIds shouldBe emptyList()
+        user.followersCount shouldBe 0
+        user.isFollowedByMe shouldBe false
+    }
+
     "user cache migrates the legacy type without losing the profile" {
         val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
         try {

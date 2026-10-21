@@ -18,4 +18,10 @@ abstract class BaseViewModel : ViewModel(), KoinComponent {
     private val exceptionReporter: ExceptionReporter by inject()
 
     protected suspend fun <T> safeRequest(request: suspend () -> T) = exceptionReporter.safeRequest(request)
+
+    protected suspend fun <T> safeRequest(expectedErrorCodes: Set<String>, request: suspend () -> T) =
+        exceptionReporter.safeRequest(expectedErrorCodes, request)
+
+    protected suspend fun <T> safeRequest(isExpected: (String) -> Boolean, request: suspend () -> T) =
+        exceptionReporter.safeRequest(isExpected, request)
 }

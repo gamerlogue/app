@@ -25,9 +25,27 @@ interface LibraryEntrySchema {
     @Attr val rating: Number? // 0-10
     @Attr val ratingDetails: Map<*, Number>? // 0-10
     @Attr val review: String?
+    @Attr val reviewSpoiler: Boolean
+        get() = false
+
+    /** Changes only when the review text does. */
+    @Attr val reviewUpdatedAt: String?
+
+    /** The owner's UUID; read-only, the server assigns it. */
+    @Attr val userId: String?
+    @Attr val likesCount: Int
+        get() = 0
+    @Attr val commentsCount: Int
+        get() = 0
+    @Attr val likedByMe: Boolean
+        get() = false
     @Attr val createdAt: String?
     @Attr val updatedAt: String?
     @Relation val user: UserSchema?
+
+    /** The backend treats a null and an empty review alike: no review. */
+    val hasReview: Boolean
+        get() = !review.isNullOrBlank()
 
     enum class CompletionStatus(val displayName: StringResource) {
         MAIN_STORY(Res.string.library__completion_main_story),

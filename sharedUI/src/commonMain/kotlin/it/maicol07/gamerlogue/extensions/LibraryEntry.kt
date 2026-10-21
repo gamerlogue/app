@@ -3,10 +3,8 @@ package it.maicol07.gamerlogue.extensions
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import it.maicol07.spraypaintkt.CollectionProxy
 import it.maicol07.spraypaintkt.Scope
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.intOrNull
+import it.maicol07.spraypaintkt.SortDirection
 
 /**
  * Reusable JSON:API query builders for [LibraryEntry].
@@ -30,6 +28,26 @@ fun LibraryEntry.Companion.currentUserEntries(status: GameLibraryStatus? = null)
     }
 
 /**
+ * Scope returning [userId]'s library entries, optionally filtered by [status]. The backend answers
+ * 403 (`profile_private`/`user_blocked`) when they are not visible to the current user.
+ */
+fun LibraryEntry.Companion.userEntries(userId: String, status: GameLibraryStatus? = null): Scope<LibraryEntry> =
+    scope {
+        if (status != null) {
+            where("status", status.name)
+        }
+        where("user", userId)
+    }
+
+/** Scope returning [userId]'s reviewed entries, the most recently reviewed first. */
+fun LibraryEntry.Companion.userReviews(userId: String): Scope<LibraryEntry> =
+    scope {
+        where("user", userId)
+        where("has_review", "true")
+        order("review_updated_at", SortDirection.DESC)
+    }
+
+/**
  * Scope returning the authenticated user's library entry for [gameId], if any.
  */
 fun LibraryEntry.Companion.currentUserEntryForGame(gameId: Number): Scope<LibraryEntry> =
@@ -37,45 +55,6 @@ fun LibraryEntry.Companion.currentUserEntryForGame(gameId: Number): Scope<Librar
         where("game_id", gameId)
         extraParam(CurrentUserParam, "true")
     }
-
-// Page-based pagination: backend returns one page per request; pages start at 1.
-private const val MaxPages = 500
-
-// The backend reads the page number from a plain `page` parameter. spraypaintkt's `page()` sends
-// `page[number]`, which the backend silently ignores, re-serving the first page.
-private const val PageParam = "page"
-
-/** The total number of entries matching the query, from the `meta.totalItems` every list response carries. */
-val CollectionProxy<LibraryEntry>.totalItems: Int?
-    get() = (meta["totalItems"] as? JsonPrimitive)?.intOrNull
-
-/**
- * Walk every page of this scope, invoking [onPage] with each page's *new* entries as it arrives.
- * [Scope.all] returns only one page. Stops when a page brings no new ids (covers both the end and a
- * backend that ignores the page number and re-serves the same page) or once `meta.totalItems` is
- * reached; [MaxPages] is a final guard.
- */
-suspend fun Scope<LibraryEntry>.forEachPage(onPage: suspend (List<LibraryEntry>) -> Unit) {
-    val seen = mutableSetOf<String?>()
-    var total: Int? = null
-    var page = 1
-    repeat(MaxPages) {
-        val result = extraParam(PageParam, page.toString()).all()
-        total = total ?: result.totalItems
-        val fresh = result.data.filter { seen.add(it.id) }
-        if (fresh.isEmpty()) return
-        onPage(fresh)
-        if (total != null && seen.size >= total) return
-        page++
-    }
-}
-
-/** Collect every page of this scope into one list (see [forEachPage]). */
-suspend fun Scope<LibraryEntry>.allPages(): List<LibraryEntry> {
-    val out = mutableListOf<LibraryEntry>()
-    forEachPage { out += it }
-    return out
-}
 
 /**
  * Build (without persisting) a quick library entry for [game] with [status]. The owner is never set:

@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.data
 
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.set
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.spraypaintkt.JsonApiSingleResponse
 import org.koin.core.annotation.Single
 
@@ -32,3 +33,12 @@ class UserStore(private val settings: ObservableSettings) {
     }
 }
 
+
+/**
+ * Makes [user] the signed-in user of the current session and caches it, unless the session changed
+ * meanwhile (a sign-out, another account), whose profile it is not.
+ */
+fun UserStore.saveSessionUser(authProvider: AuthTokenProvider, user: User) {
+    authProvider.updateUser(user, authProvider.session.value)
+    if (authProvider.session.value.user === user) saveUser(user)
+}
