@@ -39,6 +39,11 @@ nav3Ui = "1.2.0-rc01"
 nav3ksp = "1.1.4"
 okio = "3.18.2"
 platformtools = "0.7.5"
+reorderable = "3.1.0"
+richeditor = "1.2.1"
+emojiKt = "2.5.0"
+# Skottie (Lottie) left skiko-awt in Skiko 0.152: Emoji.kt needs it back. Keep it on the Skiko of compose-multiplatform.
+skiko = "0.153.0"
 sketch = "4.7.0"
 slf4jAndroid = "2.0.20-0"
 slf4jApi = "2.0.20"
@@ -113,6 +118,11 @@ multiplatform-settings-make-observable = { module = "com.russhwolf:multiplatform
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 platformtools-core = { module = "io.github.kdroidfilter:platformtools.core", version.ref = "platformtools" }
 platformtools-darkmodedetector = { module = "io.github.kdroidfilter:platformtools.darkmodedetector", version.ref = "platformtools" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
+richeditor = { module = "com.mohamedrejeb.richeditor:richeditor-compose", version.ref = "richeditor" }
+emoji-compose-m3 = { module = "org.kodein.emoji:emoji-compose-m3", version.ref = "emojiKt" }
+skiko-skottie = { module = "org.jetbrains.skiko:skiko-skottie", version.ref = "skiko" }
+skiko-skottie-runtime-all = { module = "org.jetbrains.skiko:skiko-skottie-awt-runtime-all", version.ref = "skiko" }
 sketch = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }
 sketchHttp = { module = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch" }
 slf4j-android = { module = "uk.uuid.slf4j:slf4j-android", version.ref = "slf4jAndroid" }

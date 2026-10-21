@@ -93,6 +93,9 @@ kotlin {
             api(libs.koin.annotations)
             implementation(libs.materialKolor)
             implementation(libs.multiplatform.settings)
+            implementation(libs.reorderable)
+            implementation(libs.richeditor)
+            implementation(libs.emoji.compose.m3)
             implementation(libs.sketch)
             implementation(libs.sketchHttp)
             implementation(libs.igdbclient.ktor)
@@ -147,6 +150,9 @@ kotlin {
             // compose.ui already ships the Skiko runtime for every desktop OS (skiko-awt-runtime-all).
             implementation(libs.compose.ui)
             implementation(libs.kotlinx.coroutines.swing)
+            // The animated emoji (Lottie) of Emoji.kt, with its natives for every desktop OS.
+            implementation(libs.skiko.skottie)
+            implementation(libs.skiko.skottie.runtime.all)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.logback.classic)
             // OS credential store for the desktop session token (Windows Credential Manager,
@@ -156,6 +162,7 @@ kotlin {
 
         webMain.dependencies {
             implementation(libs.ktor.client.js)
+            implementation(libs.skiko.skottie)
         }
     }
 
@@ -360,7 +367,31 @@ symbolCraft {
         "upcoming",
         "visibility",
         "wand_stars",
-        "web_traffic"
+        "web_traffic",
+        "account_circle",
+        "add_reaction",
+        "bar_chart",
+        "block",
+        "chat_bubble",
+        "favorite",
+        "flag",
+        "format_list_bulleted",
+        "image",
+        "lock",
+        "notifications",
+        "person_add",
+        "person_remove",
+        "playlist_add",
+        "reply",
+        "save",
+        "drag_indicator",
+        "edit_note",
+        "format_bold",
+        "format_italic",
+        "format_strikethrough",
+        "format_list_numbered",
+        "send",
+        "visibility_off"
     )
 
     @Suppress("SpreadOperator")
