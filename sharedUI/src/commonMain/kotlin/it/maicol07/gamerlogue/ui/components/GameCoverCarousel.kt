@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.carousel.CarouselItemScope
 import androidx.compose.material3.carousel.CarouselState
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
@@ -120,7 +121,7 @@ private fun CarouselArrow(
     modifier: Modifier,
     onClick: () -> Unit
 ) = AnimatedVisibility(visible, modifier.padding(horizontal = ArrowInset), enter = fadeIn(), exit = fadeOut()) {
-    FilledTonalIconButton(onClick = onClick) {
+    FilledTonalIconButton(onClick = onClick, shapes = IconButtonDefaults.shapes()) {
         Icon(icon, contentDescription = null)
     }
 }

@@ -178,10 +178,14 @@ private fun ServerActions(
 private fun SignOutDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) = AlertDialog(
     onDismissRequest = onDismiss,
     confirmButton = {
-        TextButton(onClick = onConfirm) { Text(stringResource(Res.string.settings__server_sign_out_confirm)) }
+        TextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(Res.string.settings__server_sign_out_confirm))
+        }
     },
     dismissButton = {
-        TextButton(onClick = onDismiss) { Text(stringResource(Res.string.auth__cancel)) }
+        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(Res.string.auth__cancel))
+        }
     },
     icon = { Icon(Icons.WarningW500Rounded, null) },
     title = { Text(stringResource(Res.string.settings__server_sign_out_title)) },

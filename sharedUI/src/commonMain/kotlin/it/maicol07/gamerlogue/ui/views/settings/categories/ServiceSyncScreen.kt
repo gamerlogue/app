@@ -25,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
@@ -182,7 +183,7 @@ fun ServiceSyncView(
                 title = { Text(stringResource(title)) },
                 subtitle = { Text(stringResource(service.labelRes())) },
                 navigationIcon = {
-                    IconButton(onClick = onFinish) {
+                    IconButton(onClick = onFinish, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.CloseW500Rounded, contentDescription = stringResource(Res.string.common_close))
                     }
                 },
@@ -301,7 +302,9 @@ private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
     containerColor = MaterialTheme.colorScheme.errorContainer,
     contentColor = MaterialTheme.colorScheme.onErrorContainer,
 ) {
-    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
+    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) {
+        Text(stringResource(Res.string.common_close))
+    }
 }
 
 /** What a wishlist sync actually did, shown only when it changed something on either side. */
@@ -335,7 +338,9 @@ private fun WishlistSummary(
             Modifier.weight(1f),
         )
     }
-    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
+    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) {
+        Text(stringResource(Res.string.common_close))
+    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -488,7 +493,7 @@ private fun PushRow(
         },
         trailingContent = game.storeUrl?.let { url ->
             {
-                IconButton(onClick = { onOpenStore(url) }) {
+                IconButton(onClick = { onOpenStore(url) }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.OpenInNewW500Rounded, contentDescription = stringResource(Res.string.settings__open_store))
                 }
             }
