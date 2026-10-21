@@ -62,6 +62,7 @@ import at.released.igdbclient.model.PlayerPerspective
 import at.released.igdbclient.model.Theme
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.calendar__backlog_only
 import gamerlogue.sharedui.generated.resources.game__game_modes_title
 import gamerlogue.sharedui.generated.resources.game__genres_title
 import gamerlogue.sharedui.generated.resources.game__themes_title
@@ -70,7 +71,6 @@ import gamerlogue.sharedui.generated.resources.gamelist__company_role_developer
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_porting
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_publisher
 import gamerlogue.sharedui.generated.resources.gamelist__company_role_supporting
-import gamerlogue.sharedui.generated.resources.calendar__backlog_only
 import gamerlogue.sharedui.generated.resources.gamelist__critics_rating
 import gamerlogue.sharedui.generated.resources.gamelist__filter_categories
 import gamerlogue.sharedui.generated.resources.gamelist__filter_companies
@@ -109,6 +109,13 @@ import gamerlogue.sharedui.generated.resources.gamelist__sort_field_popularity
 import gamerlogue.sharedui.generated.resources.gamelist__sort_field_release_date
 import gamerlogue.sharedui.generated.resources.gamelist__sort_field_user_rating
 import gamerlogue.sharedui.generated.resources.gamelist__user_rating
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons as SimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AndroidSimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.IosSimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.LinuxSimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.MacosSimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Playstation4SimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Playstation5SimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowDownwardW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowUpwardW500Rounded
@@ -134,12 +141,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Sor
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WandStarsW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.AndroidSimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.IosSimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.LinuxSimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.MacosSimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Playstation4SimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Playstation5SimpleIcons
+import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.WindowsSvgl
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.igdb.icon
@@ -151,8 +153,6 @@ import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons as SimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 
 private val LogoSize = 18.dp
 private val SheetPadding = 16.dp
@@ -862,7 +862,7 @@ private fun FilterSearchBar(
             if (loading) {
                 LoadingIndicator(modifier = Modifier.size(LogoSize))
             } else if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
+                IconButton(onClick = { onQueryChange("") }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.CloseW500Rounded, contentDescription = null)
                 }
             }

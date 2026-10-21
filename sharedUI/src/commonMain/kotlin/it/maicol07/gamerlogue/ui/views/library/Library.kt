@@ -60,7 +60,9 @@ fun Library() {
         AuthenticatedContent {
             LibraryContent(
                 onGameClick = { navigationState.backStack.add(it.detailNavKey) },
-                onSeeAllClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null, null, it)) }
+                onSeeAllClick = {
+                    navigationState.backStack.add(RootNavTree.GameList(null, null, null, null, it, null, null))
+                }
             )
         }
     }

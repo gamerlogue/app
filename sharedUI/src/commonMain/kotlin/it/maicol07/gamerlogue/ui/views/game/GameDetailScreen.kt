@@ -51,6 +51,7 @@ import it.maicol07.gamerlogue.ui.views.game.components.GameToolbar
 import it.maicol07.gamerlogue.ui.views.game.components.gameDetailContent
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.gamerlogue.ui.views.library.components.GameAddEditLibrarySheet
+import it.maicol07.gamerlogue.ui.views.userlist.AddToListSheet
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -69,9 +70,13 @@ fun GameDetailView(
     var titleVisible by remember { mutableStateOf(true) }
 
     var addToLibraryBottomSheetOpen by remember { mutableStateOf(false) }
+    var addToListSheetOpen by remember { mutableStateOf(false) }
     // Signing out drops the library entry the sheet edits, so the sheet goes with it.
     LaunchedEffect(uiState.isAuthenticated) {
-        if (!uiState.isAuthenticated) addToLibraryBottomSheetOpen = false
+        if (!uiState.isAuthenticated) {
+            addToLibraryBottomSheetOpen = false
+            addToListSheetOpen = false
+        }
     }
 
     // Library actions need a signed-in user; signed out, each one leads to the login screen instead.
@@ -83,7 +88,9 @@ fun GameDetailView(
         GameTopBar(
             game?.name,
             isOverlayMode = game != null && titleVisible,
-            actions = { game?.url?.takeIf { it.isNotBlank() }?.let { GameIgdbMenu(it) } }
+            actions = {
+                game?.url?.takeIf { it.isNotBlank() }?.let { GameIgdbMenu(it) }
+            }
         )
         when {
             game != null -> {
@@ -104,7 +111,9 @@ fun GameDetailView(
                         timeToBeat = uiState.timeToBeat,
                         onTitleVisibilityChange = { titleVisible = it },
                         onGameClick = { navigationState.backStack.add(it.detailNavKey) },
-                        onPresetClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null, it, null)) }
+                        onPresetClick = {
+                            navigationState.backStack.add(RootNavTree.GameList(null, null, null, it, null, null, null))
+                        }
                     )
                 }
                 AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
@@ -116,6 +125,7 @@ fun GameDetailView(
                     onBacklogClick = requiringLogin { viewModel.toggleStatus(GameLibraryStatus.BACKLOG) },
                     onPlayingClick = requiringLogin { viewModel.toggleStatus(GameLibraryStatus.PLAYING) },
                     onAddClick = requiringLogin { addToLibraryBottomSheetOpen = true },
+                    onAddToListClick = requiringLogin { addToListSheetOpen = true },
                 )
             }
             uiState.isLoading -> GameDetailLoading(gameId, coverImageId, gameName)
@@ -123,6 +133,8 @@ fun GameDetailView(
             else -> GameDetailNotFound()
         }
     }
+
+    if (addToListSheetOpen) AddToListSheet(gameId, onDismiss = { addToListSheetOpen = false })
 
     if (addToLibraryBottomSheetOpen && game != null) {
         GameAddEditLibrarySheet(

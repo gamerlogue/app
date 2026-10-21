@@ -42,7 +42,9 @@ val Event.gamesNavKey: RootNavTree.GameList
         eventId = id.toInt(),
         eventName = name,
         preset = null,
-        libraryStatus = null
+        libraryStatus = null,
+        libraryUserId = null,
+        pick = null,
     )
 
 private const val DatePattern = "dd/MM/yyyy"

@@ -29,6 +29,7 @@ import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.extensions.noBundlesOrAddons
 import it.maicol07.gamerlogue.extensions.notYetReleased
 import it.maicol07.gamerlogue.extensions.sort
+import it.maicol07.gamerlogue.extensions.userEntries
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -147,7 +148,8 @@ data class GameListFilterState(
  * With no filter and a [section] set it replays that Discover carousel's query so "see all"
  * paginates exactly what the carousel previewed; as soon as any filter or query is applied, it
  * switches to a plain filtered games query. With an [eventId] the list is scoped to that IGDB
- * event's games, with a [libraryStatus] to the user's library entries in that status.
+ * event's games, with a [libraryStatus] to the library entries in that status of [libraryUserId]
+ * (the signed-in user when null).
  */
 @KoinViewModel
 @Suppress("TooManyFunctions")
@@ -156,6 +158,7 @@ class GameListViewModel(
     @InjectedParam private val eventId: Int?,
     @InjectedParam preset: GameListPreset?,
     @InjectedParam private val libraryStatus: GameLibraryStatus?,
+    @InjectedParam private val libraryUserId: String?,
 ) : StateViewModel<GameListViewModel.UiState>(UiState.from(preset)) {
     /** Immutable state of the search results pane. */
     data class UiState(
@@ -411,7 +414,9 @@ class GameListViewModel(
 
     /** Loads the user's entries in [status], publishes them for the card badges and returns their game ids. */
     private suspend fun fetchLibraryEntries(status: GameLibraryStatus, filter: LibraryFilterState): List<Int> {
-        val entries = safeRequest { LibraryEntry.currentUserEntries(status).applyFilter(filter).allPages() }
+        val scope = libraryUserId?.let { LibraryEntry.userEntries(it, status) }
+            ?: LibraryEntry.currentUserEntries(status)
+        val entries = safeRequest { scope.applyFilter(filter).allPages() }
             .get()
             .orEmpty()
         update { copy(libraryEntries = entries.associateBy { it.gameId.toLong() }) }

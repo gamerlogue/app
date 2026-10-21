@@ -14,8 +14,10 @@ import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.gamerlogue.ui.views.list.GameListPreset
 import it.maicol07.gamerlogue.ui.views.list.GameListPresetType
+import it.maicol07.gamerlogue.ui.views.list.GamePick
 import it.maicol07.gamerlogue.ui.views.settings.categories.ImportMode
 import it.maicol07.gamerlogue.ui.views.settings.categories.ServiceSyncAction
+import it.maicol07.gamerlogue.ui.views.social.ConnectionsKind
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.serializer
@@ -44,7 +46,13 @@ class NavBackStackSerializationTest : StringSpec({
                 eventName = "Summer Games Fest",
                 preset = GameListPreset(GameListPresetType.DEVELOPER, 9, "FromSoftware"),
                 libraryStatus = GameLibraryStatus.PLAYING,
+                libraryUserId = "9f8b2c3e-user",
+                pick = GamePick("list-1", multiple = true),
             ),
+            RootNavTree.UserProfile(userId = "9f8b2c3e-user"),
+            RootNavTree.ReviewDetail(entryId = "12", userId = "9f8b2c3e-user"),
+            RootNavTree.UserListDetail(listId = "3"),
+            RootNavTree.UserConnections(userId = "9f8b2c3e-user", kind = ConnectionsKind.FOLLOWERS),
             RootNavTree.GameDetail(gameId = 7, coverImageId = "co1abc", gameName = "Hollow Knight"),
             RootNavTree.LibraryImportPreview(ExternalService.STEAM, ImportMode.WISHLIST),
             RootNavTree.ServiceSync(ExternalService.STEAM, ServiceSyncAction.CONNECT),

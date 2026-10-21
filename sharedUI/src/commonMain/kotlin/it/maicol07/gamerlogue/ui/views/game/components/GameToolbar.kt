@@ -17,6 +17,7 @@ import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import gamerlogue.sharedui.generated.resources.library__add_to_library
 import gamerlogue.sharedui.generated.resources.library__add_to_playing
 import gamerlogue.sharedui.generated.resources.library__remove_from_backlog
 import gamerlogue.sharedui.generated.resources.library__remove_from_playing
+import gamerlogue.sharedui.generated.resources.lists__add_to_list
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AddW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.BookmarkW500Rounded
@@ -41,6 +43,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Boo
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500RoundedFill
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlaylistAddW500Rounded
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import org.jetbrains.compose.resources.StringResource
@@ -48,8 +51,9 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Library actions for the game: backlog and playing toggles around a larger add/edit button, so the
- * primary action stands out by size rather than by color.
+ * primary action stands out by size rather than by color; adding to a list closes the row.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BoxScope.GameToolbar(
     expanded: Boolean,
@@ -59,6 +63,7 @@ fun BoxScope.GameToolbar(
     onBacklogClick: () -> Unit,
     onPlayingClick: () -> Unit,
     onAddClick: () -> Unit,
+    onAddToListClick: () -> Unit,
 ) = HorizontalFloatingToolbar(
     modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().offset(y = -ScreenOffset),
     expanded = expanded,
@@ -95,6 +100,11 @@ fun BoxScope.GameToolbar(
             enabled = (released && currentGameStatus == null) || currentGameStatus == GameLibraryStatus.PLAYING,
             onPlayingClick
         )
+        TooltipBox(tooltip = { PlainTooltip { Text(stringResource(Res.string.lists__add_to_list)) } }) {
+            IconButton(onClick = onAddToListClick, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.PlaylistAddW500Rounded, contentDescription = stringResource(Res.string.lists__add_to_list))
+            }
+        }
     },
     content = {
         GameToolbarAddButton(inLibrary = currentGameStatus != null, onClick = onAddClick)

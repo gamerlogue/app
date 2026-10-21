@@ -25,11 +25,13 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -42,15 +44,23 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.RoundedPolygon
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.home__empty_section
 import gamerlogue.sharedui.generated.resources.home__section_error
 import gamerlogue.sharedui.generated.resources.home__see_all
 import gamerlogue.sharedui.generated.resources.search__global_hint
+import gamerlogue.sharedui.generated.resources.social__feed
+import gamerlogue.sharedui.generated.resources.social__feed_empty
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowForwardW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.GroupW500Rounded
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.PagedState
+import it.maicol07.gamerlogue.data.Activity
+import it.maicol07.gamerlogue.extensions.gameId
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
 import it.maicol07.gamerlogue.ui.components.SectionIcon
@@ -62,8 +72,11 @@ import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.events.EventsViewModel
+import it.maicol07.gamerlogue.ui.views.social.ActivityItem
+import it.maicol07.gamerlogue.ui.views.social.ActivityViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -84,6 +97,12 @@ fun DiscoverView(
     val navigationState = LocalNavigationState.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val eventsState by eventsViewModel.uiState.collectAsStateWithLifecycle()
+    val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
+    val feedViewModel = koinViewModel<ActivityViewModel>(key = "discover-feed") { parametersOf(null) }
+    val feed by feedViewModel.activities.state.collectAsStateWithLifecycle()
+    val feedGames by feedViewModel.games.collectAsStateWithLifecycle()
+    // Refreshed on every visit and sign-in: the people followed keep doing things.
+    LaunchedEffect(session.userId) { if (session.isAuthenticated) feedViewModel.activities.refresh() }
     val listState = rememberLazyListState()
 
     Box {
@@ -99,7 +118,9 @@ fun DiscoverView(
                     state = uiState.sections.getValue(section),
                     hero = index == 0,
                     onGameClick = { navigationState.backStack.add(it.detailNavKey) },
-                    onSeeAllClick = { navigationState.backStack.add(RootNavTree.GameList(section, null, null, null, null)) }
+                    onSeeAllClick = {
+                        navigationState.backStack.add(RootNavTree.GameList(section, null, null, null, null, null, null))
+                    }
                 )
             }
             eventsSection(
@@ -107,12 +128,22 @@ fun DiscoverView(
                 onEventClick = { navigationState.backStack.add(it.gamesNavKey) },
                 onSeeAllClick = { navigationState.backStack.add(RootNavTree.EventList) }
             )
+            if (session.isAuthenticated) {
+                feedSection(
+                    state = feed,
+                    games = feedGames,
+                    onNavigate = navigationState.backStack::add,
+                    onSeeAllClick = { navigationState.backStack.add(RootNavTree.ActivityFeed) }
+                )
+            }
         }
         AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         FloatingSearchBar(listState) {
             GameSearchButton(
                 placeholder = stringResource(Res.string.search__global_hint),
-                onClick = { navigationState.backStack.add(RootNavTree.GameList(null, null, null, null, null)) }
+                onClick = {
+                    navigationState.backStack.add(RootNavTree.GameList(null, null, null, null, null, null, null))
+                }
             )
         }
     }
@@ -161,6 +192,38 @@ private fun LazyListScope.discoverSection(
         }
     }
 }
+
+/** A preview of what the followed users did lately, opening the full feed. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun LazyListScope.feedSection(
+    state: PagedState<Activity>,
+    games: Map<Int, Game>,
+    onNavigate: (NavKey) -> Unit,
+    onSeeAllClick: () -> Unit,
+) = item(key = "feed") {
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.SectionGap)) {
+        SectionHeader(
+            title = Res.string.social__feed,
+            icon = Icons.GroupW500Rounded,
+            iconShape = MaterialShapes.Pill,
+            iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            iconColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            onSeeAllClick = onSeeAllClick
+        )
+        when {
+            state.items.isEmpty() && state.loading -> Box(
+                Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) { LoadingIndicator() }
+            state.items.isEmpty() -> SectionMessage(Res.string.social__feed_empty)
+            else -> state.items.take(FEED_PREVIEW_SIZE).forEach { activity ->
+                ActivityItem(activity, activity.gameId?.let(games::get), onNavigate)
+            }
+        }
+    }
+}
+
+private const val FEED_PREVIEW_SIZE = 5
 
 /** Section title with its shaped icon, an optional item [count] next to it, and "see all". */
 @Composable

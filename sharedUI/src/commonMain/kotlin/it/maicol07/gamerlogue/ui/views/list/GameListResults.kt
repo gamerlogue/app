@@ -1,5 +1,11 @@
 package it.maicol07.gamerlogue.ui.views.list
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,13 +14,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -25,12 +34,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.gamelist__empty_hint
 import gamerlogue.sharedui.generated.resources.home__empty_section
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchOffW500Rounded
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
@@ -40,13 +51,18 @@ import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.stringResource
 
 private val EmptyStatePadding = 48.dp
+private val SelectedBorder = 3.dp
+private val SelectedCheckPadding = 4.dp
+private val SelectedCheckSize = 18.dp
+private const val SelectedCoverScale = 0.92f
 
 /**
  * The paginated cover grid of the game list destination.
  *
  * [onEndReached] receives the last visible item index whenever it changes, to prefetch the next
  * page. Pass [header] to prepend a full-width block that scrolls with the grid (e.g., the details
- * of the event the list is scoped to). [cardMetadata] supplies each cover's badges.
+ * of the event the list is scoped to). [cardMetadata] supplies each cover's badges; the games in
+ * [selected] show as picked.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -56,6 +72,7 @@ fun GameListResults(
     onGameClick: (Game) -> Unit,
     onEndReached: (lastVisibleIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
+    selected: Set<Int> = emptySet(),
     header: (@Composable () -> Unit)? = null,
 ) {
     val gridState = rememberLazyGridState()
@@ -81,14 +98,16 @@ fun GameListResults(
                 item(key = "header", span = { GridItemSpan(maxLineSpan) }) { content() }
             }
             items(uiState.games, key = { it.id }) { game ->
-                GameCoverCard(
-                    game = game,
-                    metadata = cardMetadata(game),
-                    showTitle = true,
-                    modifier = Modifier.animateItem().clip(MaterialTheme.shapes.large),
-                    sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
-                    onClick = onGameClick
-                )
+                SelectableCover(game.id.toInt() in selected, Modifier.animateItem()) {
+                    GameCoverCard(
+                        game = game,
+                        metadata = cardMetadata(game),
+                        showTitle = true,
+                        modifier = Modifier.clip(MaterialTheme.shapes.large),
+                        sizeModifier = Modifier.fillMaxWidth().aspectRatio(CoverAspectRatio),
+                        onClick = onGameClick
+                    )
+                }
             }
             if (uiState.loading) {
                 item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
@@ -106,6 +125,43 @@ fun GameListResults(
             }
         }
         AppVerticalScrollbar(gridState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+    }
+}
+
+/** A cover that shrinks, gains a primary outline and a check when [selected], springing between the two. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SelectableCover(selected: Boolean, modifier: Modifier, cover: @Composable () -> Unit) {
+    val scale by animateFloatAsState(
+        if (selected) SelectedCoverScale else 1f,
+        MaterialTheme.motionScheme.fastSpatialSpec()
+    )
+    val shape = MaterialTheme.shapes.large
+    Box(
+        modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .then(if (selected) Modifier.border(SelectedBorder, MaterialTheme.colorScheme.primary, shape) else Modifier)
+    ) {
+        cover()
+        AnimatedVisibility(
+            selected,
+            enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()),
+            exit = scaleOut(MaterialTheme.motionScheme.fastSpatialSpec()),
+            modifier = Modifier.align(Alignment.TopEnd).padding(Dimens.ItemGap),
+        ) {
+            Icon(
+                Icons.CheckW500Rounded,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .padding(SelectedCheckPadding)
+                    .size(SelectedCheckSize)
+            )
+        }
     }
 }
 
