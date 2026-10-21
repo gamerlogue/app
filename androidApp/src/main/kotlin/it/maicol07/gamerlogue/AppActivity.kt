@@ -15,6 +15,8 @@ import androidx.core.content.ContextCompat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.init
 
 // One pair per intent-filter in the manifest: the private-use scheme carries the callback in
 // host + path (`gamerlogue://auth/callback`), so it does not share the App Link's path.
@@ -34,6 +36,7 @@ class AppActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        FileKit.init(this)
         requestLocalNetworkAccess()
 
         captureLoginDeepLink(intent)

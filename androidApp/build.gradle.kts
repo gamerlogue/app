@@ -123,6 +123,8 @@ dependencies {
     // API 33; it requires an AppCompatActivity and an AppCompat-derived theme.
     implementation(libs.androidx.appcompat)
     implementation(libs.koin.android)
+    // FileKit.init(activity) in AppActivity, for the save dialog of the shared UI.
+    implementation(libs.filekit.dialogs)
 
     androidTestImplementation(libs.androidx.uitest.junit4)
     debugImplementation(libs.androidx.uitest.testManifest)

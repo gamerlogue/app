@@ -20,12 +20,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialShapes
@@ -52,15 +53,16 @@ import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__import_already_present
 import gamerlogue.sharedui.generated.resources.settings__import_cancel
-import gamerlogue.sharedui.generated.resources.settings__import_confirm_match
-import gamerlogue.sharedui.generated.resources.settings__import_confirm
 import gamerlogue.sharedui.generated.resources.settings__import_change_match
+import gamerlogue.sharedui.generated.resources.settings__import_confirm
+import gamerlogue.sharedui.generated.resources.settings__import_confirm_match
 import gamerlogue.sharedui.generated.resources.settings__import_deselect_all
 import gamerlogue.sharedui.generated.resources.settings__import_done
 import gamerlogue.sharedui.generated.resources.settings__import_finish
 import gamerlogue.sharedui.generated.resources.settings__import_group_already_present
 import gamerlogue.sharedui.generated.resources.settings__import_group_to_import
 import gamerlogue.sharedui.generated.resources.settings__import_group_to_review
+import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__import_search
 import gamerlogue.sharedui.generated.resources.settings__import_search_hint
@@ -68,7 +70,6 @@ import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__import_source
 import gamerlogue.sharedui.generated.resources.settings__open_store
-import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -133,7 +134,9 @@ private fun LibraryImportPreviewContent(
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             shape = MaterialShapes.Sunny,
         ) {
-            Button(onClick = onDone, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.settings__import_finish)) }
+            Button(onClick = onDone, shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(Res.string.settings__import_finish))
+            }
         }
         return
     }
@@ -160,6 +163,7 @@ private fun LibraryImportPreviewContent(
             TextButton(
                 onClick = { viewModel.setAllIncluded(!allSelected) },
                 enabled = toImport.isNotEmpty(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(
                     stringResource(
@@ -270,11 +274,11 @@ private fun ImportRow(
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (row.sourceUrl != null) {
-                IconButton(onClick = { onOpenStore(row.sourceUrl) }) {
+                IconButton(onClick = { onOpenStore(row.sourceUrl) }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.OpenInNewW500Rounded, contentDescription = stringResource(Res.string.settings__open_store))
                 }
             }
-            IconButton(onClick = onEdit) {
+            IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.EditW500Rounded, contentDescription = stringResource(Res.string.settings__import_change_match))
             }
         }
@@ -360,11 +364,15 @@ private fun MatchSearchDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onSearch(query) }, enabled = !searching) {
+            TextButton(onClick = { onSearch(query) }, enabled = !searching, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(Res.string.settings__import_search))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.settings__import_cancel)) } },
+        dismissButton = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(Res.string.settings__import_cancel))
+            }
+        },
         title = { Text(stringResource(Res.string.settings__import_search_hint)) },
         text = {
             Column {

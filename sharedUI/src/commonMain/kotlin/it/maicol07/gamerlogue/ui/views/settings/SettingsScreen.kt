@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,6 +26,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.graphics.shapes.RoundedPolygon
 import com.alorma.compose.settings.ui.expressive.SettingsMenuLink
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.account__delete
+import gamerlogue.sharedui.generated.resources.account__delete_confirm
+import gamerlogue.sharedui.generated.resources.account__delete_message
+import gamerlogue.sharedui.generated.resources.account__delete_summary
+import gamerlogue.sharedui.generated.resources.account__export
+import gamerlogue.sharedui.generated.resources.account__export_done
+import gamerlogue.sharedui.generated.resources.account__export_summary
 import gamerlogue.sharedui.generated.resources.auth__cancel
 import gamerlogue.sharedui.generated.resources.auth__logout
 import gamerlogue.sharedui.generated.resources.auth__logout_confirm_message
@@ -39,7 +48,9 @@ import gamerlogue.sharedui.generated.resources.settings__server
 import gamerlogue.sharedui.generated.resources.settings__server_summary
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DeleteW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DnsW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DownloadW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkedServicesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LogoutW500Rounded
@@ -47,14 +58,18 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Pal
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.ui.components.SectionIcon
+import it.maicol07.gamerlogue.ui.components.layout.LocalSnackbarHostState
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
+import it.maicol07.gamerlogue.ui.components.saveFile
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
+import it.maicol07.gamerlogue.ui.views.auth.isAuthenticated
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -82,6 +97,11 @@ fun SettingsView(
     val backStack = LocalNavigationState.current.backStack
     val colors = MaterialTheme.colorScheme
     var logoutDialogOpen by remember { mutableStateOf(false) }
+    var deleteDialogOpen by remember { mutableStateOf(false) }
+    val isAuthenticated = isAuthenticated()
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val exportedMessage = stringResource(Res.string.account__export_done)
     val groups = listOf(
         SettingsGroup(
             Res.string.settings__group_app,
@@ -110,12 +130,13 @@ fun SettingsView(
         ),
         SettingsGroup(
             Res.string.settings__group_account,
-            listOf(
-                SettingsEntry(
-                    Res.string.auth__logout, null,
-                    Icons.LogoutW500Rounded, MaterialShapes.Cookie4Sided, colors.errorContainer, colors.onErrorContainer,
-                    { logoutDialogOpen = true }, destructive = true,
-                ),
+            accountEntries(
+                isAuthenticated,
+                onLogout = { logoutDialogOpen = true },
+                onExport = {
+                    scope.launch { if (viewModel.exportAccount(::saveFile)) snackbar.showSnackbar(exportedMessage) }
+                },
+                onDelete = { deleteDialogOpen = true },
             )
         ),
     )
@@ -136,17 +157,26 @@ fun SettingsView(
         }
     }
 
+    if (deleteDialogOpen) {
+        DeleteAccountDialog(onConfirm = viewModel::deleteAccount, onDismiss = { deleteDialogOpen = false })
+    }
+
     if (logoutDialogOpen) {
         AlertDialog(
             onDismissRequest = { logoutDialogOpen = false },
             confirmButton = {
-                TextButton(onClick = {
-                    logoutDialogOpen = false
-                    viewModel.logout()
-                }) { Text(stringResource(Res.string.auth__logout)) }
+                TextButton(
+                    onClick = {
+                        logoutDialogOpen = false
+                        viewModel.logout()
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) { Text(stringResource(Res.string.auth__logout)) }
             },
             dismissButton = {
-                TextButton(onClick = { logoutDialogOpen = false }) { Text(stringResource(Res.string.auth__cancel)) }
+                TextButton(onClick = { logoutDialogOpen = false }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(Res.string.auth__cancel))
+                }
             },
             icon = { Icon(Icons.LogoutW500Rounded, null) },
             title = { Text(stringResource(Res.string.auth__logout)) },
@@ -154,6 +184,72 @@ fun SettingsView(
         )
     }
 }
+
+/** Sign-out, then the data export and the account deletion, which need a signed-in user. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun accountEntries(
+    isAuthenticated: Boolean,
+    onLogout: () -> Unit,
+    onExport: () -> Unit,
+    onDelete: () -> Unit,
+): List<SettingsEntry> {
+    val colors = MaterialTheme.colorScheme
+    val logout = SettingsEntry(
+        title = Res.string.auth__logout,
+        summary = null,
+        icon = Icons.LogoutW500Rounded,
+        iconShape = MaterialShapes.Cookie4Sided,
+        iconContainerColor = colors.errorContainer,
+        iconColor = colors.onErrorContainer,
+        onClick = onLogout,
+        destructive = true,
+    )
+    if (!isAuthenticated) return listOf(logout)
+    val export = SettingsEntry(
+        title = Res.string.account__export,
+        summary = Res.string.account__export_summary,
+        icon = Icons.DownloadW500Rounded,
+        iconShape = MaterialShapes.Pill,
+        iconContainerColor = colors.secondaryContainer,
+        iconColor = colors.onSecondaryContainer,
+        onClick = onExport,
+    )
+    val delete = SettingsEntry(
+        title = Res.string.account__delete,
+        summary = Res.string.account__delete_summary,
+        icon = Icons.DeleteW500Rounded,
+        iconShape = MaterialShapes.Cookie4Sided,
+        iconContainerColor = colors.errorContainer,
+        iconColor = colors.onErrorContainer,
+        onClick = onDelete,
+        destructive = true,
+    )
+    return listOf(export, logout, delete)
+}
+
+/** Asks before deleting the account for good. */
+@Composable
+private fun DeleteAccountDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) = AlertDialog(
+    onDismissRequest = onDismiss,
+    confirmButton = {
+        TextButton(
+            onClick = {
+                onDismiss()
+                onConfirm()
+            },
+            shapes = ButtonDefaults.shapes(),
+        ) { Text(stringResource(Res.string.account__delete_confirm), color = MaterialTheme.colorScheme.error) }
+    },
+    dismissButton = {
+        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(Res.string.auth__cancel))
+        }
+    },
+    icon = { Icon(Icons.DeleteW500Rounded, null) },
+    title = { Text(stringResource(Res.string.account__delete)) },
+    text = { Text(stringResource(Res.string.account__delete_message)) },
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
