@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.ui.views.library.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,9 +16,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconToggleButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -30,10 +27,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__add_to_library
@@ -47,8 +46,8 @@ import gamerlogue.sharedui.generated.resources.library__status
 import gamerlogue.sharedui.generated.resources.library__status_description
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CategoryW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TrophyW500Rounded
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.LibraryEntrySchema
 import it.maicol07.gamerlogue.ui.components.ButtonProgress
@@ -57,8 +56,16 @@ import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+
+/** The platforms the signed-in user owns, from their profile, to put first in the sheet. */
+@Composable
+private fun ownedPlatformIds(): List<Int> {
+    val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
+    return session.user?.platformsIds.orEmpty()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,9 +73,10 @@ fun GameAddEditLibrarySheet(
     game: Game,
     existingData: LibraryEntry? = null,
     onDismiss: () -> Unit,
+    ownedPlatformIds: List<Int> = ownedPlatformIds(),
     viewModel: AddToLibrarySheetViewModel = koinViewModel(
         key = "${game.id}_${existingData.hashCode()}",
-    ) { parametersOf(game, existingData) },
+    ) { parametersOf(game, existingData, ownedPlatformIds) },
     onDelete: () -> Unit = {},
     onSave: (LibraryEntry) -> Unit
 ) {
@@ -104,7 +112,7 @@ fun GameAddEditLibrarySheet(
                 )
             }
             item { EditionSection(game, viewModel) }
-            item { PlatformSection(game, viewModel) }
+            item { PlatformSection(viewModel) }
             if (!isBacklog) {
                 item {
                     Column(modifier = Modifier.animateItem()) {

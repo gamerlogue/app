@@ -53,7 +53,7 @@ class AddToLibrarySheetViewModelTest : StringSpec({
         runTest {
             // Released: an unreleased game preselects the backlog, so the status would never be missing.
             val game = Game(id = 1L, first_release_date = Instant.EPOCH)
-            val viewModel = AddToLibrarySheetViewModel(game = game, existingEntry = null)
+            val viewModel = AddToLibrarySheetViewModel(game = game, existingEntry = null, ownedPlatformIds = emptyList())
             @Suppress("CanBeVal")
             var savedEntry = false
 

@@ -28,7 +28,9 @@ import org.koin.core.component.inject
 @KoinViewModel
 class AddToLibrarySheetViewModel(
     @InjectedParam private val game: Game,
-    @InjectedParam private val existingEntry: LibraryEntry?
+    @InjectedParam private val existingEntry: LibraryEntry?,
+    /** The user's own platforms: listed first, and preselected on a new entry when only one fits. */
+    @InjectedParam ownedPlatformIds: List<Int>,
 ) : BaseViewModel() {
     private val igdb by inject<IgdbClient>()
     private val libraryChanges by inject<LibraryChanges>()
@@ -50,18 +52,28 @@ class AddToLibrarySheetViewModel(
     }
     var editions by mutableStateOf<List<Game>>(emptyList())
     var editionsLoading by mutableStateOf(true)
+
+    /** The game's platforms, the owned ones first. */
+    val platforms: List<Platform> = game.platforms.sortedByDescending { it.id.toInt() in ownedPlatformIds }
+    val ownedPlatforms: Set<Long> = game.platforms.filter { it.id.toInt() in ownedPlatformIds }.map { it.id }.toSet()
     val selectedPlatforms = mutableStateListOf<Platform>().apply {
-        addAll(
-            runCatching { existingEntry?.platformsIds }.getOrNull()?.mapNotNull { platformId ->
-                game.platforms.find { it.id.toInt() == platformId }
-            } ?: emptyList()
-        )
+        if (existingEntry == null) {
+            // The only owned platform the game runs on is the one it is being added for.
+            game.platforms.singleOrNull { it.id in ownedPlatforms }?.let(::add)
+        } else {
+            addAll(
+                runCatching { existingEntry.platformsIds }.getOrNull()?.mapNotNull { platformId ->
+                    game.platforms.find { it.id.toInt() == platformId }
+                } ?: emptyList()
+            )
+        }
     }
     var startDate by mutableStateOf(existingEntry?.startLocalDate)
     var endDate by mutableStateOf(existingEntry?.endLocalDate)
     var playedTime = TextFieldState(existingEntry?.playedTime?.toString() ?: "")
     var rating by mutableStateOf(existingEntry?.rating)
     var review = TextFieldState(existingEntry?.review ?: "")
+    var reviewSpoiler by mutableStateOf(existingEntry?.reviewSpoiler ?: false)
 
     var saveLoading by mutableStateOf(false)
     var deleteLoading by mutableStateOf(false)
@@ -142,6 +154,7 @@ class AddToLibrarySheetViewModel(
         entry.playedTime = if (isBacklog) null else playedTime.text.toString().ifBlank { null }?.toInt()
         entry.rating = if (isBacklog || isPlayingOrPaused) null else rating
         entry.review = if (isBacklog || isPlayingOrPaused) "" else review.text.toString()
+        entry.reviewSpoiler = reviewSpoiler && entry.hasReview
 
         return entry
     }

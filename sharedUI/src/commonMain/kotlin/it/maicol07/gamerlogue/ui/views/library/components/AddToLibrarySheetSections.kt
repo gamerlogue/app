@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +52,7 @@ import gamerlogue.sharedui.generated.resources.library__end_date
 import gamerlogue.sharedui.generated.resources.library__hours
 import gamerlogue.sharedui.generated.resources.library__owned
 import gamerlogue.sharedui.generated.resources.library__owned_description
+import gamerlogue.sharedui.generated.resources.library__platform_owned
 import gamerlogue.sharedui.generated.resources.library__platforms
 import gamerlogue.sharedui.generated.resources.library__platforms_description
 import gamerlogue.sharedui.generated.resources.library__played_time
@@ -61,6 +61,7 @@ import gamerlogue.sharedui.generated.resources.library__rating
 import gamerlogue.sharedui.generated.resources.library__rating_description
 import gamerlogue.sharedui.generated.resources.library__review
 import gamerlogue.sharedui.generated.resources.library__review_description
+import gamerlogue.sharedui.generated.resources.library__review_spoiler
 import gamerlogue.sharedui.generated.resources.library__standard_edition
 import gamerlogue.sharedui.generated.resources.library__start_date
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -72,7 +73,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Rat
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
-import it.maicol07.gamerlogue.extensions.expressiveShape
 import it.maicol07.gamerlogue.extensions.roundTo
 import it.maicol07.gamerlogue.ui.components.DatePickerFieldDialog
 import it.maicol07.gamerlogue.ui.components.NumericField
@@ -250,10 +250,7 @@ private fun EditionCover(game: Game, label: String, selected: Boolean, onClick: 
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun LazyItemScope.PlatformSection(
-    game: Game,
-    viewModel: AddToLibrarySheetViewModel
-) {
+internal fun LazyItemScope.PlatformSection(viewModel: AddToLibrarySheetViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -277,15 +274,16 @@ internal fun LazyItemScope.PlatformSection(
     }
     Spacer(modifier = Modifier.height(8.dp))
     SegmentedListLayout(Modifier.fillMaxWidth()) {
-        game.platforms.forEachIndexed { index, platform ->
+        viewModel.platforms.forEachIndexed { index, platform ->
             val checked = platform in viewModel.selectedPlatforms
+            val owned = platform.id in viewModel.ownedPlatforms
+            val containerColor = with(MaterialTheme.colorScheme) { if (owned) secondaryContainer else surfaceVariant }
             SegmentedListItem(
                 checked = checked,
                 onCheckedChange = { viewModel.togglePlatformSelection(platform) },
-                shapes = ListItemDefaults.segmentedShapes(index, game.platforms.lastIndex),
-                colors = ListItemDefaults.expressiveSegmentedColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
+                shapes = ListItemDefaults.segmentedShapes(index, viewModel.platforms.lastIndex),
+                colors = ListItemDefaults.expressiveSegmentedColors(containerColor = containerColor),
+                supportingContent = if (owned) ({ Text(stringResource(Res.string.library__platform_owned)) }) else null,
                 leadingContent = {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -395,7 +393,7 @@ internal fun RatingSection(viewModel: AddToLibrarySheetViewModel) {
 }
 
 @Composable
-internal fun ReviewSection(viewModel: AddToLibrarySheetViewModel) {
+internal fun ReviewSection(viewModel: AddToLibrarySheetViewModel) = Column {
     TextField(
         state = viewModel.review,
         label = { Text(stringResource(Res.string.library__review)) },
@@ -413,4 +411,8 @@ internal fun ReviewSection(viewModel: AddToLibrarySheetViewModel) {
             .height(140.dp),
         lineLimits = TextFieldLineLimits.MultiLine()
     )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(checked = viewModel.reviewSpoiler, onCheckedChange = { viewModel.reviewSpoiler = it })
+        Text(stringResource(Res.string.library__review_spoiler), style = MaterialTheme.typography.bodyMedium)
+    }
 }
