@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
@@ -34,13 +35,15 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Arr
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchW500Rounded
 import it.maicol07.gamerlogue.ui.components.layout.GlobalErrorAction
+import it.maicol07.gamerlogue.ui.components.layout.NotificationsAction
 
 private val BarHorizontalPadding = 8.dp
 private val BarVerticalPadding = 4.dp
 
 /**
  * Common chrome around a top-bar search field: window insets plus the bar's own padding, with the
- * global network-error action pinned to its right so it stays reachable in both variants.
+ * notifications bell and the global network-error action pinned to its right so they stay reachable in
+ * both variants.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +55,7 @@ private fun SearchBarShell(modifier: Modifier, bar: @Composable (Modifier) -> Un
     verticalAlignment = Alignment.CenterVertically
 ) {
     bar(Modifier.weight(1f))
+    NotificationsAction()
     GlobalErrorAction()
 }
 
@@ -148,17 +152,20 @@ fun GameListSearchBar(
             modifier = barModifier.fillMaxWidth().focusRequester(focusRequester),
             placeholder = { Text(placeholder) },
             leadingIcon = {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.ArrowBackW500Rounded, contentDescription = null)
                 }
             },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (textFieldState.text.isNotEmpty()) {
-                        IconButton(onClick = {
-                            textFieldState.clearText()
-                            onSearch("")
-                        }) {
+                        IconButton(
+                            onClick = {
+                                textFieldState.clearText()
+                                onSearch("")
+                            },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
                             Icon(Icons.CloseW500Rounded, contentDescription = null)
                         }
                     }

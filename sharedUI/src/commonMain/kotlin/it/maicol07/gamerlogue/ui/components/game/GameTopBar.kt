@@ -21,6 +21,7 @@ import gamerlogue.sharedui.generated.resources.common__back
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import it.maicol07.gamerlogue.ui.components.layout.GlobalErrorAction
+import it.maicol07.gamerlogue.ui.components.layout.NotificationsAction
 import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import org.jetbrains.compose.resources.stringResource
@@ -79,6 +80,7 @@ fun GameTopBar(
         },
         actions = {
             actions()
+            NotificationsAction()
             GlobalErrorAction()
         },
         colors = TopAppBarDefaults.topAppBarColors(
