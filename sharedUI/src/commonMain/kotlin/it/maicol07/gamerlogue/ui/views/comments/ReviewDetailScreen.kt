@@ -59,6 +59,7 @@ import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.components.reviewSectionTitle
 import it.maicol07.gamerlogue.ui.components.social.LikeButton
 import it.maicol07.gamerlogue.ui.components.social.ReportDialog
 import it.maicol07.gamerlogue.ui.components.social.SpoilerText
@@ -246,6 +247,7 @@ private fun ReviewContent(
             }
         }
         SpoilerText(entry.review.orEmpty(), entry.reviewSpoiler, MaterialTheme.typography.bodyLarge)
+        ReviewSections(entry)
         Row(verticalAlignment = Alignment.CenterVertically) {
             LikeButton(like.liked, like.count, loading = liking, onClick = onLike)
             if (!isMine) {
@@ -256,6 +258,26 @@ private fun ReviewContent(
         }
     }
     if (reportOpen) entry.id?.let { ReportDialog(InteractionTarget.REVIEW, it, onDismiss = { reportOpen = false }) }
+}
+
+/** A detailed review's sections, under the same spoiler flag as the review. */
+@Composable
+private fun ReviewSections(entry: LibraryEntry) {
+    val scale = currentRatingScale()
+    for (section in entry.reviewSections) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                listOfNotNull(
+                    reviewSectionTitle(section.key),
+                    section.rating?.let { "★ ${scale.format(it)}" }
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.titleMediumEmphasized
+            )
+            if (section.review.isNotBlank()) {
+                SpoilerText(section.review, entry.reviewSpoiler, MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

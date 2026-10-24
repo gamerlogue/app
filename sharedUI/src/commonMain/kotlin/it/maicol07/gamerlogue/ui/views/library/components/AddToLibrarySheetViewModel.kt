@@ -1,7 +1,9 @@
 package it.maicol07.gamerlogue.ui.views.library.components
 
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,11 +15,15 @@ import at.released.igdbclient.model.Platform
 import com.github.michaelbull.result.get
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__error_select_status
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.data.MAX_RATING
+import it.maicol07.gamerlogue.data.ReviewSection
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.isReleased
+import it.maicol07.gamerlogue.ui.components.ReviewMode
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -35,6 +41,7 @@ class AddToLibrarySheetViewModel(
 ) : BaseViewModel() {
     private val igdb by inject<IgdbClient>()
     private val libraryChanges by inject<LibraryChanges>()
+    private val preferences by inject<AppPreferences>()
 
     /** An unreleased game can only be backlogged, and not owned yet. */
     val released = game.isReleased()
@@ -76,6 +83,21 @@ class AddToLibrarySheetViewModel(
     var review = TextFieldState(existingEntry?.review ?: "")
     var reviewSpoiler by mutableStateOf(existingEntry?.reviewSpoiler ?: false)
 
+    /** Read once: switching the setting does not reshape a sheet already open. */
+    val detailedReview = preferences.reviewMode.value == ReviewMode.DETAILED
+    val sections = mutableStateListOf<SectionDraft>().apply {
+        existingEntry?.reviewSections?.forEach { add(SectionDraft(it)) }
+    }
+    val customSectionTitle = TextFieldState()
+
+    /** The sections' mean in a detailed review that has them, the slider's value otherwise. */
+    val overallRating: Float?
+        get() = if (detailedReview && sections.isNotEmpty()) {
+            sections.map { it.rating }.average().toFloat()
+        } else {
+            rating?.toFloat()
+        }
+
     var saveLoading by mutableStateOf(false)
     var deleteLoading by mutableStateOf(false)
     var error by mutableStateOf<StringResource?>(null)
@@ -108,6 +130,18 @@ class AddToLibrarySheetViewModel(
         } else {
             selectedEditions.add(editionId)
         }
+    }
+
+    /** Adds a section unless [key] is blank or already there. */
+    fun addSection(key: String) {
+        if (key.isNotBlank() && sections.none { it.key == key }) {
+            sections.add(SectionDraft(key, DEFAULT_SECTION_RATING, ""))
+        }
+    }
+
+    fun addCustomSection() {
+        addSection(customSectionTitle.text.toString().trim())
+        customSectionTitle.clearText()
     }
 
     fun deleteEntry(onDelete: () -> Unit) = viewModelScope.launch {
@@ -153,7 +187,16 @@ class AddToLibrarySheetViewModel(
         entry.startDate = if (isBacklog) null else startDate?.toString()
         entry.endDate = if (isBacklog || isPlayingOrPaused) null else endDate?.toString()
         entry.playedTime = if (isBacklog) null else playedTime.text.toString().ifBlank { null }?.toInt()
-        entry.rating = if (isBacklog || isPlayingOrPaused) null else rating?.toFloat()?.roundToInt()
+        val rated = !isBacklog && !isPlayingOrPaused
+        entry.rating = if (rated) overallRating?.roundToInt() else null
+        // A basic review leaves the sections of an earlier detailed one untouched.
+        if (!rated) {
+            entry.ratingDetails = null
+        } else if (detailedReview) {
+            entry.ratingDetails = sections
+                .associate { it.key to it.toAttribute() }
+                .ifEmpty { null }
+        }
         entry.review = if (isBacklog || isPlayingOrPaused) "" else review.text.toString()
         entry.reviewSpoiler = reviewSpoiler && entry.hasReview
 
@@ -162,5 +205,17 @@ class AddToLibrarySheetViewModel(
 
     private companion object {
         const val EDITIONS_LIMIT = 50
+        const val DEFAULT_SECTION_RATING = MAX_RATING / 2f
     }
+}
+
+/** A detailed review's section while it is edited. */
+class SectionDraft(val key: String, rating: Float, review: String) {
+    constructor(section: ReviewSection) : this(section.key, section.rating?.toFloat() ?: 0f, section.review)
+
+    var rating by mutableFloatStateOf(rating)
+    val review = TextFieldState(review)
+
+    /** The `rating_details` value of this section. */
+    fun toAttribute(): Map<String, Any> = mapOf("rating" to rating.roundToInt(), "review" to review.text.toString())
 }

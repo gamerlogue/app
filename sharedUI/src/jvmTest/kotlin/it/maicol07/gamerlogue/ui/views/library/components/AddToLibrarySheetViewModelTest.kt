@@ -5,9 +5,11 @@ import at.released.igdbclient.IgdbEndpoint
 import at.released.igdbclient.IgdbWebhookApi
 import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.model.Game
+import com.russhwolf.settings.PreferencesSettings
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,6 +22,8 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import java.time.Instant
+import java.util.UUID
+import java.util.prefs.Preferences
 
 // The ViewModel's init block loads game editions via IgdbClient (see AddToLibrarySheetViewModel);
 // this fake lets it fail harmlessly (caught by safeRequest) without a real IGDB backend.
@@ -33,6 +37,7 @@ private val fakeIgdbClient = object : IgdbClient {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddToLibrarySheetViewModelTest : StringSpec({
+    val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
     beforeTest {
         Dispatchers.setMain(StandardTestDispatcher())
         startKoin {
@@ -40,6 +45,7 @@ class AddToLibrarySheetViewModelTest : StringSpec({
                 module {
                     single { ExceptionReporter() }
                     single<IgdbClient> { fakeIgdbClient }
+                    single { AppPreferences(PreferencesSettings(preferences)) }
                 }
             )
         }
@@ -48,6 +54,7 @@ class AddToLibrarySheetViewModelTest : StringSpec({
         Dispatchers.resetMain()
         stopKoin()
     }
+    afterSpec { preferences.removeNode() }
 
     "saveEntry without a selected status sets an error and skips save" {
         runTest {

@@ -132,6 +132,13 @@ fun GameAddEditLibrarySheet(
                         RatingSection(viewModel)
                     }
                 }
+                if (viewModel.detailedReview) {
+                    item {
+                        Box(modifier = Modifier.animateItem()) {
+                            DetailedReviewSection(viewModel)
+                        }
+                    }
+                }
                 item {
                     Box(modifier = Modifier.animateItem()) {
                         ReviewSection(viewModel)

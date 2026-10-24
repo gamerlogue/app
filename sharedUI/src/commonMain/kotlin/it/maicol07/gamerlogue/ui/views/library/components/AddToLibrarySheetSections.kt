@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,9 +20,12 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +36,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,14 +63,22 @@ import gamerlogue.sharedui.generated.resources.library__platforms_description
 import gamerlogue.sharedui.generated.resources.library__played_time
 import gamerlogue.sharedui.generated.resources.library__played_time_description
 import gamerlogue.sharedui.generated.resources.library__rating
+import gamerlogue.sharedui.generated.resources.library__rating_average_description
 import gamerlogue.sharedui.generated.resources.library__rating_description
 import gamerlogue.sharedui.generated.resources.library__review
+import gamerlogue.sharedui.generated.resources.library__review_add_section
+import gamerlogue.sharedui.generated.resources.library__review_custom_section
 import gamerlogue.sharedui.generated.resources.library__review_description
+import gamerlogue.sharedui.generated.resources.library__review_remove_section
+import gamerlogue.sharedui.generated.resources.library__review_sections
+import gamerlogue.sharedui.generated.resources.library__review_sections_description
 import gamerlogue.sharedui.generated.resources.library__review_spoiler
 import gamerlogue.sharedui.generated.resources.library__standard_edition
 import gamerlogue.sharedui.generated.resources.library__start_date
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AddW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DevicesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Inventory2W500Rounded
@@ -73,14 +86,17 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Rat
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import it.maicol07.gamerlogue.data.MAX_RATING
+import it.maicol07.gamerlogue.data.ReviewAspect
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.ui.components.DatePickerFieldDialog
 import it.maicol07.gamerlogue.ui.components.NumericField
+import it.maicol07.gamerlogue.ui.components.RatingScale
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.game.bottomScrim
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
+import it.maicol07.gamerlogue.ui.components.reviewSectionTitle
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -358,6 +374,7 @@ internal fun PlayedTimeField(viewModel: AddToLibrarySheetViewModel) {
 @Composable
 internal fun RatingSection(viewModel: AddToLibrarySheetViewModel) {
     val scale = currentRatingScale()
+    val averaged = viewModel.detailedReview && viewModel.sections.isNotEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -371,32 +388,111 @@ internal fun RatingSection(viewModel: AddToLibrarySheetViewModel) {
             Text(
                 text = stringResource(
                     Res.string.library__rating,
-                    scale.format(viewModel.rating ?: 0f),
+                    scale.format(viewModel.overallRating ?: 0f),
                     scale.max
                 ),
                 style = MaterialTheme.typography.titleMedium
             )
         }
         Text(
-            text = stringResource(Res.string.library__rating_description, scale.max),
+            text = if (averaged) {
+                stringResource(Res.string.library__rating_average_description)
+            } else {
+                stringResource(Res.string.library__rating_description, scale.max)
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-    Spacer(modifier = Modifier.height(8.dp))
-    val sliderState = remember {
-        SliderState(
-            viewModel.rating?.toFloat() ?: 0f,
-            steps = MAX_RATING - 1,
-            trackRange = 0f..MAX_RATING.toFloat()
+    if (!averaged) {
+        Spacer(modifier = Modifier.height(8.dp))
+        val sliderState = remember {
+            SliderState(
+                viewModel.rating?.toFloat() ?: 0f,
+                steps = MAX_RATING - 1,
+                trackRange = 0f..MAX_RATING.toFloat()
+            )
+        }
+        Slider(
+            state = sliderState,
+            onValueChange = {
+                sliderState.value = it
+                viewModel.rating = it
+            },
+            modifier = Modifier.fillMaxWidth()
         )
     }
-    Slider(
-        state = sliderState,
-        onValueChange = {
-            sliderState.value = it
-            viewModel.rating = it
+}
+
+/** The sections of a detailed review, plus chips for the predefined ones left and a field for a custom one. */
+@Composable
+internal fun DetailedReviewSection(viewModel: AddToLibrarySheetViewModel) = Column(
+    verticalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(Res.string.library__review_sections),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = stringResource(Res.string.library__review_sections_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    val scale = currentRatingScale()
+    for (section in viewModel.sections) {
+        key(section.key) {
+            SectionEditor(section, scale, onRemove = { viewModel.sections.remove(section) })
+        }
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (aspect in ReviewAspect.entries) {
+            if (viewModel.sections.none { it.key == aspect.key }) {
+                AssistChip(
+                    onClick = { viewModel.addSection(aspect.key) },
+                    label = { Text(stringResource(aspect.label)) },
+                    leadingIcon = { Icon(Icons.AddW500Rounded, contentDescription = null) }
+                )
+            }
+        }
+    }
+    TextField(
+        state = viewModel.customSectionTitle,
+        label = { Text(stringResource(Res.string.library__review_custom_section)) },
+        trailingIcon = {
+            IconButton(onClick = viewModel::addCustomSection, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.AddW500Rounded, contentDescription = stringResource(Res.string.library__review_add_section))
+            }
         },
+        lineLimits = TextFieldLineLimits.SingleLine,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun SectionEditor(section: SectionDraft, scale: RatingScale, onRemove: () -> Unit) = Column {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = "${reviewSectionTitle(section.key)} · ${scale.format(section.rating)}",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+            Icon(Icons.CloseW500Rounded, contentDescription = stringResource(Res.string.library__review_remove_section))
+        }
+    }
+    Slider(
+        value = section.rating,
+        onValueChange = { section.rating = it },
+        valueRange = 0f..MAX_RATING.toFloat(),
+        steps = MAX_RATING - 1,
+        modifier = Modifier.fillMaxWidth()
+    )
+    TextField(
+        state = section.review,
+        label = { Text(stringResource(Res.string.library__review)) },
+        lineLimits = TextFieldLineLimits.MultiLine(),
         modifier = Modifier.fillMaxWidth()
     )
 }

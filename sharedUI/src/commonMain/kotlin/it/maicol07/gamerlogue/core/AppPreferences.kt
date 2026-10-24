@@ -8,6 +8,7 @@ import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import it.maicol07.gamerlogue.applyAppLanguage
 import it.maicol07.gamerlogue.isAndroidEmulator
 import it.maicol07.gamerlogue.ui.components.RatingScale
+import it.maicol07.gamerlogue.ui.components.ReviewMode
 import it.maicol07.gamerlogue.ui.theme.AppTheme
 import it.maicol07.gamerlogue.ui.views.settings.utils.SettingsKeys
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +59,10 @@ class AppPreferences(private val settings: ObservableSettings) {
         settings.getStringOrNullStateFlow(scope, SettingsKeys.RATING_SCALE.name)
             .mapState { name -> RatingScale.entries.find { it.name == name } ?: RatingScale.TEN }
 
+    val reviewMode: StateFlow<ReviewMode> =
+        settings.getStringOrNullStateFlow(scope, SettingsKeys.REVIEW_MODE.name)
+            .mapState { name -> ReviewMode.entries.find { it.name == name } ?: ReviewMode.BASIC }
+
     val igdbApiUrl: StateFlow<String> = combine(serverUrl, igdbApiUrlOverride, ::resolveIgdbApiUrl)
         .stateIn(scope, SharingStarted.Eagerly, resolveIgdbApiUrl(serverUrl.value, igdbApiUrlOverride.value))
 
@@ -89,6 +94,8 @@ class AppPreferences(private val settings: ObservableSettings) {
     }
 
     fun setRatingScale(scale: RatingScale) = settings.putString(SettingsKeys.RATING_SCALE.name, scale.name)
+
+    fun setReviewMode(mode: ReviewMode) = settings.putString(SettingsKeys.REVIEW_MODE.name, mode.name)
 
     /** Null restores [DEFAULT_SERVER_URL]. */
     fun setServerUrl(url: String?) = putOrRemove(SettingsKeys.SERVER_URL, url)

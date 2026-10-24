@@ -29,6 +29,7 @@ import gamerlogue.sharedui.generated.resources.settings__dynamic_colors
 import gamerlogue.sharedui.generated.resources.settings__appearance
 import gamerlogue.sharedui.generated.resources.settings__language
 import gamerlogue.sharedui.generated.resources.settings__rating_scale
+import gamerlogue.sharedui.generated.resources.settings__review_mode
 import gamerlogue.sharedui.generated.resources.settings__reviews
 import gamerlogue.sharedui.generated.resources.settings__theme
 import io.github.fopwoc.nav3ksp.annotation.Branch
@@ -37,6 +38,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ContrastW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LanguageW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WandStarsW500Rounded
 import it.maicol07.gamerlogue.BuildConfig
@@ -48,6 +50,7 @@ import it.maicol07.gamerlogue.extensions.getFlag
 import it.maicol07.gamerlogue.extensions.supportsDeviceColors
 import it.maicol07.gamerlogue.extensions.supportsSystemAppLanguage
 import it.maicol07.gamerlogue.ui.components.RatingScale
+import it.maicol07.gamerlogue.ui.components.ReviewMode
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
@@ -71,6 +74,7 @@ fun AppearanceView() {
     val useDynamicColors by preferences.useDynamicColors.collectAsStateWithLifecycle()
     val language by preferences.language.collectAsStateWithLifecycle()
     val ratingScale by preferences.ratingScale.collectAsStateWithLifecycle()
+    val reviewMode by preferences.reviewMode.collectAsStateWithLifecycle()
 
     // The device colors row only exists on some platforms, so the segment count follows it.
     val showDynamicColors = getPlatform().supportsDeviceColors()
@@ -97,7 +101,7 @@ fun AppearanceView() {
             }
             SettingsGroupHeader(stringResource(Res.string.settings__reviews))
             SegmentedListLayout {
-                RatingScaleSetting(ratingScale, preferences::setRatingScale)
+                ReviewsSection(ratingScale, preferences::setRatingScale, reviewMode, preferences::setReviewMode)
             }
         }
     }
@@ -105,7 +109,12 @@ fun AppearanceView() {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun RatingScaleSetting(ratingScale: RatingScale, onRatingScaleSelected: (RatingScale) -> Unit) {
+private fun ReviewsSection(
+    ratingScale: RatingScale,
+    onRatingScaleSelected: (RatingScale) -> Unit,
+    reviewMode: ReviewMode,
+    onReviewModeSelected: (ReviewMode) -> Unit
+) {
     SettingsButtonGroup(
         title = { Text(stringResource(Res.string.settings__rating_scale)) },
         items = RatingScale.entries,
@@ -121,7 +130,25 @@ private fun RatingScaleSetting(ratingScale: RatingScale, onRatingScaleSelected: 
         },
         itemTitleMap = { "1–${it.max}" },
         colors = ListItemDefaults.expressiveSegmentedColors(),
-        shapes = ListItemDefaults.segmentedShapes(0, 1)
+        shapes = ListItemDefaults.segmentedShapes(0, 2)
+    )
+    val modeStrings = ReviewMode.entries.associateWith { stringResource(it.label) }
+    SettingsButtonGroup(
+        title = { Text(stringResource(Res.string.settings__review_mode)) },
+        items = ReviewMode.entries,
+        selectedItem = reviewMode,
+        onItemSelected = onReviewModeSelected,
+        icon = {
+            SectionIcon(
+                Icons.RateReviewW500Rounded,
+                MaterialShapes.Clover4Leaf,
+                MaterialTheme.colorScheme.tertiaryContainer,
+                MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        },
+        itemTitleMap = { modeStrings.getValue(it) },
+        colors = ListItemDefaults.expressiveSegmentedColors(),
+        shapes = ListItemDefaults.segmentedShapes(1, 2)
     )
 }
 

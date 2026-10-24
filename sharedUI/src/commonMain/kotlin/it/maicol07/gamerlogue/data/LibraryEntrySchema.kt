@@ -26,7 +26,12 @@ interface LibraryEntrySchema {
     @Attr val endDate: String?
     @Attr val playedTime: Int? // in hours
     @Attr val rating: Number? // 0-MAX_RATING
-    @Attr val ratingDetails: Map<*, Number>? // 0-10
+
+    /**
+     * A detailed review's sections as `{key: {rating, review}}`; read them through [reviewSections].
+     * Untyped because the server sends an empty one as a JSON array (`[]`).
+     */
+    @Attr val ratingDetails: Any?
     @Attr val review: String?
     @Attr val reviewSpoiler: Boolean
         get() = false
@@ -49,6 +54,13 @@ interface LibraryEntrySchema {
     /** The backend treats a null and an empty review alike: no review. */
     val hasReview: Boolean
         get() = !review.isNullOrBlank()
+
+    /** [ratingDetails] narrowed defensively: an array or a value in any other shape yields no section. */
+    val reviewSections: List<ReviewSection>
+        get() = (ratingDetails as? Map<*, *>).orEmpty().mapNotNull { (key, value) ->
+            if (key !is String || value !is Map<*, *>) return@mapNotNull null
+            ReviewSection(key, (value["rating"] as? Number)?.toDouble(), value["review"] as? String ?: "")
+        }
 
     enum class CompletionStatus(val displayName: StringResource) {
         MAIN_STORY(Res.string.library__completion_main_story),

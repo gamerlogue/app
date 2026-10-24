@@ -8,4 +8,5 @@ enum class SettingsKeys {
     IGDB_API_URL,
     CALENDAR_BACKLOG_ONLY,
     RATING_SCALE,
+    REVIEW_MODE,
 }
