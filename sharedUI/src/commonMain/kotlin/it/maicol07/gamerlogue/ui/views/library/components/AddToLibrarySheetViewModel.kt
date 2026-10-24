@@ -94,8 +94,7 @@ class AddToLibrarySheetViewModel(
 
     /** Only a finished game is rated and reviewed: saving with any other status clears both. */
     val clearsReview: Boolean
-        get() = selectedStatus in UNRATED_STATUSES && existingEntry != null &&
-            (existingEntry.hasReview || existingEntry.rating != null)
+        get() = selectedStatus in UNRATED_STATUSES && existingEntry?.hasReview == true
 
     var saveLoading by mutableStateOf(false)
     var deleteLoading by mutableStateOf(false)

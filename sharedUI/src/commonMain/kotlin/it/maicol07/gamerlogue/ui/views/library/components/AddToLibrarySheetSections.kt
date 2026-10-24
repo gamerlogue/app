@@ -468,6 +468,9 @@ internal fun ReviewRow(entry: LibraryEntry?, enabled: Boolean, onClick: () -> Un
     Modifier.fillMaxWidth()
 ) {
     val hasReview = entry?.hasReview == true
+    // A review may be only a rating, with nothing to preview.
+    val preview = entry?.let { reviewPreview(it) }.orEmpty()
+        .ifBlank { stringResource(Res.string.library__review_description) }
     SegmentedListItem(
         onClick = onClick,
         enabled = enabled,
@@ -475,11 +478,7 @@ internal fun ReviewRow(entry: LibraryEntry?, enabled: Boolean, onClick: () -> Un
         colors = ListItemDefaults.expressiveSegmentedColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         leadingContent = { Icon(Icons.RateReviewW500Rounded, contentDescription = null) },
         supportingContent = {
-            MarkdownText(
-                if (hasReview) reviewPreview(entry) else stringResource(Res.string.library__review_description),
-                style = LocalTextStyle.current,
-                maxLines = 2
-            )
+            MarkdownText(preview, style = LocalTextStyle.current, maxLines = 2)
         },
         trailingContent = { Icon(Icons.KeyboardArrowRightW500Rounded, contentDescription = null) }
     ) {
