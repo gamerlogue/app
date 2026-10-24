@@ -48,6 +48,18 @@ fun LibraryEntry.Companion.userReviews(userId: String): Scope<LibraryEntry> =
     }
 
 /**
+ * Scope returning every user's reviews of [gameId] (the base game), the most liked first, with their
+ * authors; private profiles and blocked users are left out by the server.
+ */
+fun LibraryEntry.Companion.gameReviews(gameId: Int): Scope<LibraryEntry> =
+    scope {
+        where("game_id", gameId)
+        where("has_review", "true")
+        order("likes_count", SortDirection.DESC)
+        order("review_updated_at", SortDirection.DESC)
+    }.includes("user")
+
+/**
  * Scope returning the authenticated user's library entry for [gameId], if any.
  */
 fun LibraryEntry.Companion.currentUserEntryForGame(gameId: Number): Scope<LibraryEntry> =

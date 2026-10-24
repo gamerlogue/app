@@ -36,6 +36,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchOffW500Rounded
+import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.igdb.isReleased
 import it.maicol07.gamerlogue.ui.components.StatusMessage
@@ -109,6 +110,13 @@ fun GameDetailView(
                         game,
                         editions = uiState.editions,
                         timeToBeat = uiState.timeToBeat,
+                        reviews = uiState.reviews,
+                        reviewStats = uiState.reviewStats,
+                        ownEntry = uiState.libraryEntry,
+                        onReviewClick = {
+                            navigationState.backStack.add(RootNavTree.ReviewDetail(it.id.orEmpty(), it.userId))
+                        },
+                        onAllReviewsClick = { navigationState.backStack.add(RootNavTree.GameReviews(game.baseGameId)) },
                         onTitleVisibilityChange = { titleVisible = it },
                         onGameClick = { navigationState.backStack.add(it.detailNavKey) },
                         onPresetClick = {

@@ -56,10 +56,16 @@
 
     <!-- Game details -->
     <string name="game__release_dates_title">Release dates by platform</string>
+    <string name="game__ratings_gamerlogue">Gamerlogue</string>
+    <string name="game__reviews_title">Reviews</string>
+    <string name="game__reviews_all">See all %1$d</string>
+    <string name="game__your_review">Your review</string>
+    <string name="game__reviews_average">Players' rating</string>
+    <string name="game__reviews_empty">No reviews yet</string>
     <string name="game__ratings_title">Ratings</string>
     <string name="game__ratings_igdb_user">IGDB Users</string>
     <string name="game__ratings_igdb_critics">IGDB Critics</string>
-    <string name="game__rating_description">%1$s: %2$s out of 10, %3$d ratings</string>
+    <string name="game__rating_description">%1$s: %2$s out of %4$d, %3$d ratings</string>
     <string name="game__genres_title">Genres</string>
     <string name="game__themes_title">Themes</string>
     <string name="game__game_modes_title">Game Modes</string>
@@ -734,5 +740,9 @@
     <plurals name="gamelist__pick_confirm">
         <item quantity="one">Add %1$d game</item>
         <item quantity="other">Add %1$d games</item>
+    </plurals>
+    <plurals name="game__reviews_count">
+        <item quantity="one">%1$d review</item>
+        <item quantity="other">%1$d reviews</item>
     </plurals>
 </resources>

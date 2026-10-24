@@ -8,6 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameTimeToBeat
+import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.ui.views.game.ReviewStats
 import it.maicol07.gamerlogue.ui.views.list.GameListPreset
 
 const val Ratio169 = 16f / 9f
@@ -25,15 +27,22 @@ internal fun LazyListScope.gameDetailContent(
     game: Game,
     editions: List<Game>,
     timeToBeat: GameTimeToBeat?,
+    reviews: List<LibraryEntry>,
+    reviewStats: ReviewStats?,
+    ownEntry: LibraryEntry?,
+    onReviewClick: (LibraryEntry) -> Unit,
+    onAllReviewsClick: () -> Unit,
     onTitleVisibilityChange: (Boolean) -> Unit,
     onGameClick: (Game) -> Unit,
     onPresetClick: (GameListPreset) -> Unit
 ) {
-    // Ordered by the questions a visitor asks: what it is and whether it is good, what it looks like,
+    // Ordered by the questions a visitor asks: what it is and whether it is good (and what players
+    // wrote about it), what it looks like,
     // how it plays, what else belongs to it, its other releases; then reference data, and similar
     // games last as the way out.
     item { GameHeader(game, onTitleVisibilityChange, onPresetClick) }
-    item { GameRatings(game) }
+    item { GameRatings(game, reviewStats) }
+    item { GameReviewsSection(reviews, reviewStats, ownEntry, onReviewClick, onAllReviewsClick) }
     item { GameDescription(game) }
     item { GameMedia(game) }
     item { GameGenresAndThemes(game, onPresetClick) }

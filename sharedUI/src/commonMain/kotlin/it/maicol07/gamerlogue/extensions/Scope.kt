@@ -7,6 +7,7 @@ import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt.Scope
 import it.maicol07.spraypaintkt.interfaces.HttpClientResponse
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 
 /**
@@ -22,6 +23,10 @@ private const val PageParam = "page"
 /** The total number of resources matching the query, from the `meta.totalItems` every list response carries. */
 val CollectionProxy<*>.totalItems: Int?
     get() = (meta["totalItems"] as? JsonPrimitive)?.intOrNull
+
+/** The mean rating (0–100) the server adds to the reviews of a game (`meta.average_rating`). */
+val CollectionProxy<*>.averageRating: Double?
+    get() = (meta["average_rating"] as? JsonPrimitive)?.doubleOrNull
 
 /** This scope restricted to page [number] (1-based). */
 fun <R : Resource> Scope<R>.pageNumber(number: Int): Scope<R> = extraParam(PageParam, number.toString())

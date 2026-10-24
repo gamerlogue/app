@@ -14,12 +14,16 @@ import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.extensions.averageRating
 import it.maicol07.gamerlogue.extensions.currentUserEntryForGame
+import it.maicol07.gamerlogue.extensions.gameReviews
 import it.maicol07.gamerlogue.extensions.igdb.ARTWORKS_TYPE_FIELD
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.multiqueryResults
+import it.maicol07.gamerlogue.extensions.pageNumber
 import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.extensions.self
+import it.maicol07.gamerlogue.extensions.totalItems
 import it.maicol07.gamerlogue.extensions.where
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
@@ -131,6 +135,9 @@ internal val DetailFields: List<IgdbRequestField<*>> = with(Game.field) {
 /** [DetailFields] plus the artwork type, which the typed DSL lacks and `Artwork.isLogo` reads. */
 internal val DetailFieldNames: List<String> = DetailFields.map { it.igdbFullName } + ARTWORKS_TYPE_FIELD
 
+/** What the server says of all the reviews of a game: how many and their mean rating (0–100). */
+data class ReviewStats(val total: Int, val averageRating: Double?)
+
 @KoinViewModel
 class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameDetailViewModel.UiState>(UiState()) {
     /** Immutable state of the Game detail screen. */
@@ -140,6 +147,9 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val editions: List<Game> = emptyList(),
         val timeToBeat: GameTimeToBeat? = null,
         val libraryEntry: LibraryEntry? = null,
+        /** The first page of the game's reviews by every user, the most liked first. */
+        val reviews: List<LibraryEntry> = emptyList(),
+        val reviewStats: ReviewStats? = null,
         val isLoading: Boolean = true,
         /** The last load failed (network, server), as opposed to IGDB returning no such game. */
         val isLoadError: Boolean = false,
@@ -165,15 +175,30 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val details = loadGameDetails()
         viewModelScope.launch {
             authProvider.session.map { it.isAuthenticated }.distinctUntilChanged().collect { authenticated ->
-                update { copy(isAuthenticated = authenticated, libraryEntry = null) }
+                update {
+                    copy(
+                        isAuthenticated = authenticated,
+                        libraryEntry = null,
+                        reviews = emptyList(),
+                        reviewStats = null
+                    )
+                }
                 // The entry is keyed by the base game, known only once the game says whether it is an edition.
                 details.join()
-                if (authenticated) loadLibraryEntry()
+                if (authenticated) {
+                    loadLibraryEntry()
+                    loadReviews()
+                }
             }
         }
         // An entry changed elsewhere (e.g. its review, in the editor) would otherwise reopen stale in the sheet.
         viewModelScope.launch {
-            libraryChanges.changes.collect { if (state.isAuthenticated) loadLibraryEntry() }
+            libraryChanges.changes.collect {
+                if (state.isAuthenticated) {
+                    loadLibraryEntry()
+                    loadReviews()
+                }
+            }
         }
     }
 
@@ -215,6 +240,19 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
             update { copy(game = fetchedGame ?: state.game, editions = editions, timeToBeat = fetchedTtb, isLoading = false) }
         } else {
             update { copy(isLoading = false, isLoadError = true) }
+        }
+    }
+
+    private fun loadReviews(): Job = viewModelScope.launch {
+        val result = safeRequest { LibraryEntry.gameReviews(state.game?.baseGameId ?: gameId).pageNumber(1).all() }
+        if (result.isOk) {
+            val page = result.unwrap()
+            update {
+                copy(
+                    reviews = page.data,
+                    reviewStats = ReviewStats(page.totalItems ?: page.data.size, page.averageRating)
+                )
+            }
         }
     }
 

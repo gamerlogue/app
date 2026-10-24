@@ -37,6 +37,7 @@ import at.released.igdbclient.model.GameTimeToBeat
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__age_ratings_title
 import gamerlogue.sharedui.generated.resources.game__rating_description
+import gamerlogue.sharedui.generated.resources.game__ratings_gamerlogue
 import gamerlogue.sharedui.generated.resources.game__ratings_igdb_critics
 import gamerlogue.sharedui.generated.resources.game__ratings_igdb_user
 import gamerlogue.sharedui.generated.resources.game__ratings_title
@@ -52,11 +53,11 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Tim
 import it.maicol07.gamerlogue.extensions.igdb.displayTitle
 import it.maicol07.gamerlogue.extensions.igdb.formattedCoverUrl
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.theme.Dimens
-import net.sergeych.sprintf.sprintf
+import it.maicol07.gamerlogue.ui.views.game.ReviewStats
 import org.jetbrains.compose.resources.stringResource
 
-private const val RatingScale = 10
 private const val MaxIgdbRating = 100.0
 private const val RatingTrackAlpha = 0.16f
 private val RatingGaugeSize = 96.dp
@@ -71,10 +72,12 @@ private const val SecondsThreshold = 300
 private const val SecondsPerHour = 3600
 private const val SecondsPerMinute = 60
 
+/** IGDB's user and critic scores, and the mean rating of the Gamerlogue reviews when there are any. */
 @Composable
-internal fun GameRatings(game: Game) {
-    val ratings = remember(game) {
+internal fun GameRatings(game: Game, reviewStats: ReviewStats?) {
+    val ratings = remember(game, reviewStats) {
         listOfNotNull(
+            reviewStats?.averageRating?.let { Res.string.game__ratings_gamerlogue to it to reviewStats.total },
             (Res.string.game__ratings_igdb_user to game.rating to game.rating_count)
                 .takeIf { game.rating > 0.0 },
             (Res.string.game__ratings_igdb_critics to game.aggregated_rating to game.aggregated_rating_count)
@@ -103,12 +106,13 @@ internal fun GameRatings(game: Game) {
     }
 }
 
-/** An IGDB score (0-100) as a wavy ring around its value out of [RatingScale]. */
+/** A score (0-100) as a wavy ring around its value on the scale picked in the settings. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RatingGauge(label: String, value: Double, count: Int) {
-    val score = "%.1f".sprintf(value / RatingScale)
-    val description = stringResource(Res.string.game__rating_description, label, score, count)
+    val scale = currentRatingScale()
+    val score = scale.format(value)
+    val description = stringResource(Res.string.game__rating_description, label, score, count, scale.max)
     val stroke = with(LocalDensity.current) { Stroke(width = RatingGaugeStroke.toPx(), cap = StrokeCap.Round) }
     // One announcement for the whole gauge; the ring's own progress semantics would read as a running task.
     Column(
