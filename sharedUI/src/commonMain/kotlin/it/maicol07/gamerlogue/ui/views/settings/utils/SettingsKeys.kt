@@ -7,4 +7,5 @@ enum class SettingsKeys {
     SERVER_URL,
     IGDB_API_URL,
     CALENDAR_BACKLOG_ONLY,
+    RATING_SCALE,
 }

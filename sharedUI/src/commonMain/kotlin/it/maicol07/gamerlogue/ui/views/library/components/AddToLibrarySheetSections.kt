@@ -72,11 +72,12 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Inv
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
+import it.maicol07.gamerlogue.data.MAX_RATING
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
-import it.maicol07.gamerlogue.extensions.roundTo
 import it.maicol07.gamerlogue.ui.components.DatePickerFieldDialog
 import it.maicol07.gamerlogue.ui.components.NumericField
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.Image
 import it.maicol07.gamerlogue.ui.components.game.bottomScrim
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
@@ -356,6 +357,7 @@ internal fun PlayedTimeField(viewModel: AddToLibrarySheetViewModel) {
 
 @Composable
 internal fun RatingSection(viewModel: AddToLibrarySheetViewModel) {
+    val scale = currentRatingScale()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -369,19 +371,26 @@ internal fun RatingSection(viewModel: AddToLibrarySheetViewModel) {
             Text(
                 text = stringResource(
                     Res.string.library__rating,
-                    viewModel.rating?.toDouble()?.roundTo(1) ?: 0f
+                    scale.format(viewModel.rating ?: 0f),
+                    scale.max
                 ),
                 style = MaterialTheme.typography.titleMedium
             )
         }
         Text(
-            text = stringResource(Res.string.library__rating_description),
+            text = stringResource(Res.string.library__rating_description, scale.max),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
     Spacer(modifier = Modifier.height(8.dp))
-    val sliderState = remember { SliderState(viewModel.rating?.toFloat() ?: 0f, trackRange = 0f..10f) }
+    val sliderState = remember {
+        SliderState(
+            viewModel.rating?.toFloat() ?: 0f,
+            steps = MAX_RATING - 1,
+            trackRange = 0f..MAX_RATING.toFloat()
+        )
+    }
     Slider(
         state = sliderState,
         onValueChange = {

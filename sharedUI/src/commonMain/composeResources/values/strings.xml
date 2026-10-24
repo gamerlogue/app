@@ -252,7 +252,7 @@
     <string name="library__played_time">Played Time</string>
     <string name="library__hours">hours</string>
     <string name="library__hours_played">%1$d hrs</string>
-    <string name="library__rating">Rating: %1$d/10</string>
+    <string name="library__rating">Rating: %1$s/%2$d</string>
     <string name="library__review">Review</string>
     <string name="library__cancel">Cancel</string>
     <string name="library__save">Save</string>
@@ -268,7 +268,7 @@
     <string name="library__platforms_description">Select the platform(s) you play this game on.</string>
     <string name="library__dates_description">Record the dates you started and finished playing.</string>
     <string name="library__played_time_description">Enter the total number of hours you spent playing.</string>
-    <string name="library__rating_description">Rate your overall experience from 0 to 10.</string>
+    <string name="library__rating_description">Rate your overall experience from 0 to %1$d.</string>
     <string name="library__review_description">Write your thoughts, personal notes, or review of the game.</string>
 
     <!-- Authentication -->
@@ -293,7 +293,7 @@
     <string name="nav__settings">Settings</string>
     <string name="settings__linked_services">Linked Services</string>
     <string name="settings__appearance">Appearance</string>
-    <string name="settings__appearance_summary">Theme, device colors, language</string>
+    <string name="settings__appearance_summary">Theme, device colors, language, reviews</string>
     <string name="settings__linked_services_summary">Steam, PlayStation, Xbox and more</string>
     <string name="settings__group_app">App</string>
     <string name="settings__group_account">Account</string>
@@ -537,6 +537,8 @@
     <string name="comments__rejected">The comment was rejected: check its length.</string>
     <string name="library__platform_owned">You own it</string>
     <string name="library__review_spoiler">The review contains spoilers</string>
+    <string name="settings__reviews">Reviews</string>
+    <string name="settings__rating_scale">Rating scale</string>
     <string name="lists__add_to_list">Add to list</string>
     <string name="lists__new">New list</string>
     <string name="lists__edit">Edit list</string>

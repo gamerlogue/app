@@ -11,6 +11,9 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 
+/** The server's rating range: every rating is sent and stored on 0–[MAX_RATING], whatever scale is shown. */
+const val MAX_RATING = 100
+
 @ResourceSchema(endpoint = "library_entries", resourceType = "LibraryEntry")
 interface LibraryEntrySchema {
     @Attr val gameId: Int
@@ -22,7 +25,7 @@ interface LibraryEntrySchema {
     @Attr val startDate: String?
     @Attr val endDate: String?
     @Attr val playedTime: Int? // in hours
-    @Attr val rating: Number? // 0-10
+    @Attr val rating: Number? // 0-MAX_RATING
     @Attr val ratingDetails: Map<*, Number>? // 0-10
     @Attr val review: String?
     @Attr val reviewSpoiler: Boolean

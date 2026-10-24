@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -27,6 +28,8 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__dynamic_colors
 import gamerlogue.sharedui.generated.resources.settings__appearance
 import gamerlogue.sharedui.generated.resources.settings__language
+import gamerlogue.sharedui.generated.resources.settings__rating_scale
+import gamerlogue.sharedui.generated.resources.settings__reviews
 import gamerlogue.sharedui.generated.resources.settings__theme
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kdroidfilter.platformtools.getPlatform
@@ -34,6 +37,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ContrastW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LanguageW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WandStarsW500Rounded
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.appLanguageSettingsOpener
@@ -43,6 +47,7 @@ import it.maicol07.gamerlogue.extensions.getDisplayLanguage
 import it.maicol07.gamerlogue.extensions.getFlag
 import it.maicol07.gamerlogue.extensions.supportsDeviceColors
 import it.maicol07.gamerlogue.extensions.supportsSystemAppLanguage
+import it.maicol07.gamerlogue.ui.components.RatingScale
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
@@ -50,6 +55,7 @@ import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.theme.AppTheme
+import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import it.maicol07.gamerlogue.ui.views.settings.components.SingleChoiceAlertDialog
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -64,30 +70,59 @@ fun AppearanceView() {
     val theme by preferences.theme.collectAsStateWithLifecycle()
     val useDynamicColors by preferences.useDynamicColors.collectAsStateWithLifecycle()
     val language by preferences.language.collectAsStateWithLifecycle()
+    val ratingScale by preferences.ratingScale.collectAsStateWithLifecycle()
 
     // The device colors row only exists on some platforms, so the segment count follows it.
     val showDynamicColors = getPlatform().supportsDeviceColors()
     val count = if (showDynamicColors) 3 else 2
 
     ScreenScaffold(title = Res.string.settings__appearance) {
-        SegmentedListLayout(Modifier.padding(horizontal = Dimens.ScreenPadding)) {
-            ThemeSection(
-                theme = theme,
-                onThemeSelected = preferences::setTheme,
-                shapes = ListItemDefaults.segmentedShapes(0, count)
-            )
-
-            if (showDynamicColors) {
-                DynamicColorsSwitch(
-                    useDynamicColors = useDynamicColors,
-                    onDynamicColorsToggled = preferences::setUseDynamicColors,
-                    shapes = ListItemDefaults.segmentedShapes(1, count)
+        Column(Modifier.padding(horizontal = Dimens.ScreenPadding)) {
+            SegmentedListLayout {
+                ThemeSection(
+                    theme = theme,
+                    onThemeSelected = preferences::setTheme,
+                    shapes = ListItemDefaults.segmentedShapes(0, count)
                 )
-            }
 
-            LanguageSection(language, preferences::setLanguage, ListItemDefaults.segmentedShapes(count - 1, count))
+                if (showDynamicColors) {
+                    DynamicColorsSwitch(
+                        useDynamicColors = useDynamicColors,
+                        onDynamicColorsToggled = preferences::setUseDynamicColors,
+                        shapes = ListItemDefaults.segmentedShapes(1, count)
+                    )
+                }
+
+                LanguageSection(language, preferences::setLanguage, ListItemDefaults.segmentedShapes(count - 1, count))
+            }
+            SettingsGroupHeader(stringResource(Res.string.settings__reviews))
+            SegmentedListLayout {
+                RatingScaleSetting(ratingScale, preferences::setRatingScale)
+            }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun RatingScaleSetting(ratingScale: RatingScale, onRatingScaleSelected: (RatingScale) -> Unit) {
+    SettingsButtonGroup(
+        title = { Text(stringResource(Res.string.settings__rating_scale)) },
+        items = RatingScale.entries,
+        selectedItem = ratingScale,
+        onItemSelected = onRatingScaleSelected,
+        icon = {
+            SectionIcon(
+                Icons.StarW500Rounded,
+                MaterialShapes.Cookie4Sided,
+                MaterialTheme.colorScheme.primaryContainer,
+                MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        },
+        itemTitleMap = { "1–${it.max}" },
+        colors = ListItemDefaults.expressiveSegmentedColors(),
+        shapes = ListItemDefaults.segmentedShapes(0, 1)
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

@@ -51,6 +51,7 @@ import it.maicol07.gamerlogue.extensions.gameIds
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.payloadText
 import it.maicol07.gamerlogue.extensions.subjectId
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.user.UserAvatar
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
@@ -122,7 +123,7 @@ private fun Activity.describe(verb: ActivityVerb, actor: String, game: Game?): S
             Res.string.activity__rated,
             actor,
             gameName,
-            payloadText("rating").orEmpty()
+            payloadText("rating")?.toDoubleOrNull()?.let(currentRatingScale()::format).orEmpty()
         )
         ActivityVerb.REVIEWED -> stringResource(Res.string.activity__reviewed, actor, gameName)
         ActivityVerb.LIST_CREATED -> stringResource(

@@ -38,6 +38,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.localizedName
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.stringResource
 
@@ -126,13 +127,17 @@ private fun libraryChips(filter: GameListFilterState): List<ActiveFilterChip> = 
         ActiveFilterChip("library:$key", label) { copy(library = library.reset()) }
 
     val arrow = if (sortDirection == SortDirection.DESC) "↓" else "↑"
+    val scale = currentRatingScale()
     listOfNotNull(
         chip("sort", "${stringResource(sortField.label)} $arrow") {
             copy(sortField = default.sortField, sortDirection = default.sortDirection)
         }.takeIf { sortField != default.sortField || sortDirection != default.sortDirection },
         completionStatus?.let { chip("completion", stringResource(it.displayName)) { copy(completionStatus = null) } },
         owned?.let { chip("owned", stringResource(it.ownedLabel)) { copy(owned = null) } },
-        chip("rating", "${stringResource(Res.string.gamelist__my_rating)} ${minRating.toInt()}–${maxRating.toInt()}") {
+        chip(
+            "rating",
+            "${stringResource(Res.string.gamelist__my_rating)} ${scale.format(minRating)}–${scale.format(maxRating)}"
+        ) {
             copy(minRating = 0f, maxRating = MaxEntryRating)
         }.takeIf { hasRatingFilter },
         playedTimeLabel()?.let { hours ->

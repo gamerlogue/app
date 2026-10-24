@@ -78,7 +78,7 @@ Releases are cut by CI — publishing one from the GitHub UI triggers nothing (n
 - `GET /library_entries/{id}` only reads one's own entries: another user's review is found among their reviews.
 - `IgdbLookup` caches the IGDB games/platforms the social screens show next to backend ids for the session.
 - Bearer abilities: `profile` for users, social, reactions, comments, notifications, badges and the account; `library` for library, lists, stats, activities and goals.
-- Ratings: the server's statistics assume 0–100, while the add sheet writes 0–10 (open question).
+- Ratings are 0–100 on the wire (`MAX_RATING`); the 1–10/1–100 setting only converts the display (`RatingScale.format`). Entries saved by the old 0–10 sheet need a server-side migration.
 - Picking games for another screen: open `GameList` with a `GamePick(request, multiple)`; the picked IGDB ids come back through the `GamePicks` singleton (`GamePickEffect(request)`), since Navigation 3 has no result passing and the asking screen may not be composed meanwhile.
 - Comments are Markdown, written with compose-rich-editor and shown with its `RichText`; the server's length limit counts the Markdown. Reactions and the emoji picker draw Noto emoji with Emoji.kt.
 - Emoji.kt animates through Skottie, which left `skiko-awt` in Skiko 0.152: `skiko-skottie` (plus its desktop runtime) is declared explicitly and its `skiko` version in `libs.versions.toml` must follow the Skiko that compose-multiplatform brings, or the desktop app fails with `NoClassDefFoundError: org/jetbrains/skia/skottie/Animation`.

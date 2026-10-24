@@ -253,7 +253,7 @@
     <string name="library__played_time">Tempo di gioco</string>
     <string name="library__hours">ore</string>
     <string name="library__hours_played">%1$d ore</string>
-    <string name="library__rating">Voto: %1$d/10</string>
+    <string name="library__rating">Voto: %1$s/%2$d</string>
     <string name="library__review">Recensione</string>
     <string name="library__cancel">Annulla</string>
     <string name="library__save">Salva</string>
@@ -269,7 +269,7 @@
     <string name="library__platforms_description">Seleziona le piattaforme su cui giochi a questo titolo.</string>
     <string name="library__dates_description">Registra le date in cui hai iniziato e terminato di giocare.</string>
     <string name="library__played_time_description">Inserisci il numero totale di ore trascorse a giocare.</string>
-    <string name="library__rating_description">Valuta la tua esperienza complessiva da 0 a 10.</string>
+    <string name="library__rating_description">Valuta la tua esperienza complessiva da 0 a %1$d.</string>
     <string name="library__review_description">Scrivi i tuoi pensieri, note personali o una recensione del gioco.</string>
 
     <!-- Authentication -->
@@ -291,7 +291,7 @@
     <string name="nav__settings">Impostazioni</string>
     <string name="settings__linked_services">Servizi collegati</string>
     <string name="settings__appearance">Aspetto</string>
-    <string name="settings__appearance_summary">Tema, colori del dispositivo, lingua</string>
+    <string name="settings__appearance_summary">Tema, colori del dispositivo, lingua, recensioni</string>
     <string name="settings__linked_services_summary">Steam, PlayStation, Xbox e altri</string>
     <string name="settings__group_app">App</string>
     <string name="settings__group_account">Account</string>
@@ -538,6 +538,8 @@
     <string name="comments__rejected">Il commento è stato rifiutato: controlla la lunghezza.</string>
     <string name="library__platform_owned">La possiedi</string>
     <string name="library__review_spoiler">La recensione contiene spoiler</string>
+    <string name="settings__reviews">Recensioni</string>
+    <string name="settings__rating_scale">Scala dei voti</string>
     <string name="lists__add_to_list">Aggiungi a una lista</string>
     <string name="lists__new">Nuova lista</string>
     <string name="lists__edit">Modifica lista</string>

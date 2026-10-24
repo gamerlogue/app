@@ -55,11 +55,13 @@ import gamerlogue.sharedui.generated.resources.stats__ratings_count
 import gamerlogue.sharedui.generated.resources.stats__reviews
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AndroidWifi3BarAlertW500Rounded
+import it.maicol07.gamerlogue.data.MAX_RATING
 import it.maicol07.gamerlogue.data.UserStats
+import it.maicol07.gamerlogue.ui.components.RatingScale
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.layout.loadingItem
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -222,7 +224,7 @@ private fun RatingsCard(stats: UserStats) = Surface(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    stats.averageRating?.let { "%.0f".sprintf(it) } ?: "–",
+                    stats.averageRating?.let { currentRatingScale().format(it) } ?: "–",
                     style = MaterialTheme.typography.headlineSmallEmphasized,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -248,6 +250,7 @@ private fun RatingsCard(stats: UserStats) = Surface(
 @Composable
 private fun RatingColumns(histogram: List<Int>) {
     val max = histogram.maxOrNull()?.takeIf { it > 0 } ?: 1
+    val scale = currentRatingScale()
     var selected by remember { mutableStateOf<Int?>(null) }
     // The columns grow in once, when the card first shows.
     var shown by remember { mutableStateOf(false) }
@@ -264,7 +267,7 @@ private fun RatingColumns(histogram: List<Int>) {
                     animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
                 )
                 RatingColumn(
-                    bucket = bucket,
+                    label = ratingBucketLabel(bucket, scale),
                     count = count,
                     fraction = fraction,
                     highlighted = selected?.let { it == bucket } ?: (count == max),
@@ -275,7 +278,7 @@ private fun RatingColumns(histogram: List<Int>) {
         Row(horizontalArrangement = Arrangement.spacedBy(RatingColumnGap)) {
             histogram.indices.forEach { bucket ->
                 Text(
-                    (bucket * RatingBucketSize).toString(),
+                    (bucket * RatingBucketSize * scale.max / MAX_RATING).toString(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -289,13 +292,19 @@ private fun RatingColumns(histogram: List<Int>) {
 
 /** One bucket: its column from the baseline and, when [highlighted], its count above it. */
 @Composable
-private fun RowScope.RatingColumn(bucket: Int, count: Int, fraction: Float, highlighted: Boolean, onClick: () -> Unit) =
+private fun RowScope.RatingColumn(
+    label: String,
+    count: Int,
+    fraction: Float,
+    highlighted: Boolean,
+    onClick: () -> Unit
+) =
     Column(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
             .clickable(onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = "${ratingBucketLabel(bucket)}: $count" },
+            .semantics(mergeDescendants = true) { contentDescription = "$label: $count" },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom,
     ) {
@@ -324,8 +333,11 @@ private const val ColumnHeightShare = 0.85f
 private const val DimmedColumnAlpha = 0.45f
 
 /** The server buckets ratings by tens on its 0–100 scale; the last bucket holds 100 alone. */
-private fun ratingBucketLabel(bucket: Int): String =
-    if (bucket == LastRatingBucket) "★ 100" else "★ ${bucket * RatingBucketSize}–${bucket * RatingBucketSize + RatingBucketSize - 1}"
+private fun ratingBucketLabel(bucket: Int, scale: RatingScale): String = if (bucket == LastRatingBucket) {
+    "★ ${scale.format(MAX_RATING)}"
+} else {
+    "★ ${scale.format(bucket * RatingBucketSize)}–${scale.format(bucket * RatingBucketSize + RatingBucketSize - 1)}"
+}
 
 private const val RatingBucketSize = 10
 private const val LastRatingBucket = 10

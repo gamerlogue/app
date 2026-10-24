@@ -27,9 +27,9 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Cha
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FavoriteW500Rounded
 import it.maicol07.gamerlogue.data.LibraryEntrySchema
 import it.maicol07.gamerlogue.extensions.displayTimestamp
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.theme.Dimens
-import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.stringResource
 
 private val ReviewCoverWidth = 56.dp
@@ -55,7 +55,8 @@ fun ReviewCard(entry: LibraryEntrySchema, game: Game?, onClick: () -> Unit, modi
                 overflow = TextOverflow.Ellipsis
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
-                entry.rating?.let { Text("★ %.1f".sprintf(it), style = MaterialTheme.typography.labelLarge) }
+                val scale = currentRatingScale()
+                entry.rating?.let { Text("★ ${scale.format(it)}", style = MaterialTheme.typography.labelLarge) }
                 displayTimestamp(entry.reviewUpdatedAt)?.let {
                     Text(
                         it,

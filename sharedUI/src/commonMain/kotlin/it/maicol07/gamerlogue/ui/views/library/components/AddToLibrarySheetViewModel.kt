@@ -24,6 +24,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.component.inject
+import kotlin.math.roundToInt
 
 @KoinViewModel
 class AddToLibrarySheetViewModel(
@@ -152,7 +153,7 @@ class AddToLibrarySheetViewModel(
         entry.startDate = if (isBacklog) null else startDate?.toString()
         entry.endDate = if (isBacklog || isPlayingOrPaused) null else endDate?.toString()
         entry.playedTime = if (isBacklog) null else playedTime.text.toString().ifBlank { null }?.toInt()
-        entry.rating = if (isBacklog || isPlayingOrPaused) null else rating
+        entry.rating = if (isBacklog || isPlayingOrPaused) null else rating?.toFloat()?.roundToInt()
         entry.review = if (isBacklog || isPlayingOrPaused) "" else review.text.toString()
         entry.reviewSpoiler = reviewSpoiler && entry.hasReview
 

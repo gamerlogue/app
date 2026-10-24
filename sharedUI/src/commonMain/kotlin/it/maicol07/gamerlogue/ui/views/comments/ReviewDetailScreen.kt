@@ -55,6 +55,7 @@ import it.maicol07.gamerlogue.extensions.fetchPage
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.userReviews
 import it.maicol07.gamerlogue.ui.components.EmptyState
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
@@ -69,7 +70,6 @@ import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.auth.AuthenticatedContent
 import kotlinx.coroutines.launch
-import net.sergeych.sprintf.sprintf
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.InjectedParam
@@ -211,6 +211,7 @@ private fun ReviewContent(
     onUserClick: () -> Unit,
 ) {
     var reportOpen by remember { mutableStateOf(false) }
+    val scale = currentRatingScale()
     Column(
         Modifier.fillMaxWidth().padding(Dimens.ScreenPadding),
         verticalArrangement = Arrangement.spacedBy(Dimens.SectionGap)
@@ -226,7 +227,7 @@ private fun ReviewContent(
                     style = MaterialTheme.typography.titleLargeEmphasized,
                     modifier = Modifier.clickable(onClick = onGameClick)
                 )
-                entry.rating?.let { Text("★ %.1f".sprintf(it), style = MaterialTheme.typography.titleMedium) }
+                entry.rating?.let { Text("★ ${scale.format(it)}", style = MaterialTheme.typography.titleMedium) }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap),

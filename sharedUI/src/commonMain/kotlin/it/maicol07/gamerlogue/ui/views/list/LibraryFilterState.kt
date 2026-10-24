@@ -2,12 +2,13 @@ package it.maicol07.gamerlogue.ui.views.list
 
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.LibraryEntrySchema.CompletionStatus
+import it.maicol07.gamerlogue.data.MAX_RATING
 import it.maicol07.spraypaintkt.Scope
 import kotlinx.datetime.LocalDate
 import it.maicol07.spraypaintkt.SortDirection as ApiSortDirection
 
 /** Upper bound of a library entry's rating. */
-const val MaxEntryRating = 10f
+const val MaxEntryRating = MAX_RATING.toFloat()
 
 /** A library entry attribute the backend sorts by, under its snake_case [attribute] name. */
 enum class LibrarySortField(val attribute: String) {

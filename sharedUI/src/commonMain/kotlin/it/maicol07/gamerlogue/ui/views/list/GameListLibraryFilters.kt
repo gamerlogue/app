@@ -60,13 +60,14 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Sor
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import it.maicol07.gamerlogue.data.LibraryEntrySchema.CompletionStatus
 import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
+import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.formatDate
 import it.maicol07.gamerlogue.ui.components.pickerMillisToDate
 import it.maicol07.gamerlogue.ui.components.toPickerMillis
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** Slider stops of the rating filter: one per point across 0..[MaxEntryRating]. */
+/** Slider stops of the rating filter: one every tenth of 0..[MaxEntryRating]. */
 private const val EntryRatingSteps = 9
 
 /** Enough for any real play time; keeps the field from overflowing an Int. */
@@ -136,7 +137,7 @@ internal fun LibraryFilterSections(filter: LibraryFilterState, onFilterChange: (
     RangeFilterSection(
         icon = Icons.StarW500Rounded,
         title = Res.string.gamelist__my_rating,
-        trailingText = { "★ ${it.start.toInt()} – ${it.endInclusive.toInt()}" },
+        trailingText = { with(currentRatingScale()) { "★ ${format(it.start)} – ${format(it.endInclusive)}" } },
         value = filter.minRating..filter.maxRating,
         valueRange = 0f..MaxEntryRating,
         steps = EntryRatingSteps,
