@@ -1,5 +1,338 @@
 # Changelog
 
+<a name="0.7.0"></a>
+## [0.7.0](https://github.com/gamerlogue/app/compare/0.6.1...0.7.0)
+
+> Released on October 24, 2026
+
+### ✨ Features
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/1ff785039e94735f7354d8f3297c8836b784a957"><code>1ff7850</code></a> <b>igdb:</b> ✨ accept JSON alongside protobuf from the IGDB proxy</summary>
+
+  > igdbclient only accepts application/protobuf, so backend errors came back
+  > as HTML. Appending application/json lets them come back as JSON.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/91c60f9f4fd9828177dbcc460c182b3e592addd9"><code>91c60f9</code></a> <b>calendar:</b> ✨ add the upcoming releases timeline</summary>
+
+  > The Calendar tab now shows a vertical timeline of upcoming releases from
+  > today on: one node per release day, with its games as covers, under
+  > pinned month headers. Today's node is highlighted.
+  >
+  > - The top bar opens the game list filters (sort, release status and time
+  >   to beat excluded, since the timeline is always in release order) and a
+  >   date picker that scrolls the timeline to the chosen day, loading the
+  >   days in between first; past days cannot be picked.
+  > - "Only my backlog" restricts the timeline to the backlog's upcoming
+  >   games, fetched in one go through chunked multiqueries so a large
+  >   backlog still fits IGDB's query limits.
+  > - The searchable filter options moved out of GameListViewModel into a
+  >   shared FilterOptions, and the filter sheet takes a scope instead of a
+  >   library flag, so both screens host the same sheet.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/31116459b599fc12e0e80c803a9d4fc289f92761"><code>3111645</code></a> <b>calendar:</b> ✨ keep the backlog filter in sync and remember it</summary>
+
+  > - The "only my backlog" choice is saved and restored the next time the
+  >   calendar opens.
+  > - Adding, editing or removing a library entry (from a game page, the add
+  >   to library sheet or a linked service import) now refreshes the
+  >   backlog timeline in place, keeping its scroll position, instead of
+  >   showing stale releases until the app restarts.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/664aa596471080b1b623c10f3b2178eee6565fed"><code>664aa59</code></a> <b>social:</b> ✨ add the data layer of profiles and social features</summary>
+
+  > - Schemas for users, lists and their games, comments, reactions,
+  >   follows, blocks, reports, activities and notifications, with the
+  >   review's likes, comments and spoiler flag on library entries.
+  > - ProfileApi for what is not a plain resource call (statistics, list
+  >   reorder, follows and blocks lookups, reactions, notifications, account
+  >   export and deletion), and IgdbLookup to cache the games and platforms
+  >   shown next to backend ids.
+  > - PageLoader for page-based infinite lists; its refresh keeps what is on
+  >   screen until the first page replaces it.
+  > - UnreadNotifications, the unread count shared by every top bar.
+  > - safeRequest overloads that skip the global error report for the
+  >   refusals a screen shows itself (a private profile, a block).
+  > - Store syncs save their entries as one import batch, so the server
+  >   folds them into one activity.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/61d7a199f2e2cdeda1865ed3eb52b5a7b6ceabbe"><code>61d7a19</code></a> <b>i18n:</b> 🌐 add the English and Italian texts of the social screens</summary>
+
+  > Profiles and their tabs, follows and blocks, lists, comments with their
+  > formatting and confirmations, reactions and the emoji picker, the global
+  > search, notifications, activities and account export or deletion.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/615ad694bee314749d02132a59ee86adff81c208"><code>615ad69</code></a> <b>ui:</b> ✨ add the shared social components and a global notifications bell</summary>
+
+  > - Every top bar of a signed-in user, the search bar and the game page
+  >   included, shows the notifications bell with the unread count.
+  > - AppTopBar takes an optional subtitle.
+  > - User avatars and rows: a picture that is not a web address, or that
+  >   fails to load, falls back to the initial on a color picked by the
+  >   name; failed remote images are logged with their URL.
+  > - Like button, spoiler reveal (now also for rich content), review card
+  >   and report dialog, with loading states on the like.
+  > - LoadMoreEffect for the infinite lists.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/a6f5522d3bed548c5b4d52608e4615a2144db4c6"><code>a6f5522</code></a> <b>library:</b> ✨ put the owned platforms first and mark review spoilers</summary>
+
+  > The add to library sheet lists the game's platforms with the ones set as
+  > owned in the profile first and highlighted, and the review can be marked
+  > as a spoiler.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/93af66a9766eb246b7ad3621f641cd4508b74252"><code>93af66a</code></a> <b>settings:</b> ✨ export or delete the account</summary>
+
+  > The settings let the user download their data as a file and delete the
+  > account for good, after a confirmation; deleting forgets the local
+  > session since the server has already revoked it.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/394b608ed39b569919dccfa2e0730fa26d1e879f"><code>394b608</code></a> <b>social:</b> ✨ add comments, lists, users, notifications and the activity feed</summary>
+
+  > - Reviews and lists have threaded comments: written with a rich text
+  >   editor (bold, italic, strikethrough, code, links, lists) and saved as
+  >   Markdown, marked as spoilers from the composer's menu, edited or
+  >   deleted after a confirmation. Reply, edit, delete and report are icon
+  >   buttons, and every request shows its progress.
+  > - Reactions are Noto emoji, animated once, picked from a sheet that puts
+  >   the animated ones first (with play/pause), then every group, with a
+  >   search.
+  > - Comments, replies, the composer's states and the reaction counts move
+  >   in and out with the motion scheme's springs.
+  > - A list's page has its games count as subtitle, the like at the top,
+  >   and a floating button to comment or, for the owner, to add games
+  >   picked in the game list; the composer rises only while writing. The
+  >   owner reorders games by dragging (with move up/down for accessibility)
+  >   and edits the note or removes a game from the row's buttons; editing,
+  >   with deletion in the same dialog, is the bar's only action.
+  > - Lists can be private or ranked, each option explained in the form.
+  > - Followers, following and blocked users, notifications (marking them
+  >   read updates the bell) and the activity feed.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/b463839776b1d5cff6963c239363faf8cf1faf8a"><code>b463839</code></a> <b>list:</b> ✨ pick games from the game list and search users from Discover</summary>
+
+  > - The game list can be opened to pick games for another screen: a tap
+  >   hands one back, or covers are selected (shrinking with a check) and
+  >   confirmed together from a floating button. The games return through
+  >   GamePicks, since Navigation 3 has no result passing.
+  > - The search opened from Discover looks for games, with their filters,
+  >   or users, chosen with connected toggle buttons; the text carries over.
+  > - The game list shows another user's library by status.
+  > - Discover previews the feed of the followed users.
+  > - Adding a game to a list moved to the game page's floating toolbar.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/5e4af22119a8c1f480abd458884d5c62ca95daaa"><code>5e4af22</code></a> <b>profile:</b> ✨ redesign the profile in Material 3 Expressive</summary>
+
+  > - Header: rounded banner with the avatar over it, generative placeholders
+  >   (shapes and tonal gradients picked per user) when there is no banner,
+  >   names with the follow action, bio, followers and following as
+  >   connected tonal buttons, and the owned platforms.
+  > - Tabs: activity first, the library by status for visitors, reviews,
+  >   lists and statistics; the overview, showcase, badges and yearly goals
+  >   are gone with their code.
+  > - Statistics: the average rating as a hero number over the rating
+  >   distribution as animated columns.
+  > - The profile reloads whenever it shows again and on pull to refresh.
+  > - Editing happens in a bottom sheet with filled fields, a save button
+  >   at the end and an explanation of the platforms; the banner is an image
+  >   of a game picked in the game list.
+  > - The top bar has edit, settings and blocked users; the user search
+  >   moved to Discover and the notifications to every top bar.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/5341d2cbacaeeeafd6d1e1a4f8334bbd62705fb2"><code>5341d2c</code></a> <b>ratings:</b> ✨ show ratings on a 1–10 or 1–100 scale</summary>
+
+  > Ratings are now written on the server's 0–100 scale (MAX_RATING): the
+  > add sheet used to send 0–10, while the statistics, the histogram and the
+  > "my rating" filter already assume 0–100. Entries saved on 0–10 need a
+  > server-side migration.
+  >
+  > A setting under Appearance → Reviews picks how ratings are shown, and
+  > RatingScale.format converts them wherever they appear: the add sheet,
+  > review cards and detail, the activity feed, the profile statistics and
+  > the library rating filter. This also fixes the average rating, which
+  > "%.0f" rendered with a trailing dot ("79.").
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/9d81cafb0d074331a9d31e431c1773eb4dcccec9"><code>9d81caf</code></a> <b>reviews:</b> ✨ add detailed reviews</summary>
+
+  > A setting under Appearance → Reviews switches the add sheet to detailed
+  > reviews: sections with their own rating and text, picked among the
+  > predefined aspects (gameplay, story, cast, technical, audio, longevity)
+  > or given a custom title. With sections, the overall rating is their mean.
+  >
+  > Sections are stored in rating_details as {key: {rating, review}}, the
+  > contract now recorded in CONTRACTS.md, and the review detail shows them
+  > under the review's spoiler flag. A basic review leaves the sections of an
+  > earlier detailed one untouched. reviewSections reads the attribute
+  > defensively, since the server used to send an empty one as [].
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/421da5cf87a63a2759d0debbf3315caa84516527"><code>421da5c</code></a> <b>library:</b> ✨ fold the edition picker away until needed</summary>
+
+  > The row of edition covers took a large part of the add sheet for a
+  > choice rarely changed. It is now an expandable segmented item: the
+  > header sums up the picked editions, and tapping it unfolds the covers
+  > under it with the motion scheme's expand and fade.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/9a4ea5b02cc951d075f5d4b00ae5aeddcd088de8"><code>9a4ea5b</code></a> <b>reviews:</b> ✨ write reviews in a dedicated editor</summary>
+
+  > A review was written in the add sheet, next to everything else the
+  > sheet edits: long texts with the keyboard open and, with detailed
+  > reviews, one more field per section. The new ReviewEditor screen holds
+  > the rating, the sections, the text and the spoiler flag, with saving as
+  > the floating toolbar's main action and a shortcut to the saved review.
+  > The sheet keeps the library state, a quick rating for basic reviews and
+  > a row that opens the editor: when the entry has unsaved changes, or is
+  > new, it asks to save first. Saving with a status that clears the rating
+  > and the review (with their likes and comments) asks for confirmation.
+  >
+  > Review texts, sections included, are now Markdown written with the
+  > comments' rich text editor; its formatting toolbar and the Markdown
+  > rendering moved to ui/components for both. The editor and the review
+  > detail follow Material 3 Expressive: an overall rating badge in an
+  > expressive shape that pops in and turns with the value, section cards
+  > that animate in and out, and in the detail a segmented list of sections
+  > with their own badges and a still wavy bar. Editing one's own review
+  > moved to the detail's top bar, and the game page reloads its entry
+  > whenever the library changes, so the sheet never reopens stale.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/16102ca2ea42d73a02831e8c3ca22a6a067bd3ef"><code>16102ca</code></a> <b>game:</b> ✨ show the players&#x27; reviews on the game page</summary>
+
+  > The server now lists a game's reviews by every user
+  > (filter[game_id] with filter[has_review]), the most liked first, with
+  > their mean rating in meta.average_rating; CONTRACTS.md records it.
+  >
+  > The ratings section gains a "Gamerlogue" gauge with that mean and the
+  > number of reviews, and a new reviews section below it previews the
+  > signed-in user's own review followed by the three most liked, each
+  > opening its detail. "See all" opens the GameReviews screen, an infinite
+  > list headed by the same figures. The gauges, IGDB's included, now follow
+  > the rating scale picked in the settings.
+
+  </details>
+
+### 🐛 Bug Fixes
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/3a3e3da4fb6fc98056b85173c2ed4f063f6b11df"><code>3a3e3da</code></a> <b>web:</b> 🐛 send the Sanctum session and XSRF token to the IGDB proxy</summary>
+
+  > The IGDB client did not carry the browser session, so every POST to
+  > /api/igdb/* failed with 419. The platform session is now a plugin bound to
+  > the server URL: backend requests include credentials and X-XSRF-TOKEN, other
+  > hosts get neither. A 419 refreshes /sanctum/csrf-cookie and retries once.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/76c0f86eb03deac2025dcc9865eaa471d7181de8"><code>76c0f86</code></a> <b>library:</b> 🐛 stop sending the user relationship on library entry writes</summary>
+
+  > The server assigns the owner from the authenticated token and treats
+  > `user` as read-only. quickDraft and the add/edit sheet assigned it
+  > anyway (sometimes as null), so spraypaintkt serialized
+  > `relationships.user.data: null`, which the server used to reject with a 500.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/fa840a8ea65b0cae6d1b33fc0215686f12e8b9e2"><code>fa840a8</code></a> <b>reviews:</b> 🐛 count a review made only of sections</summary>
+
+  > hasReview only looked at the text, so a detailed review whose sections
+  > carried all the content looked like no review at all: its detail said
+  > it was not available and the profile cards showed an empty preview.
+  > It now counts the sections too, and the cards fall back to the
+  > sections' titles when there is no text.
+  >
+  > The profile list still relies on the server's filter[has_review], which
+  > has to count rating_details as well for these reviews to show there.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/6e0051fe2f01d344fadad3c90b00b127d2090e4f"><code>6e0051f</code></a> <b>reviews:</b> 🐛 count a bare rating as a review, as the server does</summary>
+
+  > The server now counts a review whenever an entry has a text, sections
+  > or just a rating: filter[has_review], review_required, reviews_count
+  > and the cascade that drops likes and comments all agree, as recorded in
+  > CONTRACTS.md. hasReview follows the same rule, so a rated game opens as
+  > a review, the sheet offers to edit it, and saving with a status that
+  > clears it still asks first. The sheet's preview falls back to its hint
+  > for a review that is only a rating.
+
+  </details>
+
+### 💄 UI & Style
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/6bc09d259ae0fb52ad1ec3ebd47c8edbf7fe78bd"><code>6bc09d2</code></a> <b>ui:</b> 💄 give the remaining buttons the expressive shapes</summary>
+
+  > The last buttons without shapes now morph on press like the others.
+
+  </details>
+
+### ♻️ Code Refactoring
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/08cf02b5c5220d5942a55644fecc829d27540216"><code>08cf02b</code></a> <b>user:</b> 🔥 drop the legacy user cache migration</summary>
+
+  > Every cached profile has been restored, and so rewritten with the User
+  > type, since the migration shipped; the store now only round-trips it.
+
+  </details>
+
+### 📝 Docs changes
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/ac924bc36ca500e65572f6988dd190efeec74ea3"><code>ac924bc</code></a> 📝 document the social API contract and its client conventions</summary>
+
+  > docs/CONTRACTS.md describes the backend endpoints behind the profile and
+  > social features: users and follows, blocks, reports, lists, comments,
+  > reactions, notifications, activities, statistics and the account.
+  >
+  > AGENTS.md gains the client side of it: the social schemas and their
+  > quirks, ProfileApi, error codes, picking games from the game list,
+  > Markdown comments, the Skottie version pin Emoji.kt needs, and the
+  > provider placeholder that can arrive as a picture.
+
+  </details>
+
+### 👷 Building scripts changes
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/609d1cd5b2aa449f367d392406dc7782b0116ff6"><code>609d1cd</code></a> <b>android:</b> 👷 publish release debug symbols as a CI artifact</summary>
+
+  > Bundles native debug symbols into the release build and uploads the R8
+  > mapping and native symbols as a separate artifact, kept off the release
+  > because per-flavor files share names.
+
+  </details>
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/6caf77ff42f29e843c892e4ca106890b9791c095"><code>6caf77f</code></a> ➕ add the libraries and icons of the social screens</summary>
+
+  > - Reorderable, to reorder a list's games by dragging.
+  > - compose-rich-editor, to write comments as Markdown.
+  > - Emoji.kt, for the Noto emoji of reactions and the emoji picker, with
+  >   skiko-skottie: Skottie left skiko-awt in Skiko 0.152, and Emoji.kt
+  >   needs it to animate on desktop and web.
+  > - The Material Symbols the social screens use.
+
+  </details>
+
+### 👷 CI changes
+
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/b10754887989aa7afa3b8dca0204aedb2c785a4d"><code>b107548</code></a> <b>release:</b> 🐛 attach only Android and desktop builds to the release</summary>
+
+  > Downloading every artifact also pulled in the web bundle, whose files
+  > share names across directories and made the flat release upload fail.
+
+  </details>
+- [`7511e47`](https://github.com/gamerlogue/app/commit/7511e4771cdd13fc5a76306b85067625555abbb9) **release:** 👷 deploy the web app with actions/deploy-pages
+- [`a124a81`](https://github.com/gamerlogue/app/commit/a124a81edd6a9cee3f696205c8921fe82674fdc2) **release:** 📦 attach the web app to the release as a single zip
+- <details><summary><a href="https://github.com/gamerlogue/app/commit/7cb7d4d80db545dd916d7e95daf398695dda149e"><code>7cb7d4d</code></a> <b>release:</b> 📦 attach per-flavor debug symbols to the release</summary>
+
+  > Keeps the R8 mapping and native symbols of sideloaded APKs past the
+  > artifact retention, one zip per flavor to avoid name clashes.
+
+  </details>
+
 <a name="0.6.1"></a>
 ## [0.6.1](https://github.com/gamerlogue/app/compare/0.6.0...0.6.1)
 
