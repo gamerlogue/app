@@ -51,9 +51,9 @@ interface LibraryEntrySchema {
     @Attr val updatedAt: String?
     @Relation val user: UserSchema?
 
-    /** The backend treats a null and an empty review alike: no review. */
+    /** A text or, in a detailed review, sections; the backend treats a null and an empty text alike. */
     val hasReview: Boolean
-        get() = !review.isNullOrBlank()
+        get() = !review.isNullOrBlank() || reviewSections.isNotEmpty()
 
     /** [ratingDetails] narrowed defensively: an array or a value in any other shape yields no section. */
     val reviewSections: List<ReviewSection>

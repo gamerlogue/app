@@ -29,6 +29,7 @@ import it.maicol07.gamerlogue.data.LibraryEntrySchema
 import it.maicol07.gamerlogue.extensions.displayTimestamp
 import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
+import it.maicol07.gamerlogue.ui.components.reviewPreview
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.stringResource
 
@@ -66,7 +67,7 @@ fun ReviewCard(entry: LibraryEntrySchema, game: Game?, onClick: () -> Unit, modi
                 }
             }
             SpoilerText(
-                entry.review.orEmpty(),
+                reviewPreview(entry),
                 spoiler = entry.reviewSpoiler,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = ReviewPreviewLines

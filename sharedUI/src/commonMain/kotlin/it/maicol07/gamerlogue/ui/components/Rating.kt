@@ -7,6 +7,7 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__review_mode_basic
 import gamerlogue.sharedui.generated.resources.settings__review_mode_detailed
 import it.maicol07.gamerlogue.core.AppPreferences
+import it.maicol07.gamerlogue.data.LibraryEntrySchema
 import it.maicol07.gamerlogue.data.MAX_RATING
 import it.maicol07.gamerlogue.data.ReviewAspect
 import net.sergeych.sprintf.sprintf
@@ -42,3 +43,8 @@ fun currentRatingScale(): RatingScale {
 
 @Composable
 fun reviewSectionTitle(key: String): String = ReviewAspect.of(key)?.let { stringResource(it.label) } ?: key
+
+/** The review text, or the titles of its sections when it has none. */
+@Composable
+fun reviewPreview(entry: LibraryEntrySchema): String =
+    entry.review?.takeIf { it.isNotBlank() } ?: entry.reviewSections.map { reviewSectionTitle(it.key) }.joinToString(" · ")
