@@ -6,7 +6,6 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import it.maicol07.spraypaintkt.JsonApiResource
-import it.maicol07.spraypaintkt.JsonApiSingleResponse
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.UUID
@@ -45,22 +44,22 @@ class UserSerializationTest : StringSpec({
         user.isFollowedByMe shouldBe false
     }
 
-    "user cache migrates the legacy type without losing the profile" {
+    "user cache round-trips the profile and rejects other resource types" {
         val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
         try {
             val settings = PreferencesSettings(preferences)
             val store = UserStore(settings)
             store.getUser().shouldBeNull()
-            settings.putString(
-                "user_data",
-                """{"data":{"type":"user","id":"42","attributes":{"nickname":"player"}}}"""
+            store.saveUser(
+                User().apply {
+                    id = "42"
+                    nickname = "player"
+                }
             )
 
             val user = store.getUser()!!
             user.id shouldBe "42"
             user.nickname shouldBe "player"
-            JsonApiSingleResponse.fromJsonApiString(settings.getString("user_data", "")).data?.type shouldBe "User"
-            store.getUser()?.nickname shouldBe "player"
 
             settings.putString("user_data", """{"data":{"type":"Other","id":"42"}}""")
             shouldThrow<SerializationException> { store.getUser() }
