@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.ui.views.comments
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +18,11 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,11 +40,14 @@ import at.released.igdbclient.model.Game
 import com.github.michaelbull.result.get
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.activity__unknown_game
+import gamerlogue.sharedui.generated.resources.library__edit_review
+import gamerlogue.sharedui.generated.resources.library__review_sections
 import gamerlogue.sharedui.generated.resources.profile__report
 import gamerlogue.sharedui.generated.resources.review__not_available
 import gamerlogue.sharedui.generated.resources.review__title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FlagW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
@@ -49,16 +57,19 @@ import it.maicol07.gamerlogue.data.IgdbLookup
 import it.maicol07.gamerlogue.data.InteractionTarget
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.LikeState
+import it.maicol07.gamerlogue.data.MAX_RATING
 import it.maicol07.gamerlogue.data.ProfileApi
 import it.maicol07.gamerlogue.extensions.displayTimestamp
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.fetchPage
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.userReviews
 import it.maicol07.gamerlogue.ui.components.EmptyState
-import it.maicol07.gamerlogue.ui.components.currentRatingScale
+import it.maicol07.gamerlogue.ui.components.RatingBadge
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
+import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
 import it.maicol07.gamerlogue.ui.components.reviewSectionTitle
 import it.maicol07.gamerlogue.ui.components.social.LikeButton
 import it.maicol07.gamerlogue.ui.components.social.ReportDialog
@@ -83,6 +94,8 @@ private const val MAX_REVIEW_PAGES = 20
 
 private val CoverWidth = 80.dp
 private val CoverHeight = 107.dp
+private val HeroBadgeSize = 72.dp
+private val SectionBadgeSize = 48.dp
 
 /** One review with its likes; [userId] owns it, null for the signed-in user's own. */
 @KoinViewModel
@@ -152,10 +165,32 @@ class ReviewDetailViewModel(
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
-fun ReviewDetailView(entryId: String, userId: String?) = ScreenScaffold(title = Res.string.review__title) {
+fun ReviewDetailView(entryId: String, userId: String?) {
+    val navigationState = LocalNavigationState.current
+    val viewModel = koinViewModel<ReviewDetailViewModel> { parametersOf(entryId, userId) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isMine = viewModel.ownerId == viewModel.currentUserId
+    ScreenScaffold(
+        title = Res.string.review__title,
+        actions = {
+            if (uiState.entry != null && isMine) {
+                IconButton(
+                    onClick = { navigationState.backStack.add(RootNavTree.ReviewEditor(entryId)) },
+                    shapes = IconButtonDefaults.shapes()
+                ) {
+                    Icon(Icons.EditW500Rounded, contentDescription = stringResource(Res.string.library__edit_review))
+                }
+            }
+        }
+    ) {
+        ReviewDetailBody(entryId, viewModel, isMine)
+    }
+}
+
+@Composable
+private fun ReviewDetailBody(entryId: String, viewModel: ReviewDetailViewModel, isMine: Boolean) {
     AuthenticatedContent {
         val navigationState = LocalNavigationState.current
-        val viewModel = koinViewModel<ReviewDetailViewModel> { parametersOf(entryId, userId) }
         val commentsViewModel = koinViewModel<CommentsViewModel> { parametersOf(InteractionTarget.REVIEW, entryId) }
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         val roots by commentsViewModel.roots.state.collectAsStateWithLifecycle()
@@ -178,7 +213,7 @@ fun ReviewDetailView(entryId: String, userId: String?) = ScreenScaffold(title = 
                             game = uiState.game,
                             like = uiState.like,
                             liking = uiState.liking,
-                            isMine = viewModel.ownerId == viewModel.currentUserId,
+                            isMine = isMine,
                             onLike = viewModel::toggleLike,
                             onGameClick = { uiState.game?.let { navigationState.backStack.add(it.detailNavKey) } },
                             onUserClick = {
@@ -212,40 +247,11 @@ private fun ReviewContent(
     onUserClick: () -> Unit,
 ) {
     var reportOpen by remember { mutableStateOf(false) }
-    val scale = currentRatingScale()
     Column(
         Modifier.fillMaxWidth().padding(Dimens.ScreenPadding),
         verticalArrangement = Arrangement.spacedBy(Dimens.SectionGap)
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SectionGap)) {
-            game?.CoverImage(
-                Modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onGameClick),
-                sizeModifier = Modifier.width(CoverWidth).height(CoverHeight)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
-                Text(
-                    game?.name ?: stringResource(Res.string.activity__unknown_game),
-                    style = MaterialTheme.typography.titleLargeEmphasized,
-                    modifier = Modifier.clickable(onClick = onGameClick)
-                )
-                entry.rating?.let { Text("★ ${scale.format(it)}", style = MaterialTheme.typography.titleMedium) }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap),
-                    modifier = Modifier.clickable(onClick = onUserClick)
-                ) {
-                    UserAvatar(entry.user, 24.dp)
-                    Text(entry.user?.displayName.orEmpty(), style = MaterialTheme.typography.labelLarge)
-                    displayTimestamp(entry.reviewUpdatedAt)?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
+        ReviewHeader(entry, game, onGameClick, onUserClick)
         SpoilerText(entry.review.orEmpty(), entry.reviewSpoiler, MaterialTheme.typography.bodyLarge)
         ReviewSections(entry)
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -260,24 +266,102 @@ private fun ReviewContent(
     if (reportOpen) entry.id?.let { ReportDialog(InteractionTarget.REVIEW, it, onDismiss = { reportOpen = false }) }
 }
 
-/** A detailed review's sections, under the same spoiler flag as the review. */
+/** Cover, game and author, with the overall rating as the screen's highlight. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ReviewHeader(entry: LibraryEntry, game: Game?, onGameClick: () -> Unit, onUserClick: () -> Unit) = Row(
+    horizontalArrangement = Arrangement.spacedBy(Dimens.SectionGap),
+    verticalAlignment = Alignment.CenterVertically
+) {
+    game?.CoverImage(
+        Modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onGameClick),
+        sizeModifier = Modifier.width(CoverWidth).height(CoverHeight)
+    )
+    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
+        Text(
+            game?.name ?: stringResource(Res.string.activity__unknown_game),
+            style = MaterialTheme.typography.titleLargeEmphasized,
+            modifier = Modifier.clickable(onClick = onGameClick)
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap),
+            modifier = Modifier.clip(MaterialTheme.shapes.small).clickable(onClick = onUserClick)
+        ) {
+            UserAvatar(entry.user, 24.dp)
+            Text(entry.user?.displayName.orEmpty(), style = MaterialTheme.typography.labelLarge)
+        }
+        displayTimestamp(entry.reviewUpdatedAt)?.let {
+            Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    entry.rating?.let {
+        RatingBadge(
+            rating = it,
+            shape = MaterialShapes.Cookie9Sided,
+            size = HeroBadgeSize,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            textStyle = MaterialTheme.typography.titleLargeEmphasized
+        )
+    }
+}
+
+/** A detailed review's sections as a segmented list, under the same spoiler flag as the review. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ReviewSections(entry: LibraryEntry) {
-    val scale = currentRatingScale()
-    for (section in entry.reviewSections) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                listOfNotNull(
-                    reviewSectionTitle(section.key),
-                    section.rating?.let { "★ ${scale.format(it)}" }
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.titleMediumEmphasized
-            )
-            if (section.review.isNotBlank()) {
-                SpoilerText(section.review, entry.reviewSpoiler, MaterialTheme.typography.bodyMedium)
+    val sections = entry.reviewSections
+    if (sections.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
+        Text(
+            stringResource(Res.string.library__review_sections),
+            style = MaterialTheme.typography.titleMediumEmphasized,
+            color = MaterialTheme.colorScheme.primary
+        )
+        SegmentedListLayout {
+            sections.forEachIndexed { index, section ->
+                val review = section.review.takeIf { it.isNotBlank() }
+                SegmentedListItem(
+                    shapes = ListItemDefaults.segmentedShapes(index, sections.size),
+                    colors = ListItemDefaults.expressiveSegmentedColors(),
+                    leadingContent = {
+                        RatingBadge(
+                            rating = section.rating,
+                            shape = MaterialShapes.Cookie6Sided,
+                            size = SectionBadgeSize,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            textStyle = MaterialTheme.typography.labelLargeEmphasized
+                        )
+                    },
+                    supportingContent = if (review == null) {
+                        null
+                    } else {
+                        { SpoilerText(review, entry.reviewSpoiler, MaterialTheme.typography.bodyMedium) }
+                    }
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
+                        Text(reviewSectionTitle(section.key), style = MaterialTheme.typography.titleMedium)
+                        section.rating?.let { RatingMeter(it) }
+                    }
+                }
             }
         }
     }
+}
+
+/** A section's rating as a wavy bar, filling up once when it first shows; the wave itself stays still. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun RatingMeter(rating: Double) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val progress by animateFloatAsState(
+        if (shown) (rating / MAX_RATING).toFloat() else 0f,
+        MaterialTheme.motionScheme.slowSpatialSpec()
+    )
+    LinearWavyProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth(), waveSpeed = 0.dp)
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

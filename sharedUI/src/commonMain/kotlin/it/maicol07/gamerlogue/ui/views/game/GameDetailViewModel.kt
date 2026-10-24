@@ -171,6 +171,10 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
                 if (authenticated) loadLibraryEntry()
             }
         }
+        // An entry changed elsewhere (e.g. its review, in the editor) would otherwise reopen stale in the sheet.
+        viewModelScope.launch {
+            libraryChanges.changes.collect { if (state.isAuthenticated) loadLibraryEntry() }
+        }
     }
 
     fun loadGameDetails(): Job = viewModelScope.launch {

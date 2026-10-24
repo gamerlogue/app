@@ -141,7 +141,8 @@ fun GameDetailView(
             onDismiss = { addToLibraryBottomSheetOpen = false },
             existingData = uiState.libraryEntry,
             game = game,
-            onDelete = { viewModel.loadLibraryEntry() }
+            onDelete = { viewModel.loadLibraryEntry() },
+            onWriteReview = { navigationState.backStack.add(RootNavTree.ReviewEditor(it)) }
         ) { viewModel.loadLibraryEntry() }
     }
 }

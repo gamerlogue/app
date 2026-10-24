@@ -41,9 +41,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.mohamedrejeb.richeditor.annotation.ExperimentalRichTextApi
-import com.mohamedrejeb.richeditor.model.RichTextState
-import com.mohamedrejeb.richeditor.ui.material3.RichText
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.comments__delete
 import gamerlogue.sharedui.generated.resources.comments__delete_confirm_message
@@ -67,6 +64,7 @@ import it.maicol07.gamerlogue.data.Comment
 import it.maicol07.gamerlogue.data.InteractionTarget
 import it.maicol07.gamerlogue.extensions.displayTimestamp
 import it.maicol07.gamerlogue.ui.components.layout.loadingItem
+import it.maicol07.gamerlogue.ui.components.social.MarkdownText
 import it.maicol07.gamerlogue.ui.components.social.ReportDialog
 import it.maicol07.gamerlogue.ui.components.social.SpoilerContent
 import it.maicol07.gamerlogue.ui.components.user.UserAvatar
@@ -207,15 +205,7 @@ private fun CommentBody(comment: Comment, answered: String?) {
         )
     }
     val text = comment.text.orEmpty()
-    SpoilerContent(text, comment.spoiler, Modifier) { CommentMarkdown(text) }
-}
-
-/** The comment's Markdown, as written with the composer's formatting. */
-@OptIn(ExperimentalRichTextApi::class)
-@Composable
-private fun CommentMarkdown(markdown: String) {
-    val state = remember(markdown) { RichTextState().setMarkdown(markdown) }
-    RichText(state, style = MaterialTheme.typography.bodyMedium)
+    SpoilerContent(text, comment.spoiler, Modifier) { MarkdownText(text, MaterialTheme.typography.bodyMedium) }
 }
 
 /** Reply, then edit and delete when allowed, or report someone else's comment: few enough for icons. */

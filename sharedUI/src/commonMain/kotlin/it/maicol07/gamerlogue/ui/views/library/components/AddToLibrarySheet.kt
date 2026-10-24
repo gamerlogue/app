@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,24 +29,36 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__add_to_library
 import gamerlogue.sharedui.generated.resources.library__cancel
+import gamerlogue.sharedui.generated.resources.library__clear_review_confirm
+import gamerlogue.sharedui.generated.resources.library__clear_review_message
+import gamerlogue.sharedui.generated.resources.library__clear_review_title
 import gamerlogue.sharedui.generated.resources.library__completion_status
 import gamerlogue.sharedui.generated.resources.library__completion_status_description
 import gamerlogue.sharedui.generated.resources.library__delete
 import gamerlogue.sharedui.generated.resources.library__edit_entry
 import gamerlogue.sharedui.generated.resources.library__save
+import gamerlogue.sharedui.generated.resources.library__save_and_continue
+import gamerlogue.sharedui.generated.resources.library__save_before_review_message
+import gamerlogue.sharedui.generated.resources.library__save_before_review_title
 import gamerlogue.sharedui.generated.resources.library__status
 import gamerlogue.sharedui.generated.resources.library__status_description
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CategoryW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DeleteW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TrophyW500Rounded
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.data.LibraryEntry
@@ -55,6 +68,7 @@ import it.maicol07.gamerlogue.ui.components.SingleSelectConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -78,6 +92,8 @@ fun GameAddEditLibrarySheet(
         key = "${game.id}_${existingData.hashCode()}",
     ) { parametersOf(game, existingData, ownedPlatformIds) },
     onDelete: () -> Unit = {},
+    /** Opens the review editor on the entry with this id, saved just before. */
+    onWriteReview: (String) -> Unit,
     onSave: (LibraryEntry) -> Unit
 ) {
     val status = viewModel.selectedStatus
@@ -91,6 +107,18 @@ fun GameAddEditLibrarySheet(
     val scope = rememberCoroutineScope()
     val dismiss: () -> Unit = {
         scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+    }
+    var confirmClearReview by remember { mutableStateOf(false) }
+    var confirmSaveForReview by remember { mutableStateOf(false) }
+    val openReview: (String) -> Unit = {
+        onWriteReview(it)
+        dismiss()
+    }
+    val save: () -> Unit = {
+        viewModel.saveEntry {
+            onSave(it)
+            dismiss()
+        }
     }
 
     ModalBottomSheet(onDismiss, sheetState = sheetState) {
@@ -127,21 +155,21 @@ fun GameAddEditLibrarySheet(
             }
 
             if (!isBacklog && !isPlayingOrPaused) {
-                item {
-                    Column(modifier = Modifier.animateItem()) {
-                        RatingSection(viewModel)
-                    }
-                }
-                if (viewModel.detailedReview) {
+                if (!viewModel.detailedReview) {
                     item {
-                        Box(modifier = Modifier.animateItem()) {
-                            DetailedReviewSection(viewModel)
+                        Column(modifier = Modifier.animateItem()) {
+                            RatingSection(
+                                rating = viewModel.rating,
+                                onRatingChange = { viewModel.rating = it }
+                            )
                         }
                     }
                 }
                 item {
                     Box(modifier = Modifier.animateItem()) {
-                        ReviewSection(viewModel)
+                        ReviewRow(existingData, enabled = !viewModel.saveLoading) {
+                            if (viewModel.hasChanges) confirmSaveForReview = true else existingData?.id?.let(openReview)
+                        }
                     }
                 }
             }
@@ -169,18 +197,70 @@ fun GameAddEditLibrarySheet(
                             dismiss()
                         }
                     },
-                    onSave = {
-                        viewModel.saveEntry {
-                            onSave(it)
-                            dismiss()
-                        }
-                    }
+                    onSave = { if (viewModel.clearsReview) confirmClearReview = true else save() }
                 )
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
     }
+    if (confirmClearReview) {
+        ConfirmDialog(
+            icon = Icons.DeleteW500Rounded,
+            title = Res.string.library__clear_review_title,
+            message = Res.string.library__clear_review_message,
+            confirmLabel = Res.string.library__clear_review_confirm,
+            destructive = true,
+            onConfirm = save,
+            onDismiss = { confirmClearReview = false }
+        )
+    }
+    if (confirmSaveForReview) {
+        ConfirmDialog(
+            icon = Icons.RateReviewW500Rounded,
+            title = Res.string.library__save_before_review_title,
+            message = Res.string.library__save_before_review_message,
+            confirmLabel = Res.string.library__save_and_continue,
+            destructive = false,
+            onConfirm = { viewModel.saveForReview(openReview) },
+            onDismiss = { confirmSaveForReview = false }
+        )
+    }
 }
+
+@Composable
+private fun ConfirmDialog(
+    icon: ImageVector,
+    title: StringResource,
+    message: StringResource,
+    confirmLabel: StringResource,
+    destructive: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) = AlertDialog(
+    onDismissRequest = onDismiss,
+    icon = { Icon(icon, contentDescription = null) },
+    title = { Text(stringResource(title)) },
+    text = { Text(stringResource(message)) },
+    confirmButton = {
+        TextButton(
+            onClick = {
+                onDismiss()
+                onConfirm()
+            },
+            shapes = ButtonDefaults.shapes(),
+            colors = if (destructive) {
+                ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            } else {
+                ButtonDefaults.textButtonColors()
+            },
+        ) { Text(stringResource(confirmLabel)) }
+    },
+    dismissButton = {
+        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(Res.string.library__cancel))
+        }
+    },
+)
 
 private fun LazyListScope.statusSection(
     gameName: String,

@@ -44,6 +44,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mohamedrejeb.richeditor.annotation.ExperimentalRichTextApi
+import com.mohamedrejeb.richeditor.model.RichTextState
+import com.mohamedrejeb.richeditor.ui.material3.RichText
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_cancel
 import gamerlogue.sharedui.generated.resources.common_ok
@@ -109,7 +112,7 @@ fun LikeButton(
         Text(count.toString(), modifier = Modifier.padding(start = ButtonDefaults.ExtraSmallIconSpacing))
     }
 
-/** [text], hidden behind a tap-to-reveal chip when it is marked as a [spoiler]. */
+/** The Markdown [text], hidden behind a tap-to-reveal chip when it is marked as a [spoiler]. */
 @Composable
 fun SpoilerText(
     text: String,
@@ -117,8 +120,14 @@ fun SpoilerText(
     style: TextStyle,
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE,
-) = SpoilerContent(text, spoiler, modifier) {
-    Text(text, style = style, modifier = modifier, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+) = SpoilerContent(text, spoiler, modifier) { MarkdownText(text, style, modifier, maxLines) }
+
+/** [markdown] as written with the rich text editor of comments and reviews. */
+@OptIn(ExperimentalRichTextApi::class)
+@Composable
+fun MarkdownText(markdown: String, style: TextStyle, modifier: Modifier = Modifier, maxLines: Int = Int.MAX_VALUE) {
+    val state = remember(markdown) { RichTextState().setMarkdown(markdown) }
+    RichText(state, style = style, modifier = modifier, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
 }
 
 /**

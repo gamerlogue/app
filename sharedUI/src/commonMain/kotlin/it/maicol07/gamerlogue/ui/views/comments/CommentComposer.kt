@@ -10,7 +10,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,9 +20,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -33,7 +29,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.LocalContentColor
@@ -42,7 +37,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,14 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
@@ -68,17 +57,8 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.comments__edit_confirm_message
 import gamerlogue.sharedui.generated.resources.comments__edit_confirm_title
 import gamerlogue.sharedui.generated.resources.comments__editing
-import gamerlogue.sharedui.generated.resources.comments__format_bold
-import gamerlogue.sharedui.generated.resources.comments__format_code
-import gamerlogue.sharedui.generated.resources.comments__format_italic
-import gamerlogue.sharedui.generated.resources.comments__format_link
-import gamerlogue.sharedui.generated.resources.comments__format_list
-import gamerlogue.sharedui.generated.resources.comments__format_numbered
-import gamerlogue.sharedui.generated.resources.comments__format_strikethrough
 import gamerlogue.sharedui.generated.resources.comments__has_spoiler
 import gamerlogue.sharedui.generated.resources.comments__hint
-import gamerlogue.sharedui.generated.resources.comments__link_add
-import gamerlogue.sharedui.generated.resources.comments__link_url
 import gamerlogue.sharedui.generated.resources.comments__new
 import gamerlogue.sharedui.generated.resources.comments__rejected
 import gamerlogue.sharedui.generated.resources.comments__replying_to
@@ -91,19 +71,13 @@ import gamerlogue.sharedui.generated.resources.common_cancel
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.AddW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CodeW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatBoldW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatItalicW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatListBulletedW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatListNumberedW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatStrikethroughW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MoreVertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ReplyW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SendW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.VisibilityOffW500Rounded
 import it.maicol07.gamerlogue.data.CommentSchema
+import it.maicol07.gamerlogue.ui.components.RichTextFormatToolbar
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -164,7 +138,7 @@ fun CommentComposer(state: CommentsViewModel.UiState, viewModel: CommentsViewMod
                 draft.focused || text.annotatedString.text.isNotEmpty(),
                 enter = expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeIn(),
                 exit = shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeOut(),
-            ) { FormatToolbar(text) }
+            ) { RichTextFormatToolbar(text) }
         }
     }
     if (confirmEdit) {
@@ -298,94 +272,6 @@ private fun ComposerMenu(draft: ComposerDraft) = Box {
             onClick = { draft.spoiler = !draft.spoiler },
         )
     }
-}
-
-/**
- * The formatting buttons, checked when the selection already has the style. They never take the
- * focus, which would collapse the selection they are meant to format.
- */
-@Composable
-private fun FormatToolbar(text: RichTextState) {
-    var linkOpen by remember { mutableStateOf(false) }
-    val style = text.currentSpanStyle
-    Row(
-        Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap / 2)
-    ) {
-        FormatButton(
-            Icons.FormatBoldW500Rounded,
-            Res.string.comments__format_bold,
-            style.fontWeight == FontWeight.Bold
-        ) { text.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) }
-        FormatButton(
-            Icons.FormatItalicW500Rounded,
-            Res.string.comments__format_italic,
-            style.fontStyle == FontStyle.Italic
-        ) { text.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) }
-        FormatButton(
-            Icons.FormatStrikethroughW500Rounded,
-            Res.string.comments__format_strikethrough,
-            style.textDecoration?.contains(TextDecoration.LineThrough) == true
-        ) { text.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) }
-        FormatButton(Icons.CodeW500Rounded, Res.string.comments__format_code, text.isCodeSpan) { text.toggleCodeSpan() }
-        FormatButton(Icons.LinkW500Rounded, Res.string.comments__format_link, text.isLink) {
-            if (text.isLink) text.removeLink() else linkOpen = true
-        }
-        FormatButton(Icons.FormatListBulletedW500Rounded, Res.string.comments__format_list, text.isUnorderedList) {
-            text.toggleUnorderedList()
-        }
-        FormatButton(Icons.FormatListNumberedW500Rounded, Res.string.comments__format_numbered, text.isOrderedList) {
-            text.toggleOrderedList()
-        }
-    }
-    if (linkOpen) LinkDialog(text, onDismiss = { linkOpen = false })
-}
-
-@Composable
-private fun FormatButton(icon: ImageVector, label: StringResource, checked: Boolean, onClick: () -> Unit) =
-    IconToggleButton(
-        checked = checked,
-        onCheckedChange = { onClick() },
-        shapes = IconButtonDefaults.toggleableShapes(),
-        colors = IconButtonDefaults.iconToggleButtonColors(
-            checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-        modifier = Modifier.focusProperties { canFocus = false },
-    ) { Icon(icon, contentDescription = stringResource(label)) }
-
-/** Links the selected text to an address, or inserts the address as a link when nothing is selected. */
-@Composable
-private fun LinkDialog(text: RichTextState, onDismiss: () -> Unit) {
-    val url = rememberTextFieldState("https://")
-    val address = url.text.toString().trim()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.comments__format_link)) },
-        text = {
-            TextField(
-                state = url,
-                label = { Text(stringResource(Res.string.comments__link_url)) },
-                lineLimits = TextFieldLineLimits.SingleLine,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                enabled = address.length > "https://".length,
-                onClick = {
-                    if (text.selection.collapsed) text.addLink(address, address) else text.addLinkToSelection(address)
-                    onDismiss()
-                },
-                shapes = ButtonDefaults.shapes(),
-            ) { Text(stringResource(Res.string.comments__link_add)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(Res.string.common_cancel))
-            }
-        },
-    )
 }
 
 /** A yes/no question before an action that changes or removes something for everyone. */

@@ -1,9 +1,7 @@
 package it.maicol07.gamerlogue.ui.views.library.components
 
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,13 +17,13 @@ import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.data.LibraryEntry
-import it.maicol07.gamerlogue.data.MAX_RATING
-import it.maicol07.gamerlogue.data.ReviewSection
+import it.maicol07.gamerlogue.data.LibraryEntrySchema.CompletionStatus
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.isReleased
 import it.maicol07.gamerlogue.ui.components.ReviewMode
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
@@ -79,24 +77,25 @@ class AddToLibrarySheetViewModel(
     var startDate by mutableStateOf(existingEntry?.startLocalDate)
     var endDate by mutableStateOf(existingEntry?.endLocalDate)
     var playedTime = TextFieldState(existingEntry?.playedTime?.toString() ?: "")
-    var rating by mutableStateOf(existingEntry?.rating)
-    var review = TextFieldState(existingEntry?.review ?: "")
-    var reviewSpoiler by mutableStateOf(existingEntry?.reviewSpoiler ?: false)
+    var rating by mutableStateOf(existingEntry?.rating?.toFloat())
 
-    /** Read once: switching the setting does not reshape a sheet already open. */
+    /**
+     * Read once: switching the setting does not reshape a sheet already open. A detailed review rates
+     * itself through its sections, in the review editor, so the sheet then leaves the rating alone.
+     */
     val detailedReview = preferences.reviewMode.value == ReviewMode.DETAILED
-    val sections = mutableStateListOf<SectionDraft>().apply {
-        existingEntry?.reviewSections?.forEach { add(SectionDraft(it)) }
-    }
-    val customSectionTitle = TextFieldState()
 
-    /** The sections' mean in a detailed review that has them, the slider's value otherwise. */
-    val overallRating: Float?
-        get() = if (detailedReview && sections.isNotEmpty()) {
-            sections.map { it.rating }.average().toFloat()
-        } else {
-            rating?.toFloat()
-        }
+    /** Declared after every field it reads, so it captures them as the sheet opened. */
+    private val initialForm = form()
+
+    /** A new entry always has to be saved before its review can be written. */
+    val hasChanges: Boolean
+        get() = existingEntry == null || form() != initialForm
+
+    /** Only a finished game is rated and reviewed: saving with any other status clears both. */
+    val clearsReview: Boolean
+        get() = selectedStatus in UNRATED_STATUSES && existingEntry != null &&
+            (existingEntry.hasReview || existingEntry.rating != null)
 
     var saveLoading by mutableStateOf(false)
     var deleteLoading by mutableStateOf(false)
@@ -132,18 +131,6 @@ class AddToLibrarySheetViewModel(
         }
     }
 
-    /** Adds a section unless [key] is blank or already there. */
-    fun addSection(key: String) {
-        if (key.isNotBlank() && sections.none { it.key == key }) {
-            sections.add(SectionDraft(key, DEFAULT_SECTION_RATING, ""))
-        }
-    }
-
-    fun addCustomSection() {
-        addSection(customSectionTitle.text.toString().trim())
-        customSectionTitle.clearText()
-    }
-
     fun deleteEntry(onDelete: () -> Unit) = viewModelScope.launch {
         deleteLoading = true
         error = null
@@ -154,21 +141,29 @@ class AddToLibrarySheetViewModel(
         deleteLoading = false
     }
 
+    /** Hands the entry to [onSave] even when the request failed: [safeRequest] already reported it. */
     fun saveEntry(onSave: (LibraryEntry) -> Unit) = viewModelScope.launch {
-        saveLoading = true
-        error = null
+        save()?.let { (entry, _) -> onSave(entry) }
+    }
 
+    /** Saves first, since the review editor only works on an existing entry; [onSaved] gets its id. */
+    fun saveForReview(onSaved: (String) -> Unit) = viewModelScope.launch {
+        save()?.let { (entry, saved) -> if (saved) entry.id?.let(onSaved) }
+    }
+
+    /** Null when no status is picked; otherwise the entry and whether the server accepted it. */
+    private suspend fun save(): Pair<LibraryEntry, Boolean>? {
+        error = null
         if (selectedStatus == null) {
             error = Res.string.library__error_select_status
-            saveLoading = false
-            return@launch
+            return null
         }
-
+        saveLoading = true
         val entry = getEntryToSave()
-        if (safeRequest { entry.save() }.isOk) libraryChanges.notifyChanged()
-        onSave(entry)
-
+        val saved = safeRequest { entry.save() }.isOk
+        if (saved) libraryChanges.notifyChanged()
         saveLoading = false
+        return entry to saved
     }
 
     private fun getEntryToSave(): LibraryEntry {
@@ -187,35 +182,45 @@ class AddToLibrarySheetViewModel(
         entry.startDate = if (isBacklog) null else startDate?.toString()
         entry.endDate = if (isBacklog || isPlayingOrPaused) null else endDate?.toString()
         entry.playedTime = if (isBacklog) null else playedTime.text.toString().ifBlank { null }?.toInt()
-        val rated = !isBacklog && !isPlayingOrPaused
-        entry.rating = if (rated) overallRating?.roundToInt() else null
-        // A basic review leaves the sections of an earlier detailed one untouched.
-        if (!rated) {
+        if (selectedStatus in UNRATED_STATUSES) {
+            entry.rating = null
             entry.ratingDetails = null
-        } else if (detailedReview) {
-            entry.ratingDetails = sections
-                .associate { it.key to it.toAttribute() }
-                .ifEmpty { null }
+            entry.review = ""
+            entry.reviewSpoiler = false
+        } else if (!detailedReview) {
+            entry.rating = rating?.roundToInt()
         }
-        entry.review = if (isBacklog || isPlayingOrPaused) "" else review.text.toString()
-        entry.reviewSpoiler = reviewSpoiler && entry.hasReview
 
         return entry
     }
 
+    private fun form() = FormSnapshot(
+        status = selectedStatus,
+        completionStatus = completionStatus,
+        owned = owned,
+        editions = selectedEditions.toSet(),
+        platforms = selectedPlatforms.map { it.id }.toSet(),
+        startDate = startDate,
+        endDate = endDate,
+        playedTime = playedTime.text.toString(),
+        rating = rating
+    )
+
+    /** What the form holds, to tell whether anything changed since the sheet opened. */
+    private data class FormSnapshot(
+        val status: GameLibraryStatus?,
+        val completionStatus: CompletionStatus?,
+        val owned: Boolean,
+        val editions: Set<Int>,
+        val platforms: Set<Long>,
+        val startDate: LocalDate?,
+        val endDate: LocalDate?,
+        val playedTime: String,
+        val rating: Float?,
+    )
+
     private companion object {
         const val EDITIONS_LIMIT = 50
-        const val DEFAULT_SECTION_RATING = MAX_RATING / 2f
+        val UNRATED_STATUSES = setOf(GameLibraryStatus.BACKLOG, GameLibraryStatus.PLAYING, GameLibraryStatus.PAUSED)
     }
-}
-
-/** A detailed review's section while it is edited. */
-class SectionDraft(val key: String, rating: Float, review: String) {
-    constructor(section: ReviewSection) : this(section.key, section.rating?.toFloat() ?: 0f, section.review)
-
-    var rating by mutableFloatStateOf(rating)
-    val review = TextFieldState(review)
-
-    /** The `rating_details` value of this section. */
-    fun toAttribute(): Map<String, Any> = mapOf("rating" to rating.roundToInt(), "review" to review.text.toString())
 }
