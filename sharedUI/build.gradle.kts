@@ -301,6 +301,7 @@ symbolCraft {
         "info",
         "inventory_2",
         "joystick",
+        "keyboard_arrow_down",
         "keyboard_arrow_right",
         "layers",
         "language",

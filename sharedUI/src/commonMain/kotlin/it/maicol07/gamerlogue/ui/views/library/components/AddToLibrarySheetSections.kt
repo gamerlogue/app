@@ -1,6 +1,11 @@
 package it.maicol07.gamerlogue.ui.views.library.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,22 +31,30 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,6 +95,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Clo
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DevicesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Inventory2W500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowDownW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StarW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
@@ -152,6 +166,10 @@ internal fun OwnedSwitch(
     }
 }
 
+/**
+ * The edition picker as an expandable segmented list: the header sums up the picked editions, and
+ * their covers, a choice rarely changed, unfold under it on demand.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun LazyItemScope.EditionSection(
@@ -159,57 +177,102 @@ internal fun LazyItemScope.EditionSection(
     viewModel: AddToLibrarySheetViewModel
 ) {
     if (!viewModel.editionsLoading && viewModel.editions.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+    // Opened from an edition's page, the standard edition is its base game.
+    val baseGame = game.version_parent ?: game
+    val standardLabel = stringResource(Res.string.library__standard_edition)
+    val editions = remember(baseGame, viewModel.editions, standardLabel) {
+        listOf(baseGame to standardLabel) + viewModel.editions.map { it to it.version_title.ifEmpty { it.name } }
+    }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val colors = ListItemDefaults.expressiveSegmentedColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    SegmentedListLayout(Modifier.fillMaxWidth()) {
+        EditionHeader(
+            expanded = expanded,
+            loading = viewModel.editionsLoading,
+            summary = editions.filter { (edition, _) -> edition.id.toInt() in viewModel.selectedEditions }
+                .joinToString { it.second },
+            shapes = ListItemDefaults.segmentedShapes(0, if (expanded) 2 else 1),
+            colors = colors,
+            onToggle = { expanded = !expanded }
+        )
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(MaterialTheme.motionScheme.fastSpatialSpec()) +
+                fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
+            exit = shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec()) +
+                fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())
         ) {
-            Icon(
-                imageVector = Icons.StyleW500Rounded,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
+            // Keeps its bottom shape while collapsing; only the header rounds off at once.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = ListItemDefaults.segmentedShapes(1, 2).shape,
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                EditionCovers(editions, viewModel)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun EditionHeader(
+    expanded: Boolean,
+    loading: Boolean,
+    summary: String,
+    shapes: ListItemShapes,
+    colors: ListItemColors,
+    onToggle: () -> Unit
+) {
+    val arrowTurn by animateFloatAsState(
+        if (expanded) HALF_TURN_DEGREES else 0f,
+        MaterialTheme.motionScheme.defaultSpatialSpec()
+    )
+    SegmentedListItem(
+        onClick = onToggle,
+        enabled = !loading,
+        shapes = shapes,
+        colors = colors,
+        leadingContent = { Icon(Icons.StyleW500Rounded, contentDescription = null) },
+        supportingContent = {
             Text(
-                text = stringResource(Res.string.library__edition),
-                style = MaterialTheme.typography.titleMedium
+                summary.ifEmpty { stringResource(Res.string.library__edition_description) },
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
+        },
+        trailingContent = {
+            if (loading) {
+                LoadingIndicator(Modifier.size(24.dp))
+            } else {
+                Icon(
+                    Icons.KeyboardArrowDownW500Rounded,
+                    contentDescription = null,
+                    modifier = Modifier.graphicsLayer { rotationZ = arrowTurn }
+                )
+            }
         }
-        Text(
-            text = stringResource(Res.string.library__edition_description),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    if (viewModel.editionsLoading) {
-        LoadingIndicator()
-        return
-    }
-    // Plain horizontalScroll, not LazyRow: a handful of covers doesn't need virtualization, and
-    // LazyRow's own scroll/beyond-bounds machinery is the suspected cause of the earlier bug where
-    // taps stopped landing once the sheet was fully expanded.
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Opened from an edition's page, the standard edition is its base game.
-        val baseGame = game.version_parent ?: game
-        val gameId = baseGame.id.toInt()
+        Text(stringResource(Res.string.library__edition), style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+// Plain horizontalScroll, not LazyRow: a handful of covers doesn't need virtualization, and
+// LazyRow's own scroll/beyond-bounds machinery is the suspected cause of the earlier bug where
+// taps stopped landing once the sheet was fully expanded.
+@Composable
+private fun EditionCovers(editions: List<Pair<Game, String>>, viewModel: AddToLibrarySheetViewModel) = Row(
+    modifier = Modifier.horizontalScroll(rememberScrollState()).padding(12.dp),
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
+) {
+    for ((edition, label) in editions) {
+        val editionId = edition.id.toInt()
         EditionCover(
-            game = baseGame,
-            label = stringResource(Res.string.library__standard_edition),
-            selected = gameId in viewModel.selectedEditions,
-            onClick = { viewModel.toggleEditionSelection(gameId) }
+            game = edition,
+            label = label,
+            selected = editionId in viewModel.selectedEditions,
+            onClick = { viewModel.toggleEditionSelection(editionId) }
         )
-        for (edition in viewModel.editions) {
-            val editionId = edition.id.toInt()
-            EditionCover(
-                game = edition,
-                label = edition.version_title.ifEmpty { edition.name },
-                selected = editionId in viewModel.selectedEditions,
-                onClick = { viewModel.toggleEditionSelection(editionId) }
-            )
-        }
     }
 }
 
@@ -264,6 +327,8 @@ private fun EditionCover(game: Game, label: String, selected: Boolean, onClick: 
         )
     }
 }
+
+private const val HALF_TURN_DEGREES = 180f
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
