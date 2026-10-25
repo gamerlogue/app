@@ -36,3 +36,10 @@ expect fun applyAppLanguage(tag: String?)
 
 /** Whether the app runs on an Android emulator, which reaches the host machine through `10.0.2.2`. */
 expect val isAndroidEmulator: Boolean
+
+/**
+ * Asks for the platform's local network permission while [serverUrl] points at a LAN host, which the OS would
+ * otherwise block. No-op where the platform has no such permission.
+ */
+@Composable
+expect fun LocalNetworkAccess(serverUrl: String)

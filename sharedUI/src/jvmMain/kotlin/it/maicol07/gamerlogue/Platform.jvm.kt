@@ -37,3 +37,6 @@ actual fun applyAppLanguage(tag: String?) {
 }
 
 actual val isAndroidEmulator = false
+
+@Composable
+actual fun LocalNetworkAccess(serverUrl: String) = Unit

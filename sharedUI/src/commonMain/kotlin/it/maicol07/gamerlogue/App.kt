@@ -38,6 +38,7 @@ fun App(
     KoinApplication(koinConfiguration<KoinApp>()) {
         CompositionLocalProvider(LocalNavigationState provides navigationState) {
             AuthHandler(authCallbackUri, onAuthCallbackHandled)
+            LocalNetworkAccess(koinInject<AppPreferences>().serverUrl.collectAsStateWithLifecycle().value)
 
             // Compose resources read the platform locale during composition, so an in-app language
             // change is only picked up by composing the tree again. Keyed here rather than higher up
