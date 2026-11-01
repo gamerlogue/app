@@ -745,6 +745,10 @@ internal fun RangeFilterSection(
         }
         RangeSlider(
             state = state,
+            onValueChange = {
+                state.startValue = it.start
+                state.endValue = it.endInclusive
+            },
             onValueChangeFinished = { onValueChangeFinished(state.startValue..state.endValue) },
             modifier = Modifier.fillMaxWidth()
         )
