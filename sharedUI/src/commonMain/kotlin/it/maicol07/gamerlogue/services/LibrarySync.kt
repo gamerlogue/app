@@ -11,6 +11,7 @@ import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.ProfileApi
 import it.maicol07.gamerlogue.extensions.allPages
 import it.maicol07.gamerlogue.extensions.currentUserEntries
+import it.maicol07.gamerlogue.extensions.igdb.platformNames
 import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.async
@@ -34,6 +35,9 @@ class LibrarySync(
     private val libraryChanges: LibraryChanges,
     private val profileApi: ProfileApi,
 ) {
+    /** Entries imported by the reviewed wishlist flow before its outgoing WebView step. */
+    val pendingWishlistImports: MutableMap<ExternalService, Int> = mutableMapOf()
+
     private companion object {
         /** Parallel save requests during an import. */
         const val MaxConcurrentSaves = 4
@@ -45,9 +49,8 @@ class LibrarySync(
     /** A Gamerlogue backlog game about to be pushed to a store wishlist (for the outgoing preview).
      *  [onPlatform] is false when the game doesn't release on the store's platform family (shown in a
      *  separate, non-pushable section); pushable rows need both [onPlatform] and a non-null [storeUrl] —
-     *  except for [it.maicol07.gamerlogue.services.WishlistWrite.SearchByName] connectors, which have no
-     *  [storeUrl] and instead need [matchesPublisher] ([ServiceConnector.matchesPublisher]) to confirm the
-     *  game is actually on that store before it's searched for and pushed. */
+     *  except for by-name, by-id and full-game writes. Those need [matchesPublisher]
+     *  ([ServiceConnector.matchesPublisher]) to confirm the game belongs on the target service. */
     data class OutgoingGame(
         val gameId: Int,
         val uid: String,
@@ -58,7 +61,15 @@ class LibrarySync(
         /** Already on the store wishlist — shown in the preview but disabled/deselected, not pushed. */
         val alreadyOnWishlist: Boolean = false,
         val matchesPublisher: Boolean = true,
-    )
+        val platformIds: List<Int> = emptyList(),
+        val platformNames: Map<Int, List<String>> = emptyMap(),
+    ) {
+        /** Use a platform explicitly selected in the library, or the game's sole platform. */
+        val defaultPlatformId: Int?
+            get() = platformNames.filterValues { it.isNotEmpty() }.let { available ->
+                platformIds.firstOrNull { it in available } ?: available.keys.singleOrNull()
+            }
+    }
 
     /** Persist confirmed IGDB [games] as owned. Existing entries keep their status/ratings and only
      *  gain `owned=true`; new ones become owned backlog items. [connector] derives `platformsIds`
@@ -92,6 +103,18 @@ class LibrarySync(
                 GameLibraryStatus.BACKLOG,
                 platformsIds = connector.platformIdsFor(game),
             )
+        }
+    }
+
+    /** Set each game's status: existing entries are updated in place (keeping `owned`), missing ones are
+     *  created as not owned. Returns how many saved successfully. */
+    suspend fun applyStatuses(games: List<Pair<Game, GameLibraryStatus>>): Int {
+        val existing = allEntries().associateBy { it.gameId }
+        val statusOf = games.associate { (game, status) -> game.id to status }
+        return persistEach(games.map { it.first }) { game ->
+            val entry = existing[game.id.toInt()]
+            LibraryEntry.quickDraft(game, statusOf.getValue(game.id), existing = entry)
+                .apply { owned = entry?.owned ?: false }
         }
     }
 
@@ -144,6 +167,7 @@ class LibrarySync(
 
         val urls = matcher.urlsForGames(connector, backlogIds)
         val games = matcher.gamesByIds(backlogIds).associateBy { it.id.toInt() }
+        val platforms = entries.associate { it.gameId to runCatching { it.platformsIds }.getOrDefault(emptyList()) }
         val family = connector.platformFamily
         // Show every backlog game in the preview: ones already on the store wishlist are flagged so the UI
         // disables/deselects them, games with no store mapping (storeUrl=null) are shown disabled, and
@@ -162,6 +186,8 @@ class LibrarySync(
                 onPlatform,
                 alreadyOnWishlist = id in onWishlistIds,
                 matchesPublisher = game != null && connector.matchesPublisher(game),
+                platformIds = platforms[id].orEmpty(),
+                platformNames = game?.platformNames.orEmpty(),
             )
         }
     }
@@ -187,6 +213,7 @@ class LibrarySync(
     suspend fun existingGameIds(ownedOnly: Boolean): Set<Int> =
         allEntries().filter { !ownedOnly || it.owned }.mapTo(mutableSetOf()) { it.gameId }
 
-    private suspend fun allEntries(): List<LibraryEntry> =
+    /** Every entry of the user's library. */
+    suspend fun allEntries(): List<LibraryEntry> =
         exceptionReporter.safeRequest { LibraryEntry.currentUserEntries().allPages() }.get().orEmpty()
 }

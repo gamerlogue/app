@@ -22,6 +22,7 @@ class ConnectorRegistryTest : StringSpec({
         XboxApi(HttpClient()),
         EpicApi(HttpClient()),
         UbisoftApi(HttpClient()),
+        AppModule.provideSettings(),
     )
 
     "every external service has a connector" {

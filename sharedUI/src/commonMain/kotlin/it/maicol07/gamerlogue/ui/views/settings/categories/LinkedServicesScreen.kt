@@ -14,6 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -24,11 +26,13 @@ import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,44 +42,54 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.common__more_options
 import gamerlogue.sharedui.generated.resources.settings__linked_services
 import gamerlogue.sharedui.generated.resources.settings__linked_services_disclaimer
+import gamerlogue.sharedui.generated.resources.settings__service_backloggd
+import gamerlogue.sharedui.generated.resources.settings__service_backloggery
+import gamerlogue.sharedui.generated.resources.settings__service_category_console
+import gamerlogue.sharedui.generated.resources.settings__service_category_pc
+import gamerlogue.sharedui.generated.resources.settings__service_category_tracker
 import gamerlogue.sharedui.generated.resources.settings__service_connect
 import gamerlogue.sharedui.generated.resources.settings__service_disconnect
 import gamerlogue.sharedui.generated.resources.settings__service_epic
 import gamerlogue.sharedui.generated.resources.settings__service_gog
-import gamerlogue.sharedui.generated.resources.settings__service_import_library
+import gamerlogue.sharedui.generated.resources.settings__service_grouvee
+import gamerlogue.sharedui.generated.resources.settings__service_howlongtobeat
+import gamerlogue.sharedui.generated.resources.settings__service_infinite_backlog
 import gamerlogue.sharedui.generated.resources.settings__service_nintendo
 import gamerlogue.sharedui.generated.resources.settings__service_pc_only
 import gamerlogue.sharedui.generated.resources.settings__service_playstation
 import gamerlogue.sharedui.generated.resources.settings__service_refresh_profile
+import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
+import gamerlogue.sharedui.generated.resources.settings__service_stash
 import gamerlogue.sharedui.generated.resources.settings__service_steam
-import gamerlogue.sharedui.generated.resources.settings__service_sync_now
-import gamerlogue.sharedui.generated.resources.settings__service_sync_wishlist
 import gamerlogue.sharedui.generated.resources.settings__service_ubisoft
 import gamerlogue.sharedui.generated.resources.settings__service_web_unsupported
 import gamerlogue.sharedui.generated.resources.settings__service_xbox
 import io.github.fopwoc.nav3ksp.annotation.Branch
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditNoteW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatListBulletedW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MoreVertW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TimerW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ToysAndGamesW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TrophyW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.EpicgamesSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.GogdotcomSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.PlaystationSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.SteamSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.UbisoftSimpleIcons
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.BookmarkW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DownloadW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SectionIcon
@@ -86,9 +100,12 @@ import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
+import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
+import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
 
 private val NestedListIndent = 16.dp
 
@@ -162,37 +179,80 @@ private fun LinkedServicesContent(
             }
         }
 
-        // Services form the top-level segmented list. A connected service's actions are a nested list right
-        // below it, so the top-level list closes on that service and reopens, spaced, with the next one.
+        // Each category's services form a top-level segmented list under its header. A connected service's
+        // actions are a nested list right below it, so the list closes on that service and reopens, spaced,
+        // with the next one.
         val stateOf = { service: ExternalService -> uiState.services[service] ?: LinkedServicesViewModel.ServiceState() }
         val uriHandler = LocalUriHandler.current
-        SegmentedListLayout(Modifier.fillMaxWidth()) {
-            ExternalService.entries.chunkedAfter { stateOf(it).connected }.forEach { run ->
-                run.forEachIndexed { index, service ->
-                    val state = stateOf(service)
-                    ServiceItem(
-                        service = service,
-                        state = state,
-                        shapes = ListItemDefaults.expressiveSegmentedShapes(index, run.size),
-                        onOpenProfile = { state.profile?.profileUrl?.let { uriHandler.openURL(it) } },
-                        onRefreshProfile = { navigateToSync(service, ServiceSyncAction.REFRESH_PROFILE) },
-                        onConnect = { navigateToSync(service, ServiceSyncAction.CONNECT) },
-                        onDisconnect = { viewModel.disconnect(service) },
-                    )
-                }
-                val service = run.last()
-                val state = stateOf(service)
-                if (state.connected) {
-                    ServiceActions(
-                        wishlistSync = state.wishlistSync,
-                        onToggleWishlist = { enabled ->
-                            viewModel.toggleWishlistSync(service, enabled)
-                            if (enabled) navigateToSync(service, ServiceSyncAction.SYNC_WISHLIST)
-                        },
-                        onWishlistSyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_WISHLIST) },
-                        onImport = { navigateToSync(service, ServiceSyncAction.IMPORT_LIBRARY) },
-                        modifier = Modifier.padding(start = NestedListIndent, bottom = Dimens.ItemGap),
-                    )
+        // A service with no sign-in asks for the user's public handle before its connect flow.
+        var askHandleFor by remember { mutableStateOf<ExternalService?>(null) }
+        askHandleFor?.let { service ->
+            HandleDialog(
+                onConfirm = { handle ->
+                    askHandleFor = null
+                    viewModel.setHandle(service, handle)
+                    navigateToSync(service, ServiceSyncAction.CONNECT)
+                },
+                onDismiss = { askHandleFor = null },
+            )
+        }
+        ExternalService.entries.groupBy { it.category }.forEach { (category, services) ->
+            Column {
+                SettingsGroupHeader(stringResource(category.labelRes()))
+                SegmentedListLayout(Modifier.fillMaxWidth()) {
+                    services.chunkedAfter { stateOf(it).connected }.forEach { run ->
+                        run.forEachIndexed { index, service ->
+                            val state = stateOf(service)
+                            ServiceItem(
+                                service = service,
+                                state = state,
+                                shapes = ListItemDefaults.expressiveSegmentedShapes(index, run.size),
+                                onOpenProfile = { state.profile?.profileUrl?.let { uriHandler.openURL(it) } },
+                                onRefreshProfile = { navigateToSync(service, ServiceSyncAction.REFRESH_PROFILE) },
+                                onConnect = {
+                                    if (viewModel.connector(service).needsHandle) {
+                                        askHandleFor = service
+                                    } else {
+                                        navigateToSync(service, ServiceSyncAction.CONNECT)
+                                    }
+                                },
+                                onDisconnect = { viewModel.disconnect(service) },
+                                onResyncIds = if (state.connected && service == ExternalService.BACKLOGGERY) {
+                                    { navigateToSync(service, ServiceSyncAction.RESYNC_IDS) }
+                                } else null,
+                            )
+                        }
+                        val service = run.last()
+                        val state = stateOf(service)
+                        if (state.connected) {
+                            ServiceActions(
+                                wishlistSync = state.wishlistSync.takeIf { viewModel.connector(service).wishlist != null },
+                                onToggleWishlist = { enabled ->
+                                    viewModel.toggleWishlistSync(service, enabled)
+                                    if (enabled) navigateToSync(service, ServiceSyncAction.SYNC_WISHLIST)
+                                },
+                                onWishlistSyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_WISHLIST) },
+                                librarySync = state.librarySync.takeIf { viewModel.connector(service).statusWrite != null },
+                                onToggleLibrarySync = { enabled ->
+                                    viewModel.toggleLibrarySync(service, enabled)
+                                    // The first sync is always reviewed: nothing is written unattended before it.
+                                    if (enabled) {
+                                        navigateToSync(
+                                            service,
+                                            if (viewModel.hasSyncedLibrary(service)) {
+                                                ServiceSyncAction.SYNC_LIBRARY
+                                            } else {
+                                                ServiceSyncAction.PREVIEW_LIBRARY_SYNC
+                                            },
+                                        )
+                                    }
+                                },
+                                onLibrarySyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_LIBRARY_SYNC) },
+                                onImport = { navigateToSync(service, ServiceSyncAction.IMPORT_LIBRARY) },
+                                modifier = Modifier.padding(start = NestedListIndent, bottom = Dimens.ItemGap),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -218,6 +278,7 @@ private fun ServiceItem(
     onRefreshProfile: () -> Unit,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
+    onResyncIds: (() -> Unit)?,
 ) {
     val connected = state.connected
     val profile = state.profile
@@ -236,12 +297,16 @@ private fun ServiceItem(
                 MaterialShapes.Cookie4Sided,
                 if (connected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
                 if (connected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                service.logoUrl(),
             )
         },
         trailingContent = {
             if (connected) {
-                TextButton(onClick = onDisconnect, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(Res.string.settings__service_disconnect))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onDisconnect, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(Res.string.settings__service_disconnect))
+                    }
+                    onResyncIds?.let { ServiceMoreMenu(it) }
                 }
             } else {
                 FilledTonalButton(onClick = onConnect, shapes = ButtonDefaults.shapes()) {
@@ -297,44 +362,20 @@ private fun ServiceItem(
     }
 }
 
-/** Second-level list with a connected service's actions. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ServiceActions(
-    wishlistSync: Boolean,
-    onToggleWishlist: (Boolean) -> Unit,
-    onWishlistSyncNow: () -> Unit,
-    onImport: () -> Unit,
-    modifier: Modifier = Modifier,
-) = SegmentedListLayout(modifier.fillMaxWidth()) {
-    // Wishlist sync: the whole row toggles auto-sync; the trailing button runs a manual preview.
-    SegmentedListItem(
-        checked = wishlistSync,
-        onCheckedChange = onToggleWishlist,
-        shapes = ListItemDefaults.segmentedShapes(0, 2),
-        colors = ListItemDefaults.expressiveSegmentedColors(),
-        leadingContent = { Icon(MaterialSymbols.BookmarkW500Rounded, contentDescription = null) },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onWishlistSyncNow, shapes = IconButtonDefaults.shapes()) {
-                    Icon(
-                        MaterialSymbols.SyncW500Rounded,
-                        contentDescription = stringResource(Res.string.settings__service_sync_now),
-                    )
-                }
-                Switch(checked = wishlistSync, onCheckedChange = null)
-            }
-        },
-    ) { Text(stringResource(Res.string.settings__service_sync_wishlist)) }
-
-    // Import library
-    SegmentedListItem(
-        onClick = onImport,
-        shapes = ListItemDefaults.segmentedShapes(1, 2),
-        colors = ListItemDefaults.expressiveSegmentedColors(),
-        leadingContent = { Icon(MaterialSymbols.DownloadW500Rounded, contentDescription = null) },
-        trailingContent = { Icon(MaterialSymbols.KeyboardArrowRightW500Rounded, contentDescription = null) },
-    ) { Text(stringResource(Res.string.settings__service_import_library)) }
+private fun ServiceMoreMenu(onResyncIds: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
+            Icon(MaterialSymbols.MoreVertW500Rounded, contentDescription = stringResource(Res.string.common__more_options))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.settings__service_resync_ids)) },
+                onClick = { expanded = false; onResyncIds() },
+            )
+        }
+    }
 }
 
 private fun ExternalService.icon(): ImageVector = when (this) {
@@ -346,6 +387,32 @@ private fun ExternalService.icon(): ImageVector = when (this) {
     // Nintendo's logo was pulled from simple-icons/svgl on legal request; use a neutral gaming glyph.
     ExternalService.NINTENDO -> MaterialSymbols.JoystickW500Rounded
     ExternalService.UBISOFT -> Icons.UbisoftSimpleIcons
+    // No tracker has a brand icon on simple-icons/svgl; each gets a distinct neutral glyph instead.
+    ExternalService.BACKLOGGERY -> MaterialSymbols.FormatListBulletedW500Rounded
+    ExternalService.BACKLOGGD -> MaterialSymbols.StyleW500Rounded
+    ExternalService.HOWLONGTOBEAT -> MaterialSymbols.TimerW500Rounded
+    ExternalService.GROUVEE -> MaterialSymbols.TrophyW500Rounded
+    ExternalService.INFINITE_BACKLOG -> MaterialSymbols.EditNoteW500Rounded
+    ExternalService.STASH -> MaterialSymbols.ToysAndGamesW500Rounded
+}
+
+// No tracker has a brand icon on simple-icons/svgl, and bundling their artwork would redistribute it: their
+// own icon is loaded at runtime instead, with the glyph above as the fallback. Grouvee's comes from its CDN
+// (content-hashed: a redeploy breaks the URL and falls back to the glyph); Stash's site has none, so it uses
+// the Play Store icon of its app (io.stashteam.games.tracker.stashapp). HowLongToBeat uses Google's cached
+// favicon because its own image endpoint returns 403 to non-browser requests.
+private fun ExternalService.logoUrl(): String? = when (this) {
+    ExternalService.BACKLOGGD -> "https://backloggd.com/apple-touch-icon.png"
+    ExternalService.BACKLOGGERY -> "https://backloggery.com/img/icons/favicon-32x32.png"
+    ExternalService.HOWLONGTOBEAT -> "https://www.google.com/s2/favicons?domain=howlongtobeat.com&sz=64"
+    ExternalService.INFINITE_BACKLOG -> "https://images.infinitebacklog.net/images/icons/apple-touch-icon-152x152.png"
+    // Pulled from simple-icons/svgl on Nintendo's request, so it is loaded from nintendo.com, never bundled.
+    ExternalService.NINTENDO -> "https://www.nintendo.com/eu/app/media/images/01_website_elements/icons/Nintendo_Website_icon_114x114.png"
+    ExternalService.GROUVEE -> "https://files-grouvee-com.b-cdn.net/img/apple-touch-icon.ef9bfb53f6a7.png"
+    ExternalService.STASH ->
+        "https://play-lh.googleusercontent.com/_tk5SamI5kPyLodXp0hLMSMBK3AFeoImF0ZtIzdsS-xYVRHWnTnOw9wCk9sedN3QXi9jL898L3bU62d61P2_gg=s96"
+
+    else -> null
 }
 
 internal fun ExternalService.labelRes(): StringResource = when (this) {
@@ -356,6 +423,18 @@ internal fun ExternalService.labelRes(): StringResource = when (this) {
     ExternalService.EPIC -> Res.string.settings__service_epic
     ExternalService.NINTENDO -> Res.string.settings__service_nintendo
     ExternalService.UBISOFT -> Res.string.settings__service_ubisoft
+    ExternalService.BACKLOGGERY -> Res.string.settings__service_backloggery
+    ExternalService.BACKLOGGD -> Res.string.settings__service_backloggd
+    ExternalService.HOWLONGTOBEAT -> Res.string.settings__service_howlongtobeat
+    ExternalService.GROUVEE -> Res.string.settings__service_grouvee
+    ExternalService.INFINITE_BACKLOG -> Res.string.settings__service_infinite_backlog
+    ExternalService.STASH -> Res.string.settings__service_stash
+}
+
+private fun ServiceCategory.labelRes(): StringResource = when (this) {
+    ServiceCategory.CONSOLE -> Res.string.settings__service_category_console
+    ServiceCategory.PC -> Res.string.settings__service_category_pc
+    ServiceCategory.TRACKER -> Res.string.settings__service_category_tracker
 }
 
 // Ubisoft's console releases are already covered by their own platform connectors, so this

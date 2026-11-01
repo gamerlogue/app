@@ -20,12 +20,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
@@ -62,7 +65,16 @@ import gamerlogue.sharedui.generated.resources.settings__import_deselect_all
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
+import gamerlogue.sharedui.generated.resources.settings__library_push_title
+import gamerlogue.sharedui.generated.resources.settings__library_sync_conflicts_left
+import gamerlogue.sharedui.generated.resources.settings__library_sync_pulled
+import gamerlogue.sharedui.generated.resources.settings__library_sync_pushed
+import gamerlogue.sharedui.generated.resources.settings__library_sync_summary
 import gamerlogue.sharedui.generated.resources.settings__open_store
+import gamerlogue.sharedui.generated.resources.settings__service_progress_count
+import gamerlogue.sharedui.generated.resources.settings__service_progress_of
+import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
+import gamerlogue.sharedui.generated.resources.settings__service_resync_ids_result
 import gamerlogue.sharedui.generated.resources.settings__service_sync_added
 import gamerlogue.sharedui.generated.resources.settings__service_sync_error
 import gamerlogue.sharedui.generated.resources.settings__service_sync_pushed
@@ -72,8 +84,11 @@ import gamerlogue.sharedui.generated.resources.settings__service_working
 import gamerlogue.sharedui.generated.resources.settings__sync_title_connect
 import gamerlogue.sharedui.generated.resources.settings__sync_title_import_library
 import gamerlogue.sharedui.generated.resources.settings__sync_title_refresh_profile
+import gamerlogue.sharedui.generated.resources.settings__sync_title_sync_library
 import gamerlogue.sharedui.generated.resources.settings__sync_title_sync_wishlist
 import gamerlogue.sharedui.generated.resources.settings__wishlist_already_present
+import gamerlogue.sharedui.generated.resources.settings__wishlist_choose_platform
+import gamerlogue.sharedui.generated.resources.settings__wishlist_no_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
@@ -91,10 +106,13 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Pub
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.KeepScreenOn
 import it.maicol07.gamerlogue.services.LibrarySync
+import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.StatusMessage
+import it.maicol07.gamerlogue.ui.components.StepProgress
 import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.label
 import it.maicol07.gamerlogue.ui.components.rememberServiceWebViewHost
@@ -103,6 +121,7 @@ import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -113,7 +132,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * peek while working (so the user can see what's happening). The body shows the loading log, the
  * outgoing push checklist, or a completion state. Import/preview flows hand off to the preview screen.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
 fun ServiceSyncView(
@@ -142,13 +161,39 @@ fun ServiceSyncView(
             ServiceSyncAction.CONNECT -> viewModel.runConnect(service, session)
             ServiceSyncAction.REFRESH_PROFILE -> viewModel.runRefreshProfile(service, session)
             ServiceSyncAction.SYNC_WISHLIST -> viewModel.runWishlistSync(service, session)
+            ServiceSyncAction.PUSH_WISHLIST -> viewModel.runWishlistPush(service, session)
+            ServiceSyncAction.SYNC_LIBRARY -> viewModel.runLibrarySync(service, session)
+            ServiceSyncAction.APPLY_LIBRARY_SYNC -> viewModel.runApplyLibrarySync(service, session)
+            ServiceSyncAction.APPLY_RESYNC_IDS -> viewModel.runApplyResyncIds(service, session)
+            ServiceSyncAction.RESYNC_IDS -> {
+                viewModel.runReadForIdSync(service, session)?.let { refs ->
+                    ImportHandoff.put(service, refs)
+                    navigatedAway = true
+                    navigateToImportPreview(service, ImportMode.ID_SYNC)
+                }
+            }
+
+            ServiceSyncAction.PREVIEW_LIBRARY_SYNC -> {
+
+                ImportHandoff.put(service, viewModel.runReadOwned(service, session))
+                navigatedAway = true
+                navigateToImportPreview(service, ImportMode.SYNC)
+            }
+
             ServiceSyncAction.IMPORT_LIBRARY, ServiceSyncAction.PREVIEW_WISHLIST -> {
                 val wishlist = action == ServiceSyncAction.PREVIEW_WISHLIST
                 val refs =
                     if (wishlist) viewModel.runWishlistPreview(service, session) else viewModel.runReadOwned(service, session)
                 ImportHandoff.put(service, refs)
                 navigatedAway = true
-                navigateToImportPreview(service, if (wishlist) ImportMode.WISHLIST else ImportMode.OWNED)
+                navigateToImportPreview(
+                    service,
+                    when {
+                        wishlist -> ImportMode.WISHLIST
+                        service.category == ServiceCategory.TRACKER -> ImportMode.TRACKED
+                        else -> ImportMode.OWNED
+                    },
+                )
             }
         }
     }
@@ -158,11 +203,31 @@ fun ServiceSyncView(
     val title = when (action) {
         ServiceSyncAction.CONNECT -> Res.string.settings__sync_title_connect
         ServiceSyncAction.REFRESH_PROFILE -> Res.string.settings__sync_title_refresh_profile
+        ServiceSyncAction.RESYNC_IDS, ServiceSyncAction.APPLY_RESYNC_IDS -> Res.string.settings__service_resync_ids
         ServiceSyncAction.SYNC_WISHLIST,
+        ServiceSyncAction.PUSH_WISHLIST,
         ServiceSyncAction.PREVIEW_WISHLIST -> Res.string.settings__sync_title_sync_wishlist
 
         ServiceSyncAction.IMPORT_LIBRARY -> Res.string.settings__sync_title_import_library
+        ServiceSyncAction.SYNC_LIBRARY,
+        ServiceSyncAction.PREVIEW_LIBRARY_SYNC,
+        ServiceSyncAction.APPLY_LIBRARY_SYNC -> Res.string.settings__sync_title_sync_library
     }
+
+    // Closing a running flow interrupts it (writes already sent stay sent): ask first. Signing in or
+    // refreshing the profile has nothing to lose, so those close straight away.
+    val running = !finished && !navigatedAway &&
+        action != ServiceSyncAction.CONNECT && action != ServiceSyncAction.REFRESH_PROFILE
+    // A long read/write stops when the device locks itself: keep the screen on until the flow is done.
+    if (running) KeepScreenOn()
+    var askInterrupt by remember { mutableStateOf(false) }
+    SyncInterruptGuard(
+        running = running,
+        asking = askInterrupt,
+        onAsk = { askInterrupt = true },
+        onDismiss = { askInterrupt = false },
+        onConfirm = onFinish,
+    )
 
     val sheetState = rememberBottomSheetState(
         SheetValue.PartiallyExpanded,
@@ -178,12 +243,21 @@ fun ServiceSyncView(
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 220.dp,
+        // While the WebView is interactive the sheet is expanded and stays put: the Android WebView doesn't
+        // report reliably how much of a scroll it consumed (pages scrolling an inner container), so the
+        // nested-scroll interop alone let the sheet steal drags. It collapses by itself once login is done.
+        sheetSwipeEnabled = !loginRequired,
+        sheetDragHandle = { SheetToggleHandle(sheetState) },
         topBar = {
             MediumFlexibleTopAppBar(
                 title = { Text(stringResource(title)) },
                 subtitle = { Text(stringResource(service.labelRes())) },
                 navigationIcon = {
-                    IconButton(onClick = onFinish, shapes = IconButtonDefaults.shapes()) {
+                    IconButton(
+                        onClick = { if (running) askInterrupt = true else onFinish() },
+                        shapes = IconButtonDefaults.shapes(),
+
+                    ) {
                         Icon(Icons.CloseW500Rounded, contentDescription = stringResource(Res.string.common_close))
                     }
                 },
@@ -227,26 +301,61 @@ fun ServiceSyncView(
             when {
                 pending != null -> PushChecklist(
                     games = pending,
-                    matchesByName = connector.wishlistWrite is WishlistWrite.SearchByName,
+                    title = when (action) {
+                        ServiceSyncAction.SYNC_LIBRARY, ServiceSyncAction.APPLY_LIBRARY_SYNC -> Res.string.settings__library_push_title
+                        else -> Res.string.settings__wishlist_push_title
+                    },
+                    requiresPlatform = service == ExternalService.BACKLOGGERY,
+                    // Name, IGDB-id and full-game writes do not need a store page.
+                    matchesByName = connector.wishlistWrite.let {
+                        it is WishlistWrite.SearchByName || it is WishlistWrite.ById || it is WishlistWrite.ByGame
+                    },
                     onConfirm = session::resolveConfirm,
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
                 // Pop straight back to Linked Services unless there is something worth reporting.
                 finished && outcome == LinkedServicesViewModel.SyncOutcome.Failed -> ErrorContent(onFinish)
                 finished && outcome is LinkedServicesViewModel.SyncOutcome.WishlistSynced &&
-                    outcome.changedAnything -> WishlistSummary(outcome, onFinish)
+                    outcome.changedAnything -> SyncSummary(
+                    Res.string.settings__service_sync_summary,
+                    outcome.added,
+                    Res.string.settings__service_sync_added,
+                    outcome.pushed,
+                    Res.string.settings__service_sync_pushed,
+                    conflicts = 0,
+                    onFinish,
+                )
+
+                finished && outcome is LinkedServicesViewModel.SyncOutcome.LibrarySynced &&
+                    outcome.changedAnything -> SyncSummary(
+                    Res.string.settings__library_sync_summary,
+                    outcome.pulled,
+                    Res.string.settings__library_sync_pulled,
+                    outcome.pushed,
+                    Res.string.settings__library_sync_pushed,
+                    outcome.conflicts,
+                    onFinish,
+                )
+
+                finished && outcome is LinkedServicesViewModel.SyncOutcome.IdsResynced -> StatusMessage(
+                    Icons.CheckCircleW500Rounded,
+                    stringResource(Res.string.settings__service_resync_ids_result, outcome.updated, outcome.unmatched),
+                ) {
+                    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
+                }
 
                 finished -> LaunchedEffect(Unit) { onFinish() }
-                else -> LoadingContent(session.log)
+                else -> LoadingContent(session.log, session.progress)
             }
         }
     }
 }
 
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun LoadingContent(log: List<SyncPhase>) {
-    // Each WebView step logs READING again: show every phase once.
+private fun LoadingContent(log: List<SyncPhase>, progress: StepProgress?) {
+    // Each WebView step logs its phase again: show every phase once.
     val steps = log.distinct()
     Column(
         Modifier.fillMaxSize().padding(24.dp),
@@ -258,8 +367,24 @@ private fun LoadingContent(log: List<SyncPhase>) {
         if (steps.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 steps.forEachIndexed { index, phase ->
-                    // LOGGED_IN is a milestone; READING is ongoing while it's the latest phase.
-                    PhaseStep(phase, inProgress = phase == SyncPhase.READING && index == steps.lastIndex)
+                    // LOGGED_IN is a milestone; the work phases are ongoing while they're the latest one.
+                    PhaseStep(phase, inProgress = phase != SyncPhase.LOGGED_IN && index == steps.lastIndex)
+                }
+            }
+        }
+        // Games read/written so far: X/Y with a determinate bar once the total is known, just X before.
+        progress?.let { (done, total) ->
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (total > 0) {
+                    LinearWavyProgressIndicator(progress = { done.toFloat() / total }, Modifier.fillMaxWidth())
+                    Text(pluralStringResource(Res.plurals.settings__service_progress_of, total, done, total))
+                } else {
+                    LinearWavyProgressIndicator(Modifier.fillMaxWidth())
+                    Text(pluralStringResource(Res.plurals.settings__service_progress_count, done, done))
                 }
             }
         }
@@ -294,7 +419,6 @@ private fun PhaseStep(phase: SyncPhase, inProgress: Boolean) = Row(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
     Icons.ErrorW500Rounded,
@@ -307,35 +431,48 @@ private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
     }
 }
 
-/** What a wishlist sync actually did, shown only when it changed something on either side. */
+
+/** What a wishlist or library sync actually did, shown only when it changed something on either side;
+ *  [conflicts] (library sync only) were left for a reviewed sync. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun WishlistSummary(
-    outcome: LinkedServicesViewModel.SyncOutcome.WishlistSynced,
+private fun SyncSummary(
+    title: StringResource,
+    added: Int,
+    addedLabel: StringResource,
+    pushed: Int,
+    pushedLabel: StringResource,
+    conflicts: Int,
     onFinish: () -> Unit,
 ) = StatusMessage(
     Icons.CheckCircleW500Rounded,
-    stringResource(Res.string.settings__service_sync_summary),
+    stringResource(title),
     containerColor = MaterialTheme.colorScheme.primaryContainer,
     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     shape = MaterialShapes.Sunny,
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         SummaryTile(
-            outcome.added,
-            stringResource(Res.string.settings__service_sync_added),
+            added,
+            stringResource(addedLabel),
             Icons.DownloadW500Rounded,
             MaterialTheme.colorScheme.secondaryContainer,
             MaterialTheme.colorScheme.onSecondaryContainer,
             Modifier.weight(1f),
         )
         SummaryTile(
-            outcome.pushed,
-            stringResource(Res.string.settings__service_sync_pushed),
+            pushed,
+            stringResource(pushedLabel),
             Icons.PublishW500Rounded,
             MaterialTheme.colorScheme.tertiaryContainer,
             MaterialTheme.colorScheme.onTertiaryContainer,
             Modifier.weight(1f),
+        )
+    }
+    if (conflicts > 0) {
+        Text(
+            pluralStringResource(Res.plurals.settings__library_sync_conflicts_left, conflicts, conflicts),
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
     Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) {
@@ -343,7 +480,6 @@ private fun WishlistSummary(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SummaryTile(
     count: Int,
@@ -366,10 +502,11 @@ private fun SummaryTile(
 }
 
 /** Outgoing-direction preview: pick which backlog games to add to the store wishlist. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PushChecklist(
     games: List<LibrarySync.OutgoingGame>,
+    title: StringResource,
+    requiresPlatform: Boolean,
     matchesByName: Boolean,
     onConfirm: (List<LibrarySync.OutgoingGame>) -> Unit,
     onSkip: () -> Unit,
@@ -377,20 +514,35 @@ private fun PushChecklist(
     // Pushable rows need to release on this platform and either a store page or, for connectors that
     // push by searching the store's title (no store URL from IGDB), a confirmed publisher match — so an
     // unrelated backlog game from another publisher isn't searched for and pushed onto the wrong store.
-    val selected = remember(games) {
-        mutableStateMapOf<String, Boolean>().apply { games.forEach { put(it.uid, it.isPushable(matchesByName)) } }
+
+    val platforms = remember(games) {
+        mutableStateMapOf<String, Int>().apply {
+            games.forEach { game ->
+                game.defaultPlatformId?.let { put(game.uid, it) }
+            }
+        }
     }
-    val onPlatform = games.filter { it.onPlatform }
-    val offPlatform = games.filter { !it.onPlatform }
-    val pushable = games.filter { it.isPushable(matchesByName) }
-    val selectedCount = games.count { selected[it.uid] == true }
+    val resolved = if (requiresPlatform) games.map { it.copy(platformIds = listOfNotNull(platforms[it.uid])) } else games
+    val selected = remember(games) {
+        mutableStateMapOf<String, Boolean>().apply {
+            resolved.forEach { put(it.uid, it.isPushable(matchesByName, requiresPlatform)) }
+        }
+    }
+    val onPlatform = resolved.filter { it.onPlatform }
+    val offPlatform = resolved.filter { !it.onPlatform }
+    val pushable = resolved.filter { it.isPushable(matchesByName, requiresPlatform) }
+    val selectedCount = pushable.count { selected[it.uid] == true }
     val allSelected = pushable.isNotEmpty() && selectedCount == pushable.size
     val uriHandler = LocalUriHandler.current
     val rows: LazyListScope.(List<LibrarySync.OutgoingGame>) -> Unit = { group ->
         itemsIndexed(group) { index, game ->
-            PushRow(game, index, group.size, selected[game.uid] == true, matchesByName, uriHandler::openURL) {
-                selected[game.uid] = it
-            }
+            PushRow(
+                game, index, group.size, selected[game.uid] == true, matchesByName, uriHandler::openURL,
+                onSelectPlatform = if (requiresPlatform && !game.alreadyOnWishlist) {
+                    { id -> platforms[game.uid] = id; selected[game.uid] = true }
+                } else null,
+                onCheckedChange = { selected[game.uid] = it },
+            )
         }
     }
 
@@ -401,7 +553,7 @@ private fun PushChecklist(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    stringResource(Res.string.settings__wishlist_push_title),
+                    stringResource(title),
                     style = MaterialTheme.typography.titleLargeEmphasized,
                 )
                 Text(
@@ -450,19 +602,19 @@ private fun PushChecklist(
                 Text(stringResource(Res.string.settings__wishlist_push_skip), style = ButtonDefaults.textStyleFor(height))
             }
             Button(
-                onClick = { onConfirm(games.filter { selected[it.uid] == true }) },
+                onClick = { onConfirm(pushable.filter { selected[it.uid] == true }) },
                 enabled = selectedCount > 0,
                 shapes = ButtonDefaults.shapes(trailing.shape, trailing.pressedShape),
                 contentPadding = ButtonDefaults.contentPaddingFor(height),
                 modifier = Modifier.weight(1f).heightIn(min = height),
             ) {
                 Text(stringResource(Res.string.settings__wishlist_push_confirm), style = ButtonDefaults.textStyleFor(height))
+
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PushRow(
     game: LibrarySync.OutgoingGame,
@@ -471,12 +623,18 @@ private fun PushRow(
     checked: Boolean,
     matchesByName: Boolean,
     onOpenStore: (String) -> Unit,
+    onSelectPlatform: ((Int) -> Unit)?,
     onCheckedChange: (Boolean) -> Unit,
 ) {
+    var platformMenu by remember(game.uid) { mutableStateOf(false) }
+    val platformOptions = game.platformNames.filterValues { it.isNotEmpty() }
     SegmentedListItem(
         selected = checked,
-        enabled = game.isPushable(matchesByName),
-        onClick = { onCheckedChange(!checked) },
+        enabled = game.isPushable(matchesByName, requiresPlatform = false),
+        onClick = {
+            if (onSelectPlatform != null && game.platformIds.isEmpty()) platformMenu = true
+            else onCheckedChange(!checked)
+        },
         shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
         colors = ListItemDefaults.expressiveSegmentedColors(),
         leadingContent = {
@@ -491,8 +649,29 @@ private fun PushRow(
                 )
             }
         },
-        trailingContent = game.storeUrl?.let { url ->
-            {
+        trailingContent = {
+            if (onSelectPlatform != null) {
+                Box {
+                    TextButton(
+                        onClick = { platformMenu = true },
+                        enabled = platformOptions.isNotEmpty(),
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(
+                            game.platformIds.firstOrNull()?.let { platformOptions[it]?.lastOrNull() }
+                                ?: stringResource(Res.string.settings__wishlist_choose_platform)
+                        )
+                    }
+                    DropdownMenu(expanded = platformMenu, onDismissRequest = { platformMenu = false }) {
+                        platformOptions.forEach { (id, names) ->
+                            DropdownMenuItem(
+                                text = { Text(names.first()) },
+                                onClick = { onSelectPlatform(id); platformMenu = false },
+                            )
+                        }
+                    }
+                }
+            } else game.storeUrl?.let { url ->
                 IconButton(onClick = { onOpenStore(url) }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.OpenInNewW500Rounded, contentDescription = stringResource(Res.string.settings__open_store))
                 }
@@ -502,6 +681,8 @@ private fun PushRow(
             val subtitle = when {
                 game.alreadyOnWishlist -> stringResource(Res.string.settings__wishlist_already_present)
                 game.onPlatform && !game.hasPushTarget(matchesByName) -> stringResource(Res.string.settings__import_no_match)
+                onSelectPlatform != null && platformOptions.isEmpty() -> stringResource(Res.string.settings__wishlist_no_platform)
+                onSelectPlatform != null && game.platformIds.isEmpty() -> stringResource(Res.string.settings__wishlist_choose_platform)
 
                 else -> null
             }
@@ -514,5 +695,7 @@ private fun PushRow(
 private fun LibrarySync.OutgoingGame.hasPushTarget(matchesByName: Boolean) =
     storeUrl != null || (matchesByName && matchesPublisher)
 
-private fun LibrarySync.OutgoingGame.isPushable(matchesByName: Boolean) =
-    hasPushTarget(matchesByName) && onPlatform && !alreadyOnWishlist
+private fun LibrarySync.OutgoingGame.isPushable(matchesByName: Boolean, requiresPlatform: Boolean) =
+    hasPushTarget(matchesByName) && onPlatform && !alreadyOnWishlist && (!requiresPlatform || platformIds.isNotEmpty())
+
+

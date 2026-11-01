@@ -8,21 +8,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,7 +32,9 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,6 +49,7 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.settings__id_sync_matches
 import gamerlogue.sharedui.generated.resources.settings__import_already_present
 import gamerlogue.sharedui.generated.resources.settings__import_cancel
 import gamerlogue.sharedui.generated.resources.settings__import_change_match
@@ -59,9 +58,7 @@ import gamerlogue.sharedui.generated.resources.settings__import_confirm_match
 import gamerlogue.sharedui.generated.resources.settings__import_deselect_all
 import gamerlogue.sharedui.generated.resources.settings__import_done
 import gamerlogue.sharedui.generated.resources.settings__import_finish
-import gamerlogue.sharedui.generated.resources.settings__import_group_already_present
 import gamerlogue.sharedui.generated.resources.settings__import_group_to_import
-import gamerlogue.sharedui.generated.resources.settings__import_group_to_review
 import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__import_search
@@ -69,7 +66,10 @@ import gamerlogue.sharedui.generated.resources.settings__import_search_hint
 import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__import_source
+import gamerlogue.sharedui.generated.resources.settings__library_sync_continue
 import gamerlogue.sharedui.generated.resources.settings__open_store
+import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
+import gamerlogue.sharedui.generated.resources.settings__sync_title_sync_library
 import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -86,7 +86,8 @@ import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
-import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
+import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -98,15 +99,51 @@ import org.koin.core.parameter.parametersOf
 fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
     val navigationState = LocalNavigationState.current
     val title = when (mode) {
-        ImportMode.OWNED -> Res.string.settings__import_library_title
+        ImportMode.OWNED, ImportMode.TRACKED -> Res.string.settings__import_library_title
         ImportMode.WISHLIST -> Res.string.settings__wishlist_preview_title
+        ImportMode.SYNC -> Res.string.settings__sync_title_sync_library
+        ImportMode.ID_SYNC -> Res.string.settings__service_resync_ids
     }
+    val viewModel: LibraryImportViewModel = koinViewModel(parameters = { parametersOf(service, mode) })
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val onDone: () -> Unit = { navigationState.backStack.removeLastOrNull() }
+    val plan = uiState.plan
     ScreenScaffold(title = title) {
-        LibraryImportPreviewContent(
-            service = service,
-            mode = mode,
-            onDone = { navigationState.backStack.removeLastOrNull() }
-        )
+        when {
+            // Outgoing writes are reviewed in the WebView after the incoming selection, even when empty.
+            uiState.pushPending -> LaunchedEffect(Unit) {
+                navigationState.backStack.removeLastOrNull()
+                val action = when (mode) {
+                    ImportMode.WISHLIST -> ServiceSyncAction.PUSH_WISHLIST
+                    ImportMode.ID_SYNC -> ServiceSyncAction.APPLY_RESYNC_IDS
+                    else -> ServiceSyncAction.APPLY_LIBRARY_SYNC
+                }
+                navigationState.backStack.add(RootNavTree.ServiceSync(service, action))
+            }
+
+            plan != null && uiState.importedCount == null -> SyncPlanContent(
+                service = service,
+                rows = plan,
+                applying = uiState.importing,
+                onChoose = viewModel::choose,
+                onApply = viewModel::applySync,
+                onDone = onDone,
+            )
+
+            else -> LibraryImportPreviewContent(
+                service = service,
+                matchedTitle = if (mode == ImportMode.ID_SYNC) {
+                    Res.string.settings__id_sync_matches
+                } else Res.string.settings__import_group_to_import,
+                confirmLabel = if (viewModel.hasNextStep) {
+                    Res.string.settings__library_sync_continue
+                } else {
+                    Res.string.settings__import_confirm
+                },
+                onDone = onDone,
+                viewModel = viewModel,
+            )
+        }
     }
 }
 
@@ -114,9 +151,10 @@ fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
 @Composable
 private fun LibraryImportPreviewContent(
     service: ExternalService,
-    mode: ImportMode,
+    matchedTitle: StringResource,
+    confirmLabel: StringResource,
     onDone: () -> Unit,
-    viewModel: LibraryImportViewModel = koinViewModel(parameters = { parametersOf(service, mode) }),
+    viewModel: LibraryImportViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
@@ -147,6 +185,7 @@ private fun LibraryImportPreviewContent(
     val toReview = indexedRows.filter { !it.value.alreadyPresent && !it.value.confident }
     val alreadyPresent = indexedRows.filter { it.value.alreadyPresent }
 
+    val expandedStatuses = remember { mutableStateMapOf<GameLibraryStatus, Boolean>() }
     val selectedCount = uiState.rows.count { it.included }
     val allSelected = toImport.isNotEmpty() && selectedCount == toImport.size
 
@@ -187,30 +226,27 @@ private fun LibraryImportPreviewContent(
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
-            importGroup(
-                Res.string.settings__import_group_to_import, toImport, selectable = true,
-                service, viewModel::toggleIncluded, viewModel::startEdit, uriHandler::openURL,
-            )
-            importGroup(
-                Res.string.settings__import_group_to_review, toReview, selectable = false,
-                service, viewModel::toggleIncluded, viewModel::startEdit, uriHandler::openURL,
-            )
-            importGroup(
-                Res.string.settings__import_group_already_present, alreadyPresent, selectable = false,
-                service, viewModel::toggleIncluded, viewModel::startEdit, uriHandler::openURL,
+            importRows(
+                ImportGroups(toImport, toReview, alreadyPresent, matchedTitle),
+                service,
+                expandedStatuses,
+                onToggleStatus = { expandedStatuses[it] = expandedStatuses[it] != true },
+                onToggle = viewModel::toggleIncluded,
+                onEdit = viewModel::startEdit,
+                onOpenStore = uriHandler::openURL,
             )
         }
 
         Button(
             onClick = viewModel::confirm,
-            enabled = !uiState.matching && !uiState.importing && selectedCount > 0,
+            enabled = !uiState.matching && !uiState.importing && (selectedCount > 0 || viewModel.hasNextStep),
             shapes = ButtonDefaults.shapes(),
             modifier = Modifier.fillMaxWidth().padding(16.dp),
         ) {
             if (uiState.importing) {
                 CircularProgressIndicator(Modifier.padding(end = 8.dp).size(20.dp))
             }
-            Text(stringResource(Res.string.settings__import_confirm))
+            Text(stringResource(confirmLabel))
         }
     }
 
@@ -225,32 +261,6 @@ private fun LibraryImportPreviewContent(
     }
 }
 
-/** A titled segmented list for one status group; no-op when empty. Indices are the original row indices. */
-private fun LazyListScope.importGroup(
-    titleRes: StringResource,
-    rows: List<IndexedValue<LibraryImportViewModel.Row>>,
-    selectable: Boolean,
-    service: ExternalService,
-    onToggle: (Int) -> Unit,
-    onEdit: (Int) -> Unit,
-    onOpenStore: (String) -> Unit,
-) {
-    if (rows.isEmpty()) return
-    item { SettingsGroupHeader(stringResource(titleRes, rows.size)) }
-    itemsIndexed(rows) { indexInGroup, indexed ->
-        ImportRow(
-            row = indexed.value,
-            indexInGroup = indexInGroup,
-            groupCount = rows.size,
-            selectable = selectable,
-            service = service,
-            onToggle = { onToggle(indexed.index) },
-            onEdit = { onEdit(indexed.index) },
-            onOpenStore = onOpenStore,
-        )
-    }
-}
-
 /**
  * One import row. Selectable rows toggle inclusion on tap (expressive `selected` styling, no checkbox);
  * review/already-present rows open the match editor on tap. The trailing edit icon always opens the
@@ -258,7 +268,7 @@ private fun LazyListScope.importGroup(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ImportRow(
+internal fun ImportRow(
     row: LibraryImportViewModel.Row,
     indexInGroup: Int,
     groupCount: Int,
@@ -289,7 +299,7 @@ private fun ImportRow(
             Text(
                 stringResource(
                     Res.string.settings__import_source,
-                    service.name,
+                    stringResource(service.labelRes()),
                     row.ref.name.ifEmpty { "#${row.ref.uid}" },
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -297,10 +307,13 @@ private fun ImportRow(
             val status = when {
                 row.alreadyPresent -> stringResource(Res.string.settings__import_already_present) to
                     MaterialTheme.colorScheme.onSurfaceVariant
+
                 row.game == null -> stringResource(Res.string.settings__import_no_match) to
                     MaterialTheme.colorScheme.error
+
                 !row.confident -> stringResource(Res.string.settings__import_confirm_match) to
                     MaterialTheme.colorScheme.tertiary
+
                 else -> null
             }
             status?.let { (text, color) -> Text(text, color = color) }
@@ -330,7 +343,7 @@ private fun ImportRow(
 }
 
 @Composable
-private fun MatchCover(game: Game?, modifier: Modifier = Modifier) {
+internal fun MatchCover(game: Game?, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(6.dp)
     val coverId = game?.cover?.image_id
     if (coverId != null) {

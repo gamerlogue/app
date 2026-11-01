@@ -303,7 +303,9 @@
     <string name="settings__linked_services_summary">Steam, PlayStation, Xbox and more</string>
     <string name="settings__group_app">App</string>
     <string name="settings__group_account">Account</string>
-    <string name="settings__linked_services_disclaimer">Links and credentials are saved locally and are never transmitted elsewhere.</string>
+    <string name="settings__linked_services_disclaimer">Links and credentials are saved locally and are never transmitted
+        elsewhere.
+    </string>
     <string name="settings__theme">Theme</string>
     <string name="settings__language">Language</string>
     <string name="settings__dynamic_colors">Use device colors</string>
@@ -317,12 +319,45 @@
     <string name="settings__service_epic">Epic Games</string>
     <string name="settings__service_nintendo">Nintendo</string>
     <string name="settings__service_ubisoft">Ubisoft Connect</string>
+    <string name="settings__service_backloggery">Backloggery</string>
+    <string name="settings__service_backloggd">Backloggd</string>
+    <string name="settings__service_howlongtobeat">HowLongToBeat</string>
+    <string name="settings__service_grouvee">Grouvee</string>
+    <string name="settings__service_infinite_backlog">Infinite Backlog</string>
+    <string name="settings__service_stash">Stash</string>
+    <string name="settings__service_handle_title">Stash username</string>
+    <string name="settings__service_handle_message">Stash has no web sign-in: enter your public username to import your games and
+        wishlist.
+    </string>
+    <string name="settings__service_handle_label">Username</string>
+    <string name="settings__service_category_console">Consoles</string>
+    <string name="settings__service_category_pc">PC stores</string>
+    <string name="settings__service_category_tracker">Trackers</string>
     <string name="settings__service_pc_only">PC only</string>
     <string name="settings__service_webview_busy">Operation in progress — the WebView can't be used right now</string>
+    <string name="settings__service_webview_collapse">Shrink the page</string>
+    <string name="settings__service_webview_expand">Expand the page</string>
     <string name="settings__sync_title_connect">Signing in</string>
     <string name="settings__sync_title_refresh_profile">Updating profile</string>
     <string name="settings__sync_title_sync_wishlist">Syncing wishlist</string>
     <string name="settings__sync_title_import_library">Importing library</string>
+    <string name="settings__sync_title_sync_library">Syncing library</string>
+    <string name="settings__service_sync_library">Sync library</string>
+    <string name="settings__library_sync_summary">Library synced</string>
+    <string name="settings__library_sync_pulled">Updated from the tracker</string>
+    <string name="settings__library_sync_pushed">Sent to the tracker</string>
+    <string name="settings__library_sync_continue">Continue</string>
+    <string name="settings__library_sync_apply">Sync</string>
+    <string name="settings__library_sync_nothing">Everything is already in sync</string>
+    <string name="settings__library_sync_group_from">From %1$s (%2$d)</string>
+    <string name="settings__library_sync_group_to">To %1$s (%2$d)</string>
+    <string name="settings__library_sync_group_conflicts">Conflicts (%2$d)</string>
+    <string name="settings__library_sync_status_change">Gamerlogue: %1$s · %2$s: %3$s</string>
+    <string name="settings__library_sync_missing">missing</string>
+    <plurals name="settings__library_sync_conflicts_left">
+        <item quantity="one">%1$d conflict left: settle it with a manual sync</item>
+        <item quantity="other">%1$d conflicts left: settle them with a manual sync</item>
+    </plurals>
     <string name="settings__service_connect">Connect</string>
     <string name="settings__service_disconnect">Disconnect</string>
     <string name="settings__service_refresh_profile">Refresh profile</string>
@@ -339,6 +374,12 @@
     <string name="settings__wishlist_push_confirm">Add</string>
     <string name="settings__wishlist_push_skip">Skip</string>
     <string name="settings__wishlist_push_off_platform">Not available on this platform</string>
+    <string name="settings__wishlist_choose_platform">Choose a platform</string>
+    <string name="settings__wishlist_no_platform">Platform information unavailable</string>
+    <string name="settings__library_push_title">Add to tracker library</string>
+    <string name="settings__service_resync_ids">Resync IGDB IDs</string>
+    <string name="settings__id_sync_matches">Confirmed matches</string>
+    <string name="settings__service_resync_ids_result">ID markers updated: %1$d\nExcluded or unconfirmed: %2$d</string>
     <string name="settings__open_store">Open store page</string>
     <string name="settings__import_change_match">Change</string>
     <string name="settings__import_cancel">Cancel</string>
@@ -364,11 +405,30 @@
     <string name="settings__import_group_to_import">To import (%1$d)</string>
     <string name="settings__import_group_to_review">To review (%1$d)</string>
     <string name="settings__import_group_already_present">Already in your library (%1$d)</string>
-    <string name="settings__service_web_unsupported">Account linking isn't available on the web. Use the Android or desktop app to connect your stores.</string>
+    <string name="settings__service_web_unsupported">Account linking isn't available on the web. Use the Android or desktop app to
+        connect your stores.
+    </string>
     <string name="settings__service_login_required">Sign in to continue</string>
     <string name="settings__service_working">Working…</string>
     <string name="settings__service_phase_logged_in">Signed in</string>
     <string name="settings__service_phase_reading">Reading your games…</string>
+    <string name="settings__sync_interrupt_title">Stop the operation?</string>
+    <string name="settings__sync_interrupt_message">Leaving now interrupts it. Changes already sent stay, the rest is not
+        applied.
+    </string>
+    <string name="settings__sync_interrupt_confirm">Stop</string>
+    <string name="settings__sync_interrupt_continue">Keep going</string>
+    <string name="settings__service_sync_now_tooltip">Sync now, reviewing the changes first</string>
+    <plurals name="settings__service_progress_of">
+        <item quantity="one">%1$d/%2$d game</item>
+        <item quantity="other">%1$d/%2$d games</item>
+    </plurals>
+    <plurals name="settings__service_progress_count">
+        <item quantity="one">%1$d game</item>
+        <item quantity="other">%1$d games</item>
+    </plurals>
+    <string name="settings__service_phase_profile">Reading your profile…</string>
+    <string name="settings__service_phase_writing">Sending changes…</string>
 
     <!-- Common -->
     <string name="common_loading">Loading</string>
@@ -466,7 +526,9 @@
     <string name="game__igdb_edit">Edit on IGDB</string>
     <string name="game__igdb_about">About this data</string>
     <string name="game__igdb_about_title">Data from IGDB</string>
-    <string name="game__igdb_about_body">Game details come from IGDB, a community-maintained database. If something is missing or wrong, you can fix it there: changes are reviewed by IGDB moderators and show up here once approved.</string>
+    <string name="game__igdb_about_body">Game details come from IGDB, a community-maintained database. If something is missing or
+        wrong, you can fix it there: changes are reviewed by IGDB moderators and show up here once approved.
+    </string>
     <string name="viewer__open_external">Open in browser</string>
     <string name="viewer__copy_link">Copy link</string>
     <string name="viewer__share">Share</string>
@@ -478,7 +540,9 @@
     <string name="settings__group_advanced">Advanced</string>
     <string name="settings__server">Server</string>
     <string name="settings__server_summary">Gamerlogue instance and IGDB endpoint</string>
-    <string name="settings__server_warning">For advanced users only. Change these addresses only if you know what you are doing: a wrong value stops the app from working. “Restore defaults” always brings back the original setup.</string>
+    <string name="settings__server_warning">For advanced users only. Change these addresses only if you know what you are doing: a
+        wrong value stops the app from working. “Restore defaults” always brings back the original setup.
+    </string>
     <string name="settings__server_url">Gamerlogue server URL</string>
     <string name="settings__server_igdb_follows">IGDB through the Gamerlogue server</string>
     <string name="settings__server_igdb_url">IGDB API URL</string>
@@ -494,7 +558,8 @@
     <string name="settings__server_status_igdb_unexpected">Reachable, but it doesn't answer like IGDB</string>
     <string name="settings__server_status_unreachable">Unreachable</string>
     <string name="settings__server_sign_out_title">Change server?</string>
-    <string name="settings__server_sign_out_message">You'll be signed out, since your account belongs to the current server.</string>
+    <string name="settings__server_sign_out_message">You'll be signed out, since your account belongs to the current server.
+    </string>
     <string name="settings__server_sign_out_confirm">Change and sign out</string>
     <string name="report__title">Report</string>
     <string name="report__note">Details (optional)</string>
@@ -509,7 +574,9 @@
     <string name="account__delete">Delete account</string>
     <string name="account__delete_summary">Permanently delete your Gamerlogue data</string>
     <string name="account__delete_confirm">Delete for good</string>
-    <string name="account__delete_message">Your profile, library, lists, comments, follows and badges will be deleted permanently and you'll be signed out everywhere. Your account on the sign-in provider is not touched. This can't be undone.</string>
+    <string name="account__delete_message">Your profile, library, lists, comments, follows and badges will be deleted permanently
+        and you'll be signed out everywhere. Your account on the sign-in provider is not touched. This can't be undone.
+    </string>
     <string name="activity__library_added">%1$s added %2$s to their library</string>
     <string name="activity__completed">%1$s completed %2$s</string>
     <string name="activity__status_changed">%1$s moved %2$s to %3$s</string>
@@ -550,15 +617,20 @@
     <string name="library__overall_review_description">Your verdict on the game as a whole.</string>
     <string name="library__open_review">Open review</string>
     <string name="library__save_before_review_title">Save the changes?</string>
-    <string name="library__save_before_review_message">The changes to this entry are saved before the review editor opens.</string>
+    <string name="library__save_before_review_message">The changes to this entry are saved before the review editor opens.
+    </string>
     <string name="library__save_and_continue">Save and continue</string>
     <string name="library__clear_review_title">Delete the review?</string>
-    <string name="library__clear_review_message">With this status the rating and the review are deleted, along with their likes and comments.</string>
+    <string name="library__clear_review_message">With this status the rating and the review are deleted, along with their likes
+        and comments.
+    </string>
     <string name="library__clear_review_confirm">Delete and save</string>
     <string name="library__overall_rating">Overall rating</string>
     <string name="library__rating_average_description">The average of the sections of the review.</string>
     <string name="library__review_sections">Detailed review</string>
-    <string name="library__review_sections_description">Rate and describe each aspect of the game: the overall rating is their average.</string>
+    <string name="library__review_sections_description">Rate and describe each aspect of the game: the overall rating is their
+        average.
+    </string>
     <string name="library__review_custom_section">Custom section</string>
     <string name="library__review_add_section">Add section</string>
     <string name="library__review_remove_section">Remove section</string>
@@ -577,7 +649,8 @@
     <string name="lists__new">New list</string>
     <string name="lists__edit">Edit list</string>
     <string name="lists__delete">Delete list</string>
-    <string name="lists__delete_confirm">The list, its comments and likes will be deleted. The games stay in your library.</string>
+    <string name="lists__delete_confirm">The list, its comments and likes will be deleted. The games stay in your library.
+    </string>
     <string name="lists__name">Name</string>
     <string name="lists__description">Description</string>
     <string name="lists__private">Private list</string>
@@ -620,7 +693,9 @@
     <string name="profile__block">Block</string>
     <string name="profile__unblock">Unblock</string>
     <string name="profile__block_confirm_title">Block this user?</string>
-    <string name="profile__block_confirm_message">You won't see each other's profiles, content and activity, and follows between you are removed.</string>
+    <string name="profile__block_confirm_message">You won't see each other's profiles, content and activity, and follows between
+        you are removed.
+    </string>
     <string name="profile__blocked">Profile not available</string>
     <string name="profile__blocked_hint">There's a block between you and this user.</string>
     <string name="profile__blocked_users">Blocked users</string>
@@ -634,7 +709,9 @@
     <string name="profile__platforms">Platforms</string>
     <string name="profile__platforms_edit">Choose platforms</string>
     <string name="profile__platforms_search">Search a platform</string>
-    <string name="profile__platforms_hint">The platforms you own: they show on your profile and are preselected when you add a game to your library.</string>
+    <string name="profile__platforms_hint">The platforms you own: they show on your profile and are preselected when you add a
+        game to your library.
+    </string>
     <string name="profile__activity_empty">No activity yet.</string>
     <string name="profile__reviews_empty">No reviews yet.</string>
     <string name="profile__nickname">Nickname</string>
@@ -643,7 +720,9 @@
     <string name="profile__last_name">Last name</string>
     <string name="profile__bio">Bio</string>
     <string name="profile__private_switch">Private profile</string>
-    <string name="profile__private_hint_edit">Others will only see your nickname, name and picture. Comments you write on public content stay visible.</string>
+    <string name="profile__private_hint_edit">Others will only see your nickname, name and picture. Comments you write on public
+        content stay visible.
+    </string>
     <string name="profile__edit_invalid">Some fields were rejected: the nickname may be taken or outside the rules.</string>
     <string name="profile__picture_hint">Your picture comes from the account you sign in with: change it there.</string>
     <string name="profile__picture_provider_only">Your picture comes from the account you sign in with.</string>

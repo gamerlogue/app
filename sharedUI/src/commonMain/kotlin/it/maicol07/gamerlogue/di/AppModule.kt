@@ -10,10 +10,16 @@ import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.UbisoftApi
 import it.maicol07.gamerlogue.services.XboxApi
+import it.maicol07.gamerlogue.services.connectors.BackloggdConnector
+import it.maicol07.gamerlogue.services.connectors.BackloggeryConnector
 import it.maicol07.gamerlogue.services.connectors.EpicConnector
 import it.maicol07.gamerlogue.services.connectors.GogConnector
+import it.maicol07.gamerlogue.services.connectors.GrouveeConnector
+import it.maicol07.gamerlogue.services.connectors.HowLongToBeatConnector
+import it.maicol07.gamerlogue.services.connectors.InfiniteBacklogConnector
 import it.maicol07.gamerlogue.services.connectors.NintendoConnector
 import it.maicol07.gamerlogue.services.connectors.PsnConnector
+import it.maicol07.gamerlogue.services.connectors.StashConnector
 import it.maicol07.gamerlogue.services.connectors.SteamConnector
 import it.maicol07.gamerlogue.services.connectors.UbisoftConnector
 import it.maicol07.gamerlogue.services.connectors.XboxConnector
@@ -41,6 +47,7 @@ object AppModule {
         xboxApi: XboxApi,
         epicApi: EpicApi,
         ubisoftApi: UbisoftApi,
+        settings: ObservableSettings,
     ): Map<ExternalService, ServiceConnector> = listOf(
         SteamConnector(),
         PsnConnector(psnApi),
@@ -49,5 +56,11 @@ object AppModule {
         EpicConnector(epicApi),
         NintendoConnector(),
         UbisoftConnector(ubisoftApi),
+        BackloggeryConnector(),
+        BackloggdConnector(),
+        HowLongToBeatConnector(),
+        GrouveeConnector(),
+        InfiniteBacklogConnector(),
+        StashConnector(settings),
     ).associateBy { it.service }
 }

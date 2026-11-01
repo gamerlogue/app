@@ -9,6 +9,7 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import it.maicol07.gamerlogue.services.connectors.EpicConnector
 import it.maicol07.gamerlogue.services.connectors.GogConnector
+import it.maicol07.gamerlogue.services.connectors.InfiniteBacklogConnector
 import it.maicol07.gamerlogue.services.connectors.NintendoConnector
 import it.maicol07.gamerlogue.services.connectors.SteamConnector
 
@@ -47,6 +48,14 @@ class ConnectorUrlTest : StringSpec({
         EpicConnector(EpicApi(io.ktor.client.HttpClient()))
             .normalizePushUrl("https://store.epicgames.com/en-US/p/alan-wake-2") shouldBe
             "https://store.epicgames.com/p/alan-wake-2"
+    }
+
+    "Infinite Backlog is signed in only once Keycloak hands a code back to the silent-SSO page" {
+        val ib = InfiniteBacklogConnector()
+        ib.isLoggedIn(ib.loginUrl) shouldBe false
+        ib.isLoggedIn("https://infinitebacklog.net/auth/realms/ib/login-actions/authenticate?session_code=x") shouldBe false
+        ib.isLoggedIn("https://infinitebacklog.net/silent-check-sso.html#error=login_required&state=gamerlogue") shouldBe false
+        ib.isLoggedIn("https://infinitebacklog.net/silent-check-sso.html#state=gamerlogue&code=abc") shouldBe true
     }
 
     "Nintendo reads the numeric title id out of an eShop URL" {

@@ -14,6 +14,12 @@ import kotlin.time.Instant
 /** Artworks that picture the game, without its bare logos; needs [ARTWORKS_TYPE_FIELD] in the query. */
 val Game.mediaArtworks: List<Artwork> get() = artworks.filterNot { it.isLogo }
 
+/** Names and abbreviations used to match these IGDB platforms against a tracker's own catalog. */
+val Game.platformNames: Map<Int, List<String>>
+    get() = platforms.associate { platform ->
+        platform.id.toInt() to listOf(platform.name, platform.abbreviation).filter(String::isNotBlank)
+    }
+
 /**
  * The detail destination for this game, carrying the cover and name so the target screen can draw
  * its header before the full game is fetched.

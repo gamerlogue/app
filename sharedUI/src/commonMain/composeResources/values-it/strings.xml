@@ -301,7 +301,9 @@
     <string name="settings__linked_services_summary">Steam, PlayStation, Xbox e altri</string>
     <string name="settings__group_app">App</string>
     <string name="settings__group_account">Account</string>
-    <string name="settings__linked_services_disclaimer">I collegamenti e le credenziali sono salvati localmente e non vengono mai trasmessi altrove.</string>
+    <string name="settings__linked_services_disclaimer">I collegamenti e le credenziali sono salvati localmente e non vengono mai
+        trasmessi altrove.
+    </string>
     <string name="settings__theme">Tema</string>
     <string name="settings__language">Lingua</string>
     <string name="settings__dynamic_colors">Usa i colori del dispositivo</string>
@@ -315,12 +317,45 @@
     <string name="settings__service_epic">Epic Games</string>
     <string name="settings__service_nintendo">Nintendo</string>
     <string name="settings__service_ubisoft">Ubisoft Connect</string>
+    <string name="settings__service_backloggery">Backloggery</string>
+    <string name="settings__service_backloggd">Backloggd</string>
+    <string name="settings__service_howlongtobeat">HowLongToBeat</string>
+    <string name="settings__service_grouvee">Grouvee</string>
+    <string name="settings__service_infinite_backlog">Infinite Backlog</string>
+    <string name="settings__service_stash">Stash</string>
+    <string name="settings__service_handle_title">Nome utente Stash</string>
+    <string name="settings__service_handle_message">Stash non ha un accesso web: inserisci il tuo nome utente pubblico per
+        importare giochi e wishlist.
+    </string>
+    <string name="settings__service_handle_label">Nome utente</string>
+    <string name="settings__service_category_console">Console</string>
+    <string name="settings__service_category_pc">Store PC</string>
+    <string name="settings__service_category_tracker">Tracker</string>
     <string name="settings__service_pc_only">Solo PC</string>
     <string name="settings__service_webview_busy">Operazione in corso — la WebView non è utilizzabile ora</string>
+    <string name="settings__service_webview_collapse">Riduci la pagina</string>
+    <string name="settings__service_webview_expand">Espandi la pagina</string>
     <string name="settings__sync_title_connect">Accesso</string>
     <string name="settings__sync_title_refresh_profile">Aggiornamento profilo</string>
     <string name="settings__sync_title_sync_wishlist">Sincronizzazione wishlist</string>
     <string name="settings__sync_title_import_library">Importazione libreria</string>
+    <string name="settings__sync_title_sync_library">Sincronizzazione libreria</string>
+    <string name="settings__service_sync_library">Sincronizza libreria</string>
+    <string name="settings__library_sync_summary">Libreria sincronizzata</string>
+    <string name="settings__library_sync_pulled">Aggiornati dal tracker</string>
+    <string name="settings__library_sync_pushed">Inviati al tracker</string>
+    <string name="settings__library_sync_continue">Continua</string>
+    <string name="settings__library_sync_apply">Sincronizza</string>
+    <string name="settings__library_sync_nothing">È già tutto sincronizzato</string>
+    <string name="settings__library_sync_group_from">Da %1$s (%2$d)</string>
+    <string name="settings__library_sync_group_to">Verso %1$s (%2$d)</string>
+    <string name="settings__library_sync_group_conflicts">Conflitti (%2$d)</string>
+    <string name="settings__library_sync_status_change">Gamerlogue: %1$s · %2$s: %3$s</string>
+    <string name="settings__library_sync_missing">assente</string>
+    <plurals name="settings__library_sync_conflicts_left">
+        <item quantity="one">%1$d conflitto da risolvere con una sincronizzazione manuale</item>
+        <item quantity="other">%1$d conflitti da risolvere con una sincronizzazione manuale</item>
+    </plurals>
     <string name="settings__service_connect">Collega</string>
     <string name="settings__service_disconnect">Scollega</string>
     <string name="settings__service_refresh_profile">Aggiorna profilo</string>
@@ -337,6 +372,12 @@
     <string name="settings__wishlist_push_confirm">Aggiungi</string>
     <string name="settings__wishlist_push_skip">Salta</string>
     <string name="settings__wishlist_push_off_platform">Non disponibili su questa piattaforma</string>
+    <string name="settings__wishlist_choose_platform">Scegli una piattaforma</string>
+    <string name="settings__wishlist_no_platform">Informazioni sulla piattaforma non disponibili</string>
+    <string name="settings__library_push_title">Aggiungi alla libreria del tracker</string>
+    <string name="settings__service_resync_ids">Risincronizza ID IGDB</string>
+    <string name="settings__id_sync_matches">Abbinamenti confermati</string>
+    <string name="settings__service_resync_ids_result">ID aggiornati: %1$d\nEsclusi o non confermati: %2$d</string>
     <string name="settings__open_store">Apri pagina dello store</string>
     <string name="settings__import_change_match">Cambia</string>
     <string name="settings__import_cancel">Annulla</string>
@@ -364,11 +405,30 @@
     <string name="settings__import_group_to_import">Da importare (%1$d)</string>
     <string name="settings__import_group_to_review">Da rivedere (%1$d)</string>
     <string name="settings__import_group_already_present">Già nella libreria (%1$d)</string>
-    <string name="settings__service_web_unsupported">Il collegamento degli account non è disponibile sul web. Usa l'app Android o desktop per collegare i tuoi store.</string>
+    <string name="settings__service_web_unsupported">Il collegamento degli account non è disponibile sul web. Usa l'app Android o
+        desktop per collegare i tuoi store.
+    </string>
     <string name="settings__service_login_required">Accedi per continuare</string>
     <string name="settings__service_working">Operazione in corso…</string>
     <string name="settings__service_phase_logged_in">Accesso effettuato</string>
     <string name="settings__service_phase_reading">Lettura dei tuoi giochi…</string>
+    <string name="settings__sync_interrupt_title">Interrompere l'operazione?</string>
+    <string name="settings__sync_interrupt_message">Uscendo ora l'operazione si interrompe. Le modifiche già inviate restano, il
+        resto non viene applicato.
+    </string>
+    <string name="settings__sync_interrupt_confirm">Interrompi</string>
+    <string name="settings__sync_interrupt_continue">Continua</string>
+    <string name="settings__service_sync_now_tooltip">Sincronizza ora, rivedendo prima le modifiche</string>
+    <plurals name="settings__service_progress_of">
+        <item quantity="one">%1$d/%2$d gioco</item>
+        <item quantity="other">%1$d/%2$d giochi</item>
+    </plurals>
+    <plurals name="settings__service_progress_count">
+        <item quantity="one">%1$d gioco</item>
+        <item quantity="other">%1$d giochi</item>
+    </plurals>
+    <string name="settings__service_phase_profile">Lettura del profilo…</string>
+    <string name="settings__service_phase_writing">Invio delle modifiche…</string>
 
     <!-- Common -->
     <string name="common_loading">Caricamento…</string>
@@ -467,7 +527,10 @@
     <string name="game__igdb_edit">Modifica su IGDB</string>
     <string name="game__igdb_about">Informazioni sui dati</string>
     <string name="game__igdb_about_title">Dati da IGDB</string>
-    <string name="game__igdb_about_body">I dettagli del gioco provengono da IGDB, un database mantenuto dalla community. Se qualcosa manca o è sbagliato puoi correggerlo lì: le modifiche vengono controllate dai moderatori di IGDB e compaiono qui una volta approvate.</string>
+    <string name="game__igdb_about_body">I dettagli del gioco provengono da IGDB, un database mantenuto dalla community. Se
+        qualcosa manca o è sbagliato puoi correggerlo lì: le modifiche vengono controllate dai moderatori di IGDB e compaiono qui
+        una volta approvate.
+    </string>
     <string name="viewer__open_external">Apri nel browser</string>
     <string name="viewer__copy_link">Copia link</string>
     <string name="viewer__share">Condividi</string>
@@ -479,7 +542,9 @@
     <string name="settings__group_advanced">Avanzate</string>
     <string name="settings__server">Server</string>
     <string name="settings__server_summary">Istanza Gamerlogue ed endpoint IGDB</string>
-    <string name="settings__server_warning">Solo per utenti avanzati. Modifica questi indirizzi solo se sai cosa stai facendo: un valore errato impedisce all'app di funzionare. “Ripristina predefiniti” riporta sempre alla configurazione originale.</string>
+    <string name="settings__server_warning">Solo per utenti avanzati. Modifica questi indirizzi solo se sai cosa stai facendo: un
+        valore errato impedisce all'app di funzionare. “Ripristina predefiniti” riporta sempre alla configurazione originale.
+    </string>
     <string name="settings__server_url">URL del server Gamerlogue</string>
     <string name="settings__server_igdb_follows">IGDB tramite il server Gamerlogue</string>
     <string name="settings__server_igdb_url">URL dell'API IGDB</string>
@@ -495,7 +560,8 @@
     <string name="settings__server_status_igdb_unexpected">Raggiungibile, ma non risponde come IGDB</string>
     <string name="settings__server_status_unreachable">Non raggiungibile</string>
     <string name="settings__server_sign_out_title">Cambiare server?</string>
-    <string name="settings__server_sign_out_message">Verrai disconnesso, perché il tuo account appartiene al server attuale.</string>
+    <string name="settings__server_sign_out_message">Verrai disconnesso, perché il tuo account appartiene al server attuale.
+    </string>
     <string name="settings__server_sign_out_confirm">Cambia e disconnetti</string>
     <string name="report__title">Segnala</string>
     <string name="report__note">Dettagli (facoltativo)</string>
@@ -510,7 +576,9 @@
     <string name="account__delete">Elimina account</string>
     <string name="account__delete_summary">Elimina per sempre i tuoi dati di Gamerlogue</string>
     <string name="account__delete_confirm">Elimina per sempre</string>
-    <string name="account__delete_message">Profilo, libreria, liste, commenti, follow e badge verranno eliminati per sempre e verrai disconnesso ovunque. L'account presso il provider di accesso non viene toccato. L'operazione non si può annullare.</string>
+    <string name="account__delete_message">Profilo, libreria, liste, commenti, follow e badge verranno eliminati per sempre e
+        verrai disconnesso ovunque. L'account presso il provider di accesso non viene toccato. L'operazione non si può annullare.
+    </string>
     <string name="activity__library_added">%1$s ha aggiunto %2$s alla libreria</string>
     <string name="activity__completed">%1$s ha completato %2$s</string>
     <string name="activity__status_changed">%1$s ha spostato %2$s in %3$s</string>
@@ -551,15 +619,21 @@
     <string name="library__overall_review_description">Il tuo giudizio sul gioco nel suo insieme.</string>
     <string name="library__open_review">Apri recensione</string>
     <string name="library__save_before_review_title">Salvare le modifiche?</string>
-    <string name="library__save_before_review_message">Le modifiche a questa voce vengono salvate prima di aprire l'editor della recensione.</string>
+    <string name="library__save_before_review_message">Le modifiche a questa voce vengono salvate prima di aprire l'editor della
+        recensione.
+    </string>
     <string name="library__save_and_continue">Salva e continua</string>
     <string name="library__clear_review_title">Eliminare la recensione?</string>
-    <string name="library__clear_review_message">Con questo stato il voto e la recensione vengono eliminati, insieme ai loro like e commenti.</string>
+    <string name="library__clear_review_message">Con questo stato il voto e la recensione vengono eliminati, insieme ai loro like
+        e commenti.
+    </string>
     <string name="library__clear_review_confirm">Elimina e salva</string>
     <string name="library__overall_rating">Voto complessivo</string>
     <string name="library__rating_average_description">La media delle sezioni della recensione.</string>
     <string name="library__review_sections">Recensione dettagliata</string>
-    <string name="library__review_sections_description">Valuta e descrivi ogni aspetto del gioco: il voto complessivo è la loro media.</string>
+    <string name="library__review_sections_description">Valuta e descrivi ogni aspetto del gioco: il voto complessivo è la loro
+        media.
+    </string>
     <string name="library__review_custom_section">Sezione personalizzata</string>
     <string name="library__review_add_section">Aggiungi sezione</string>
     <string name="library__review_remove_section">Rimuovi sezione</string>
@@ -578,7 +652,9 @@
     <string name="lists__new">Nuova lista</string>
     <string name="lists__edit">Modifica lista</string>
     <string name="lists__delete">Elimina lista</string>
-    <string name="lists__delete_confirm">La lista, i suoi commenti e i mi piace verranno eliminati. I giochi restano nella tua libreria.</string>
+    <string name="lists__delete_confirm">La lista, i suoi commenti e i mi piace verranno eliminati. I giochi restano nella tua
+        libreria.
+    </string>
     <string name="lists__name">Nome</string>
     <string name="lists__description">Descrizione</string>
     <string name="lists__private">Lista privata</string>
@@ -621,7 +697,9 @@
     <string name="profile__block">Blocca</string>
     <string name="profile__unblock">Sblocca</string>
     <string name="profile__block_confirm_title">Bloccare questo utente?</string>
-    <string name="profile__block_confirm_message">Non vedrete più i rispettivi profili, contenuti e attività, e i follow tra voi verranno rimossi.</string>
+    <string name="profile__block_confirm_message">Non vedrete più i rispettivi profili, contenuti e attività, e i follow tra voi
+        verranno rimossi.
+    </string>
     <string name="profile__blocked">Profilo non disponibile</string>
     <string name="profile__blocked_hint">Tra te e questo utente c'è un blocco.</string>
     <string name="profile__blocked_users">Utenti bloccati</string>
@@ -635,7 +713,9 @@
     <string name="profile__platforms">Piattaforme</string>
     <string name="profile__platforms_edit">Scegli le piattaforme</string>
     <string name="profile__platforms_search">Cerca una piattaforma</string>
-    <string name="profile__platforms_hint">Le piattaforme che possiedi: compaiono sul tuo profilo e sono già selezionate quando aggiungi un gioco alla libreria.</string>
+    <string name="profile__platforms_hint">Le piattaforme che possiedi: compaiono sul tuo profilo e sono già selezionate quando
+        aggiungi un gioco alla libreria.
+    </string>
     <string name="profile__activity_empty">Ancora nessuna attività.</string>
     <string name="profile__reviews_empty">Ancora nessuna recensione.</string>
     <string name="profile__nickname">Nickname</string>
@@ -644,8 +724,12 @@
     <string name="profile__last_name">Cognome</string>
     <string name="profile__bio">Bio</string>
     <string name="profile__private_switch">Profilo privato</string>
-    <string name="profile__private_hint_edit">Gli altri vedranno solo nickname, nome e foto. I commenti che scrivi su contenuti pubblici restano visibili.</string>
-    <string name="profile__edit_invalid">Alcuni campi sono stati rifiutati: il nickname potrebbe essere già in uso o non rispettare le regole.</string>
+    <string name="profile__private_hint_edit">Gli altri vedranno solo nickname, nome e foto. I commenti che scrivi su contenuti
+        pubblici restano visibili.
+    </string>
+    <string name="profile__edit_invalid">Alcuni campi sono stati rifiutati: il nickname potrebbe essere già in uso o non
+        rispettare le regole.
+    </string>
     <string name="profile__picture_hint">La foto arriva dall'account con cui accedi: modificala lì.</string>
     <string name="profile__picture_provider_only">La foto arriva dall'account con cui accedi.</string>
     <string name="profile__picture_edit">Cambia foto</string>

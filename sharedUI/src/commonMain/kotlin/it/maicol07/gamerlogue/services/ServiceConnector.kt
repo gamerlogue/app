@@ -1,15 +1,49 @@
 package it.maicol07.gamerlogue.services
 
 import at.released.igdbclient.model.Game
+import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * A game as seen on an external store: its store-specific [uid] (Steam appid, GOG/Epic product id,
- * PSN concept id, Xbox title id) and a human [name] used for the IGDB name-fallback match.
+ * PSN concept id, Xbox title id) and a human [name] used for the IGDB name-fallback match. Trackers
+ * also deliver the game's play [status] (scripts emit the [GameLibraryStatus] entry name). A
+ * [gameId] is an explicit IGDB id, read from tracker metadata or echoed by a [ServiceConnector.statusWrite] result.
  */
 @Serializable
-data class ExternalGameRef(val uid: String, val name: String = "")
+data class ExternalGameRef(
+    val uid: String,
+    val name: String = "",
+    val status: GameLibraryStatus? = null,
+    val gameId: Int? = null,
+    /** The game's IGDB slug, when the service links to IGDB: matched exactly instead of by name. */
+    val igdbSlug: String? = null,
+    /** The game's Steam app id, when the service knows it: matched exactly via IGDB's Steam mapping. */
+    val steamAppId: String? = null,
+)
+
+/**
+ * One status to write onto a tracker: the IGDB [gameId] and [name] of a Gamerlogue game, its tracker
+ * [uid] when it is already there (null = add it, found by [name] or id), the tracker's current status
+ * [from] (null when absent; trackers that toggle shelves need it to clear the old one) and the target [to].
+ * [platformIds] are the IGDB platforms to add a missing game on, for trackers that need one (empty = unknown).
+ */
+@Serializable
+data class StatusChange(
+    val gameId: Int,
+    val name: String,
+    val uid: String?,
+    val from: GameLibraryStatus?,
+    val to: GameLibraryStatus,
+    val platformIds: List<Int> = emptyList(),
+    /** IGDB platform names and abbreviations for matching a tracker's own platform catalog. */
+    val platformNames: Map<Int, List<String>> = emptyMap(),
+    /** Ownership for a new library entry; updates keep the remote entry's ownership. */
+    val owned: Boolean = false,
+)
 
 /**
  * The logged-in user's identity on a store: their [username], optional [avatarUrl] and [profileUrl]
@@ -24,8 +58,9 @@ data class ServiceProfile(val username: String, val avatarUrl: String? = null, v
  * Scripts push their result to Kotlin through the WebView JS bridge (so it works even where
  * `evaluateJavascript` can't return a value, e.g. desktop/CEF). A [SyncScripts.wrap]ped body just
  * assigns the `out` array of `{uid,name}`; the wrapper handles the bridge call and bridge readiness.
+ * With [reload] false, an already matching page is reused, retaining its per-flow JavaScript state.
  */
-data class WebStep(val url: String, val script: String)
+data class WebStep(val url: String, val script: String, val reload: Boolean = true)
 
 /**
  * How one store read resolves. Every read is EITHER same-origin in the WebView OR off-WebView from
@@ -52,7 +87,8 @@ sealed interface DataSource<T> {
  * product URL, then acts on that (Nintendo: the IGDB URL is a www.nintendo.com page whose eShop link
  * carries the numeric title id needed to reach the ec.nintendo.com product page with the add button);
  * [SearchByName] searches the store by title and acts on the matching result (Ubisoft: games are
- * name-matched with no IGDB store URL, so there's no `storeUrl` to open a product page with).
+ * name-matched with no IGDB store URL, so there's no `storeUrl` to open a product page with);
+ * [ById] writes by IGDB id directly.
  */
 sealed interface WishlistWrite {
     data class Batch(val step: (refs: List<ExternalGameRef>) -> WebStep) : WishlistWrite
@@ -63,6 +99,13 @@ sealed interface WishlistWrite {
     ) : WishlistWrite
 
     data class SearchByName(val step: (name: String) -> WebStep) : WishlistWrite
+
+    /** Sends all games in a single step keyed by their IGDB id, for trackers whose game ids are IGDB ids
+     *  ([IgdbKey.GAME_ID], e.g. Backloggd) — no store page or search needed. */
+    data class ById(val step: (gameIds: List<Int>) -> WebStep) : WishlistWrite
+
+    /** A free-text tracker needs the game's name and platforms rather than a store URL. */
+    data class ByGame(val step: (games: List<LibrarySync.OutgoingGame>) -> WebStep) : WishlistWrite
 }
 
 /** Web read delivering a `[{uid,name}, …]` list (owned games / wishlist). */
@@ -130,6 +173,14 @@ abstract class ServiceConnector(
      *  IGDB url is slug-based and can't be rebuilt from the store uid (e.g. GOG). */
     open val idMatchesUid: Boolean = false
 
+    /** Which IGDB value the service's game uid is, when it is one (Backloggd: the game id; Stash: the
+     *  cover image id), so refs match exactly with no store-id lookup table. Null = a store-specific id. */
+    open val igdbKey: IgdbKey? = null
+
+    /** The service has no sign-in: the user gives their public username instead (Stash), stored under
+     *  [ExternalService.settingsKey] [HANDLE_KEY] before the connect flow opens their profile page. */
+    open val needsHandle: Boolean = false
+
     /** The IGDB-indexed store URL for [uid], or null when this service has no URL mapping. */
     fun storeUrl(uid: String): String? = storeUrlTemplate?.replace("{id}", uid)
 
@@ -162,13 +213,31 @@ abstract class ServiceConnector(
         @Suppress("SameReturnValue")
         get() = null
 
+    /** Statuses this tracker can store faithfully — a game whose Gamerlogue status is outside it isn't
+     *  synced either way, or the two sides would keep "disagreeing". Empty for import-only services. */
+    open val syncStatuses: Set<GameLibraryStatus> = emptySet()
+
+    /** Whether [statusWrite] can add a game the tracker doesn't have yet; when not, the sync only updates the
+     *  games already there (HowLongToBeat: no reliable way to find a game by IGDB identity). */
+    open val canAddGames: Boolean = true
+
+    /** Writes [StatusChange]s onto the tracker in one step, delivering a ref (tracker uid + [ExternalGameRef.gameId])
+     *  per game written; null when the service can only be imported from. */
+    open val statusWrite: ((List<StatusChange>) -> WebStep)?
+        @Suppress("SameReturnValue")
+        get() = null
+
     /** Adjust an IGDB store URL before navigating to it for a push (e.g. strip the locale segment). */
     open fun normalizePushUrl(url: String): String = url
 
-    private companion object {
-        val LOGIN_MARKERS = listOf("/login", "signin")
+    companion object {
+        const val HANDLE_KEY = "handle"
+        private val LOGIN_MARKERS = listOf("/login", "signin")
     }
 }
+
+/** An IGDB value a service's game uid can be ([ServiceConnector.igdbKey]). */
+enum class IgdbKey { GAME_ID, COVER_IMAGE_ID }
 
 // IGDB platform ids for PC stores (Steam/GOG/Epic/Ubisoft): platform_family is null for these
 // AND for several unrelated platforms (Android, iOS, Web, DOS, Arcade, …), so an explicit allowlist
@@ -181,6 +250,8 @@ private val PcPlatformIds = setOf(6, 3, 14) // PC (Windows), Linux, Mac
  * import, since a store [ExternalGameRef] carries no platform info of its own.
  */
 fun ServiceConnector.platformIdsFor(game: Game): List<Int> {
+    // A tracker spans every platform, so it says nothing about which one the user plays on.
+    if (service.category == ServiceCategory.TRACKER) return emptyList()
     val family = platformFamily
     return game.platforms
         .filter { platform ->
@@ -200,6 +271,8 @@ internal fun List<ExternalGameRef>.uidJsonArray(): String =
 private val resultJson = Json {
     ignoreUnknownKeys = true
     isLenient = true
+    // An unknown status from a tracker script falls back to null instead of failing the whole list.
+    coerceInputValues = true
 }
 
 /** Unwrap one optional layer of JSON-string quoting some transports add around the bridge result. */
@@ -214,12 +287,27 @@ internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
     return runCatching { resultJson.decodeFromString<List<ExternalGameRef>>(s) }.getOrDefault(emptyList())
 }
 
+internal class ScriptWriteException(message: String, val written: List<ExternalGameRef>) : IllegalStateException(message)
+
+/** A failed write retains the confirmed prefix so it can be checkpointed before surfacing the error. */
+internal fun parseWriteResult(raw: String?): List<ExternalGameRef> {
+    val value = cleanJsResult(raw) ?: throw ScriptWriteException("Tracker write timed out", emptyList())
+    val result = resultJson.parseToJsonElement(value)
+    if (result is JsonObject) {
+        val error = (result["error"] as? JsonPrimitive)?.content
+        if (error != null) throw ScriptWriteException(error, parseRefsJson(result["written"]?.toString()))
+    }
+    return resultJson.decodeFromString(value)
+}
+
 /** Parse the `{username, avatarUrl, profileUrl}` JSON a [ServiceConnector.profile] script delivers
- *  through the bridge. Null on error or an empty username (the wrapper sends `[]` on script failure). */
+ *  through the bridge. Null on error or an empty username. */
 internal fun parseProfileJson(raw: String?): ServiceProfile? {
     val s = cleanJsResult(raw) ?: return null
     return runCatching { resultJson.decodeFromString<ServiceProfile>(s) }
         .getOrNull()?.takeIf { it.username.isNotBlank() }
+        // Scripts send "" for a missing avatar/page; that is "none", not an image URL to load.
+        ?.let { it.copy(avatarUrl = it.avatarUrl?.ifBlank { null }, profileUrl = it.profileUrl?.ifBlank { null }) }
 }
 
 /**
@@ -243,6 +331,9 @@ object SyncScripts {
     /** Bridge method the wrapped scripts call to deliver their `[{uid,name}, …]` result. */
     const val RESULT_METHOD = "glResult"
 
+    /** Bridge method scripts call (via [HELPERS]' `__glProgress`) to report `{done, total}` games so far. */
+    const val PROGRESS_METHOD = "glProgress"
+
     /** Default polling budget of the wait helpers: tries × interval ≈ 15s, under the Kotlin script timeout. */
     private const val DEFAULT_TRIES = 30
     private const val POLL_MS = 500
@@ -262,9 +353,17 @@ object SyncScripts {
      * - `__glClickUntil(find, confirmed, attempts?, settle?)` — click then verify, with retry: the
      *   React/SSR stores render the button before binding its handler, so a single early click hits a
      *   dead handler and silently does nothing. Resolves `confirmed()`.
+     * - `__glProgress(done, total)` — report how many games were read/written so far for the progress
+     *   bar; `total` 0 when not known yet (e.g. paginated reads). Best-effort: never throws.
      */
     val HELPERS = """
         function __glSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+        function __glProgress(done, total) {
+            try {
+                __glEnsureNative();
+                window.$BRIDGE_OBJECT.call('$PROGRESS_METHOD', { done: done, total: total || 0 });
+            } catch (e) {}
+        }
         async function __glWaitFor(find, tries, interval) {
             var max = tries || $DEFAULT_TRIES, every = interval || $POLL_MS;
             for (var i = 0; i < max; i++) {
@@ -320,6 +419,28 @@ object SyncScripts {
     /** Logins can sit on a slow redirect chain, so the trigger waits longer than a DOM read. */
     private const val LOGIN_TRIES = 40
 
+    /** How often [leaveLoginWhenSignedIn] checks the session. */
+    private const val SESSION_POLL_MS = 1500
+
+    /**
+     * A [ServiceConnector.loginTriggerScript] for single-page sites, whose sign-in ends with a client-side
+     * route change: the WebView reports only real page loads, so the login-URL check would never see the
+     * user leave the login page. Polls [isSignedIn] (a JS expression resolving to a boolean, typically the
+     * site's own "current user" API) and, once true, does a real navigation to [target]. A session that
+     * already exists leaves the login page straight away.
+     */
+    fun leaveLoginWhenSignedIn(isSignedIn: String, target: String): String = """
+        (function() {
+            var timer = setInterval(check, $SESSION_POLL_MS);
+            async function check() {
+                try {
+                    if (await ($isSignedIn)) { clearInterval(timer); location.href = '$target'; }
+                } catch (e) {}
+            }
+            check();
+        })();
+    """.trimIndent()
+
     /**
      * Wrap a body that assigns the `out` array into the bridge-delivery protocol: wait for the bridge,
      * run the (possibly async) body, then push `out` to Kotlin. Always sends something (empty on error)
@@ -357,7 +478,11 @@ object SyncScripts {
             function __glRun() {
                 (async function() {
                     let out = [];
-                    try { $body } catch (e) { console.log('[GL] body error ' + e); out = []; }
+                    try { $body } catch (e) {
+                        console.log('[GL] body error ' + e);
+                        __glSend({ error: String(e), written: Array.isArray(out) ? out : [] });
+                        return;
+                    }
                     __glSend(out);
                 })();
             }

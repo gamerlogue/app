@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import co.touchlab.kermit.Logger
 import com.parkwoocheol.composewebview.ComposeWebView
 import com.parkwoocheol.composewebview.WebViewController
@@ -25,7 +26,9 @@ import com.parkwoocheol.composewebview.rememberWebViewJsBridge
 import com.parkwoocheol.composewebview.rememberWebViewState
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__service_phase_logged_in
+import gamerlogue.sharedui.generated.resources.settings__service_phase_profile
 import gamerlogue.sharedui.generated.resources.settings__service_phase_reading
+import gamerlogue.sharedui.generated.resources.settings__service_phase_writing
 import it.maicol07.gamerlogue.services.DataSource
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.LibrarySync
@@ -34,14 +37,18 @@ import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.configureServiceWebView
 import it.maicol07.gamerlogue.services.parseCredentialJson
-import it.maicol07.gamerlogue.services.parseRefsJson
+import it.maicol07.gamerlogue.services.parseWriteResult
 import it.maicol07.gamerlogue.services.webViewNestedScrollModifier
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeSource
 
 /**
  * Drives one store automation flow inside a WebView.
@@ -56,15 +63,20 @@ interface WebSession {
     val currentUrl: String?
     suspend fun awaitLogin(connector: ServiceConnector)
 
+    /** Report [done] of [total] games handled so far (0 = total not known) for the progress bar, from a
+     *  Kotlin-side loop of steps; scripts report through the bridge instead. */
+    fun reportProgress(done: Int, total: Int)
+
     /** Run a write [step] in the WebView; the returned refs are the script's confirmation, if any. */
     suspend fun run(step: WebStep): List<ExternalGameRef>
 
     /**
      * Resolve a read [source]: a [DataSource.Web] runs its script same-origin and parses the bridge
      * result; a [DataSource.Api] grabs a credential in the WebView then fetches from Kotlin, falling
-     * back to the source's default on a blank credential or a failed fetch.
+     * back to the source's default on a blank credential or a failed fetch. [phase] is what the progress log
+     * shows meanwhile (the games or the profile).
      */
-    suspend fun <T> read(source: DataSource<T>): T
+    suspend fun <T> read(source: DataSource<T>, phase: SyncPhase): T
 
     /**
      * Show a checklist of [games] about to be pushed to the store wishlist and suspend until the user
@@ -74,14 +86,26 @@ interface WebSession {
     suspend fun confirmPush(games: List<LibrarySync.OutgoingGame>): List<LibrarySync.OutgoingGame>
 }
 
+/** Track foreground/background so a paused WebView doesn't look like a stuck script (see [ServiceWebViewSession.hostActive]). */
+@Composable
+private fun TrackHostActive(session: ServiceWebViewSession) = LifecycleResumeEffect(session) {
+    session.hostActive = true
+    onPauseOrDispose { session.hostActive = false }
+}
+
+/** [done] of [total] games handled in the current phase; [total] 0 = not known yet. */
+data class StepProgress(val done: Int, val total: Int)
+
 /** Coarse phases surfaced to the on-screen progress log. */
-enum class SyncPhase { LOGGED_IN, READING }
+enum class SyncPhase { LOGGED_IN, READING, READING_PROFILE, WRITING }
 
 @Composable
 fun SyncPhase.label() = stringResource(
     when (this) {
         SyncPhase.LOGGED_IN -> Res.string.settings__service_phase_logged_in
         SyncPhase.READING -> Res.string.settings__service_phase_reading
+        SyncPhase.READING_PROFILE -> Res.string.settings__service_phase_profile
+        SyncPhase.WRITING -> Res.string.settings__service_phase_writing
     }
 )
 
@@ -129,7 +153,17 @@ fun rememberServiceWebViewHost(
             session.deliver(json.toString())
             true
         }
+        bridge.register<JsonElement, Boolean>(SyncScripts.PROGRESS_METHOD) { json ->
+            val count = json.jsonObject
+            session.reportProgress(
+                count["done"]?.jsonPrimitive?.intOrNull ?: 0,
+                count["total"]?.jsonPrimitive?.intOrNull ?: 0,
+            )
+            true
+        }
     }
+
+    TrackHostActive(session)
 
     LaunchedEffect(session) {
         try {
@@ -183,6 +217,29 @@ class ServiceWebViewSession internal constructor(
     var awaitingLogin by mutableStateOf(false)
         private set
     val log = mutableStateListOf<SyncPhase>()
+
+    /** Games handled so far in the current phase, or null before any report. */
+    var progress by mutableStateOf<StepProgress?>(null)
+        private set
+
+    /** When the running script last showed signs of life (start or a progress report). */
+    private var lastActivity = TimeSource.Monotonic.markNow()
+
+    override fun reportProgress(done: Int, total: Int) {
+        progress = StepProgress(done, total)
+        lastActivity = TimeSource.Monotonic.markNow()
+    }
+
+    /**
+     * Whether the screen hosting the WebView is in the foreground. Paused (device locked, app in the
+     * background), the WebView suspends the page's JavaScript, so a waiting script isn't stuck — it just
+     * can't run: the idle timeout doesn't count meanwhile and starts afresh on resume.
+     */
+    var hostActive: Boolean = true
+        set(value) {
+            field = value
+            if (value) lastActivity = TimeSource.Monotonic.markNow()
+        }
 
     override val currentUrl: String? get() = state.lastLoadedUrl
 
@@ -250,13 +307,13 @@ class ServiceWebViewSession internal constructor(
         }
     }
 
-    override suspend fun run(step: WebStep): List<ExternalGameRef> = parseRefsJson(runStep(step))
+    override suspend fun run(step: WebStep): List<ExternalGameRef> = parseWriteResult(runStep(step, SyncPhase.WRITING))
 
-    override suspend fun <T> read(source: DataSource<T>): T = when (source) {
-        is DataSource.Web -> source.parse(runStep(source.step))
+    override suspend fun <T> read(source: DataSource<T>, phase: SyncPhase): T = when (source) {
+        is DataSource.Web -> source.parse(runStep(source.step, phase))
         is DataSource.Api -> {
             // The credential step delivers the credential as a plain string (e.g. the PSN npsso cookie).
-            val credential = parseCredentialJson(runStep(source.credentialStep))
+            val credential = parseCredentialJson(runStep(source.credentialStep, phase))
             if (credential.isBlank()) {
                 source.default
             } else {
@@ -268,16 +325,25 @@ class ServiceWebViewSession internal constructor(
     }
 
     /** Navigate + inject [step], then await its raw bridge JSON (null on timeout). */
-    private suspend fun runStep(step: WebStep): String? {
-        log.add(SyncPhase.READING)
+    private suspend fun runStep(step: WebStep, phase: SyncPhase): String? {
+        // A new phase starts counting from scratch; repeated steps of one phase (per-game writes) keep it.
+        if (log.lastOrNull() != phase) progress = null
+        log.add(phase)
         val deferred = CompletableDeferred<String?>()
         pending = deferred
         Logger.i(tag = TAG) { "run: loadUrl ${step.url}" }
-        controller.loadUrl(step.url)
-        awaitLoaded()
+        if (step.reload || state.lastLoadedUrl != step.url) {
+            controller.loadUrl(step.url)
+            awaitLoaded()
+        }
         controller.evaluateJavascript(step.script) {} // fire-and-forget; result via the bridge
         Logger.i(tag = TAG) { "run: injected script, awaiting bridge result…" }
-        val json = withTimeoutOrNull(SCRIPT_TIMEOUT.milliseconds) { deferred.await() }
+        // An idle timeout, not a total one: a long paginated read that keeps reporting progress isn't cut off.
+        lastActivity = TimeSource.Monotonic.markNow()
+        while (!deferred.isCompleted && (!hostActive || lastActivity.elapsedNow() <= SCRIPT_TIMEOUT.milliseconds)) {
+            delay(POLL_INTERVAL.milliseconds)
+        }
+        val json = if (deferred.isCompleted) deferred.await() else null
         pending = null
         Logger.i(tag = TAG) { "run: got bridge result=${json != null}" }
         return json

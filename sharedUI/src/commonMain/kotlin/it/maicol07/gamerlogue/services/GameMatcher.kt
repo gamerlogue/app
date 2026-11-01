@@ -3,6 +3,7 @@ package it.maicol07.gamerlogue.services
 import at.released.igdbclient.IgdbClient
 import at.released.igdbclient.IgdbEndpoint
 import at.released.igdbclient.apicalypse.ApicalypseQueryBuilder
+import at.released.igdbclient.getCovers
 import at.released.igdbclient.getExternalGames
 import at.released.igdbclient.getGames
 import at.released.igdbclient.getWebsites
@@ -14,6 +15,7 @@ import com.github.michaelbull.result.getError
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.extensions.multiqueryResults
+import it.maicol07.gamerlogue.services.connectors.SteamConnector
 import kotlinx.coroutines.delay
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.milliseconds
@@ -25,6 +27,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * mapping (common for PSN/Xbox), callers fall back to [searchByName]. Alternatives for the editable
  * import preview are fetched on demand via [searchByName] rather than eagerly, to keep IGDB calls down.
  */
+// One cohesive matcher: the per-key lookups are private steps of [match], not a separate concern.
+@Suppress("TooManyFunctions")
 @Single
 class GameMatcher(
     private val igdb: IgdbClient,
@@ -34,7 +38,7 @@ class GameMatcher(
     /**
      * IGDB match for a store [ref]: the best [game] (or null) plus the full [candidates] list so the
      * import preview can let the user pick a different one when several titles match. [confident] is
-     * true only for an exact store-id (URL) match; a name-fallback guess is not, so the UI requires
+     * true for an exact identity match; a name-fallback guess is not, so the UI requires
      * the user to confirm/choose it before it can be selected.
      */
     data class Match(
@@ -66,7 +70,18 @@ class GameMatcher(
         onBatch: (List<Match>) -> Unit,
     ) {
         if (refs.isEmpty()) return
-        val byUid = matchByStoreId(connector, refs)
+        val tagged = refs.filter { (it.gameId ?: 0) > 0 }
+        val games = gamesByIds(tagged.mapNotNull { it.gameId }).associateBy { it.id.toInt() }
+        val byGameId = tagged.mapNotNull { ref -> games[ref.gameId]?.let { ref.uid to it } }.toMap()
+        val untagged = refs.filter { it.uid !in byGameId }
+        val byStoreId =
+            byGameId + (connector.igdbKey?.let { matchByIgdbKey(it, untagged) } ?: matchByStoreId(connector, untagged))
+        // Refs that name their game by IGDB slug (Grouvee's IGDB link) or Steam app id (HowLongToBeat's Steam
+        // link) match exactly too.
+        val rest = refs.filter { it.uid !in byStoreId }
+        val byUid = byStoreId +
+            matchBySlug(rest.filter { it.igdbSlug != null }) +
+            matchBySteamAppId(rest.filter { it.steamAppId != null })
         Logger.i(tag = TAG) { "store-id matched ${byUid.size}/${refs.size}" }
 
         // Store-id hits (and refs with no name to search) resolve immediately.
@@ -193,6 +208,51 @@ class GameMatcher(
         return byUid
     }
 
+    /** Exact match for services whose uid is an IGDB value itself ([ServiceConnector.igdbKey]). */
+    /** Exact match on the Steam app id a ref carries ([ExternalGameRef.steamAppId]), by ref uid: the same
+     *  `external_games` lookup a Steam import does, so the store-URL shape stays defined by [SteamConnector]. */
+    private suspend fun matchBySteamAppId(refs: List<ExternalGameRef>): Map<String, Game> {
+        val uidsByAppId = refs.groupBy({ it.steamAppId.orEmpty() }, { it.uid })
+        val byAppId = matchByStoreId(SteamConnector(), uidsByAppId.keys.map { ExternalGameRef(it) })
+        return byAppId.flatMap { (appId, game) -> uidsByAppId[appId].orEmpty().map { it to game } }.toMap()
+    }
+
+    /** Exact match on the IGDB slug a ref carries ([ExternalGameRef.igdbSlug]), by ref uid. */
+    private suspend fun matchBySlug(refs: List<ExternalGameRef>): Map<String, Game> {
+        val uidsBySlug = refs.groupBy({ it.igdbSlug.orEmpty() }, { it.uid })
+        val byUid = mutableMapOf<String, Game>()
+        uidsBySlug.keys.chunked(UID_CHUNK).forEach { chunk ->
+            val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
+            igdbCall("games by-slug lookup failed") {
+                igdb.getGames {
+                    fields("id", "name", "slug", "cover.image_id", "platforms.id", "platforms.platform_family")
+                    where("slug = ($quoted)")
+                    limit(chunk.size)
+                }
+            }?.games?.forEach { game -> uidsBySlug[game.slug]?.forEach { byUid[it] = game } }
+        }
+        return byUid
+    }
+
+    private suspend fun matchByIgdbKey(key: IgdbKey, refs: List<ExternalGameRef>): Map<String, Game> = when (key) {
+        IgdbKey.GAME_ID -> gamesByIds(refs.mapNotNull { it.uid.toIntOrNull() }).associateBy { it.id.toString() }
+        IgdbKey.COVER_IMAGE_ID -> {
+            val covers = refs.map { it.uid }.distinct().chunked(UID_CHUNK).flatMap { chunk ->
+                val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
+                igdbCall("covers lookup failed") {
+                    igdb.getCovers {
+                        fields("image_id", "game")
+                        where("image_id = ($quoted)")
+                        limit(chunk.size)
+                    }
+                }?.covers.orEmpty()
+            }
+            val gameByCover = covers.mapNotNull { cover -> cover.game?.let { cover.image_id to it.id.toInt() } }.toMap()
+            val games = gamesByIds(gameByCover.values.toList()).associateBy { it.id.toInt() }
+            gameByCover.entries.mapNotNull { (cover, id) -> games[id]?.let { cover to it } }.toMap()
+        }
+    }
+
     /**
      * Reverse direction: the store [connector] page URL (IGDB `external_games.url`) for each of
      * [gameIds], used to push Gamerlogue backlog games onto the store wishlist. Games with no store
@@ -251,6 +311,8 @@ class GameMatcher(
                         "name",
                         "cover.image_id",
                         "platforms.platform_family",
+                        "platforms.name",
+                        "platforms.abbreviation",
                         "involved_companies.company.name",
                     )
                     where("id = (${chunk.joinToString(",")})")
