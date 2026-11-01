@@ -2,8 +2,10 @@ package it.maicol07.gamerlogue.services
 
 import android.webkit.CookieManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import com.parkwoocheol.composewebview.WebView
 
@@ -17,3 +19,12 @@ actual fun configureServiceWebView(webView: WebView) {
 
 @Composable
 actual fun Modifier.webViewNestedScrollModifier(): Modifier = this.nestedScroll(rememberNestedScrollInteropConnection())
+
+@Composable
+actual fun KeepScreenOn() {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
+}
