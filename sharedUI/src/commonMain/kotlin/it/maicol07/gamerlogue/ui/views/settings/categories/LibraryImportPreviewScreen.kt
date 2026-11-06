@@ -1,6 +1,6 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,13 +8,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +24,6 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,9 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +45,6 @@ import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__id_sync_matches
 import gamerlogue.sharedui.generated.resources.settings__import_already_present
-import gamerlogue.sharedui.generated.resources.settings__import_cancel
 import gamerlogue.sharedui.generated.resources.settings__import_change_match
 import gamerlogue.sharedui.generated.resources.settings__import_confirm
 import gamerlogue.sharedui.generated.resources.settings__import_confirm_match
@@ -61,8 +54,6 @@ import gamerlogue.sharedui.generated.resources.settings__import_finish
 import gamerlogue.sharedui.generated.resources.settings__import_group_to_import
 import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
-import gamerlogue.sharedui.generated.resources.settings__import_search
-import gamerlogue.sharedui.generated.resources.settings__import_search_hint
 import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__import_source
@@ -88,6 +79,8 @@ import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import it.maicol07.gamerlogue.ui.views.list.GamePick
+import it.maicol07.gamerlogue.ui.views.list.GamePickEffect
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -107,6 +100,12 @@ fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
     val viewModel: LibraryImportViewModel = koinViewModel(parameters = { parametersOf(service, mode) })
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val onDone: () -> Unit = { navigationState.backStack.removeLastOrNull() }
+    val pickRequest = "sync-match-${service.name}-${mode.name}"
+    GamePickEffect(pickRequest) { ids -> ids.singleOrNull()?.let(viewModel::chooseMatchId) }
+    val onEdit: (Int) -> Unit = { index ->
+        viewModel.startEdit(index)
+        navigationState.backStack.add(RootNavTree.GameList(null, null, null, null, null, null, GamePick(pickRequest, false)))
+    }
     val plan = uiState.plan
     ScreenScaffold(title = title) {
         when {
@@ -142,6 +141,7 @@ fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
                 },
                 onDone = onDone,
                 viewModel = viewModel,
+                onEdit = onEdit,
             )
         }
     }
@@ -155,6 +155,7 @@ private fun LibraryImportPreviewContent(
     confirmLabel: StringResource,
     onDone: () -> Unit,
     viewModel: LibraryImportViewModel,
+    onEdit: (Int) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
@@ -214,7 +215,10 @@ private fun LibraryImportPreviewContent(
         }
 
         if (uiState.matching) {
-            val progress = if (uiState.total > 0) uiState.processed.toFloat() / uiState.total else 0f
+            val progress by animateFloatAsState(
+                if (uiState.total > 0) uiState.processed.toFloat() / uiState.total else 0f,
+                MaterialTheme.motionScheme.defaultEffectsSpec(),
+            )
             LinearWavyProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -232,7 +236,7 @@ private fun LibraryImportPreviewContent(
                 expandedStatuses,
                 onToggleStatus = { expandedStatuses[it] = expandedStatuses[it] != true },
                 onToggle = viewModel::toggleIncluded,
-                onEdit = viewModel::startEdit,
+                onEdit = onEdit,
                 onOpenStore = uriHandler::openURL,
             )
         }
@@ -250,15 +254,6 @@ private fun LibraryImportPreviewContent(
         }
     }
 
-    if (uiState.editingIndex != null) {
-        MatchSearchDialog(
-            searching = uiState.searching,
-            results = uiState.searchResults,
-            onSearch = viewModel::search,
-            onPick = viewModel::chooseMatch,
-            onDismiss = viewModel::cancelEdit,
-        )
-    }
 }
 
 /**
@@ -266,7 +261,6 @@ private fun LibraryImportPreviewContent(
  * review/already-present rows open the match editor on tap. The trailing edit icon always opens the
  * editor so the match can be changed.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun ImportRow(
     row: LibraryImportViewModel.Row,
@@ -364,56 +358,3 @@ internal fun MatchCover(game: Game?, modifier: Modifier = Modifier) {
 }
 
 private val PlaceholderIcon: ImageVector = Icons.JoystickW500Rounded
-
-@Composable
-private fun MatchSearchDialog(
-    searching: Boolean,
-    results: List<Game>,
-    onSearch: (String) -> Unit,
-    onPick: (Game) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var query by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onSearch(query) }, enabled = !searching, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(Res.string.settings__import_search))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(Res.string.settings__import_cancel))
-            }
-        },
-        title = { Text(stringResource(Res.string.settings__import_search_hint)) },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text(stringResource(Res.string.settings__import_search_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                if (searching) {
-                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
-                        items(results) { game ->
-                            Row(
-                                Modifier.fillMaxWidth().clickable { onPick(game) }.padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                MatchCover(game, Modifier.padding(end = 12.dp))
-                                Text(game.name)
-                            }
-                        }
-                    }
-                }
-            }
-        },
-    )
-}

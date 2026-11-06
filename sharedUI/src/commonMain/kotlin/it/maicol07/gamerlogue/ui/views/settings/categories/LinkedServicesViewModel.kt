@@ -253,10 +253,12 @@ class LinkedServicesViewModel(
         try {
             session.awaitLogin(connector)
             val refs = session.read(connector.ownedGames, SyncPhase.READING)
-            val plan = trackerSync.plan(connector, trackerSync.resolve(connector, refs))
+            val entries = librarySync.allEntries().toMutableList()
+            val remote = trackerSync.resolve(connector, refs)
+            val plan = trackerSync.plan(connector, remote, entries)
             trackerSync.record(service, plan.agreed)
-            val pulled = trackerSync.pull(service, plan.changes.filter { it.winner == SyncSide.REMOTE })
-            val outgoing = trackerSync.outgoing(plan.changes.filter { it.winner == SyncSide.LOCAL })
+            val pulled = trackerSync.pull(service, plan.changes.filter { it.winner == SyncSide.REMOTE }, entries, remote)
+            val outgoing = trackerSync.outgoing(plan.changes.filter { it.winner == SyncSide.LOCAL }, entries)
             val pushed = writeStatuses(service, session, write, outgoing)
             val conflicts = plan.changes.count { it.winner == null }
             update { copy(outcome = SyncOutcome.LibrarySynced(pulled, pushed, conflicts)) }
@@ -317,17 +319,16 @@ class LinkedServicesViewModel(
     /** Review and push backlog games after the incoming wishlist has been confirmed. */
     suspend fun runWishlistPush(service: ExternalService, session: WebSession) {
         val connector = connector(service)
-        val added = checkNotNull(librarySync.pendingWishlistImports.remove(service)) {
+        val pending = checkNotNull(librarySync.pendingWishlistImports.remove(service)) {
             "Missing reviewed wishlist import for $service"
         }
         session.awaitLogin(connector)
-        val wishlist = ImportHandoff.take(service)
         // Outgoing preview: let the user pick which backlog games to push to the store, then push them. A store
         // that can't be written to gets no checklist: every row would just read "no match".
         val selected = if (connector.wishlistWrite == null) {
             emptyList()
         } else {
-            session.confirmPush(librarySync.computeWishlistPush(connector, wishlist))
+            session.confirmPush(pending.toPush)
         }
         val pushed = try {
             if (selected.isNotEmpty()) pushWishlist(connector, session, selected) else 0
@@ -336,7 +337,7 @@ class LinkedServicesViewModel(
             update { copy(outcome = SyncOutcome.Failed) }
             return
         }
-        update { copy(outcome = SyncOutcome.WishlistSynced(added, pushed)) }
+        update { copy(outcome = SyncOutcome.WishlistSynced(pending.added, pushed)) }
     }
 
     // The connector's [ServiceConnector.wishlist] source decides Web vs API internally; null = no wishlist.

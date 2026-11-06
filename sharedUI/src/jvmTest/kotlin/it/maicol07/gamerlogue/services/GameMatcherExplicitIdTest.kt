@@ -61,6 +61,43 @@ private class IdFixtureIgdb : IgdbClient {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameMatcherExplicitIdTest : StringSpec({
+    "a picker result stays attached to its row while another match is opened" {
+        runTest {
+            Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+            val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
+            val settings = PreferencesSettings(preferences)
+            val reporter = ExceptionReporter()
+            val matcher = GameMatcher(IdFixtureIgdb(), reporter)
+            val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+            val connector = BackloggeryConnector()
+            ImportHandoff.put(
+                connector.service,
+                listOf(ExternalGameRef("first", gameId = 42), ExternalGameRef("second", gameId = 7)),
+            )
+            val preview = LibraryImportViewModel(
+                connector.service,
+                ImportMode.ID_SYNC,
+                mapOf(connector.service to connector),
+                matcher,
+                library,
+                TrackerSync(settings, matcher, library),
+            )
+            try {
+                advanceUntilIdle()
+                preview.startEdit(1)
+                preview.chooseMatchId(42)
+                preview.startEdit(0)
+                advanceUntilIdle()
+                preview.uiState.value.rows[1].game?.id shouldBe 42L
+                preview.uiState.value.editingIndex shouldBe 0
+            } finally {
+                preview.viewModelScope.cancel()
+                preferences.removeNode()
+                Dispatchers.resetMain()
+            }
+        }
+    }
+
     for ((confirmUnknown, excludeKnown) in listOf(false to false, true to false, true to true)) {
         "ID resync matcher confirmation=$confirmUnknown, exclude known=$excludeKnown" {
             runTest {
@@ -80,8 +117,14 @@ class GameMatcherExplicitIdTest : StringSpec({
                 val viewModel =
 
                     LinkedServicesViewModel(mapOf(ExternalService.BACKLOGGERY to connector), settings, library, tracker)
+
+                // Both variables are assigned by the WebSession callbacks below.
+                @Suppress("CanBeVal")
                 var preview: LibraryImportViewModel? = null
+
+                @Suppress("CanBeVal")
                 var writes = 0
+
                 val session = object : WebSession {
                     override val currentUrl: String = "https://backloggery.com/"
                     override suspend fun awaitLogin(connector: ServiceConnector) = Unit
@@ -109,7 +152,12 @@ class GameMatcherExplicitIdTest : StringSpec({
                     writes shouldBe 0
                     ImportHandoff.put(connector.service, refs)
                     val review = LibraryImportViewModel(
-                        connector.service, ImportMode.ID_SYNC, mapOf(connector.service to connector), matcher, library, tracker,
+                        connector.service,
+                        ImportMode.ID_SYNC,
+                        mapOf(connector.service to connector),
+                        matcher,
+                        library,
+                        tracker,
                     )
                     preview = review
                     advanceUntilIdle()
@@ -140,7 +188,6 @@ class GameMatcherExplicitIdTest : StringSpec({
                     Dispatchers.resetMain()
                 }
             }
-
         }
     }
 
@@ -174,5 +221,3 @@ class GameMatcherExplicitIdTest : StringSpec({
         }
     }
 })
-
-

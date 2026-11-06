@@ -3,6 +3,8 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.extensions.igdb.baseGameId
+import it.maicol07.gamerlogue.extensions.igdb.isBaseGame
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
@@ -12,6 +14,8 @@ import it.maicol07.gamerlogue.services.SyncChange
 import it.maicol07.gamerlogue.services.SyncSide
 import it.maicol07.gamerlogue.services.TrackerSync
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.core.annotation.InjectedParam
@@ -54,7 +58,7 @@ object ImportHandoff {
 class LibraryImportViewModel(
     @InjectedParam val service: ExternalService,
     @InjectedParam private val mode: ImportMode,
-    private val connectors: Map<ExternalService, ServiceConnector>,
+    connectors: Map<ExternalService, ServiceConnector>,
     private val matcher: GameMatcher,
     private val librarySync: LibrarySync,
     private val trackerSync: TrackerSync,
@@ -67,16 +71,17 @@ class LibraryImportViewModel(
 
     /** IGDB game ids already in the user's library/backlog — those rows don't need importing. */
     private var existingIds: Set<Int> = emptySet()
+    private var existingEditions: Map<Int, List<Int>> = emptyMap()
+    private val librarySnapshot = viewModelScope.async(start = CoroutineStart.LAZY) { librarySync.allEntries().toMutableList() }
 
     /**
-     * A store game and its (editable) chosen IGDB match, with the other [candidates] to pick from.
+     * A store game and its editable IGDB match.
      * [alreadyPresent] = the match is already in the library (no need to add; the mapping can still
      * be changed in case it's wrong).
      */
     data class Row(
         val ref: ExternalGameRef,
         val game: Game?,
-        val candidates: List<Game>,
         val included: Boolean,
         val alreadyPresent: Boolean = false,
         // True for an exact store-id match or a user-confirmed pick. Name-fallback guesses start false
@@ -95,8 +100,6 @@ class LibraryImportViewModel(
         val importing: Boolean = false,
         val importedCount: Int? = null,
         val editingIndex: Int? = null,
-        val searching: Boolean = false,
-        val searchResults: List<Game> = emptyList(),
         /** [ImportMode.SYNC] second step: the reviewed changes, once the matches are confirmed. */
         val plan: List<PlanRow>? = null,
         /** The reviewed wishlist or library sync has outgoing writes left, to run in the WebView. */
@@ -116,7 +119,7 @@ class LibraryImportViewModel(
                 matching = refs.isNotEmpty(),
                 total = refs.size,
                 rows = refs.map {
-                    Row(it, game = null, candidates = emptyList(), included = false, sourceUrl = connector.storeUrl(it.uid))
+                    Row(it, game = null, included = false, sourceUrl = connector.storeUrl(it.uid))
                 },
             )
         }
@@ -125,15 +128,18 @@ class LibraryImportViewModel(
             // The whole library is only needed to flag games already in it, so it loads alongside the matching
             // instead of holding it up: rows matched before it arrives get flagged (and deselected) once it does.
             // A sync touches games already in the library too, so none is "already present" there.
-            val existingLoad = if (mode == ImportMode.SYNC || mode == ImportMode.ID_SYNC) {
+            val existingLoad = if (mode == ImportMode.ID_SYNC) {
                 null
             } else {
                 launch {
-                    existingIds = librarySync.existingGameIds(ownedOnly = mode == ImportMode.OWNED)
+                    val entries = librarySnapshot.await()
+                    if (mode == ImportMode.SYNC) return@launch
+                    existingIds = entries.filter { mode != ImportMode.OWNED || it.owned }.mapTo(mutableSetOf()) { it.gameId }
+                    existingEditions = entries.associate { it.gameId to runCatching { it.editionsIds }.getOrDefault(emptyList()) }
                     update {
                         copy(
                             rows = rows.map { row ->
-                                val present = row.game?.let { it.id.toInt() in existingIds } == true
+                                val present = row.game?.let(::isAlreadyPresent) == true
                                 row.copy(alreadyPresent = present, included = row.included && !present)
                             },
                         )
@@ -146,7 +152,7 @@ class LibraryImportViewModel(
             update {
                 copy(
                     processed = known.size,
-                    rows = rows.map { row -> known[row.ref.uid]?.let { row.withMatch(it, listOf(it), confident = true) } ?: row },
+                    rows = rows.map { row -> known[row.ref.uid]?.let { row.withMatch(it, confident = true) } ?: row },
                 )
             }
             // Stream matches in as each batch resolves so the list fills progressively.
@@ -156,7 +162,7 @@ class LibraryImportViewModel(
                     copy(
                         processed = processed + batch.size,
                         rows = rows.map { row ->
-                            byUid[row.ref.uid]?.let { m -> row.withMatch(m.game, m.candidates, m.confident) } ?: row
+                            byUid[row.ref.uid]?.let { m -> row.withMatch(m.game, m.confident) } ?: row
                         },
                     )
                 }
@@ -171,16 +177,18 @@ class LibraryImportViewModel(
      * Apply a match to a row: flag already-present games and pre-select only confident, new matches.
      * Name-fallback guesses ([confident] = false) stay unselected until the user confirms them.
      */
-    private fun Row.withMatch(game: Game?, candidates: List<Game>, confident: Boolean): Row {
-        val present = game != null && game.id.toInt() in existingIds
+    private fun Row.withMatch(game: Game?, confident: Boolean): Row {
+        val present = game != null && isAlreadyPresent(game)
         return copy(
             game = game,
-            candidates = candidates,
             alreadyPresent = present,
             confident = confident,
             included = game != null && !present && confident,
         )
     }
+
+    private fun isAlreadyPresent(game: Game): Boolean = game.baseGameId in existingIds &&
+        (game.version_parent == null || game.id.toInt() in existingEditions[game.baseGameId].orEmpty())
 
     fun toggleIncluded(index: Int) = update {
         copy(
@@ -196,26 +204,25 @@ class LibraryImportViewModel(
         copy(rows = rows.map { it.copy(included = included && it.confident && !it.alreadyPresent) })
     }
 
-    // Prefill the search dialog with the auto-found candidates so a pick needs no extra typing.
-    fun startEdit(index: Int) = update {
-        copy(editingIndex = index, searchResults = rows.getOrNull(index)?.candidates.orEmpty())
+    fun startEdit(index: Int) = update { copy(editingIndex = index) }
+
+    fun chooseMatchId(id: Int) {
+        val index = state.editingIndex ?: return
+        viewModelScope.launch {
+            matcher.gamesByIds(listOf(id)).firstOrNull { it.id.toInt() == id && it.isBaseGame }?.let { chooseMatch(index, it) }
+        }
     }
 
-    fun cancelEdit() = update { copy(editingIndex = null, searchResults = emptyList()) }
-
-    fun search(query: String) = viewModelScope.launch {
-        update { copy(searching = true) }
-        val results = matcher.searchByName(query)
-        update { copy(searching = false, searchResults = results) }
+    fun chooseMatch(game: Game) {
+        val index = state.editingIndex ?: return
+        chooseMatch(index, game)
     }
 
-    fun chooseMatch(game: Game) = update {
-        val index = editingIndex ?: return@update this
+    private fun chooseMatch(index: Int, game: Game) = update {
         // A manual pick is a confirmation → confident.
         copy(
-            rows = rows.mapIndexed { i, row -> if (i == index) row.withMatch(game, row.candidates, confident = true) else row },
-            editingIndex = null,
-            searchResults = emptyList(),
+            rows = rows.mapIndexed { i, row -> if (i == index) row.withMatch(game, confident = true) else row },
+            editingIndex = editingIndex.takeUnless { it == index },
         )
     }
 
@@ -231,8 +238,8 @@ class LibraryImportViewModel(
             return@launch
         }
         if (mode == ImportMode.SYNC) {
-            val remote = included.mapNotNull { row -> row.game?.let { it.id.toInt() to row.ref } }.toMap()
-            val plan = trackerSync.plan(connector, remote)
+            val remote = included.mapNotNull { row -> row.game?.let { it.baseGameId to row.ref } }.toMap()
+            val plan = trackerSync.plan(connector, remote, librarySnapshot.await())
             // Games equal on both sides are a fact now, not a choice: record them (and their confirmed matches)
             // straight away, so they're remembered even if the plan is closed without applying.
             trackerSync.record(service, plan.agreed)
@@ -244,19 +251,22 @@ class LibraryImportViewModel(
             return@launch
         }
         val games = included.mapNotNull { it.game }
+        val entries = librarySnapshot.await()
         val count = if (games.isEmpty()) 0 else when (mode) {
-            ImportMode.OWNED -> librarySync.importOwned(connector, games)
-            ImportMode.WISHLIST -> librarySync.importWishlist(connector, games)
+            ImportMode.OWNED -> librarySync.importOwned(connector, games, entries)
+            ImportMode.WISHLIST -> librarySync.importWishlist(connector, games, entries)
             // Only games not in the library yet are selectable, so this just creates them.
             ImportMode.TRACKED -> librarySync.applyStatuses(
                 included.mapNotNull { row -> row.game?.let { it to (row.ref.status ?: GameLibraryStatus.BACKLOG) } },
+                entries,
             )
 
             ImportMode.SYNC, ImportMode.ID_SYNC -> error("sync confirmation is handled above")
         }
         if (canPushWishlist) {
-            librarySync.pendingWishlistImports[service] = count
-            ImportHandoff.put(service, state.rows.map { it.ref })
+            val wishlistIds = state.rows.filter { it.confident }.mapNotNull { it.game?.baseGameId }.toSet()
+            val outgoing = librarySync.computeWishlistPush(connector, emptyList(), entries, wishlistIds)
+            librarySync.pendingWishlistImports[service] = LibrarySync.WishlistResult(count, outgoing)
         }
         update { copy(importing = false, importedCount = count, pushPending = canPushWishlist) }
     }
@@ -269,8 +279,12 @@ class LibraryImportViewModel(
     fun applySync() = viewModelScope.launch {
         val rows = state.plan ?: return@launch
         update { copy(importing = true) }
-        val pulled = trackerSync.pull(service, rows.filter { it.choice == SyncSide.REMOTE }.map { it.change })
-        val outgoing = trackerSync.outgoing(rows.filter { it.choice == SyncSide.LOCAL }.map { it.change })
+        val entries = librarySnapshot.await()
+        val remote = state.rows.filter { it.included }.mapNotNull { row ->
+            row.game?.let { it.baseGameId to row.ref.copy(gameId = it.id.toInt()) }
+        }.toMap()
+        val pulled = trackerSync.pull(service, rows.filter { it.choice == SyncSide.REMOTE }.map { it.change }, entries, remote)
+        val outgoing = trackerSync.outgoing(rows.filter { it.choice == SyncSide.LOCAL }.map { it.change }, entries)
         trackerSync.pendingWrites[service] = outgoing
         update { copy(importing = false, importedCount = pulled, pushPending = outgoing.isNotEmpty()) }
     }

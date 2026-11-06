@@ -12,6 +12,18 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 
 class LibraryEntryTest : StringSpec({
+    "editions share their base entry and keep previously selected editions" {
+        val base = Game(id = 7L)
+        val entry = LibraryEntry.quickDraft(Game(id = 70L, version_parent = base), GameLibraryStatus.BACKLOG)
+        entry.gameId shouldBe 7
+        entry.editionsIds shouldBe listOf(70)
+        LibraryEntry.quickDraft(Game(id = 71L, version_parent = base), GameLibraryStatus.PLAYING, entry)
+        entry.gameId shouldBe 7
+        entry.editionsIds shouldBe listOf(70, 71)
+        LibraryEntry.quickDraft(Game(id = 71L, version_parent = base), GameLibraryStatus.PLAYING, entry)
+        entry.editionsIds shouldBe listOf(70, 71)
+    }
+
     "quickDraft builds entry from game and status" {
         val entry = LibraryEntry.quickDraft(Game(id = 7L), GameLibraryStatus.PLAYING)
 

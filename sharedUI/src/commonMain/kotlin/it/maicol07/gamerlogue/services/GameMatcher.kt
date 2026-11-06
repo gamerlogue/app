@@ -14,6 +14,8 @@ import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.safeRequest
+import it.maicol07.gamerlogue.extensions.igdb.BUNDLE_OR_ADDON_GAME_TYPES
+import it.maicol07.gamerlogue.extensions.igdb.isBaseGame
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.services.connectors.SteamConnector
 import kotlinx.coroutines.delay
@@ -24,8 +26,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Maps games coming from an external store to IGDB games, reusing the app's [IgdbClient].
  *
  * Primary match is IGDB's `external_games` endpoint (store id → IGDB game). When a store id has no
- * mapping (common for PSN/Xbox), callers fall back to [searchByName]. Alternatives for the editable
- * import preview are fetched on demand via [searchByName] rather than eagerly, to keep IGDB calls down.
+ * mapping (common for PSN/Xbox), matching falls back to a batched name search. The editable import
+ * preview uses GameList for manual picks.
  */
 // One cohesive matcher: the per-key lookups are private steps of [match], not a separate concern.
 @Suppress("TooManyFunctions")
@@ -79,9 +81,10 @@ class GameMatcher(
         // Refs that name their game by IGDB slug (Grouvee's IGDB link) or Steam app id (HowLongToBeat's Steam
         // link) match exactly too.
         val rest = refs.filter { it.uid !in byStoreId }
-        val byUid = byStoreId +
+        val byUid = (byStoreId +
             matchBySlug(rest.filter { it.igdbSlug != null }) +
-            matchBySteamAppId(rest.filter { it.steamAppId != null })
+            matchBySteamAppId(rest.filter { it.steamAppId != null }))
+            .filterValues { (it.version_parent ?: it).isBaseGame }
         Logger.i(tag = TAG) { "store-id matched ${byUid.size}/${refs.size}" }
 
         // Store-id hits (and refs with no name to search) resolve immediately.
@@ -135,8 +138,10 @@ class GameMatcher(
                 batch.forEachIndexed { i, ref ->
                     val q = ref.name.sanitizeForSearch()
                     query(IgdbEndpoint.GAME, "q$i") {
-                        if (useSearch) search(q) else where("name ~ *\"$q\"*")
+                        if (useSearch) search(q)
+                        where(if (useSearch) BASE_GAMES_FILTER else "name ~ *\"$q\"* & $BASE_GAMES_FILTER")
                         fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family")
+                        matchIdentityFields()
                         limit(NAME_FALLBACK_LIMIT)
                     }
                 }
@@ -147,7 +152,7 @@ class GameMatcher(
         responses.forEach { response ->
             val i = response.name.removePrefix("q").toIntOrNull() ?: return@forEach
             val ref = batch.getOrNull(i) ?: return@forEach
-            byUid[ref.uid] = responses.multiqueryResults(response.name)
+            byUid[ref.uid] = responses.multiqueryResults<Game>(response.name).filter { it.isBaseGame }
         }
         return byUid
     }
@@ -226,6 +231,7 @@ class GameMatcher(
             igdbCall("games by-slug lookup failed") {
                 igdb.getGames {
                     fields("id", "name", "slug", "cover.image_id", "platforms.id", "platforms.platform_family")
+                    matchIdentityFields()
                     where("slug = ($quoted)")
                     limit(chunk.size)
                 }
@@ -315,15 +321,16 @@ class GameMatcher(
                         "platforms.abbreviation",
                         "involved_companies.company.name",
                     )
+                    matchIdentityFields()
                     where("id = (${chunk.joinToString(",")})")
                     limit(chunk.size)
                 }
             }?.games?.let { games.addAll(it) }
         }
-        return games
+        return games.filter { (it.version_parent ?: it).isBaseGame }
     }
 
-    /** IGDB fuzzy full-text search by name — the fallback match and the manual "change match". */
+    /** IGDB fuzzy full-text search restricted to games shown in GameList. */
     suspend fun searchByName(query: String, limit: Int = SEARCH_LIMIT): List<Game> {
         val q = query.sanitizeForSearch()
         if (q.isEmpty()) return emptyList()
@@ -331,9 +338,11 @@ class GameMatcher(
             igdb.getGames {
                 search(q)
                 fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family")
+                matchIdentityFields()
+                where(BASE_GAMES_FILTER)
                 limit(limit)
             }
-        }?.games.orEmpty()
+        }?.games.orEmpty().filter { it.isBaseGame }
     }
 
     /** Run an IGDB [request] through [safeRequest] (global error reporting), logging [warn] on failure
@@ -362,15 +371,31 @@ class GameMatcher(
 }
 
 /** The `external_games` fields the store-id matchers read. */
-private fun ApicalypseQueryBuilder.externalGameFields() = fields(
-    "url",
-    "uid",
-    "game.id",
-    "game.name",
-    "game.cover.image_id",
-    "game.platforms.id",
-    "game.platforms.platform_family",
+private fun ApicalypseQueryBuilder.externalGameFields() {
+    fields(
+        "url",
+        "uid",
+        "game.id",
+        "game.name",
+        "game.cover.image_id",
+        "game.platforms.id",
+        "game.platforms.platform_family",
+    )
+    matchIdentityFields("game.")
+}
+
+private fun ApicalypseQueryBuilder.matchIdentityFields(prefix: String = "") = fields(
+    "${prefix}game_type",
+    "${prefix}version_parent.id",
+    "${prefix}version_parent.name",
+    "${prefix}version_parent.game_type",
+    "${prefix}version_parent.cover.image_id",
+    "${prefix}version_parent.platforms.id",
+    "${prefix}version_parent.platforms.platform_family",
 )
+
+private val BASE_GAMES_FILTER = "version_parent = null & game_type != " +
+    BUNDLE_OR_ADDON_GAME_TYPES.joinToString(",", "(", ")") { it.value.toString() }
 
 private fun String.escapeApicalypse() = replace("\"", "")
 

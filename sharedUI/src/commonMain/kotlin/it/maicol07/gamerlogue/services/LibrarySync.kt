@@ -11,6 +11,8 @@ import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.ProfileApi
 import it.maicol07.gamerlogue.extensions.allPages
 import it.maicol07.gamerlogue.extensions.currentUserEntries
+import it.maicol07.gamerlogue.extensions.detachedCopy
+import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.platformNames
 import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -19,7 +21,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.koin.core.annotation.Single
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
@@ -36,11 +37,11 @@ class LibrarySync(
     private val profileApi: ProfileApi,
 ) {
     /** Entries imported by the reviewed wishlist flow before its outgoing WebView step. */
-    val pendingWishlistImports: MutableMap<ExternalService, Int> = mutableMapOf()
+    val pendingWishlistImports: MutableMap<ExternalService, WishlistResult> = mutableMapOf()
 
     private companion object {
         /** Parallel save requests during an import. */
-        const val MaxConcurrentSaves = 4
+        const val MAX_CONCURRENT_SAVES = 4
     }
 
     /** [added] = entries created in Gamerlogue; [toPush] = backlog games to add to the store wishlist. */
@@ -74,13 +75,14 @@ class LibrarySync(
     /** Persist confirmed IGDB [games] as owned. Existing entries keep their status/ratings and only
      *  gain `owned=true`; new ones become owned backlog items. [connector] derives `platformsIds`
      *  (see [platformIdsFor]) for newly created entries. Returns how many saved successfully. */
-    suspend fun importOwned(connector: ServiceConnector, games: List<Game>): Int {
-        val existing = allEntries().associateBy { it.gameId }
-        return persistEach(games) { game ->
+    suspend fun importOwned(connector: ServiceConnector, games: List<Game>, snapshot: MutableList<LibraryEntry>? = null): Int {
+        val entries = snapshot ?: allEntries().toMutableList()
+        val existing = entries.associateBy { it.gameId }
+        return persistEach(games, entries) { game ->
             LibraryEntry.quickDraft(
                 game,
-                existing[game.id.toInt()]?.status ?: GameLibraryStatus.BACKLOG,
-                existing = existing[game.id.toInt()],
+                existing[game.baseGameId]?.status ?: GameLibraryStatus.BACKLOG,
+                existing = existing[game.baseGameId]?.detachedCopy(::LibraryEntry),
                 platformsIds = connector.platformIdsFor(game),
             ).apply { owned = true }
         }
@@ -88,61 +90,86 @@ class LibrarySync(
 
     /** Persist confirmed wishlisted [games] as BACKLOG (owned=false), skipping games already tracked.
      *  [connector] derives `platformsIds` (see [platformIdsFor]) for the new entries. */
-    suspend fun importWishlist(connector: ServiceConnector, games: List<Game>): Int =
-        importWishlist(connector, games, allEntries())
-
-    private suspend fun importWishlist(
+    suspend fun importWishlist(
         connector: ServiceConnector,
         games: List<Game>,
-        entries: List<LibraryEntry>,
+        snapshot: MutableList<LibraryEntry>? = null,
     ): Int {
-        val existingIds = entries.mapTo(mutableSetOf()) { it.gameId }
-        return persistEach(games.filter { it.id.toInt() !in existingIds }) { game ->
+        val entries = snapshot ?: allEntries().toMutableList()
+        val existing = entries.associateBy { it.gameId }
+        val missing = games.filter { game ->
+            val entry = existing[game.baseGameId]
+            entry == null || (game.version_parent != null &&
+                game.id.toInt() !in runCatching { entry.editionsIds }.getOrDefault(emptyList()))
+        }
+        return persistEach(missing, entries) { game ->
+            val entry = existing[game.baseGameId]
+            val owned = entry?.owned ?: false
             LibraryEntry.quickDraft(
                 game,
-                GameLibraryStatus.BACKLOG,
+                entry?.status ?: GameLibraryStatus.BACKLOG,
+                existing = entry?.detachedCopy(::LibraryEntry),
                 platformsIds = connector.platformIdsFor(game),
-            )
+            ).apply { this.owned = owned }
         }
     }
 
     /** Set each game's status: existing entries are updated in place (keeping `owned`), missing ones are
      *  created as not owned. Returns how many saved successfully. */
-    suspend fun applyStatuses(games: List<Pair<Game, GameLibraryStatus>>): Int {
-        val existing = allEntries().associateBy { it.gameId }
-        val statusOf = games.associate { (game, status) -> game.id to status }
-        return persistEach(games.map { it.first }) { game ->
-            val entry = existing[game.id.toInt()]
-            LibraryEntry.quickDraft(game, statusOf.getValue(game.id), existing = entry)
-                .apply { owned = entry?.owned ?: false }
+    suspend fun applyStatuses(games: List<Pair<Game, GameLibraryStatus>>, snapshot: MutableList<LibraryEntry>? = null): Int {
+        val entries = snapshot ?: allEntries().toMutableList()
+        val existing = entries.associateBy { it.gameId }
+        val statusOf = games.associate { (game, status) -> game.baseGameId to status }
+        return persistEach(games.map { it.first }, entries) { game ->
+            val entry = existing[game.baseGameId]
+            val owned = entry?.owned ?: false
+            LibraryEntry.quickDraft(game, statusOf.getValue(game.baseGameId), existing = entry?.detachedCopy(::LibraryEntry))
+                .apply { this.owned = owned }
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
-    private suspend fun persistEach(games: List<Game>, draft: (Game) -> LibraryEntry): Int = coroutineScope {
+    private suspend fun persistEach(
+        games: List<Game>,
+        entries: MutableList<LibraryEntry>,
+        draft: (Game) -> LibraryEntry,
+    ): Int = coroutineScope {
         // One import batch per sync: the server sums its new entries into one `library_imported` activity.
         val batch = Uuid.random().toString()
         // Distinct by id: several store entries (game + demo/DLC) can map to one IGDB game; saving the
         // same gameId twice would create a duplicate / be rejected, leaving fewer entries than expected.
-        val distinct = games.distinctBy { it.id }
+        val distinct = games.groupBy { it.baseGameId }
         // An import is one request per game; running them strictly one at a time makes a few hundred
         // games a few hundred serial round-trips. The semaphore keeps the backend from seeing a burst.
-        val inFlight = Semaphore(MaxConcurrentSaves)
-        distinct.map { game ->
+        val inFlight = Semaphore(MAX_CONCURRENT_SAVES)
+        distinct.values.map { editions ->
+            val game = editions.first()
             async {
                 val result = inFlight.withPermit {
-                    exceptionReporter.safeRequest { profileApi.saveImported(draft(game), batch) }
+                    exceptionReporter.safeRequest {
+                        val entry = draft(game)
+                        val editionIds = editions.filter { it.version_parent != null }.map { it.id.toInt() }
+                        if (editionIds.isNotEmpty()) {
+                            entry.editionsIds =
+                                (runCatching { entry.editionsIds }.getOrDefault(emptyList()) + editionIds).distinct()
+                        }
+                        profileApi.saveImported(entry, batch)
+                        entry
+                    }
                 }
-                if (result.get() != null) {
-                    true
-                } else {
+                val saved = result.get()
+                if (saved == null) {
                     Logger.w(tag = "LibrarySync", throwable = result.getError()) {
                         "import failed: ${game.name} (${game.id})"
                     }
-                    false
                 }
+                saved
             }
-        }.count { it.await() }.also { if (it > 0) libraryChanges.notifyChanged() }
+        }.mapNotNull { it.await() }.also { saved ->
+            val ids = saved.mapTo(mutableSetOf()) { it.gameId }
+            entries.removeAll { it.gameId in ids }
+            entries.addAll(saved)
+            if (saved.isNotEmpty()) libraryChanges.notifyChanged()
+        }.size
     }
 
     /**
@@ -153,17 +180,15 @@ class LibrarySync(
     suspend fun computeWishlistPush(
         connector: ServiceConnector,
         storeWishlist: List<ExternalGameRef>,
-    ): List<OutgoingGame> = computeWishlistPush(connector, storeWishlist, allEntries())
-
-    private suspend fun computeWishlistPush(
-        connector: ServiceConnector,
-        storeWishlist: List<ExternalGameRef>,
-        entries: List<LibraryEntry>,
+        snapshot: List<LibraryEntry>? = null,
+        matchedWishlistIds: Set<Int>? = null,
     ): List<OutgoingGame> {
+        val entries = snapshot ?: allEntries()
         // Only un-owned backlog games belong on a wishlist — an owned game isn't "wished for".
         val backlogIds = entries.filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
         if (backlogIds.isEmpty()) return emptyList()
-        val onWishlistIds = matcher.match(connector, storeWishlist).mapNotNull { it.game?.id?.toInt() }.toSet()
+        val onWishlistIds =
+            matchedWishlistIds ?: matcher.match(connector, storeWishlist).mapNotNull { it.game?.baseGameId }.toSet()
 
         val urls = matcher.urlsForGames(connector, backlogIds)
         val games = matcher.gamesByIds(backlogIds).associateBy { it.id.toInt() }
@@ -199,19 +224,13 @@ class LibrarySync(
      */
     suspend fun pullWishlist(connector: ServiceConnector, serviceWishlist: List<ExternalGameRef>): WishlistResult {
         val matches = matcher.match(connector, serviceWishlist)
-        val added = importWishlist(connector, matches.mapNotNull { it.game }, allEntries())
-        // Re-read: the push preview must also list the entries the import just created (flagged as
-        // already on the store wishlist), which the pre-import snapshot does not contain.
-        return computeWishlistPush(connector, serviceWishlist, allEntries())
-            .let { WishlistResult(added, it) }
+        val entries = allEntries().toMutableList()
+        val added = importWishlist(connector, matches.filter { it.confident }.mapNotNull { it.game }, entries)
+        return WishlistResult(
+            added,
+            computeWishlistPush(connector, serviceWishlist, entries, matches.mapNotNull { it.game?.baseGameId }.toSet()),
+        )
     }
-
-    /**
-     * IGDB game ids already tracked, to flag rows that don't need importing. [ownedOnly] for the owned
-     * import (only games already marked owned), otherwise any tracked game (used by the wishlist preview).
-     */
-    suspend fun existingGameIds(ownedOnly: Boolean): Set<Int> =
-        allEntries().filter { !ownedOnly || it.owned }.mapTo(mutableSetOf()) { it.gameId }
 
     /** Every entry of the user's library. */
     suspend fun allEntries(): List<LibraryEntry> =

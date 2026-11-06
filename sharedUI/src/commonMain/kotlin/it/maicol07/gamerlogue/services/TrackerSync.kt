@@ -2,6 +2,8 @@ package it.maicol07.gamerlogue.services
 
 import at.released.igdbclient.model.Game
 import com.russhwolf.settings.ObservableSettings
+import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.platformNames
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.serialization.Serializable
@@ -132,8 +134,9 @@ class TrackerSync(
         val known = knownGames(connector.service, refs)
         val matched = matcher.match(connector, refs.filter { it.uid !in known })
             .filter { it.confident }
-            .mapNotNull { m -> m.game?.let { it.id.toInt() to m.ref } }
-        return refs.mapNotNull { ref -> known[ref.uid]?.let { it.id.toInt() to ref } }.toMap() + matched
+            .mapNotNull { m -> m.game?.let { it.baseGameId to m.ref.copy(gameId = it.id.toInt()) } }
+        return refs.mapNotNull { ref -> known[ref.uid]?.let { it.baseGameId to ref.copy(gameId = it.id.toInt()) } }
+            .toMap() + matched
     }
 
     /**
@@ -141,9 +144,13 @@ class TrackerSync(
      * wishlist sync, so it isn't pushed here — except games already synced with this tracker, which came from
      * its library and must keep following it.
      */
-    suspend fun plan(connector: ServiceConnector, remote: Map<Int, ExternalGameRef>): SyncPlan {
+    suspend fun plan(
+        connector: ServiceConnector,
+        remote: Map<Int, ExternalGameRef>,
+        snapshot: List<LibraryEntry>? = null,
+    ): SyncPlan {
         val base = base(connector.service)
-        val local = librarySync.allEntries()
+        val local = (snapshot ?: librarySync.allEntries())
             .filterNot { it.status == GameLibraryStatus.BACKLOG && !it.owned && it.gameId !in base }
             .associate { it.gameId to it.status }
         val plan = planSync(local, remote, base, connector.syncStatuses)
@@ -153,10 +160,15 @@ class TrackerSync(
 
     /** Apply the tracker side of [changes] to Gamerlogue and record them. Recorded only when every save
      *  succeeded: an unrecorded change is simply planned again next time. Returns how many were saved. */
-    suspend fun pull(service: ExternalService, changes: List<SyncChange>): Int {
+    suspend fun pull(
+        service: ExternalService,
+        changes: List<SyncChange>,
+        snapshot: MutableList<LibraryEntry>? = null,
+        remote: Map<Int, ExternalGameRef> = emptyMap(),
+    ): Int {
         val pulled = changes.mapNotNull { c -> c.remote?.let { r -> c.uid?.let { c.gameId to SyncedGame(it, r) } } }.toMap()
-        val games = matcher.gamesByIds(pulled.keys.toList())
-        val saved = librarySync.applyStatuses(games.map { it to pulled.getValue(it.id.toInt()).status })
+        val games = matcher.gamesByIds(pulled.keys.map { remote[it]?.gameId ?: it })
+        val saved = librarySync.applyStatuses(games.map { it to pulled.getValue(it.baseGameId).status }, snapshot)
         if (saved == pulled.size) record(service, pulled)
         return saved
     }
@@ -166,11 +178,11 @@ class TrackerSync(
      * A game's platforms are the user's own, or else the game's only platform — what the trackers' own add
      * forms default to; a multi-platform game the user set none for gets none, and isn't added there.
      */
-    suspend fun outgoing(changes: List<SyncChange>): List<StatusChange> {
+    suspend fun outgoing(changes: List<SyncChange>, snapshot: List<LibraryEntry>? = null): List<StatusChange> {
         val pushed = changes.mapNotNull { c -> c.local?.let { c to it } }
         val games = matcher.gamesByIds(pushed.map { it.first.gameId }).associateBy { it.id.toInt() }
         // platformsIds throws on an entry that never had it set (see quickDraft): treat that as empty.
-        val entries = librarySync.allEntries().associateBy { it.gameId }
+        val entries = (snapshot ?: librarySync.allEntries()).associateBy { it.gameId }
         return pushed.map { (c, to) ->
             val game = games[c.gameId]
             val entry = entries[c.gameId]

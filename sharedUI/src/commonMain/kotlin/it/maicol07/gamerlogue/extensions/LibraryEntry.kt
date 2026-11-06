@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.extensions
 
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.data.LibraryEntry
+import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.spraypaintkt.Scope
 import it.maicol07.spraypaintkt.SortDirection
@@ -81,7 +82,10 @@ fun LibraryEntry.Companion.quickDraft(
     existing: LibraryEntry? = null,
     platformsIds: List<Int> = emptyList(),
 ): LibraryEntry = (existing ?: LibraryEntry()).apply {
-    gameId = game.id.toInt()
+    gameId = game.baseGameId
+    if (game.version_parent != null) {
+        editionsIds = (runCatching { editionsIds }.getOrDefault(emptyList()) + game.id.toInt()).distinct()
+    }
     owned = false
     this.status = status
     // platformsIds throws NoSuchElementException on a never-set attribute rather than defaulting
