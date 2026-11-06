@@ -14,17 +14,20 @@ internal suspend fun <T> WebSession.writeBatches(
 ): Int {
     var written = 0
     var done = 0
-    for (batch in games.chunked(WRITE_BATCH_SIZE)) {
+    val batches = games.chunked(WRITE_BATCH_SIZE)
+    for ((index, batch) in batches.withIndex()) {
+        beginBatch(index + 1, batches.size, done, games.size, batch.size)
         val refs = try {
             run(step(batch))
         } catch (error: ScriptWriteException) {
             record(batch, error.written)
+            finishBatch(done + error.written.size, games.size)
             throw error
         }
         record(batch, refs)
         written += refs.size
         done += batch.size
-        reportProgress(done, games.size)
+        finishBatch(done, games.size)
     }
     return written
 }
@@ -35,12 +38,19 @@ private const val WRITE_BATCH_SIZE = 10
 internal suspend fun WebSession.confirmLibraryAdditions(changes: List<StatusChange>): List<StatusChange> {
     val additions = changes.filter { it.uid == null }
     if (additions.isEmpty()) return changes
-    val chosen = confirmPush(additions.map {
-        LibrarySync.OutgoingGame(
-            it.gameId, it.gameId.toString(), it.name, null, null,
-            platformIds = it.platformIds, platformNames = it.platformNames,
-        )
-    }).associateBy { it.gameId }
+    val chosen = confirmPush(
+        additions.map {
+            LibrarySync.OutgoingGame(
+                it.gameId,
+                it.gameId.toString(),
+                it.name,
+                null,
+                null,
+                platformIds = it.platformIds,
+                platformNames = it.platformNames,
+            )
+        },
+    ).associateBy { it.gameId }
     return changes.mapNotNull { change ->
         if (change.uid != null) change else chosen[change.gameId]?.let { change.copy(platformIds = it.platformIds) }
     }

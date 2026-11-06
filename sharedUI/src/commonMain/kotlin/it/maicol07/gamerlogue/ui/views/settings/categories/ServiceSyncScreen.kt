@@ -1,76 +1,59 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
-import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import at.released.igdbclient.model.IgdbImageSize
-import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_close
-import gamerlogue.sharedui.generated.resources.settings__import_deselect_all
-import gamerlogue.sharedui.generated.resources.settings__import_no_match
-import gamerlogue.sharedui.generated.resources.settings__import_select_all
-import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__library_push_title
 import gamerlogue.sharedui.generated.resources.settings__library_sync_conflicts_left
 import gamerlogue.sharedui.generated.resources.settings__library_sync_pulled
 import gamerlogue.sharedui.generated.resources.settings__library_sync_pushed
 import gamerlogue.sharedui.generated.resources.settings__library_sync_summary
-import gamerlogue.sharedui.generated.resources.settings__open_store
+import gamerlogue.sharedui.generated.resources.settings__service_progress_batch
 import gamerlogue.sharedui.generated.resources.settings__service_progress_count
 import gamerlogue.sharedui.generated.resources.settings__service_progress_of
 import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
@@ -86,12 +69,6 @@ import gamerlogue.sharedui.generated.resources.settings__sync_title_import_libra
 import gamerlogue.sharedui.generated.resources.settings__sync_title_refresh_profile
 import gamerlogue.sharedui.generated.resources.settings__sync_title_sync_library
 import gamerlogue.sharedui.generated.resources.settings__sync_title_sync_wishlist
-import gamerlogue.sharedui.generated.resources.settings__wishlist_already_present
-import gamerlogue.sharedui.generated.resources.settings__wishlist_choose_platform
-import gamerlogue.sharedui.generated.resources.settings__wishlist_no_platform
-import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
-import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
-import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -101,16 +78,12 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Clo
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DownloadW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
-import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
-import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.KeepScreenOn
-import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.WishlistWrite
-import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.BatchProgress
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.StepProgress
 import it.maicol07.gamerlogue.ui.components.SyncPhase
@@ -120,7 +93,6 @@ import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
-import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -133,6 +105,8 @@ import org.koin.compose.viewmodel.koinViewModel
  * outgoing push checklist, or a completion state. Import/preview flows hand off to the preview screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+// One host owns the WebView lifecycle through login, selection and writes.
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
 fun ServiceSyncView(
@@ -174,7 +148,6 @@ fun ServiceSyncView(
             }
 
             ServiceSyncAction.PREVIEW_LIBRARY_SYNC -> {
-
                 ImportHandoff.put(service, viewModel.runReadOwned(service, session))
                 navigatedAway = true
                 navigateToImportPreview(service, ImportMode.SYNC)
@@ -182,8 +155,11 @@ fun ServiceSyncView(
 
             ServiceSyncAction.IMPORT_LIBRARY, ServiceSyncAction.PREVIEW_WISHLIST -> {
                 val wishlist = action == ServiceSyncAction.PREVIEW_WISHLIST
-                val refs =
-                    if (wishlist) viewModel.runWishlistPreview(service, session) else viewModel.runReadOwned(service, session)
+                val refs = if (wishlist) {
+                    viewModel.runWishlistPreview(service, session)
+                } else {
+                    viewModel.runReadOwned(service, session)
+                }
                 ImportHandoff.put(service, refs)
                 navigatedAway = true
                 navigateToImportPreview(
@@ -199,6 +175,11 @@ fun ServiceSyncView(
     }
     val session = host.session
     val loginRequired = session.loginRequired
+    val pending = session.pendingConfirm
+    val pushTitle = when (action) {
+        ServiceSyncAction.SYNC_LIBRARY, ServiceSyncAction.APPLY_LIBRARY_SYNC -> Res.string.settings__library_push_title
+        else -> Res.string.settings__wishlist_push_title
+    }
 
     val title = when (action) {
         ServiceSyncAction.CONNECT -> Res.string.settings__sync_title_connect
@@ -236,21 +217,21 @@ fun ServiceSyncView(
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
 
     // Expand the sheet to a full, interactive WebView while login is needed; peek otherwise.
-    LaunchedEffect(loginRequired) {
+    LaunchedEffect(loginRequired, pending != null) {
         if (loginRequired) sheetState.expand() else sheetState.partialExpand()
     }
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetPeekHeight = 220.dp,
+        sheetPeekHeight = if (pending == null) 220.dp else 0.dp,
         // While the WebView is interactive the sheet is expanded and stays put: the Android WebView doesn't
         // report reliably how much of a scroll it consumed (pages scrolling an inner container), so the
         // nested-scroll interop alone let the sheet steal drags. It collapses by itself once login is done.
-        sheetSwipeEnabled = !loginRequired,
-        sheetDragHandle = { SheetToggleHandle(sheetState) },
+        sheetSwipeEnabled = !loginRequired && pending == null,
+        sheetDragHandle = { if (pending == null) SheetToggleHandle(sheetState) },
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text(stringResource(title)) },
+                title = { Text(stringResource(if (pending == null) title else pushTitle)) },
                 subtitle = { Text(stringResource(service.labelRes())) },
                 navigationIcon = {
                     IconButton(
@@ -278,12 +259,19 @@ fun ServiceSyncView(
                         Row(
                             Modifier
                                 .padding(24.dp)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.extraLarge)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    MaterialTheme.shapes.extraLarge,
+                                )
                                 .padding(horizontal = 20.dp, vertical = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.HourglassW500Rounded, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                Icons.HourglassW500Rounded,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
                             Text(
                                 stringResource(Res.string.settings__service_webview_busy),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -296,15 +284,10 @@ fun ServiceSyncView(
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
-            val pending = session.pendingConfirm
             val outcome = uiState.outcome
             when {
-                pending != null -> PushChecklist(
+                pending != null -> WishlistPushScreen(
                     games = pending,
-                    title = when (action) {
-                        ServiceSyncAction.SYNC_LIBRARY, ServiceSyncAction.APPLY_LIBRARY_SYNC -> Res.string.settings__library_push_title
-                        else -> Res.string.settings__wishlist_push_title
-                    },
                     requiresPlatform = service == ExternalService.BACKLOGGERY,
                     // Name, IGDB-id and full-game writes do not need a store page.
                     matchesByName = connector.wishlistWrite.let {
@@ -341,29 +324,33 @@ fun ServiceSyncView(
                     Icons.CheckCircleW500Rounded,
                     stringResource(Res.string.settings__service_resync_ids_result, outcome.updated, outcome.unmatched),
                 ) {
-                    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
+                    Button(onClick = onFinish, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(Res.string.common_close))
+                    }
                 }
 
                 finished -> LaunchedEffect(Unit) { onFinish() }
-                else -> LoadingContent(session.log, session.progress)
+                else -> LoadingContent(session.log, session.progress, session.batchProgress)
             }
         }
     }
 }
 
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun LoadingContent(log: List<SyncPhase>, progress: StepProgress?) {
+private fun LoadingContent(log: List<SyncPhase>, progress: StepProgress?, batch: BatchProgress?) {
     // Each WebView step logs its phase again: show every phase once.
     val steps = log.distinct()
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ContainedLoadingIndicator(Modifier.size(96.dp))
-        Text(stringResource(Res.string.settings__service_working), style = MaterialTheme.typography.headlineSmallEmphasized)
+        Text(
+            stringResource(Res.string.settings__service_working),
+            style = MaterialTheme.typography.headlineSmallEmphasized,
+        )
         if (steps.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 steps.forEachIndexed { index, phase ->
@@ -380,7 +367,7 @@ private fun LoadingContent(log: List<SyncPhase>, progress: StepProgress?) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (total > 0) {
-                    LinearWavyProgressIndicator(progress = { done.toFloat() / total }, Modifier.fillMaxWidth())
+                    AnimatedSyncProgress(done, total)
                     Text(pluralStringResource(Res.plurals.settings__service_progress_of, total, done, total))
                 } else {
                     LinearWavyProgressIndicator(Modifier.fillMaxWidth())
@@ -388,7 +375,30 @@ private fun LoadingContent(log: List<SyncPhase>, progress: StepProgress?) {
                 }
             }
         }
+        batch?.let {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(Res.string.settings__service_progress_batch, it.index, it.count))
+                key(it.index) { AnimatedSyncProgress(it.step.done, it.step.total) }
+                Text(
+                    pluralStringResource(
+                        Res.plurals.settings__service_progress_of,
+                        it.step.total,
+                        it.step.done,
+                        it.step.total,
+                    ),
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun AnimatedSyncProgress(done: Int, total: Int) {
+    val animated by animateFloatAsState(
+        (done.toFloat() / total).coerceIn(0f, 1f),
+        MaterialTheme.motionScheme.defaultEffectsSpec(),
+    )
+    LinearWavyProgressIndicator(progress = { animated }, Modifier.fillMaxWidth())
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -430,7 +440,6 @@ private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
         Text(stringResource(Res.string.common_close))
     }
 }
-
 
 /** What a wishlist or library sync actually did, shown only when it changed something on either side;
  *  [conflicts] (library sync only) were left for a reviewed sync. */
@@ -500,202 +509,3 @@ private fun SummaryTile(
     Text(count.toString(), style = MaterialTheme.typography.displaySmallEmphasized, color = contentColor)
     Text(label, style = MaterialTheme.typography.labelLarge, color = contentColor, textAlign = TextAlign.Center)
 }
-
-/** Outgoing-direction preview: pick which backlog games to add to the store wishlist. */
-@Composable
-private fun PushChecklist(
-    games: List<LibrarySync.OutgoingGame>,
-    title: StringResource,
-    requiresPlatform: Boolean,
-    matchesByName: Boolean,
-    onConfirm: (List<LibrarySync.OutgoingGame>) -> Unit,
-    onSkip: () -> Unit,
-) {
-    // Pushable rows need to release on this platform and either a store page or, for connectors that
-    // push by searching the store's title (no store URL from IGDB), a confirmed publisher match — so an
-    // unrelated backlog game from another publisher isn't searched for and pushed onto the wrong store.
-
-    val platforms = remember(games) {
-        mutableStateMapOf<String, Int>().apply {
-            games.forEach { game ->
-                game.defaultPlatformId?.let { put(game.uid, it) }
-            }
-        }
-    }
-    val resolved = if (requiresPlatform) games.map { it.copy(platformIds = listOfNotNull(platforms[it.uid])) } else games
-    val selected = remember(games) {
-        mutableStateMapOf<String, Boolean>().apply {
-            resolved.forEach { put(it.uid, it.isPushable(matchesByName, requiresPlatform)) }
-        }
-    }
-    val onPlatform = resolved.filter { it.onPlatform }
-    val offPlatform = resolved.filter { !it.onPlatform }
-    val pushable = resolved.filter { it.isPushable(matchesByName, requiresPlatform) }
-    val selectedCount = pushable.count { selected[it.uid] == true }
-    val allSelected = pushable.isNotEmpty() && selectedCount == pushable.size
-    val uriHandler = LocalUriHandler.current
-    val rows: LazyListScope.(List<LibrarySync.OutgoingGame>) -> Unit = { group ->
-        itemsIndexed(group) { index, game ->
-            PushRow(
-                game, index, group.size, selected[game.uid] == true, matchesByName, uriHandler::openURL,
-                onSelectPlatform = if (requiresPlatform && !game.alreadyOnWishlist) {
-                    { id -> platforms[game.uid] = id; selected[game.uid] = true }
-                } else null,
-                onCheckedChange = { selected[game.uid] = it },
-            )
-        }
-    }
-
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(title),
-                    style = MaterialTheme.typography.titleLargeEmphasized,
-                )
-                Text(
-                    pluralStringResource(Res.plurals.settings__import_selected, selectedCount, selectedCount, pushable.size),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            TextButton(
-                onClick = { pushable.forEach { selected[it.uid] = !allSelected } },
-                enabled = pushable.isNotEmpty(),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(
-                    stringResource(
-                        if (allSelected) Res.string.settings__import_deselect_all
-                        else Res.string.settings__import_select_all
-                    )
-                )
-            }
-        }
-        LazyColumn(
-            Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
-        ) {
-            rows(onPlatform)
-            if (offPlatform.isNotEmpty()) {
-                item { SettingsGroupHeader(stringResource(Res.string.settings__wishlist_push_off_platform)) }
-                rows(offPlatform)
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-        ) {
-            val height = ButtonDefaults.MediumContainerHeight
-            val leading = ButtonGroupDefaults.connectedLeadingButtonShapes()
-            val trailing = ButtonGroupDefaults.connectedTrailingButtonShapes()
-            FilledTonalButton(
-                onClick = onSkip,
-                shapes = ButtonDefaults.shapes(leading.shape, leading.pressedShape),
-                contentPadding = ButtonDefaults.contentPaddingFor(height),
-                modifier = Modifier.weight(1f).heightIn(min = height),
-            ) {
-                Text(stringResource(Res.string.settings__wishlist_push_skip), style = ButtonDefaults.textStyleFor(height))
-            }
-            Button(
-                onClick = { onConfirm(pushable.filter { selected[it.uid] == true }) },
-                enabled = selectedCount > 0,
-                shapes = ButtonDefaults.shapes(trailing.shape, trailing.pressedShape),
-                contentPadding = ButtonDefaults.contentPaddingFor(height),
-                modifier = Modifier.weight(1f).heightIn(min = height),
-            ) {
-                Text(stringResource(Res.string.settings__wishlist_push_confirm), style = ButtonDefaults.textStyleFor(height))
-
-            }
-        }
-    }
-}
-
-@Composable
-private fun PushRow(
-    game: LibrarySync.OutgoingGame,
-    index: Int,
-    count: Int,
-    checked: Boolean,
-    matchesByName: Boolean,
-    onOpenStore: (String) -> Unit,
-    onSelectPlatform: ((Int) -> Unit)?,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    var platformMenu by remember(game.uid) { mutableStateOf(false) }
-    val platformOptions = game.platformNames.filterValues { it.isNotEmpty() }
-    SegmentedListItem(
-        selected = checked,
-        enabled = game.isPushable(matchesByName, requiresPlatform = false),
-        onClick = {
-            if (onSelectPlatform != null && game.platformIds.isEmpty()) platformMenu = true
-            else onCheckedChange(!checked)
-        },
-        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
-        colors = ListItemDefaults.expressiveSegmentedColors(),
-        leadingContent = {
-            val cover = game.coverImageId
-            if (cover != null) {
-                val coverModifier = Modifier.size(width = 40.dp, height = 53.dp).clip(MaterialTheme.shapes.medium)
-                RemoteImage(
-                    url = igdbImageUrl(cover, IgdbImageSize.COVER_SMALL),
-                    contentDescription = game.name,
-                    modifier = coverModifier,
-                    loadingModifier = coverModifier,
-                )
-            }
-        },
-        trailingContent = {
-            if (onSelectPlatform != null) {
-                Box {
-                    TextButton(
-                        onClick = { platformMenu = true },
-                        enabled = platformOptions.isNotEmpty(),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Text(
-                            game.platformIds.firstOrNull()?.let { platformOptions[it]?.lastOrNull() }
-                                ?: stringResource(Res.string.settings__wishlist_choose_platform)
-                        )
-                    }
-                    DropdownMenu(expanded = platformMenu, onDismissRequest = { platformMenu = false }) {
-                        platformOptions.forEach { (id, names) ->
-                            DropdownMenuItem(
-                                text = { Text(names.first()) },
-                                onClick = { onSelectPlatform(id); platformMenu = false },
-                            )
-                        }
-                    }
-                }
-            } else game.storeUrl?.let { url ->
-                IconButton(onClick = { onOpenStore(url) }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.OpenInNewW500Rounded, contentDescription = stringResource(Res.string.settings__open_store))
-                }
-            }
-        },
-        supportingContent = {
-            val subtitle = when {
-                game.alreadyOnWishlist -> stringResource(Res.string.settings__wishlist_already_present)
-                game.onPlatform && !game.hasPushTarget(matchesByName) -> stringResource(Res.string.settings__import_no_match)
-                onSelectPlatform != null && platformOptions.isEmpty() -> stringResource(Res.string.settings__wishlist_no_platform)
-                onSelectPlatform != null && game.platformIds.isEmpty() -> stringResource(Res.string.settings__wishlist_choose_platform)
-
-                else -> null
-            }
-            subtitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        },
-    ) { Text(game.name) }
-}
-
-/** A store page, or — for connectors that push by searching the store's title — a confirmed publisher match. */
-private fun LibrarySync.OutgoingGame.hasPushTarget(matchesByName: Boolean) =
-    storeUrl != null || (matchesByName && matchesPublisher)
-
-private fun LibrarySync.OutgoingGame.isPushable(matchesByName: Boolean, requiresPlatform: Boolean) =
-    hasPushTarget(matchesByName) && onPlatform && !alreadyOnWishlist && (!requiresPlatform || platformIds.isNotEmpty())
-
-

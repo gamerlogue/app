@@ -367,32 +367,34 @@ class LinkedServicesViewModel(
             is WishlistWrite.PerGame -> {
 
                 withStorePage.forEachIndexed { i, g ->
+                    session.beginBatch(i + 1, withStorePage.size, i, withStorePage.size, 1)
                     write.step(g.storeUrl!!)?.let { session.run(it) }
-                    session.reportProgress(i + 1, withStorePage.size)
+                    session.finishBatch(i + 1, withStorePage.size)
                 }
                 withStorePage.size
             }
             // Resolve the real product URL from an intermediate page first, then act on it (Nintendo).
             is WishlistWrite.PerGameResolved -> {
                 withStorePage.forEachIndexed { i, g ->
+                    session.beginBatch(i + 1, withStorePage.size, i, withStorePage.size, 1)
                     val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
                     if (!resolved.isNullOrBlank()) write.step(resolved)?.let { session.run(it) }
-                    session.reportProgress(i + 1, withStorePage.size)
+                    session.finishBatch(i + 1, withStorePage.size)
                 }
                 withStorePage.size
             }
             // Search-driven write: no store URL needed, the game's name drives the search (Ubisoft).
             is WishlistWrite.SearchByName -> {
                 onPlatform.forEachIndexed { i, g ->
+                    session.beginBatch(i + 1, onPlatform.size, i, onPlatform.size, 1)
                     session.run(write.step(g.name))
-                    session.reportProgress(i + 1, onPlatform.size)
+                    session.finishBatch(i + 1, onPlatform.size)
                 }
                 onPlatform.size
             }
             // IGDB-id write: the tracker's game ids are IGDB ids, so no store page is needed (Backloggd).
             is WishlistWrite.ById -> {
-                if (onPlatform.isNotEmpty()) session.run(write.step(onPlatform.map { it.gameId }))
-                onPlatform.size
+                session.writeBatches(onPlatform, { batch -> write.step(batch.map { it.gameId }) }) { _, _ -> }
             }
 
             is WishlistWrite.ByGame -> {

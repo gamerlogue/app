@@ -67,6 +67,10 @@ interface WebSession {
      *  Kotlin-side loop of steps; scripts report through the bridge instead. */
     fun reportProgress(done: Int, total: Int)
 
+    fun beginBatch(index: Int, count: Int, completed: Int, total: Int, size: Int) = reportProgress(completed, total)
+
+    fun finishBatch(done: Int, total: Int) = reportProgress(done, total)
+
     /** Run a write [step] in the WebView; the returned refs are the script's confirmation, if any. */
     suspend fun run(step: WebStep): List<ExternalGameRef>
 
@@ -95,6 +99,12 @@ private fun TrackHostActive(session: ServiceWebViewSession) = LifecycleResumeEff
 
 /** [done] of [total] games handled in the current phase; [total] 0 = not known yet. */
 data class StepProgress(val done: Int, val total: Int)
+
+data class BatchProgress(val index: Int, val count: Int, val completed: Int, val total: Int, val step: StepProgress) {
+    val overall: StepProgress get() = StepProgress(completed + step.done, total)
+
+    fun withDone(done: Int): BatchProgress = copy(step = step.copy(done = done.coerceIn(0, step.total)))
+}
 
 /** Coarse phases surfaced to the on-screen progress log. */
 enum class SyncPhase { LOGGED_IN, READING, READING_PROFILE, WRITING }
@@ -222,11 +232,31 @@ class ServiceWebViewSession internal constructor(
     var progress by mutableStateOf<StepProgress?>(null)
         private set
 
+    var batchProgress by mutableStateOf<BatchProgress?>(null)
+        private set
+
+    override fun beginBatch(index: Int, count: Int, completed: Int, total: Int, size: Int) {
+        batchProgress = BatchProgress(index, count, completed, total, StepProgress(0, size))
+        progress = StepProgress(completed, total)
+    }
+
+    override fun finishBatch(done: Int, total: Int) {
+        batchProgress = batchProgress?.let { it.withDone(done - it.completed) }
+        progress = StepProgress(done, total)
+    }
+
     /** When the running script last showed signs of life (start or a progress report). */
     private var lastActivity = TimeSource.Monotonic.markNow()
 
     override fun reportProgress(done: Int, total: Int) {
-        progress = StepProgress(done, total)
+        val batch = batchProgress
+        if (batch == null) {
+            progress = StepProgress(done, total)
+        } else {
+            val updated = batch.withDone(done)
+            batchProgress = updated
+            progress = updated.overall
+        }
         lastActivity = TimeSource.Monotonic.markNow()
     }
 
@@ -327,7 +357,10 @@ class ServiceWebViewSession internal constructor(
     /** Navigate + inject [step], then await its raw bridge JSON (null on timeout). */
     private suspend fun runStep(step: WebStep, phase: SyncPhase): String? {
         // A new phase starts counting from scratch; repeated steps of one phase (per-game writes) keep it.
-        if (log.lastOrNull() != phase) progress = null
+        if (log.lastOrNull() != phase && (phase != SyncPhase.WRITING || batchProgress == null)) {
+            progress = null
+            batchProgress = null
+        }
         log.add(phase)
         val deferred = CompletableDeferred<String?>()
         pending = deferred

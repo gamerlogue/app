@@ -419,6 +419,7 @@
     <string name="settings__sync_interrupt_confirm">Interrompi</string>
     <string name="settings__sync_interrupt_continue">Continua</string>
     <string name="settings__service_sync_now_tooltip">Sincronizza ora, rivedendo prima le modifiche</string>
+    <string name="settings__service_progress_batch">Blocco %1$d di %2$d</string>
     <plurals name="settings__service_progress_of">
         <item quantity="one">%1$d/%2$d gioco</item>
         <item quantity="other">%1$d/%2$d giochi</item>

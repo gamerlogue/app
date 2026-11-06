@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
@@ -55,7 +54,11 @@ internal fun LazyListScope.importRows(
     onEdit: (Int) -> Unit,
     onOpenStore: (String) -> Unit,
 ) {
-    val all = groups.toImport + groups.toReview + groups.alreadyPresent
+    val all = buildList {
+        addAll(groups.toImport)
+        addAll(groups.toReview)
+        addAll(groups.alreadyPresent)
+    }
     if (all.none { it.value.ref.status != null }) {
         listOf(
             groups.matchedTitle to groups.toImport,
@@ -91,18 +94,26 @@ private fun LazyListScope.importGroup(
     onOpenStore: (String) -> Unit,
 ) {
     if (rows.isEmpty()) return
-    item { SettingsGroupHeader(stringResource(titleRes, rows.size)) }
-    itemsIndexed(rows) { indexInGroup, (index, row) ->
-        ImportRow(
-            row = row,
-            indexInGroup = indexInGroup,
-            groupCount = rows.size,
-            selectable = row.isSelectable,
-            service = service,
-            onToggle = { onToggle(index) },
-            onEdit = { onEdit(index) },
-            onOpenStore = onOpenStore,
-        )
+    item(key = "group-${titleRes.key}") { SettingsGroupHeader(stringResource(titleRes, rows.size)) }
+    itemsIndexed(rows, key = { _, indexed -> "row-${indexed.index}" }) { indexInGroup, (index, row) ->
+        Box(
+            Modifier.animateItem(
+                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+            ),
+        ) {
+            ImportRow(
+                row = row,
+                indexInGroup = indexInGroup,
+                groupCount = rows.size,
+                selectable = row.isSelectable,
+                service = service,
+                onToggle = { onToggle(index) },
+                onEdit = { onEdit(index) },
+                onOpenStore = onOpenStore,
+            )
+        }
     }
 }
 
@@ -131,7 +142,13 @@ private fun LazyListScope.statusSection(
     }
     if (!expanded) return
     itemsIndexed(rows, key = { _, indexed -> "row-${indexed.index}" }) { i, (index, row) ->
-        Box(Modifier.animateItem()) {
+        Box(
+            Modifier.animateItem(
+                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+            ),
+        ) {
             ImportRow(
                 row = row,
                 indexInGroup = i + 1,
@@ -146,7 +163,6 @@ private fun LazyListScope.statusSection(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun StatusHeader(
     status: GameLibraryStatus,
@@ -182,3 +198,4 @@ private fun StatusHeader(
 
 /** Only confident matches of games not already in the library can be selected. */
 private val LibraryImportViewModel.Row.isSelectable: Boolean get() = confident && !alreadyPresent
+

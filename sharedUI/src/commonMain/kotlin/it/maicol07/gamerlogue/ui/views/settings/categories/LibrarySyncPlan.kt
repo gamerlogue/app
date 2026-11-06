@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -104,14 +105,21 @@ private fun LazyListScope.planGroup(
     onChoose: (Int, SyncSide) -> Unit,
 ) {
     if (rows.isEmpty()) return
-    item { SettingsGroupHeader(stringResource(titleRes, tracker, rows.size)) }
-    itemsIndexed(rows) { indexInGroup, (index, row) ->
-        PlanItem(row, tracker, indexInGroup, rows.size) { onChoose(index, it) }
+    item(key = "group-${titleRes.key}") { SettingsGroupHeader(stringResource(titleRes, tracker, rows.size)) }
+    itemsIndexed(rows, key = { _, indexed -> indexed.value.change.gameId }) { indexInGroup, (index, row) ->
+        Box(
+            Modifier.animateItem(
+                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+            ),
+        ) {
+            PlanItem(row, tracker, indexInGroup, rows.size) { onChoose(index, it) }
+        }
     }
 }
 
 /** A plan row: the game, its status on each side and, for a conflict, the side to keep. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PlanItem(
     row: LibraryImportViewModel.PlanRow,
@@ -150,3 +158,4 @@ private fun PlanItem(
         },
     ) { Text(row.game?.name.orEmpty()) }
 }
+
