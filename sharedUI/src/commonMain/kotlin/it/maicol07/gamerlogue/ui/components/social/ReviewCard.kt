@@ -5,12 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +27,8 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Cha
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FavoriteW500Rounded
 import it.maicol07.gamerlogue.data.LibraryEntrySchema
 import it.maicol07.gamerlogue.extensions.displayTimestamp
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.reviewPreview
@@ -39,22 +41,28 @@ private const val ReviewPreviewLines = 4
 
 /** A review in a list: the game, the rating, the start of the text and its like and comment counts. */
 @Composable
-fun ReviewCard(entry: LibraryEntrySchema, game: Game?, onClick: () -> Unit, modifier: Modifier = Modifier) = Card(
+fun ReviewCard(
+    entry: LibraryEntrySchema,
+    game: Game?,
+    onClick: () -> Unit,
+    index: Int,
+    count: Int,
+    modifier: Modifier = Modifier,
+) = SegmentedListItem(
     onClick = onClick,
     modifier = modifier.fillMaxWidth(),
-) {
-    Row(Modifier.padding(Dimens.SectionGap), horizontalArrangement = Arrangement.spacedBy(Dimens.SectionGap)) {
-        game?.CoverImage(
-            Modifier.clip(MaterialTheme.shapes.small),
-            sizeModifier = Modifier.width(ReviewCoverWidth).height(ReviewCoverHeight)
-        )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                game?.name ?: stringResource(Res.string.activity__unknown_game),
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+    shapes = ListItemDefaults.expressiveSegmentedShapes(index, count),
+    colors = ListItemDefaults.expressiveSegmentedColors(),
+    leadingContent = game?.let {
+        {
+            it.CoverImage(
+                Modifier.clip(MaterialTheme.shapes.small),
+                sizeModifier = Modifier.width(ReviewCoverWidth).height(ReviewCoverHeight)
             )
+        }
+    },
+    supportingContent = {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
                 val scale = currentRatingScale()
                 entry.rating?.let { Text("★ ${scale.format(it)}", style = MaterialTheme.typography.labelLarge) }
@@ -77,7 +85,14 @@ fun ReviewCard(entry: LibraryEntrySchema, game: Game?, onClick: () -> Unit, modi
                 CountLabel(Icons.ChatBubbleW500Rounded, entry.commentsCount)
             }
         }
-    }
+    },
+) {
+    Text(
+        game?.name ?: stringResource(Res.string.activity__unknown_game),
+        style = MaterialTheme.typography.titleSmall,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
 }
 
 @Composable

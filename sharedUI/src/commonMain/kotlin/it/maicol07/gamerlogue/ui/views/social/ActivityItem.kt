@@ -1,18 +1,15 @@
 package it.maicol07.gamerlogue.ui.views.social
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -46,6 +43,8 @@ import it.maicol07.gamerlogue.data.Activity
 import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.extensions.actorId
 import it.maicol07.gamerlogue.extensions.displayTimestamp
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.extensions.gameId
 import it.maicol07.gamerlogue.extensions.gameIds
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
@@ -55,7 +54,6 @@ import it.maicol07.gamerlogue.ui.components.currentRatingScale
 import it.maicol07.gamerlogue.ui.components.game.CoverImage
 import it.maicol07.gamerlogue.ui.components.user.UserAvatar
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
-import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -69,42 +67,49 @@ private val ActivityCoverHeight = 53.dp
  * verb this version doesn't know, so a newer server can add verbs without breaking the feed.
  */
 @Composable
-fun ActivityItem(activity: Activity, game: Game?, onNavigate: (NavKey) -> Unit, modifier: Modifier = Modifier) {
+fun ActivityItem(
+    activity: Activity,
+    game: Game?,
+    onNavigate: (NavKey) -> Unit,
+    index: Int,
+    count: Int,
+    modifier: Modifier = Modifier,
+) {
     val verb = ActivityVerb.of(activity.verb) ?: return
     val user = activity.user
     val target = activity.target(verb, game)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .let { if (target != null) it.clickable { onNavigate(target) } else it }
-            .padding(horizontal = Dimens.ScreenPadding, vertical = Dimens.ItemGap),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.SectionGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        UserAvatar(
-            user,
-            40.dp,
-            Modifier.clip(CircleShape).let { m ->
-                activity.actorId?.let { id -> m.clickable { onNavigate(RootNavTree.UserProfile(id)) } } ?: m
-            }
-        )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                activity.describe(verb, user?.displayName.orEmpty(), game),
-                style = MaterialTheme.typography.bodyMedium
+    SegmentedListItem(
+        onClick = { target?.let(onNavigate) },
+        modifier = modifier.fillMaxWidth(),
+        shapes = ListItemDefaults.expressiveSegmentedShapes(index, count),
+        colors = ListItemDefaults.expressiveSegmentedColors(),
+        leadingContent = {
+            UserAvatar(
+                user,
+                40.dp,
+                Modifier.clip(CircleShape).let { m ->
+                    activity.actorId?.let { id -> m.clickable { onNavigate(RootNavTree.UserProfile(id)) } } ?: m
+                }
             )
-            displayTimestamp(activity.createdAt)?.let {
+        },
+        supportingContent = displayTimestamp(activity.createdAt)?.let {
+            {
                 Text(
                     it,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
-        }
-        game?.CoverImage(
-            Modifier.clip(MaterialTheme.shapes.small),
-            sizeModifier = Modifier.width(ActivityCoverWidth).height(ActivityCoverHeight)
-        )
+        },
+        trailingContent = game?.let {
+            {
+                it.CoverImage(
+                    Modifier.clip(MaterialTheme.shapes.small),
+                    sizeModifier = Modifier.width(ActivityCoverWidth).height(ActivityCoverHeight)
+                )
+            }
+        },
+    ) {
+        Text(activity.describe(verb, user?.displayName.orEmpty(), game), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -119,18 +124,21 @@ private fun Activity.describe(verb: ActivityVerb, actor: String, game: Game?): S
             val statusName = status?.let { stringResource(it.displayName) }.orEmpty()
             stringResource(Res.string.activity__status_changed, actor, gameName, statusName)
         }
+
         ActivityVerb.RATED -> stringResource(
             Res.string.activity__rated,
             actor,
             gameName,
             payloadText("rating")?.toDoubleOrNull()?.let(currentRatingScale()::format).orEmpty()
         )
+
         ActivityVerb.REVIEWED -> stringResource(Res.string.activity__reviewed, actor, gameName)
         ActivityVerb.LIST_CREATED -> stringResource(
             Res.string.activity__list_created,
             actor,
             payloadText("name").orEmpty()
         )
+
         ActivityVerb.LIST_ITEM_ADDED -> listItemsAdded(actor, gameName)
         ActivityVerb.FOLLOWED -> stringResource(Res.string.activity__followed, actor, payloadText("nickname").orEmpty())
         ActivityVerb.LIBRARY_IMPORTED -> stringResource(
@@ -138,6 +146,7 @@ private fun Activity.describe(verb: ActivityVerb, actor: String, game: Game?): S
             actor,
             payloadText("count").orEmpty()
         )
+
         ActivityVerb.BADGE_EARNED ->
             stringResource(Res.string.activity__badge_earned, actor, badgeLabel(payloadText("badge").orEmpty()))
     }

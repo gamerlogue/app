@@ -60,11 +60,13 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Gro
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.PagedState
 import it.maicol07.gamerlogue.data.Activity
+import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.extensions.gameId
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
+import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
 import it.maicol07.gamerlogue.ui.components.search.GameSearchButton
 import it.maicol07.gamerlogue.ui.navigation.DiscoverPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
@@ -215,9 +217,13 @@ private fun LazyListScope.feedSection(
                 Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) { LoadingIndicator() }
+
             state.items.isEmpty() -> SectionMessage(Res.string.social__feed_empty)
-            else -> state.items.take(FEED_PREVIEW_SIZE).forEach { activity ->
-                ActivityItem(activity, activity.gameId?.let(games::get), onNavigate)
+            else -> SegmentedListLayout(Modifier.padding(horizontal = Dimens.ScreenPadding)) {
+                val activities = state.items.filter { ActivityVerb.of(it.verb) != null }.take(FEED_PREVIEW_SIZE)
+                activities.forEachIndexed { index, activity ->
+                    ActivityItem(activity, activity.gameId?.let(games::get), onNavigate, index, activities.size)
+                }
             }
         }
     }

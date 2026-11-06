@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemDefaults.SegmentedGap
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,12 +63,15 @@ internal fun LazyListScope.reviewsTab(
     games: Map<Int, Game>,
     onNavigate: (NavKey) -> Unit,
 ) {
-    itemsIndexed(state.items, key = { _, entry -> "review-${entry.id}" }) { _, entry ->
+    itemsIndexed(state.items, key = { _, entry -> "review-${entry.id}" }) { index, entry ->
         ReviewCard(
             entry,
             games[entry.gameId],
             onClick = { onNavigate(RootNavTree.ReviewDetail(entry.id.orEmpty(), userId)) },
-            modifier = Modifier.padding(horizontal = Dimens.ScreenPadding, vertical = Dimens.ItemGap / 2)
+            index = index,
+            count = state.items.size,
+            modifier = Modifier.padding(horizontal = Dimens.ScreenPadding).padding(bottom = SegmentedGap)
+
         )
     }
     loadingItem(state.loading)
@@ -113,7 +116,6 @@ private fun NewListButton(onCreate: (UserListForm) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun UserListRow(list: UserList, index: Int, count: Int, onClick: () -> Unit) = SegmentedListItem(
     onClick = onClick,
@@ -122,7 +124,7 @@ internal fun UserListRow(list: UserList, index: Int, count: Int, onClick: () -> 
     modifier = Modifier.padding(
         start = Dimens.ScreenPadding,
         end = Dimens.ScreenPadding,
-        bottom = ListItemDefaults.SegmentedGap
+        bottom = SegmentedGap
     ),
     leadingContent = { Icon(Icons.FormatListBulletedW500Rounded, contentDescription = null) },
     supportingContent = {

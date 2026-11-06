@@ -7,8 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +27,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.GroupW500Rounded
 import it.maicol07.gamerlogue.core.PagedState
 import it.maicol07.gamerlogue.data.Activity
+import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.extensions.gameId
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
@@ -67,8 +69,16 @@ fun ActivityFeedView() {
 
 /** The loaded activities, followed by a loading row while the next page arrives. */
 fun LazyListScope.activityItems(state: PagedState<Activity>, games: Map<Int, Game>, onNavigate: (NavKey) -> Unit) {
-    items(state.items, key = { "activity-${it.id}" }) { activity ->
-        ActivityItem(activity, activity.gameId?.let(games::get), onNavigate)
+    val activities = state.items.filter { ActivityVerb.of(it.verb) != null }
+    itemsIndexed(activities, key = { _, activity -> "activity-${activity.id}" }) { index, activity ->
+        ActivityItem(
+            activity,
+            activity.gameId?.let(games::get),
+            onNavigate,
+            index,
+            activities.size,
+            Modifier.padding(horizontal = Dimens.ScreenPadding).padding(bottom = ListItemDefaults.SegmentedGap),
+        )
     }
     loadingItem(state.loading)
 }
