@@ -384,6 +384,7 @@
     <string name="settings__import_search">Cerca</string>
     <string name="settings__import_search_hint">Cerca un gioco</string>
     <string name="settings__import_no_match">Nessuna corrispondenza</string>
+    <string name="settings__import_searching">Ricerca della corrispondenza…</string>
     <string name="settings__import_already_present">Già nella tua libreria</string>
     <string name="settings__wishlist_already_present">Già nella wishlist</string>
     <string name="settings__import_confirm_match">Tocca per confermare il match</string>

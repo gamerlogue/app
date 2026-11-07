@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,7 @@ import gamerlogue.sharedui.generated.resources.settings__import_finish
 import gamerlogue.sharedui.generated.resources.settings__import_group_to_import
 import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
+import gamerlogue.sharedui.generated.resources.settings__import_searching
 import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__import_source
@@ -275,7 +277,7 @@ internal fun ImportRow(
 ) {
     val shapes = ListItemDefaults.segmentedShapes(index = indexInGroup, count = groupCount)
     val colors = ListItemDefaults.expressiveSegmentedColors()
-    val leading: @Composable () -> Unit = { MatchCover(row.game) }
+    val leading: @Composable () -> Unit = { if (row.searching) SearchingCover() else MatchCover(row.game) }
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (row.sourceUrl != null) {
@@ -299,19 +301,7 @@ internal fun ImportRow(
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            val status = when {
-                row.alreadyPresent -> stringResource(Res.string.settings__import_already_present) to
-                    MaterialTheme.colorScheme.onSurfaceVariant
-
-                row.game == null -> stringResource(Res.string.settings__import_no_match) to
-                    MaterialTheme.colorScheme.error
-
-                !row.confident -> stringResource(Res.string.settings__import_confirm_match) to
-                    MaterialTheme.colorScheme.tertiary
-
-                else -> null
-            }
-            status?.let { (text, color) -> Text(text, color = color) }
+            matchStatus(row)?.let { (text, color) -> Text(text, color = color) }
         }
     }
     val headline = row.game?.name ?: row.ref.name.ifEmpty { row.ref.uid }
@@ -356,6 +346,30 @@ internal fun MatchCover(game: Game?, modifier: Modifier = Modifier) {
             Icon(PlaceholderIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+/** The state line under a row's store name, with its color; null for a confirmed match to import. */
+@Composable
+private fun matchStatus(row: LibraryImportViewModel.Row): Pair<String, Color>? = when {
+    row.searching -> stringResource(Res.string.settings__import_searching) to
+        MaterialTheme.colorScheme.onSurfaceVariant
+
+    row.alreadyPresent -> stringResource(Res.string.settings__import_already_present) to
+        MaterialTheme.colorScheme.onSurfaceVariant
+
+    row.game == null -> stringResource(Res.string.settings__import_no_match) to
+        MaterialTheme.colorScheme.error
+
+    !row.confident -> stringResource(Res.string.settings__import_confirm_match) to
+        MaterialTheme.colorScheme.tertiary
+
+    else -> null
+}
+
+/** [MatchCover]'s slot while the automatic match is still being looked up. */
+@Composable
+private fun SearchingCover() = Box(Modifier.size(width = 40.dp, height = 53.dp), contentAlignment = Alignment.Center) {
+    CircularProgressIndicator(Modifier.size(24.dp))
 }
 
 private val PlaceholderIcon: ImageVector = Icons.JoystickW500Rounded

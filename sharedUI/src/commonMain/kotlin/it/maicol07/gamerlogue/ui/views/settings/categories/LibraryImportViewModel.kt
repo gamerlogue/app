@@ -102,6 +102,8 @@ class LibraryImportViewModel(
         val confident: Boolean = false,
         // The store page URL for this game (for the "open store" link), or null if unknown.
         val sourceUrl: String? = null,
+        // The automatic match for this game hasn't come back yet.
+        val searching: Boolean = false,
     )
 
     data class UiState(
@@ -140,7 +142,7 @@ class LibraryImportViewModel(
                 matching = refs.isNotEmpty(),
                 total = refs.size,
                 rows = refs.map {
-                    Row(it, game = null, included = false, sourceUrl = connector.storeUrl(it.uid))
+                    Row(it, game = null, included = false, sourceUrl = connector.storeUrl(it.uid), searching = true)
                 },
             )
         }
@@ -209,6 +211,7 @@ class LibraryImportViewModel(
             alreadyPresent = present,
             confident = confident,
             included = game != null && !present && confident,
+            searching = false,
         )
     }
 
