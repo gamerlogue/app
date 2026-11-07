@@ -107,7 +107,7 @@ class GameMatcher(
             val candidates = nameSearchBatch(batch)
             onBatch(
                 batch.map { ref ->
-                    val c = candidates[ref.uid].orEmpty()
+                    val c = candidates[ref.uid].orEmpty().rankedBy(ref.name)
                     Match(ref, c.firstOrNull(), c, confident = false)
                 }
             )
@@ -368,7 +368,9 @@ class GameMatcher(
         private const val TAG = "GameMatcher"
         private const val UID_CHUNK = 100
         private const val SEARCH_LIMIT = 15
-        private const val NAME_FALLBACK_LIMIT = 6
+
+        // Wide enough that the closest title is likely among the candidates [rankedBy] reorders.
+        private const val NAME_FALLBACK_LIMIT = 10
 
         // IGDB multiquery sub-query cap.
         private const val MULTIQUERY_CHUNK = 10
@@ -418,6 +420,32 @@ private val BASE_GAMES_FILTER = "version_parent = null & game_type != " +
     BUNDLE_OR_ADDON_GAME_TYPES.joinToString(",", "(", ")") { it.value.toString() }
 
 private fun String.escapeApicalypse() = replace("\"", "")
+
+/**
+ * Candidates ordered by how close their name is to the store's [name]: IGDB's search relevance puts
+ * "The Clown's Forest 3: Haunting Apparitions" before "Forest 3". Sorting is stable, so IGDB's order breaks ties.
+ */
+// ponytail: plain edit distance on normalized titles; weigh tokens (subtitles, editions) if it misranks.
+internal fun List<Game>.rankedBy(name: String): List<Game> {
+    val target = name.normalizedTitle()
+    return sortedBy { editDistance(it.name.normalizedTitle(), target) }
+}
+
+private fun String.normalizedTitle() = lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
+
+/** Levenshtein distance between [a] and [b]. */
+private fun editDistance(a: String, b: String): Int {
+    var previous = IntArray(b.length + 1) { it }
+    a.forEachIndexed { i, ca ->
+        val current = IntArray(b.length + 1)
+        current[0] = i + 1
+        b.forEachIndexed { j, cb ->
+            current[j + 1] = minOf(current[j] + 1, previous[j + 1] + 1, previous[j] + if (ca == cb) 0 else 1)
+        }
+        previous = current
+    }
+    return previous[b.length]
+}
 
 /** Drop trademark glyphs and quotes that hurt IGDB's fuzzy search; collapse whitespace. */
 private fun String.sanitizeForSearch() =
