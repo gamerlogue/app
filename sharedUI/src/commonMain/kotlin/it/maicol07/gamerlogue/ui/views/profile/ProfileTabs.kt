@@ -2,7 +2,9 @@ package it.maicol07.gamerlogue.ui.views.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
@@ -53,9 +55,14 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 internal fun LazyListScope.activityTab(state: PagedState<Activity>, games: Map<Int, Game>, onNavigate: (NavKey) -> Unit) {
+    edgeSpace("activity-top")
     activityItems(state, games, onNavigate)
     if (state.isEmptyOfKnownVerbs) item { ProfileMessage(Icons.HistoryW500Rounded, Res.string.profile__activity_empty, null) }
+    edgeSpace("activity-bottom")
 }
+
+/** Keeps a tab's segmented list off the tabs above and the screen's bottom edge. */
+private fun LazyListScope.edgeSpace(key: String) = item(key = key) { Spacer(Modifier.height(Dimens.ScreenPadding)) }
 
 /** [userId]'s reviews, each opening its page. */
 internal fun LazyListScope.reviewsTab(
@@ -64,6 +71,7 @@ internal fun LazyListScope.reviewsTab(
     games: Map<Int, Game>,
     onNavigate: (NavKey) -> Unit,
 ) {
+    edgeSpace("reviews-top")
     itemsIndexed(state.items, key = { _, entry -> "review-${entry.id}" }) { index, entry ->
         ReviewCard(
             entry,
@@ -77,6 +85,7 @@ internal fun LazyListScope.reviewsTab(
     }
     loadingItem(state.loading)
     if (state.isEmpty) item { ProfileMessage(Icons.RateReviewW500Rounded, Res.string.profile__reviews_empty, null) }
+    edgeSpace("reviews-bottom")
 }
 
 internal fun LazyListScope.listsTab(
@@ -85,7 +94,8 @@ internal fun LazyListScope.listsTab(
     onCreate: (UserListForm) -> Unit,
     onNavigate: (NavKey) -> Unit,
 ) {
-    if (isSelf) item(key = "new-list") { NewListButton(onCreate) }
+    // The new-list button already spaces the list from the tabs.
+    if (isSelf) item(key = "new-list") { NewListButton(onCreate) } else edgeSpace("lists-top")
     itemsIndexed(state.items, key = { _, list -> "list-${list.id}" }) { index, list ->
         UserListRow(list, index, state.items.size) { onNavigate(RootNavTree.UserListDetail(list.id.orEmpty())) }
     }
@@ -99,6 +109,7 @@ internal fun LazyListScope.listsTab(
             )
         }
     }
+    edgeSpace("lists-bottom")
 }
 
 @Composable
