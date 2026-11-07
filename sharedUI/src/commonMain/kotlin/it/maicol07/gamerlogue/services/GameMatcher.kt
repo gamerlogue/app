@@ -140,8 +140,7 @@ class GameMatcher(
                     query(IgdbEndpoint.GAME, "q$i") {
                         if (useSearch) search(q)
                         where(if (useSearch) BASE_GAMES_FILTER else "name ~ *\"$q\"* & $BASE_GAMES_FILTER")
-                        fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family")
-                        matchIdentityFields()
+                        fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family", *identityFields())
                         limit(NAME_FALLBACK_LIMIT)
                     }
                 }
@@ -230,8 +229,7 @@ class GameMatcher(
             val quoted = chunk.joinToString(",") { "\"${it.escapeApicalypse()}\"" }
             igdbCall("games by-slug lookup failed") {
                 igdb.getGames {
-                    fields("id", "name", "slug", "cover.image_id", "platforms.id", "platforms.platform_family")
-                    matchIdentityFields()
+                    fields("id", "name", "slug", "cover.image_id", "platforms.id", "platforms.platform_family", *identityFields())
                     where("slug = ($quoted)")
                     limit(chunk.size)
                 }
@@ -320,8 +318,8 @@ class GameMatcher(
                         "platforms.name",
                         "platforms.abbreviation",
                         "involved_companies.company.name",
+                        *identityFields(),
                     )
-                    matchIdentityFields()
                     where("id = (${chunk.joinToString(",")})")
                     limit(chunk.size)
                 }
@@ -337,8 +335,7 @@ class GameMatcher(
         return igdbCall("name search failed") {
             igdb.getGames {
                 search(q)
-                fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family")
-                matchIdentityFields()
+                fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family", *identityFields())
                 where(BASE_GAMES_FILTER)
                 limit(limit)
             }
@@ -380,11 +377,15 @@ private fun ApicalypseQueryBuilder.externalGameFields() {
         "game.cover.image_id",
         "game.platforms.id",
         "game.platforms.platform_family",
+        *identityFields("game."),
     )
-    matchIdentityFields("game.")
 }
 
-private fun ApicalypseQueryBuilder.matchIdentityFields(prefix: String = "") = fields(
+/**
+ * The fields [isMatchable] and `baseGameId` read. They go into the same `fields(...)` call as the query's own:
+ * igdbclient's `fields()` replaces the list, so a separate call would drop everything set before it.
+ */
+internal fun identityFields(prefix: String = ""): Array<String> = arrayOf(
     "${prefix}game_type",
     "${prefix}version_parent.id",
     "${prefix}version_parent.name",
@@ -393,6 +394,9 @@ private fun ApicalypseQueryBuilder.matchIdentityFields(prefix: String = "") = fi
     "${prefix}version_parent.platforms.id",
     "${prefix}version_parent.platforms.platform_family",
 )
+
+/** Whether a match may be a library entry: an edition counts through its parent, bundles and add-ons never do. */
+val Game.isMatchable: Boolean get() = (version_parent ?: this).isBaseGame
 
 private val BASE_GAMES_FILTER = "version_parent = null & game_type != " +
     BUNDLE_OR_ADDON_GAME_TYPES.joinToString(",", "(", ")") { it.value.toString() }
