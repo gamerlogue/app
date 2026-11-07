@@ -368,7 +368,7 @@
     <string name="settings__import_library_title">Importa libreria</string>
     <string name="settings__wishlist_preview_title">Wishlist</string>
     <string name="settings__service_sync_now">Sincronizza ora</string>
-    <string name="settings__wishlist_push_title">Aggiungi alla wishlist dello store</string>
+    <string name="settings__wishlist_push_title">Aggiungi alla wishlist di %1$s</string>
     <string name="settings__wishlist_push_confirm">Aggiungi</string>
     <string name="settings__wishlist_push_skip">Salta</string>
     <string name="settings__wishlist_push_off_platform">Non disponibili su questa piattaforma (%1$d)</string>
@@ -379,7 +379,7 @@
     <string name="settings__wishlist_platform_for_all">Piattaforma per tutti</string>
     <string name="settings__wishlist_choose_platform">Scegli una piattaforma</string>
     <string name="settings__wishlist_no_platform">Informazioni sulla piattaforma non disponibili</string>
-    <string name="settings__library_push_title">Aggiungi alla libreria del tracker</string>
+    <string name="settings__library_push_title">Aggiungi alla libreria di %1$s</string>
     <string name="settings__service_resync_ids">Risincronizza ID IGDB</string>
     <string name="settings__id_sync_matches">Abbinamenti confermati</string>
     <string name="settings__service_resync_ids_result">ID aggiornati: %1$d\nEsclusi o non confermati: %2$d</string>

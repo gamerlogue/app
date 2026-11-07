@@ -240,7 +240,15 @@ fun ServiceSyncView(
         sheetDragHandle = { if (pending == null) SheetToggleHandle(sheetState) },
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text(stringResource(if (pending == null) title else pushTitle)) },
+                title = {
+                    Text(
+                        if (pending == null) {
+                            stringResource(title)
+                        } else {
+                            stringResource(pushTitle, stringResource(service.labelRes()))
+                        }
+                    )
+                },
                 subtitle = { Text(stringResource(service.labelRes())) },
                 navigationIcon = {
                     IconButton(
