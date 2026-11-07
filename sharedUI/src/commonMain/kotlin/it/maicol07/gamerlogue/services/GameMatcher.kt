@@ -15,6 +15,7 @@ import com.github.michaelbull.result.getError
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.extensions.igdb.BUNDLE_OR_ADDON_GAME_TYPES
+import it.maicol07.gamerlogue.extensions.igdb.NON_LIBRARY_GAME_TYPES
 import it.maicol07.gamerlogue.extensions.igdb.isBaseGame
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.services.connectors.SteamConnector
@@ -146,7 +147,7 @@ class GameMatcher(
                     val q = ref.name.sanitizeForSearch()
                     query(IgdbEndpoint.GAME, "q$i") {
                         if (useSearch) search(q)
-                        where(if (useSearch) BASE_GAMES_FILTER else "name ~ *\"$q\"* & $BASE_GAMES_FILTER")
+                        where(if (useSearch) NAME_MATCH_FILTER else "name ~ *\"$q\"* & $NAME_MATCH_FILTER")
                         fields("id", "name", "cover.image_id", "platforms.id", "platforms.platform_family", *identityFields())
                         limit(NAME_FALLBACK_LIMIT)
                     }
@@ -158,7 +159,7 @@ class GameMatcher(
         responses.forEach { response ->
             val i = response.name.removePrefix("q").toIntOrNull() ?: return@forEach
             val ref = batch.getOrNull(i) ?: return@forEach
-            byUid[ref.uid] = responses.multiqueryResults<Game>(response.name).filter { it.isBaseGame }
+            byUid[ref.uid] = responses.multiqueryResults<Game>(response.name).filter { it.isMatchable }
         }
         return byUid
     }
@@ -421,11 +422,18 @@ internal fun identityFields(prefix: String = ""): Array<String> = arrayOf(
     "${prefix}version_parent.platforms.platform_family",
 )
 
-/** Whether a match may be a library entry: an edition counts through its parent, bundles and add-ons never do. */
-val Game.isMatchable: Boolean get() = (version_parent ?: this).isBaseGame
+/** Whether a match may be a library entry: an edition counts through its parent, [NON_LIBRARY_GAME_TYPES] never do. */
+val Game.isMatchable: Boolean
+    get() = NON_LIBRARY_GAME_TYPES.none { it.value.toLong() == (version_parent ?: this).game_type?.id }
 
 private val BASE_GAMES_FILTER = "version_parent = null & game_type != " +
     BUNDLE_OR_ADDON_GAME_TYPES.joinToString(",", "(", ")") { it.value.toString() }
+
+private val LIBRARY_TYPES_FILTER = "game_type != " +
+    NON_LIBRARY_GAME_TYPES.joinToString(",", "(", ")") { it.value.toString() }
+
+// DLCs are searched too: their names carry the game's, so the closest title still wins (see [rankedBy]).
+private val NAME_MATCH_FILTER = "version_parent = null & $LIBRARY_TYPES_FILTER"
 
 private fun String.escapeApicalypse() = replace("\"", "")
 

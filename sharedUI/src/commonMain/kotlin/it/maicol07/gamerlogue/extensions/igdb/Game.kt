@@ -63,6 +63,11 @@ val BUNDLE_OR_ADDON_GAME_TYPES: List<GameCategoryEnum> =
 val Game.isBaseGame: Boolean
     get() = version_parent == null && BUNDLE_OR_ADDON_GAME_TYPES.none { it.value.toLong() == game_type?.id }
 
+/** Game types that are never a library entry: a bundle stands for several games, packs and updates aren't played on
+ *  their own. DLCs can be, like on a game's page. */
+val NON_LIBRARY_GAME_TYPES: List<GameCategoryEnum> =
+    listOf(GameCategoryEnum.BUNDLE, GameCategoryEnum.PACK, GameCategoryEnum.UPDATE)
+
 /** Score (0-10) with one decimal, or null when the game has no rating. */
 fun Game.ratingScore(): String? = rating.takeIf { it > 0.0 }?.let { "%.1f".sprintf(it / 10) }
 
