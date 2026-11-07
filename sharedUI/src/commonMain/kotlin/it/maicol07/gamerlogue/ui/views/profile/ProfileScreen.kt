@@ -1,24 +1,15 @@
 package it.maicol07.gamerlogue.ui.views.profile
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryScrollableTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +17,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
@@ -33,11 +28,6 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.nav__profile
 import gamerlogue.sharedui.generated.resources.profile__private
 import gamerlogue.sharedui.generated.resources.profile__private_hint
-import gamerlogue.sharedui.generated.resources.profile__tab_activity
-import gamerlogue.sharedui.generated.resources.profile__tab_library
-import gamerlogue.sharedui.generated.resources.profile__tab_lists
-import gamerlogue.sharedui.generated.resources.profile__tab_reviews
-import gamerlogue.sharedui.generated.resources.profile__tab_stats
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LockW500Rounded
@@ -45,19 +35,15 @@ import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.data.InteractionTarget
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.ui.components.layout.AppTopBar
-import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
-import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.components.social.ReportDialog
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
-import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.auth.LoginView
 import it.maicol07.gamerlogue.ui.views.list.GamePick
 import it.maicol07.gamerlogue.ui.views.list.GamePickEffect
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -109,15 +95,13 @@ private fun UserProfileScreen(userId: String) {
             editOpen = true
         }
     }
-    val showTabs = uiState.user != null && !uiState.contentHidden
-    LaunchedEffect(uiState.tab, showTabs) { if (showTabs) viewModels.ensureLoaded(uiState.tab) }
 
     ScreenScaffold(
         topBar = {
             ProfileTopBar(uiState, viewModels.profile, onEdit = { editOpen = true }, onReport = { reportOpen = true })
         }
     ) {
-        ProfileContent(userId, uiState, viewModels, showTabs)
+        ProfileContent(userId, uiState, viewModels)
     }
 
     if (reportOpen) ReportDialog(InteractionTarget.USER, userId, onDismiss = { reportOpen = false })
@@ -167,13 +151,17 @@ private fun ProfileContent(
     userId: String,
     uiState: ProfileViewModel.UiState,
     viewModels: ProfileViewModels,
-    showTabs: Boolean,
 ) {
     val navigationState = LocalNavigationState.current
-    val tabs = viewModels.collectTabs()
     val listState = rememberLazyListState()
     val pullState = rememberPullToRefreshState()
-    LoadMoreEffect(listState) { if (showTabs) viewModels.loadMore(uiState.tab) }
+    // Scrolling the content up first scrolls the header away, and only then the tab's own list.
+    val headerFirst = remember(listState) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource) =
+                if (available.y < 0) Offset(0f, -listState.dispatchRawDelta(-available.y)) else Offset.Zero
+        }
+    }
     PullToRefreshBox(
         isRefreshing = uiState.refreshing,
         onRefresh = viewModels::refresh,
@@ -187,13 +175,12 @@ private fun ProfileContent(
             )
         },
     ) {
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize().nestedScroll(headerFirst)) {
             uiState.user?.let { user ->
                 headerItem(userId, user, uiState, viewModels.profile, navigationState.backStack::add)
             }
-            profileBody(userId, uiState, viewModels, tabs, navigationState.backStack::add)
+            profileBody(userId, uiState, viewModels, navigationState.backStack::add)
         }
-        AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }
 }
 
@@ -212,12 +199,11 @@ private fun LazyListScope.headerItem(
     )
 }
 
-/** Everything under the header: a status message, or the tabs and the selected tab's content. */
+/** Everything under the header: a status message, or the tabs and their pages. */
 private fun LazyListScope.profileBody(
     userId: String,
     uiState: ProfileViewModel.UiState,
     viewModels: ProfileViewModels,
-    tabs: ProfileTabsData,
     onNavigate: (NavKey) -> Unit,
 ) {
     when {
@@ -229,52 +215,9 @@ private fun LazyListScope.profileBody(
         uiState.contentHidden -> item {
             ProfileMessage(Icons.LockW500Rounded, Res.string.profile__private, Res.string.profile__private_hint)
         }
-        uiState.user != null -> {
-            stickyHeader(key = "tabs") {
-                ProfileTabs(uiState.visibleTabs, uiState.tab, viewModels.profile::selectTab)
-            }
-            selectedTab(userId, uiState, viewModels, tabs, onNavigate)
+        // Fills the screen, so once the header has scrolled away the tabs stay under the bar.
+        uiState.user != null -> item(key = "tabs") {
+            ProfilePager(userId, uiState, viewModels, onNavigate, Modifier.fillParentMaxHeight())
         }
     }
 }
-
-private fun LazyListScope.selectedTab(
-    userId: String,
-    uiState: ProfileViewModel.UiState,
-    viewModels: ProfileViewModels,
-    tabs: ProfileTabsData,
-    onNavigate: (NavKey) -> Unit,
-) = when (uiState.tab) {
-    ProfileTab.ACTIVITY -> activityTab(tabs.activities, tabs.activityGames, onNavigate)
-    ProfileTab.LIBRARY -> libraryTab(uiState.libraryCounts, userId, onNavigate)
-    ProfileTab.REVIEWS -> reviewsTab(userId, tabs.reviews, tabs.reviewGames, onNavigate)
-    ProfileTab.LISTS -> listsTab(
-        tabs.lists,
-        uiState.isSelf,
-        onCreate = { form -> viewModels.lists.create(form) { onNavigate(RootNavTree.UserListDetail(it)) } },
-        onNavigate = onNavigate,
-    )
-    ProfileTab.STATS -> statsTab(tabs.stats, viewModels.stats::selectYear)
-}
-
-/** The profile's sections, pinned under the bar while the content scrolls. */
-@Composable
-private fun ProfileTabs(tabs: List<ProfileTab>, selected: ProfileTab, onSelect: (ProfileTab) -> Unit) =
-    PrimaryScrollableTabRow(
-        selectedTabIndex = tabs.indexOf(selected).coerceAtLeast(0),
-        edgePadding = Dimens.ScreenPadding,
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(top = Dimens.ItemGap),
-    ) {
-        tabs.forEach { tab ->
-            Tab(selected = tab == selected, onClick = { onSelect(tab) }, text = { Text(stringResource(tab.label)) })
-        }
-    }
-
-private val ProfileTab.label: StringResource
-    get() = when (this) {
-        ProfileTab.ACTIVITY -> Res.string.profile__tab_activity
-        ProfileTab.LIBRARY -> Res.string.profile__tab_library
-        ProfileTab.REVIEWS -> Res.string.profile__tab_reviews
-        ProfileTab.LISTS -> Res.string.profile__tab_lists
-        ProfileTab.STATS -> Res.string.profile__tab_stats
-    }
