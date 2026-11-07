@@ -27,10 +27,3 @@ expect fun configureServiceWebView(webView: WebView)
  */
 @Composable
 expect fun Modifier.webViewNestedScrollModifier(): Modifier
-
-/**
- * Keeps the screen on while in composition: a sync flow runs in the WebView, which stops when the device
- * locks itself during a long read/write. Android only; desktop and web have no screen timeout to beat.
- */
-@Composable
-expect fun KeepScreenOn()

@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -80,7 +81,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Err
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
 import it.maicol07.gamerlogue.services.ExternalService
-import it.maicol07.gamerlogue.services.KeepScreenOn
 import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.BatchProgress
@@ -199,8 +199,7 @@ fun ServiceSyncView(
     // refreshing the profile has nothing to lose, so those close straight away.
     val running = !finished && !navigatedAway &&
         action != ServiceSyncAction.CONNECT && action != ServiceSyncAction.REFRESH_PROFILE
-    // A long read/write stops when the device locks itself: keep the screen on until the flow is done.
-    if (running) KeepScreenOn()
+    // A long read/write stops when the device locks itself: the sheet keeps the screen on until the flow is done.
     var askInterrupt by remember { mutableStateOf(false) }
     SyncInterruptGuard(
         running = running,
@@ -245,7 +244,7 @@ fun ServiceSyncView(
             )
         },
         sheetContent = {
-            Box(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize().then(if (running) Modifier.keepScreenOn() else Modifier)) {
                 host.webView(Modifier.fillMaxSize())
                 // Non-interactive while working: a scrim hides the page and tells the user it can't be used
                 // right now. It does NOT consume pointer events, so vertical drags still reach the WebView's

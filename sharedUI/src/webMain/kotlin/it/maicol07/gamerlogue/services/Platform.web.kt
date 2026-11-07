@@ -13,7 +13,3 @@ actual fun configureServiceWebView(webView: WebView) = Unit
 // Feature unavailable on web; nothing to bridge.
 @Composable
 actual fun Modifier.webViewNestedScrollModifier(): Modifier = this
-
-// Feature unavailable on web; no flow to keep alive.
-@Composable
-actual fun KeepScreenOn() = Unit
