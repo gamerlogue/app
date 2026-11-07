@@ -254,6 +254,16 @@ class BackloggeryConnector :
                     .replace(/[^a-z0-9]/g, '');
                 return key === 'pcmicrosoftwindows' ? 'pc' : key;
             }
+            // IGDB and Backloggery split platforms differently: Series X|S is two entries there, every Quest one.
+            const __bgPlatformAliases = {
+                xboxseriesxs: ['xboxseriesx', 'xboxseriess'], seriesxs: ['xboxseriesx', 'xboxseriess'],
+                metaquest2: ['metaquest'], metaquest3: ['metaquest'], metaquest3s: ['metaquest'],
+                metaquestpro: ['metaquest'], oculusquest: ['metaquest'], oculusquest2: ['metaquest'],
+            };
+            function __bgPlatformKeys(value) {
+                let key = __bgPlatformKey(value);
+                return __bgPlatformAliases[key] || [key];
+            }
             async function __bgCreateContext(library) {
                 let data = [
                     await __bgPost('fetch_platforms.php', null),
@@ -269,13 +279,17 @@ class BackloggeryConnector :
             }
             function __bgPlatform(change, context) {
                 let match = function(names) {
-                    let keys = new Set(names.map(__bgPlatformKey).filter(Boolean));
-                    return context.catalog.filter(function(p) {
+                    let keys = new Set(names.flatMap(__bgPlatformKeys).filter(Boolean));
+                    let found = context.catalog.filter(function(p) {
                         return keys.has(__bgPlatformKey(p.title)) || keys.has(__bgPlatformKey(p.abbr));
                     });
+                    // Several candidates (Series X or S): the one the user already has on Backloggery wins.
+                    let owned = found.filter(function(p) {
+                        return context.platforms.some(function(u) { return Number(u.platform_id) === Number(p.platform_id); });
+                    });
+                    return found.length > 1 && owned.length === 1 ? owned : found;
                 };
                 let preferred = change.platformIds.map(function(id) {
-
                     let platforms = match(change.platformNames[id] || []);
                     return platforms.length === 1 ? platforms[0] : null;
                 }).filter(Boolean);
@@ -294,11 +308,18 @@ class BackloggeryConnector :
                 let titleKey = function(title) { return String(title || '').normalize('NFKC').trim().toLowerCase(); };
                 if (context.library.some(function(g) {
                     return titleKey(g.title) === titleKey(change.name) && Number(g.platform_id) === Number(platform.platform_id);
-                })) return null;
+                })) {
+                    console.log('[GL] backloggery already in library: ' + change.name + ' (' + platform.title + ')');
+                    return null;
+                }
                 let registered = context.platforms.find(function(p) { return Number(p.platform_id) === Number(platform.platform_id); });
                 if (!registered) {
                     let added = await __bgPost('add_user_platform.php', { platform_id: platform.platform_id, title: platform.title });
-                    if (!added || !added.status) return null;
+                    // The add endpoints answer `{ msg, payload }` with no `status`: the payload is the result.
+                    if (!added || added.payload !== true) {
+                        console.log('[GL] backloggery add_user_platform ' + platform.platform_id + ' rejected: ' + JSON.stringify(added).slice(0, 300));
+                        return null;
+                    }
                     registered = platform;
                     context.platforms.push(platform);
                 }
@@ -311,8 +332,11 @@ class BackloggeryConnector :
                     notes: __bgNotes('', change.gameId), parent_inst_id: 0, update_parent: false, is_stealth: true,
                 };
                 let saved = await __bgPost('add_game.php', game);
-                let uid = saved && saved.status && saved.payload;
-                if (!/^\d+$/.test(String(uid || ''))) return null;
+                let uid = saved && saved.payload;
+                if (!/^\d+$/.test(String(uid || ''))) {
+                    console.log('[GL] backloggery add_game rejected ' + change.name + ': ' + JSON.stringify(saved).slice(0, 300));
+                    return null;
+                }
                 context.library.push(Object.assign({}, game, { game_inst_id: uid }));
                 return String(uid);
             }
