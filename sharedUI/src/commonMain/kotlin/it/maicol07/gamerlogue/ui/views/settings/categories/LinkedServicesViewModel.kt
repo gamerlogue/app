@@ -256,7 +256,7 @@ class LinkedServicesViewModel(
                 val wishlist = wishlistRefs(connector, session)
                 val result = librarySync.pullWishlist(connector, wishlist)
                 val selected = when (service) {
-                    ExternalService.BACKLOGGERY -> session.confirmPush(result.toPush)
+                    ExternalService.BACKLOGGERY -> session.confirmPush(markPresent(connector, session, result.toPush))
                     else -> result.toPush
                 }
                 val (pushed, missed) = pushWishlist(connector, session, selected)
@@ -348,6 +348,27 @@ class LinkedServicesViewModel(
         return games.filterNot { game -> keys(game).any { it in confirmed } }
     }
 
+    /**
+     * Backloggery refuses to add a game its library already has (any ownership), so flag those for the review
+     * like games already on the wishlist. Matched on the IGDB marker, else the title.
+     *
+     * ponytail: title-only match, ignoring the platform the push would pick; a same-title remake on another
+     * platform gets flagged too. Match the platform as well if that turns out to hide real candidates.
+     */
+    private suspend fun markPresent(
+        connector: ServiceConnector,
+        session: WebSession,
+        games: List<LibrarySync.OutgoingGame>,
+    ): List<LibrarySync.OutgoingGame> {
+        if (games.isEmpty()) return games
+        val library = session.read(connector.ownedGames, SyncPhase.READING)
+        val ids = library.mapNotNull { it.gameId }.toSet()
+        val titles = library.map { it.name.trim().lowercase() }.toSet()
+        return games.map { game ->
+            val present = game.gameId in ids || game.name.trim().lowercase() in titles
+            if (present) game.copy(alreadyOnWishlist = true) else game
+        }
+    }
 
     /** Reads owned games for the import preview; matching/persisting happen on the preview screen. */
     suspend fun runReadOwned(service: ExternalService, session: WebSession): List<ExternalGameRef>? =
@@ -386,7 +407,11 @@ class LinkedServicesViewModel(
             val selected = if (connector.wishlistWrite == null) {
                 emptyList()
             } else {
-                session.confirmPush(pending.toPush)
+                val reviewed = when (service) {
+                    ExternalService.BACKLOGGERY -> markPresent(connector, session, pending.toPush)
+                    else -> pending.toPush
+                }
+                session.confirmPush(reviewed)
             }
             val (pushed, missed) = when {
                 selected.isEmpty() -> 0 to emptyList()
