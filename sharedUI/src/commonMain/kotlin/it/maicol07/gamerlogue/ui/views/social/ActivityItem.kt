@@ -39,6 +39,7 @@ import gamerlogue.sharedui.generated.resources.badge__platforms_5
 import gamerlogue.sharedui.generated.resources.badge__reviews_1
 import gamerlogue.sharedui.generated.resources.badge__reviews_10
 import gamerlogue.sharedui.generated.resources.badge__reviews_50
+import it.maicol07.gamerlogue.core.PagedState
 import it.maicol07.gamerlogue.data.Activity
 import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.extensions.actorId
@@ -62,54 +63,72 @@ import org.jetbrains.compose.resources.stringResource
 private val ActivityCoverWidth = 40.dp
 private val ActivityCoverHeight = 53.dp
 
-/**
- * One activity: who did what, when, with the game's cover when there is one. Returns nothing for a
- * verb this version doesn't know, so a newer server can add verbs without breaking the feed.
- */
+/** The activities whose verb this version knows, paired with it, so a newer server can add verbs without breaking lists. */
+fun List<Activity>.withKnownVerbs(): List<Pair<Activity, ActivityVerb>> =
+    mapNotNull { activity -> ActivityVerb.of(activity.verb)?.let { activity to it } }
+
+/** Loaded, nothing to show: like [PagedState.isEmpty], but a page of only unknown verbs counts as nothing. */
+val PagedState<Activity>.isEmptyOfKnownVerbs: Boolean get() = endReached && !failed && items.withKnownVerbs().isEmpty()
+
+/** One activity: who did what, when, with the game's cover when there is one. Clickable only when it has a target. */
 @Composable
 fun ActivityItem(
     activity: Activity,
+    verb: ActivityVerb,
     game: Game?,
     onNavigate: (NavKey) -> Unit,
     index: Int,
     count: Int,
     modifier: Modifier = Modifier,
 ) {
-    val verb = ActivityVerb.of(activity.verb) ?: return
     val user = activity.user
     val target = activity.target(verb, game)
-    SegmentedListItem(
-        onClick = { target?.let(onNavigate) },
-        modifier = modifier.fillMaxWidth(),
-        shapes = ListItemDefaults.expressiveSegmentedShapes(index, count),
-        colors = ListItemDefaults.expressiveSegmentedColors(),
-        leadingContent = {
-            UserAvatar(
-                user,
-                40.dp,
-                Modifier.clip(CircleShape).let { m ->
-                    activity.actorId?.let { id -> m.clickable { onNavigate(RootNavTree.UserProfile(id)) } } ?: m
-                }
+    val shapes = ListItemDefaults.expressiveSegmentedShapes(index, count)
+    val colors = ListItemDefaults.expressiveSegmentedColors()
+    val leadingContent = @Composable {
+        UserAvatar(
+            user,
+            40.dp,
+            Modifier.clip(CircleShape).let { m ->
+                activity.actorId?.let { id -> m.clickable { onNavigate(RootNavTree.UserProfile(id)) } } ?: m
+            }
+        )
+    }
+    val supportingContent = displayTimestamp(activity.createdAt)?.let {
+        @Composable { Text(it, style = MaterialTheme.typography.labelSmall) }
+    }
+    val trailingContent = game?.let {
+        @Composable {
+            it.CoverImage(
+                Modifier.clip(MaterialTheme.shapes.small),
+                sizeModifier = Modifier.width(ActivityCoverWidth).height(ActivityCoverHeight)
             )
-        },
-        supportingContent = displayTimestamp(activity.createdAt)?.let {
-            {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        },
-        trailingContent = game?.let {
-            {
-                it.CoverImage(
-                    Modifier.clip(MaterialTheme.shapes.small),
-                    sizeModifier = Modifier.width(ActivityCoverWidth).height(ActivityCoverHeight)
-                )
-            }
-        },
-    ) {
+        }
+    }
+    val content = @Composable {
         Text(activity.describe(verb, user?.displayName.orEmpty(), game), style = MaterialTheme.typography.bodyMedium)
+    }
+    if (target == null) {
+        SegmentedListItem(
+            shapes = shapes,
+            modifier = modifier.fillMaxWidth(),
+            colors = colors,
+            leadingContent = leadingContent,
+            supportingContent = supportingContent,
+            trailingContent = trailingContent,
+            content = content,
+        )
+    } else {
+        SegmentedListItem(
+            onClick = { onNavigate(target) },
+            shapes = shapes,
+            modifier = modifier.fillMaxWidth(),
+            colors = colors,
+            leadingContent = leadingContent,
+            supportingContent = supportingContent,
+            trailingContent = trailingContent,
+            content = content,
+        )
     }
 }
 

@@ -9,12 +9,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemDefaults.SegmentedGap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import at.released.igdbclient.model.Game
@@ -27,7 +28,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.GroupW500Rounded
 import it.maicol07.gamerlogue.core.PagedState
 import it.maicol07.gamerlogue.data.Activity
-import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.extensions.gameId
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
@@ -59,7 +59,7 @@ fun ActivityFeedView() {
             Box(Modifier.fillMaxSize()) {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                     activityItems(activities, games, navigationState.backStack::add)
-                    if (activities.isEmpty) item { FeedEmptyState() }
+                    if (activities.isEmptyOfKnownVerbs) item { FeedEmptyState() }
                 }
                 AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
             }
@@ -69,15 +69,19 @@ fun ActivityFeedView() {
 
 /** The loaded activities, followed by a loading row while the next page arrives. */
 fun LazyListScope.activityItems(state: PagedState<Activity>, games: Map<Int, Game>, onNavigate: (NavKey) -> Unit) {
-    val activities = state.items.filter { ActivityVerb.of(it.verb) != null }
-    itemsIndexed(activities, key = { _, activity -> "activity-${activity.id}" }) { index, activity ->
+    val activities = state.items.withKnownVerbs()
+    // While more pages may come, the loaded last row isn't the last segment yet.
+    val count = if (state.endReached || state.failed) activities.size else activities.size + 1
+    itemsIndexed(activities, key = { _, (activity, _) -> "activity-${activity.id}" }) { index, (activity, verb) ->
         ActivityItem(
             activity,
+            verb,
             activity.gameId?.let(games::get),
             onNavigate,
             index,
-            activities.size,
-            Modifier.padding(horizontal = Dimens.ScreenPadding).padding(bottom = ListItemDefaults.SegmentedGap),
+            count,
+            Modifier.padding(horizontal = Dimens.ScreenPadding)
+                .padding(bottom = if (index < count - 1) SegmentedGap else 0.dp),
         )
     }
     loadingItem(state.loading)

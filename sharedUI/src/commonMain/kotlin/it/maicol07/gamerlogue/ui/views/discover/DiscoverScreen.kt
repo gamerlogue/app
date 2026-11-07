@@ -60,7 +60,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Gro
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.PagedState
 import it.maicol07.gamerlogue.data.Activity
-import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.extensions.gameId
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
@@ -76,6 +75,8 @@ import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.events.EventsViewModel
 import it.maicol07.gamerlogue.ui.views.social.ActivityItem
 import it.maicol07.gamerlogue.ui.views.social.ActivityViewModel
+import it.maicol07.gamerlogue.ui.views.social.isEmptyOfKnownVerbs
+import it.maicol07.gamerlogue.ui.views.social.withKnownVerbs
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -218,11 +219,11 @@ private fun LazyListScope.feedSection(
                 contentAlignment = Alignment.Center,
             ) { LoadingIndicator() }
 
-            state.items.isEmpty() -> SectionMessage(Res.string.social__feed_empty)
+            state.isEmptyOfKnownVerbs -> SectionMessage(Res.string.social__feed_empty)
             else -> SegmentedListLayout(Modifier.padding(horizontal = Dimens.ScreenPadding)) {
-                val activities = state.items.filter { ActivityVerb.of(it.verb) != null }.take(FEED_PREVIEW_SIZE)
-                activities.forEachIndexed { index, activity ->
-                    ActivityItem(activity, activity.gameId?.let(games::get), onNavigate, index, activities.size)
+                val activities = state.items.withKnownVerbs().take(FEED_PREVIEW_SIZE)
+                activities.forEachIndexed { index, (activity, verb) ->
+                    ActivityItem(activity, verb, activity.gameId?.let(games::get), onNavigate, index, activities.size)
                 }
             }
         }

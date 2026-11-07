@@ -46,6 +46,7 @@ import it.maicol07.gamerlogue.ui.components.social.ReviewCard
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.social.activityItems
+import it.maicol07.gamerlogue.ui.views.social.isEmptyOfKnownVerbs
 import it.maicol07.gamerlogue.ui.views.userlist.UserListForm
 import it.maicol07.gamerlogue.ui.views.userlist.UserListFormDialog
 import org.jetbrains.compose.resources.pluralStringResource
@@ -53,7 +54,7 @@ import org.jetbrains.compose.resources.stringResource
 
 internal fun LazyListScope.activityTab(state: PagedState<Activity>, games: Map<Int, Game>, onNavigate: (NavKey) -> Unit) {
     activityItems(state, games, onNavigate)
-    if (state.isEmpty) item { ProfileMessage(Icons.HistoryW500Rounded, Res.string.profile__activity_empty, null) }
+    if (state.isEmptyOfKnownVerbs) item { ProfileMessage(Icons.HistoryW500Rounded, Res.string.profile__activity_empty, null) }
 }
 
 /** [userId]'s reviews, each opening its page. */
@@ -69,9 +70,9 @@ internal fun LazyListScope.reviewsTab(
             games[entry.gameId],
             onClick = { onNavigate(RootNavTree.ReviewDetail(entry.id.orEmpty(), userId)) },
             index = index,
-            count = state.items.size,
-            modifier = Modifier.padding(horizontal = Dimens.ScreenPadding).padding(bottom = SegmentedGap)
-
+            count = if (state.endReached || state.failed) state.items.size else state.items.size + 1,
+            modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)
+                .padding(bottom = if (index < state.items.lastIndex) SegmentedGap else 0.dp),
         )
     }
     loadingItem(state.loading)
