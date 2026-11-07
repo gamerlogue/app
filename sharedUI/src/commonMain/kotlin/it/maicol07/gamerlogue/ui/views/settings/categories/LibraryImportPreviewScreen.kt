@@ -80,7 +80,6 @@ import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
-import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.gamerlogue.ui.views.list.GamePick
 import it.maicol07.gamerlogue.ui.views.list.GamePickEffect
 import org.jetbrains.compose.resources.StringResource
@@ -191,7 +190,7 @@ private fun LibraryImportPreviewContent(
     val toReview = indexedRows.filter { !it.value.alreadyPresent && !it.value.confident }
     val alreadyPresent = indexedRows.filter { it.value.alreadyPresent }
 
-    val expandedStatuses = remember { mutableStateMapOf<GameLibraryStatus, Boolean>() }
+    val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
     val selectedCount = uiState.rows.count { it.included }
     val allSelected = toImport.isNotEmpty() && selectedCount == toImport.size
 
@@ -238,8 +237,8 @@ private fun LibraryImportPreviewContent(
             importRows(
                 ImportGroups(toImport, toReview, alreadyPresent, matchedTitle),
                 service,
-                expandedStatuses,
-                onToggleStatus = { expandedStatuses[it] = expandedStatuses[it] != true },
+                expandedSections,
+                onSectionExpanded = { key, expanded -> expandedSections[key] = expanded },
                 onToggle = viewModel::toggleIncluded,
                 onEdit = onEdit,
                 onOpenStore = uriHandler::openURL,

@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__import_group_already_present
@@ -25,7 +26,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Key
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -43,13 +43,14 @@ internal data class ImportGroups(
 
 /**
  * The preview list. Store games come as the three state groups; tracker games carry a status, so they come as
- * one collapsible section per status (Backlog, Playing, …), each listing its rows in the same state order.
+ * one section per status (Backlog, Playing, …), each listing its rows in the same state order. Both kinds of
+ * section collapse; [expanded] holds the ones toggled, by key: state groups start expanded, statuses collapsed.
  */
 internal fun LazyListScope.importRows(
     groups: ImportGroups,
     service: ExternalService,
-    expanded: Map<GameLibraryStatus, Boolean>,
-    onToggleStatus: (GameLibraryStatus) -> Unit,
+    expanded: Map<String, Boolean>,
+    onSectionExpanded: (key: String, expanded: Boolean) -> Unit,
     onToggle: (Int) -> Unit,
     onEdit: (Int) -> Unit,
     onOpenStore: (String) -> Unit,
@@ -60,22 +61,44 @@ internal fun LazyListScope.importRows(
         addAll(groups.alreadyPresent)
     }
     if (all.none { it.value.ref.status != null }) {
-        listOf(
-            groups.matchedTitle to groups.toImport,
-            Res.string.settings__import_group_to_review to groups.toReview,
-            Res.string.settings__import_group_already_present to groups.alreadyPresent,
-        ).forEach { (title, rows) -> importGroup(title, rows, service, onToggle, onEdit, onOpenStore) }
-        return
+        groupSections(groups, service, expanded, onSectionExpanded, onToggle, onEdit, onOpenStore)
+    } else {
+        statusSections(all, service, expanded, onSectionExpanded, onToggle, onEdit, onOpenStore)
     }
-    // Same fallback as the import: a tracker game with no status of ours lands in the backlog.
-    val byStatus = all.groupBy { it.value.ref.status ?: GameLibraryStatus.BACKLOG }
-    GameLibraryStatus.entries.forEach { status ->
-        val rows = byStatus[status] ?: return@forEach
-        statusSection(
-            status = status,
+}
+
+/** The three state groups, each its own section. */
+private fun LazyListScope.groupSections(
+    groups: ImportGroups,
+    service: ExternalService,
+    expanded: Map<String, Boolean>,
+    onSectionExpanded: (key: String, expanded: Boolean) -> Unit,
+    onToggle: (Int) -> Unit,
+    onEdit: (Int) -> Unit,
+    onOpenStore: (String) -> Unit,
+) {
+    listOf(
+        groups.matchedTitle to groups.toImport,
+        Res.string.settings__import_group_to_review to groups.toReview,
+        Res.string.settings__import_group_already_present to groups.alreadyPresent,
+    ).forEach { (title, rows) ->
+        val key = "group-${title.key}"
+        val open = expanded[key] ?: true
+        collapsibleSection(
+            key = key,
             rows = rows,
-            expanded = expanded[status] == true,
-            onToggleSection = { onToggleStatus(status) },
+            expanded = open,
+            header = { shapes, modifier ->
+                SectionHeader(
+                    title = stringResource(title, rows.size),
+                    icon = null,
+                    supporting = null,
+                    expanded = open,
+                    shapes = shapes,
+                    onToggle = { onSectionExpanded(key, !open) },
+                    modifier = modifier,
+                )
+            },
             service = service,
             onToggle = onToggle,
             onEdit = onEdit,
@@ -84,61 +107,64 @@ internal fun LazyListScope.importRows(
     }
 }
 
-/** A titled segmented list for one state group; no-op when empty. */
-private fun LazyListScope.importGroup(
-    titleRes: StringResource,
+/** One section per status, listing its rows in the state order of [all]. */
+private fun LazyListScope.statusSections(
+    all: List<IndexedValue<LibraryImportViewModel.Row>>,
+    service: ExternalService,
+    expanded: Map<String, Boolean>,
+    onSectionExpanded: (key: String, expanded: Boolean) -> Unit,
+    onToggle: (Int) -> Unit,
+    onEdit: (Int) -> Unit,
+    onOpenStore: (String) -> Unit,
+) {
+    // Same fallback as the import: a tracker game with no status of ours lands in the backlog.
+    val byStatus = all.groupBy { it.value.ref.status ?: GameLibraryStatus.BACKLOG }
+    GameLibraryStatus.entries.forEach { status ->
+        val rows = byStatus[status] ?: return@forEach
+        val open = expanded[status.name] == true
+        val selected = rows.count { it.value.included }
+        val plural = Res.plurals.settings__import_selected
+        collapsibleSection(
+            key = "status-${status.name}",
+            rows = rows,
+            expanded = open,
+            header = { shapes, modifier ->
+                SectionHeader(
+                    title = stringResource(status.displayName),
+                    icon = status.icon,
+                    supporting = pluralStringResource(plural, selected, selected, rows.size),
+                    expanded = open,
+                    shapes = shapes,
+                    onToggle = { onSectionExpanded(status.name, !open) },
+                    modifier = modifier,
+                )
+            },
+            service = service,
+            onToggle = onToggle,
+            onEdit = onEdit,
+            onOpenStore = onOpenStore,
+        )
+    }
+}
+
+/**
+ * One collapsible section: a header segment that expands/collapses it, with its rows segmented below it; no-op
+ * when there are no rows. [header] draws the header with the shapes and item modifier it is given.
+ */
+private fun LazyListScope.collapsibleSection(
+    key: String,
     rows: List<IndexedValue<LibraryImportViewModel.Row>>,
+    expanded: Boolean,
+    header: @Composable (shapes: ListItemShapes, modifier: Modifier) -> Unit,
     service: ExternalService,
     onToggle: (Int) -> Unit,
     onEdit: (Int) -> Unit,
     onOpenStore: (String) -> Unit,
 ) {
     if (rows.isEmpty()) return
-    item(key = "group-${titleRes.key}") { SettingsGroupHeader(stringResource(titleRes, rows.size)) }
-    itemsIndexed(rows, key = { _, indexed -> "row-${indexed.index}" }) { indexInGroup, (index, row) ->
-        Box(
-            Modifier.animateItem(
-                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-            ),
-        ) {
-            ImportRow(
-                row = row,
-                indexInGroup = indexInGroup,
-                groupCount = rows.size,
-                selectable = row.isSelectable,
-                service = service,
-                onToggle = { onToggle(index) },
-                onEdit = { onEdit(index) },
-                onOpenStore = onOpenStore,
-            )
-        }
-    }
-}
-
-/** One status: a header that expands/collapses the section, with its rows segmented below it. */
-private fun LazyListScope.statusSection(
-    status: GameLibraryStatus,
-    rows: List<IndexedValue<LibraryImportViewModel.Row>>,
-    expanded: Boolean,
-    onToggleSection: () -> Unit,
-    service: ExternalService,
-    onToggle: (Int) -> Unit,
-    onEdit: (Int) -> Unit,
-    onOpenStore: (String) -> Unit,
-) {
     val count = if (expanded) rows.size + 1 else 1
-    item(key = "status-${status.name}") {
-        StatusHeader(
-            status = status,
-            selected = rows.count { it.value.included },
-            total = rows.size,
-            expanded = expanded,
-            shapes = ListItemDefaults.segmentedShapes(index = 0, count = count),
-            onToggle = onToggleSection,
-            modifier = Modifier.animateItem().padding(top = 8.dp),
-        )
+    item(key = key) {
+        header(ListItemDefaults.segmentedShapes(index = 0, count = count), Modifier.animateItem().padding(top = 8.dp))
     }
     if (!expanded) return
     itemsIndexed(rows, key = { _, indexed -> "row-${indexed.index}" }) { i, (index, row) ->
@@ -164,36 +190,38 @@ private fun LazyListScope.statusSection(
 }
 
 @Composable
-private fun StatusHeader(
-    status: GameLibraryStatus,
-    selected: Int,
-    total: Int,
+private fun SectionHeader(
+    title: String,
+    icon: ImageVector?,
+    supporting: String?,
     expanded: Boolean,
     shapes: ListItemShapes,
     onToggle: () -> Unit,
     modifier: Modifier,
 ) {
-    val arrowTurn by animateFloatAsState(
-        if (expanded) HALF_TURN_DEGREES else 0f,
-        MaterialTheme.motionScheme.defaultSpatialSpec(),
-    )
     SegmentedListItem(
         onClick = onToggle,
         shapes = shapes,
         colors = ListItemDefaults.expressiveSegmentedColors(),
         modifier = modifier,
-        leadingContent = { Icon(status.icon, contentDescription = null) },
-        supportingContent = {
-            Text(pluralStringResource(Res.plurals.settings__import_selected, selected, selected, total))
-        },
-        trailingContent = {
-            Icon(
-                Icons.KeyboardArrowDownW500Rounded,
-                contentDescription = null,
-                modifier = Modifier.graphicsLayer { rotationZ = arrowTurn },
-            )
-        },
-    ) { Text(stringResource(status.displayName), style = MaterialTheme.typography.titleMedium) }
+        leadingContent = icon?.let { { Icon(it, contentDescription = null) } },
+        supportingContent = supporting?.let { { Text(it) } },
+        trailingContent = { ExpandArrow(expanded, Modifier) },
+    ) { Text(title, style = MaterialTheme.typography.titleMedium) }
+}
+
+/** A section's arrow: down when collapsed, turning up as it expands. */
+@Composable
+private fun ExpandArrow(expanded: Boolean, modifier: Modifier) {
+    val arrowTurn by animateFloatAsState(
+        if (expanded) HALF_TURN_DEGREES else 0f,
+        MaterialTheme.motionScheme.defaultSpatialSpec(),
+    )
+    Icon(
+        Icons.KeyboardArrowDownW500Rounded,
+        contentDescription = null,
+        modifier = modifier.graphicsLayer { rotationZ = arrowTurn },
+    )
 }
 
 /** Only confident matches of games not already in the library can be selected. */
