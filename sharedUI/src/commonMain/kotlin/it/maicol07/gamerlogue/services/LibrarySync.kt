@@ -208,7 +208,9 @@ class LibrarySync(
         val onWishlistIds =
             matchedWishlistIds ?: matcher.match(connector, storeWishlist).mapNotNull { it.game?.baseGameId }.toSet()
 
-        val urls = matcher.urlsForGames(connector, backlogIds)
+        // Name, IGDB-id and full-game writes never open a store page: looking the pages up is wasted requests.
+        val needsUrls = connector.wishlistWrite?.needsStorePage == true
+        val urls = if (needsUrls) matcher.urlsForGames(connector, backlogIds) else emptyMap()
         val games = matcher.gamesByIds(backlogIds).associateBy { it.id.toInt() }
         val platforms = entries.associate { it.gameId to runCatching { it.platformsIds }.getOrDefault(emptyList()) }
         val family = connector.platformFamily
@@ -256,7 +258,7 @@ class LibrarySync(
      * @throws LibraryLoadException when the library could not be loaded; an empty result is a real empty library.
      */
     suspend fun allEntries(): List<LibraryEntry> {
-        val entries = exceptionReporter.safeRequest { LibraryEntry.currentUserEntries().allPages() }.get()
+        val entries = exceptionReporter.safeRequest { allPages { LibraryEntry.currentUserEntries() } }.get()
             ?: throw LibraryLoadException("The library could not be loaded")
         val parents = matcher.editionParents(entries.map { it.gameId })
         entries.filter { it.gameId in parents }.forEach { entry ->

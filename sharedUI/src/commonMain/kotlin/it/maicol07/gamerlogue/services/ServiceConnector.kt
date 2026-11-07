@@ -109,6 +109,9 @@ sealed interface WishlistWrite {
 
     /** A free-text tracker needs the game's name and platforms rather than a store URL. */
     data class ByGame(val step: (games: List<LibrarySync.OutgoingGame>) -> WebStep) : WishlistWrite
+
+    /** Whether writes reach a game through its store page, so pushing needs each game's store URL. */
+    val needsStorePage: Boolean get() = this is Batch || this is PerGame || this is PerGameResolved
 }
 
 /** Web read delivering a `[{uid,name}, …]` list (owned games / wishlist). */

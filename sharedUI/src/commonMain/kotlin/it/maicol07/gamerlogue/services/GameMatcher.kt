@@ -314,7 +314,8 @@ class GameMatcher(
     suspend fun gamesByIds(ids: List<Int>): List<Game> {
         if (ids.isEmpty()) return emptyList()
         val games = mutableListOf<Game>()
-        ids.distinct().chunked(UID_CHUNK).forEach { chunk ->
+        // One row per id, so a request can take IGDB's whole page: the proxy allows few requests a minute.
+        ids.distinct().chunked(IGDB_MAX_LIMIT).forEach { chunk ->
             igdbCall("games by-id lookup failed") {
                 igdb.getGames {
                     fields(

@@ -6,6 +6,9 @@ import it.maicol07.spraypaintkt.JsonApiException
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt.Scope
 import it.maicol07.spraypaintkt.interfaces.HttpClientResponse
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
@@ -57,6 +60,23 @@ suspend fun <R : Resource> Scope<R>.allPages(): List<R> {
     val out = mutableListOf<R>()
     forEachPage { out += it }
     return out
+}
+
+private const val ParallelPages = 4
+
+/**
+ * Every page of the collection [scope] builds. Once the first page's `meta.totalItems` tells how many pages there
+ * are, the rest are fetched [ParallelPages] at a time instead of one after the other. [scope] is called once per
+ * page: a [Scope] is mutable (the page number is a param set on it), so requests in flight can't share one.
+ */
+suspend fun <R : Resource> allPages(scope: () -> Scope<R>): List<R> = coroutineScope {
+    val first = scope().pageNumber(1).all()
+    val total = first.totalItems ?: return@coroutineScope scope().allPages()
+    val size = first.data.size.takeIf { it > 0 } ?: return@coroutineScope emptyList()
+    val rest = (2..minOf((total + size - 1) / size, MaxPages)).chunked(ParallelPages).flatMap { pages ->
+        pages.map { async { scope().pageNumber(it).all().data } }.awaitAll().flatten()
+    }
+    (first.data + rest).distinctBy { it.id }
 }
 
 /** One page of a backend collection, with the total the server reported. */

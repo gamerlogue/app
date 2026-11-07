@@ -83,7 +83,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Hou
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceCategory
-import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.ui.components.BatchProgress
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.StepProgress
@@ -299,9 +298,7 @@ fun ServiceSyncView(
                     games = pending,
                     requiresPlatform = service == ExternalService.BACKLOGGERY,
                     // Name, IGDB-id and full-game writes do not need a store page.
-                    matchesByName = connector.wishlistWrite.let {
-                        it is WishlistWrite.SearchByName || it is WishlistWrite.ById || it is WishlistWrite.ByGame
-                    },
+                    matchesByName = connector.wishlistWrite?.needsStorePage == false,
                     onConfirm = session::resolveConfirm,
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
