@@ -13,6 +13,8 @@ import it.maicol07.gamerlogue.services.ScriptWriteException
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.ServiceProfile
 import it.maicol07.gamerlogue.services.ServiceReadException
+import it.maicol07.gamerlogue.services.SkipReason
+import it.maicol07.gamerlogue.services.SkippedWrite
 import it.maicol07.gamerlogue.services.StatusChange
 import it.maicol07.gamerlogue.services.SyncSide
 import it.maicol07.gamerlogue.services.TrackerSync
@@ -84,15 +86,26 @@ class LinkedServicesViewModel(
 
     /** How the last WebView flow ended, for the sync screen's closing message. */
     sealed interface SyncOutcome {
-        /** [added] entries created in Gamerlogue, [pushed] backlog games sent to the store wishlist. */
-        data class WishlistSynced(val added: Int, val pushed: Int) : SyncOutcome {
+        /**
+         * [added] entries created in Gamerlogue, [pushed] backlog games sent to the store wishlist, [skipped]
+         * selected games the store didn't take.
+         */
+        data class WishlistSynced(val added: Int, val pushed: Int, val skipped: List<SkippedWrite>) : SyncOutcome {
             /** False when the two libraries already agreed — nothing worth stopping to report. */
-            val changedAnything: Boolean get() = added > 0 || pushed > 0
+            val changedAnything: Boolean get() = added > 0 || pushed > 0 || skipped.isNotEmpty()
         }
 
-        /** [pulled] games updated from the tracker, [pushed] written to it, [conflicts] left for a manual sync. */
-        data class LibrarySynced(val pulled: Int, val pushed: Int, val conflicts: Int) : SyncOutcome {
-            val changedAnything: Boolean get() = pulled > 0 || pushed > 0 || conflicts > 0
+        /**
+         * [pulled] games updated from the tracker, [pushed] written to it, [skipped] selected writes the tracker
+         * didn't take, [conflicts] left for a manual sync.
+         */
+        data class LibrarySynced(
+            val pulled: Int,
+            val pushed: Int,
+            val skipped: List<SkippedWrite>,
+            val conflicts: Int,
+        ) : SyncOutcome {
+            val changedAnything: Boolean get() = pulled > 0 || pushed > 0 || skipped.isNotEmpty() || conflicts > 0
         }
 
         data object Failed : SyncOutcome
@@ -246,9 +259,9 @@ class LinkedServicesViewModel(
                     ExternalService.BACKLOGGERY -> session.confirmPush(result.toPush)
                     else -> result.toPush
                 }
-                val pushed = pushWishlist(connector, session, selected)
+                val (pushed, missed) = pushWishlist(connector, session, selected)
                 setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-                update { copy(outcome = SyncOutcome.WishlistSynced(result.added, pushed)) }
+                update { copy(outcome = SyncOutcome.WishlistSynced(result.added, pushed, session.leftOut(missed))) }
             }
         } finally {
             setBusy(service, false)
@@ -274,10 +287,11 @@ class LinkedServicesViewModel(
                 trackerSync.record(service, plan.agreed)
                 val pulled = trackerSync.pull(service, plan.changes.filter { it.winner == SyncSide.REMOTE }, entries, remote)
                 val outgoing = trackerSync.outgoing(plan.changes.filter { it.winner == SyncSide.LOCAL }, entries)
-                val pushed = writeStatuses(service, session, write, outgoing)
+                val (pushed, missed) = writeStatuses(service, session, write, outgoing)
                 val conflicts = plan.changes.count { it.winner == null }
                 setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-                update { copy(outcome = SyncOutcome.LibrarySynced(pulled, pushed, conflicts)) }
+                val outcome = SyncOutcome.LibrarySynced(pulled, pushed, session.leftOut(missed), conflicts)
+                update { copy(outcome = outcome) }
             }
         } finally {
             setBusy(service, false)
@@ -294,28 +308,46 @@ class LinkedServicesViewModel(
         val write = connector.statusWrite ?: return
         abortOnFailure("Library push", service) {
             session.awaitLogin(connector)
-            val pushed = writeStatuses(service, session, write, trackerSync.pendingWrites[service].orEmpty())
+            val (pushed, missed) = writeStatuses(service, session, write, trackerSync.pendingWrites[service].orEmpty())
             trackerSync.pendingWrites.remove(service)
             setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-            update { copy(outcome = SyncOutcome.LibrarySynced(pulled = 0, pushed = pushed, conflicts = 0)) }
+            val outcome = SyncOutcome.LibrarySynced(pulled = 0, pushed, session.leftOut(missed), conflicts = 0)
+            update { copy(outcome = outcome) }
         }
     }
 
+    /** Writes the (reviewed) [changes] and returns how many were written and the ones the tracker didn't confirm. */
     private suspend fun writeStatuses(
         service: ExternalService,
         session: WebSession,
         write: (List<StatusChange>) -> WebStep,
         changes: List<StatusChange>,
-    ): Int {
-
+    ): Pair<Int, List<String>> {
         val reviewed = if (service == ExternalService.BACKLOGGERY) session.confirmLibraryAdditions(changes) else changes
-        return session.writeBatches(reviewed, write) { batch, written ->
+        val missed = mutableListOf<String>()
+        val written = session.writeBatches(reviewed, write) { batch, written ->
+            missed += unconfirmed(batch, written) { listOfNotNull(it.gameId.toString(), it.uid, it.name) }.map { it.name }
             trackerSync.recordWritten(service, batch, written)
             // Drop what's written from a pending reviewed plan, so a retry after a failure doesn't resend it.
             val done = written.mapNotNull { it.gameId }.toSet()
             trackerSync.pendingWrites[service]?.let { pending -> trackerSync.pendingWrites[service] = pending.filterNot { it.gameId in done } }
         }
+        return written to missed
     }
+
+    /** The [missed] games of this flow's write: with the reason its script reported, else just unconfirmed. */
+    private fun WebSession.leftOut(missed: List<String>): List<SkippedWrite> {
+        val explained = skips.map { it.name }.toSet()
+        return skips + missed.filterNot { it in explained }.map { SkippedWrite(it, SkipReason.UNCONFIRMED) }
+    }
+
+    /** The [games] none of the [written] refs confirms, matched on any of their [keys] (IGDB id, store uid, name). */
+    private fun <T> unconfirmed(games: List<T>, written: List<ExternalGameRef>, keys: (T) -> List<String>): List<T> {
+        val confirmed = written.flatMap { listOfNotNull(it.gameId?.toString(), it.uid, it.name) }
+            .filter { it.isNotBlank() }.toSet()
+        return games.filterNot { game -> keys(game).any { it in confirmed } }
+    }
+
 
     /** Reads owned games for the import preview; matching/persisting happen on the preview screen. */
     suspend fun runReadOwned(service: ExternalService, session: WebSession): List<ExternalGameRef>? =
@@ -356,9 +388,12 @@ class LinkedServicesViewModel(
             } else {
                 session.confirmPush(pending.toPush)
             }
-            val pushed = if (selected.isNotEmpty()) pushWishlist(connector, session, selected) else 0
+            val (pushed, missed) = when {
+                selected.isEmpty() -> 0 to emptyList()
+                else -> pushWishlist(connector, session, selected)
+            }
             librarySync.pendingWishlistImports.remove(service)
-            update { copy(outcome = SyncOutcome.WishlistSynced(pending.added, pushed)) }
+            update { copy(outcome = SyncOutcome.WishlistSynced(pending.added, pushed, session.leftOut(missed))) }
         }
     }
 
@@ -366,45 +401,70 @@ class LinkedServicesViewModel(
     private suspend fun wishlistRefs(connector: ServiceConnector, session: WebSession): List<ExternalGameRef> =
         connector.wishlist?.let { session.read(it, SyncPhase.READING) }.orEmpty()
 
-    /** Pushes [games] to the store wishlist and returns how many the store confirmed (by the write results). */
-    // One linear branch per WishlistWrite variant; splitting it would only scatter the dispatch.
-    @Suppress("CyclomaticComplexMethod")
+    /**
+     * Pushes [games] to the store wishlist and returns how many the store confirmed (by the write results) and
+     * the names of those it could push it didn't confirm.
+     */
     private suspend fun pushWishlist(
         connector: ServiceConnector,
         session: WebSession,
         games: List<LibrarySync.OutgoingGame>,
-    ): Int {
-        val write = connector.wishlistWrite ?: return 0
+    ): Pair<Int, List<String>> {
+        val write = connector.wishlistWrite ?: return 0 to emptyList()
         // Only games on this platform and not already wishlisted; URL-based strategies also need a store page.
         val onPlatform = games.filter { it.onPlatform && !it.alreadyOnWishlist }
         val withStorePage = onPlatform.filter { it.storeUrl != null }
+        val missed = mutableListOf<LibrarySync.OutgoingGame>()
+        val pushed = writeWishlist(write, session, onPlatform, withStorePage, missed)
+        return pushed to missed.map { it.name }
+    }
+
+    // One linear branch per WishlistWrite variant; splitting it would only scatter the dispatch.
+    @Suppress("CyclomaticComplexMethod")
+    private suspend fun writeWishlist(
+        write: WishlistWrite,
+        session: WebSession,
+        onPlatform: List<LibrarySync.OutgoingGame>,
+        withStorePage: List<LibrarySync.OutgoingGame>,
+        missed: MutableList<LibrarySync.OutgoingGame>,
+    ): Int {
+        val record = { batch: List<LibrarySync.OutgoingGame>, written: List<ExternalGameRef> ->
+            missed += unconfirmed(batch, written) { listOf(it.gameId.toString(), it.uid, it.name) }
+        }
         return when (write) {
             is WishlistWrite.Batch ->
                 if (withStorePage.isEmpty()) {
                     0
                 } else {
-                    session.run(write.step(withStorePage.map { ExternalGameRef(it.uid, it.name) })).size
+                    session.run(write.step(withStorePage.map { ExternalGameRef(it.uid, it.name) }))
+                        .also { record(withStorePage, it) }.size
                 }
             // Per-game write: open each store page and click its add-to-wishlist button (e.g. PSN).
-            is WishlistWrite.PerGame ->
-                session.writeEach(withStorePage) { g -> write.step(g.storeUrl!!)?.let { session.run(it).size } ?: 0 }
+            is WishlistWrite.PerGame -> session.writeEach(withStorePage, missed) { g ->
+                write.step(g.storeUrl!!)?.let { session.run(it).size } ?: 0
+            }
             // Resolve the real product URL from an intermediate page first, then act on it (Nintendo).
-            is WishlistWrite.PerGameResolved -> session.writeEach(withStorePage) { g ->
+            is WishlistWrite.PerGameResolved -> session.writeEach(withStorePage, missed) { g ->
                 val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
                 if (resolved.isNullOrBlank()) 0 else write.step(resolved)?.let { session.run(it).size } ?: 0
             }
             // Search-driven write: no store URL needed, the game's name drives the search (Ubisoft).
-            is WishlistWrite.SearchByName -> session.writeEach(onPlatform) { g -> session.run(write.step(g.name)).size }
+            is WishlistWrite.SearchByName -> session.writeEach(onPlatform, missed) { g ->
+                session.run(write.step(g.name)).size
+            }
             // IGDB-id write: the tracker's game ids are IGDB ids, so no store page is needed (Backloggd).
-            is WishlistWrite.ById -> {
-                session.writeBatches(onPlatform, { batch -> write.step(batch.map { it.gameId }) }) { _, _ -> }
-            }
-
-            is WishlistWrite.ByGame -> {
-                session.writeBatches(onPlatform, write.step) { _, _ -> }
-            }
+            is WishlistWrite.ById ->
+                session.writeBatches(onPlatform, { batch -> write.step(batch.map { it.gameId }) }, record)
+            is WishlistWrite.ByGame -> session.writeBatches(onPlatform, write.step, record)
         }
     }
+
+    /** [writeEach] that adds to [missed] every game whose write confirmed nothing. */
+    private suspend fun WebSession.writeEach(
+        games: List<LibrarySync.OutgoingGame>,
+        missed: MutableList<LibrarySync.OutgoingGame>,
+        action: suspend (LibrarySync.OutgoingGame) -> Int,
+    ): Int = writeEach(games) { g -> action(g).also { if (it == 0) missed += g } }
 
     private fun setBusy(service: ExternalService, busy: Boolean) = update {
         copy(services = services + (service to (services[service] ?: ServiceState()).copy(busy = busy)))

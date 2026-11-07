@@ -356,6 +356,19 @@
         <item quantity="one">%1$d conflitto da risolvere con una sincronizzazione manuale</item>
         <item quantity="other">%1$d conflitti da risolvere con una sincronizzazione manuale</item>
     </plurals>
+    <plurals name="settings__service_sync_skipped">
+        <item quantity="one">%1$d gioco selezionato non è stato scritto</item>
+        <item quantity="other">%1$d giochi selezionati non sono stati scritti</item>
+    </plurals>
+    <string name="settings__service_sync_skipped_list">Non scritti</string>
+    <string name="settings__service_skip_already_present">Già nella tua libreria sul servizio</string>
+    <string name="settings__service_skip_no_platform">Nessuna piattaforma corrispondente sul servizio</string>
+    <string name="settings__service_skip_platform_rejected">Il servizio ha rifiutato di aggiungere la piattaforma</string>
+    <string name="settings__service_skip_rejected">Il servizio ha rifiutato la scrittura</string>
+    <string name="settings__service_skip_notes_too_long">Note troppo lunghe per aggiungere il marcatore di Gamerlogue</string>
+    <string name="settings__service_skip_unreadable">Impossibile leggere la voce sul servizio</string>
+    <string name="settings__service_skip_unconfirmed">Il servizio non l’ha confermato</string>
+    <string name="settings__service_technical_details">Dettagli tecnici</string>
     <string name="settings__service_connect">Collega</string>
     <string name="settings__service_disconnect">Scollega</string>
     <string name="settings__service_refresh_profile">Aggiorna profilo</string>

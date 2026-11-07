@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
@@ -20,24 +23,34 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,12 +58,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.keepScreenOn
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_close
+import gamerlogue.sharedui.generated.resources.exception__details_copy
 import gamerlogue.sharedui.generated.resources.settings__library_push_title
 import gamerlogue.sharedui.generated.resources.settings__library_sync_conflicts_left
 import gamerlogue.sharedui.generated.resources.settings__library_sync_pulled
@@ -61,10 +77,20 @@ import gamerlogue.sharedui.generated.resources.settings__service_progress_count
 import gamerlogue.sharedui.generated.resources.settings__service_progress_of
 import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
 import gamerlogue.sharedui.generated.resources.settings__service_resync_ids_result
+import gamerlogue.sharedui.generated.resources.settings__service_skip_already_present
+import gamerlogue.sharedui.generated.resources.settings__service_skip_no_platform
+import gamerlogue.sharedui.generated.resources.settings__service_skip_notes_too_long
+import gamerlogue.sharedui.generated.resources.settings__service_skip_platform_rejected
+import gamerlogue.sharedui.generated.resources.settings__service_skip_rejected
+import gamerlogue.sharedui.generated.resources.settings__service_skip_unconfirmed
+import gamerlogue.sharedui.generated.resources.settings__service_skip_unreadable
 import gamerlogue.sharedui.generated.resources.settings__service_sync_added
 import gamerlogue.sharedui.generated.resources.settings__service_sync_error
 import gamerlogue.sharedui.generated.resources.settings__service_sync_pushed
+import gamerlogue.sharedui.generated.resources.settings__service_sync_skipped
+import gamerlogue.sharedui.generated.resources.settings__service_sync_skipped_list
 import gamerlogue.sharedui.generated.resources.settings__service_sync_summary
+import gamerlogue.sharedui.generated.resources.settings__service_technical_details
 import gamerlogue.sharedui.generated.resources.settings__service_webview_busy
 import gamerlogue.sharedui.generated.resources.settings__service_working
 import gamerlogue.sharedui.generated.resources.settings__sync_title_connect
@@ -78,12 +104,18 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CodeW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ContentCopyW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DownloadW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
+import it.maicol07.gamerlogue.clipEntryFor
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceCategory
+import it.maicol07.gamerlogue.services.SkipReason
+import it.maicol07.gamerlogue.services.SkippedWrite
 import it.maicol07.gamerlogue.ui.components.BatchProgress
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.StepProgress
@@ -94,6 +126,7 @@ import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -313,28 +346,36 @@ fun ServiceSyncView(
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
                 // Pop straight back to Linked Services unless there is something worth reporting.
-                finished && outcome == LinkedServicesViewModel.SyncOutcome.Failed -> ErrorContent(onFinish)
+                finished && outcome == LinkedServicesViewModel.SyncOutcome.Failed ->
+                    SyncReport(leftOut = emptyList(), session.console) { ErrorContent(onFinish) }
+
                 finished && outcome is LinkedServicesViewModel.SyncOutcome.WishlistSynced &&
-                    outcome.changedAnything -> SyncSummary(
-                    Res.string.settings__service_sync_summary,
-                    outcome.added,
-                    Res.string.settings__service_sync_added,
-                    outcome.pushed,
-                    Res.string.settings__service_sync_pushed,
-                    conflicts = 0,
-                    onFinish,
-                )
+                    outcome.changedAnything -> SyncReport(outcome.skipped, session.console) {
+                    SyncSummary(
+                        Res.string.settings__service_sync_summary,
+                        outcome.added,
+                        Res.string.settings__service_sync_added,
+                        outcome.pushed,
+                        Res.string.settings__service_sync_pushed,
+                        outcome.skipped.size,
+                        conflicts = 0,
+                        onFinish,
+                    )
+                }
 
                 finished && outcome is LinkedServicesViewModel.SyncOutcome.LibrarySynced &&
-                    outcome.changedAnything -> SyncSummary(
-                    Res.string.settings__library_sync_summary,
-                    outcome.pulled,
-                    Res.string.settings__library_sync_pulled,
-                    outcome.pushed,
-                    Res.string.settings__library_sync_pushed,
-                    outcome.conflicts,
-                    onFinish,
-                )
+                    outcome.changedAnything -> SyncReport(outcome.skipped, session.console) {
+                    SyncSummary(
+                        Res.string.settings__library_sync_summary,
+                        outcome.pulled,
+                        Res.string.settings__library_sync_pulled,
+                        outcome.pushed,
+                        Res.string.settings__library_sync_pushed,
+                        outcome.skipped.size,
+                        outcome.conflicts,
+                        onFinish,
+                    )
+                }
 
                 finished && outcome is LinkedServicesViewModel.SyncOutcome.IdsResynced -> StatusMessage(
                     Icons.CheckCircleW500Rounded,
@@ -445,6 +486,123 @@ private fun PhaseStep(phase: SyncPhase, inProgress: Boolean) = Row(
     )
 }
 
+/**
+ * [summary] above two collapsed sections: the selected games a write [leftOut], each with its reason, and the
+ * flow's script [console] for a bug report. With neither, [summary] fills the screen as before.
+ */
+@Composable
+private fun SyncReport(
+    leftOut: List<SkippedWrite>,
+    console: List<String>,
+    summary: @Composable () -> Unit,
+) {
+    val skipped = leftOut.withIndex().toList()
+    var showSkipped by remember { mutableStateOf(false) }
+    var showLog by remember { mutableStateOf(false) }
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+    ) {
+        item(key = "summary") {
+            val bare = skipped.isEmpty() && console.isEmpty()
+            Box(if (bare) Modifier.fillParentMaxSize() else Modifier.padding(vertical = 24.dp)) { summary() }
+        }
+        collapsibleSection(
+            key = "skipped",
+            rows = skipped,
+            rowKey = { "skip-${it.index}" },
+            expanded = showSkipped,
+            header = { shapes, modifier ->
+                SectionHeader(
+                    stringResource(Res.string.settings__service_sync_skipped_list),
+                    Icons.ErrorW500Rounded,
+                    supporting = null,
+                    expanded = showSkipped,
+                    shapes = shapes,
+                    onToggle = { showSkipped = !showSkipped },
+                    modifier = modifier,
+                )
+            },
+        ) { (_, game), position, count ->
+            SegmentedListItem(
+                shapes = ListItemDefaults.segmentedShapes(index = position, count = count),
+                colors = ListItemDefaults.expressiveSegmentedColors(),
+                supportingContent = { Text(stringResource(game.reason.label)) },
+            ) { Text(game.name) }
+        }
+        technicalDetails(console, showLog) { showLog = !showLog }
+    }
+}
+
+/** The flow's script logs as one selectable monospace block, so they can be copied into a bug report. */
+private fun LazyListScope.technicalDetails(console: List<String>, expanded: Boolean, onToggle: () -> Unit) =
+    collapsibleSection(
+        key = "log",
+        rows = listOfNotNull(console.joinToString("\n").ifEmpty { null }),
+        rowKey = { "log-text" },
+        expanded = expanded,
+        header = { shapes, modifier ->
+            SectionHeader(
+                stringResource(Res.string.settings__service_technical_details),
+                Icons.CodeW500Rounded,
+                supporting = null,
+                expanded = expanded,
+                shapes = shapes,
+                onToggle = onToggle,
+                modifier = modifier,
+            )
+        },
+    ) { text, position, count ->
+        Surface(
+            shape = ListItemDefaults.segmentedShapes(index = position, count = count).shape,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Box {
+                SelectionContainer {
+                    Text(
+                        text,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        // Room on the right for the copy button.
+                        modifier = Modifier.fillMaxWidth().padding(16.dp).padding(end = 48.dp),
+                    )
+                }
+                CopyButton(text, Modifier.align(Alignment.TopEnd).padding(8.dp))
+            }
+        }
+    }
+
+/** Copies [text] to the clipboard, like the exception sheet's details. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CopyButton(text: String, modifier: Modifier) = TooltipBox(
+    TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+    { PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) } },
+    rememberTooltipState(),
+    modifier,
+) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    FilledTonalIconButton(
+        onClick = { scope.launch { clipboard.setClipEntry(clipEntryFor(text)) } },
+        shapes = IconButtonDefaults.shapes(),
+    ) {
+        Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))
+    }
+}
+
+private val SkipReason.label: StringResource
+    get() = when (this) {
+        SkipReason.ALREADY_PRESENT -> Res.string.settings__service_skip_already_present
+        SkipReason.NO_PLATFORM -> Res.string.settings__service_skip_no_platform
+        SkipReason.PLATFORM_REJECTED -> Res.string.settings__service_skip_platform_rejected
+        SkipReason.REJECTED -> Res.string.settings__service_skip_rejected
+        SkipReason.NOTES_TOO_LONG -> Res.string.settings__service_skip_notes_too_long
+        SkipReason.UNREADABLE -> Res.string.settings__service_skip_unreadable
+        SkipReason.UNCONFIRMED -> Res.string.settings__service_skip_unconfirmed
+    }
+
 @Composable
 private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
     Icons.ErrorW500Rounded,
@@ -457,8 +615,8 @@ private fun ErrorContent(onFinish: () -> Unit) = StatusMessage(
     }
 }
 
-/** What a wishlist or library sync actually did, shown only when it changed something on either side;
- *  [conflicts] (library sync only) were left for a reviewed sync. */
+/** What a wishlist or library sync actually did, shown only when it changed something on either side or
+ *  [skipped] selected writes; [conflicts] (library sync only) were left for a reviewed sync. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SyncSummary(
@@ -467,6 +625,7 @@ private fun SyncSummary(
     addedLabel: StringResource,
     pushed: Int,
     pushedLabel: StringResource,
+    skipped: Int,
     conflicts: Int,
     onFinish: () -> Unit,
 ) = StatusMessage(
@@ -492,6 +651,12 @@ private fun SyncSummary(
             MaterialTheme.colorScheme.tertiaryContainer,
             MaterialTheme.colorScheme.onTertiaryContainer,
             Modifier.weight(1f),
+        )
+    }
+    if (skipped > 0) {
+        Text(
+            pluralStringResource(Res.plurals.settings__service_sync_skipped, skipped, skipped),
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
     if (conflicts > 0) {

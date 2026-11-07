@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import co.touchlab.kermit.Logger
 import com.parkwoocheol.composewebview.ComposeWebView
 import com.parkwoocheol.composewebview.WebViewController
+import com.parkwoocheol.composewebview.WebViewJsBridge
 import com.parkwoocheol.composewebview.WebViewState
 import com.parkwoocheol.composewebview.client.onConsoleMessage
 import com.parkwoocheol.composewebview.client.onProgressChanged
@@ -33,6 +34,8 @@ import it.maicol07.gamerlogue.services.DataSource
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
+import it.maicol07.gamerlogue.services.SkipReason
+import it.maicol07.gamerlogue.services.SkippedWrite
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.unwrapBridgeReply
@@ -74,6 +77,11 @@ interface WebSession {
 
     /** Leave batch mode once a batched write ends, so later progress isn't shown as part of a stale batch. */
     fun endBatch() = Unit
+
+    /** Games the writes of this flow reported as left out, in order. */
+    val skips: List<SkippedWrite> get() = emptyList()
+
+    fun reportSkip(skip: SkippedWrite) = Unit
 
     /** Run a write [step] in the WebView; the returned refs are the script's confirmation, if any. */
     suspend fun run(step: WebStep): List<ExternalGameRef>
@@ -176,27 +184,13 @@ fun rememberServiceWebViewHost(
     val chromeClient = rememberWebChromeClient {
         onConsoleMessage { _, message ->
             Logger.i(tag = "ServiceWebView") { "JS: ${message.message}" }
+            session.recordConsole(message.message)
             false
         }
         onProgressChanged { _, p -> progress = p }
     }
 
-    LaunchedEffect(bridge, session) {
-        // Accept a JsonElement (never a typed String): the connector scripts deliver an object, array or
-        // scalar, and decoding to a String would throw on the object/array shapes. Re-stringify for parsing.
-        bridge.register<JsonElement, Boolean>(SyncScripts.RESULT_METHOD) { json ->
-            session.deliver(json.toString())
-            true
-        }
-        bridge.register<JsonElement, Boolean>(SyncScripts.PROGRESS_METHOD) { json ->
-            val count = json.jsonObject
-            session.reportProgress(
-                count["done"]?.jsonPrimitive?.intOrNull ?: 0,
-                count["total"]?.jsonPrimitive?.intOrNull ?: 0,
-            )
-            true
-        }
-    }
+    LaunchedEffect(bridge, session) { bridge.registerSession(session) }
 
     TrackHostActive(session)
 
@@ -234,6 +228,35 @@ fun rememberServiceWebViewHost(
     return ServiceWebViewHost(session, webView)
 }
 
+/** Route the scripts' bridge calls (result, progress, skipped games) to [session]. */
+private fun WebViewJsBridge.registerSession(session: ServiceWebViewSession) {
+    // Accept a JsonElement (never a typed String): the connector scripts deliver an object, array or
+    // scalar, and decoding to a String would throw on the object/array shapes. Re-stringify for parsing.
+    register<JsonElement, Boolean>(SyncScripts.RESULT_METHOD) { json ->
+        session.deliver(json.toString())
+        true
+    }
+    register<JsonElement, Boolean>(SyncScripts.PROGRESS_METHOD) { json ->
+        val count = json.jsonObject
+        session.reportProgress(
+            count["done"]?.jsonPrimitive?.intOrNull ?: 0,
+            count["total"]?.jsonPrimitive?.intOrNull ?: 0,
+        )
+        true
+    }
+    register<JsonElement, Boolean>(SyncScripts.SKIP_METHOD) { json ->
+        val skip = json.jsonObject
+        val reason = skip["reason"]?.jsonPrimitive?.content
+        session.reportSkip(
+            SkippedWrite(
+                skip["name"]?.jsonPrimitive?.content.orEmpty(),
+                SkipReason.entries.firstOrNull { it.name == reason } ?: SkipReason.REJECTED,
+            ),
+        )
+        true
+    }
+}
+
 /**
  * Backs [rememberServiceWebViewHost]: the [WebSession] implementation whose observable flags
  * ([loginRequired], [pendingConfirm], [log]) drive the hosting screen.
@@ -252,6 +275,23 @@ class ServiceWebViewSession internal constructor(
     var awaitingLogin by mutableStateOf(false)
         private set
     val log = mutableStateListOf<SyncPhase>()
+
+    override val skips = mutableListOf<SkippedWrite>()
+
+    override fun reportSkip(skip: SkippedWrite) {
+        Logger.i(tag = TAG) { "skip ${skip.reason}: ${skip.name}" }
+        skips += skip
+    }
+
+    /** The flow's own `[GL]` script logs, newest last, for the screen's technical details. */
+    val console = mutableStateListOf<String>()
+
+    internal fun recordConsole(message: String) {
+        if (!message.startsWith(CONSOLE_PREFIX)) return
+        console += message.removePrefix(CONSOLE_PREFIX)
+        // ponytail: fixed cap; a long sync logs per game, only the tail matters for a failure.
+        if (console.size > CONSOLE_LIMIT) console.removeRange(0, console.size - CONSOLE_LIMIT)
+    }
 
     private var progressState by mutableStateOf(ProgressState())
 
@@ -424,5 +464,7 @@ class ServiceWebViewSession internal constructor(
         const val LOGIN_TIMEOUT = 300_000L
         const val RESET_CANCEL = "window.__glCancel = false;"
         const val SET_CANCEL = "window.__glCancel = true;"
+        const val CONSOLE_PREFIX = "[GL] "
+        const val CONSOLE_LIMIT = 500
     }
 }

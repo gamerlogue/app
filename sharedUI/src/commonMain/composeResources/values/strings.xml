@@ -358,6 +358,19 @@
         <item quantity="one">%1$d conflict left: settle it with a manual sync</item>
         <item quantity="other">%1$d conflicts left: settle them with a manual sync</item>
     </plurals>
+    <plurals name="settings__service_sync_skipped">
+        <item quantity="one">%1$d selected game could not be written</item>
+        <item quantity="other">%1$d selected games could not be written</item>
+    </plurals>
+    <string name="settings__service_sync_skipped_list">Not written</string>
+    <string name="settings__service_skip_already_present">Already in your library on the service</string>
+    <string name="settings__service_skip_no_platform">No matching platform on the service</string>
+    <string name="settings__service_skip_platform_rejected">The service refused to add the platform</string>
+    <string name="settings__service_skip_rejected">The service rejected the write</string>
+    <string name="settings__service_skip_notes_too_long">Notes too long to add the Gamerlogue marker</string>
+    <string name="settings__service_skip_unreadable">The entry on the service couldn't be read</string>
+    <string name="settings__service_skip_unconfirmed">The service didn't confirm it</string>
+    <string name="settings__service_technical_details">Technical details</string>
     <string name="settings__service_connect">Connect</string>
     <string name="settings__service_disconnect">Disconnect</string>
     <string name="settings__service_refresh_profile">Refresh profile</string>

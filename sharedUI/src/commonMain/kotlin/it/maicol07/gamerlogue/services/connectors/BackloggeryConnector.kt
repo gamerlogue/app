@@ -202,6 +202,7 @@ class BackloggeryConnector :
                     let game = info && info.status && info.payload;
                     if (!game || Array.isArray(game)) {
                         console.log('[GL] backloggery gameinfo ' + c.uid + ' unusable: ' + JSON.stringify(info).slice(0, 300));
+                        __glSkip(c.name, 'UNREADABLE');
                         continue;
                     }
                     let [status, priority] = __bgTarget(c.to, game);
@@ -209,6 +210,7 @@ class BackloggeryConnector :
                     let notes = __bgNotes(game.notes ?? row.notes, c.gameId);
                     if (notes === null) {
                         console.log('[GL] backloggery notes too long for the IGDB marker, skipping ' + c.uid);
+                        __glSkip(c.name, 'NOTES_TOO_LONG');
                         continue;
                     }
                     let body = Object.assign(__bgEdit(row, game), {
@@ -220,6 +222,7 @@ class BackloggeryConnector :
                     let saved = await __bgPost('update_game.php', body);
                     console.log('[GL] backloggery update ' + c.uid + ': ' + JSON.stringify(saved).slice(0, 300));
                     if (saved && saved.status) out.push({ uid: c.uid, name: c.name, gameId: c.gameId });
+                    else __glSkip(c.name, 'REJECTED');
                 }
                 """.trimIndent()
             ),
@@ -303,6 +306,7 @@ class BackloggeryConnector :
                     console.log('[GL] backloggery no unambiguous platform ' + JSON.stringify({
                         name: change.name, platformIds: change.platformIds, platformNames: change.platformNames,
                     }));
+                    __glSkip(change.name, 'NO_PLATFORM');
                     return null;
                 }
                 let titleKey = function(title) { return String(title || '').normalize('NFKC').trim().toLowerCase(); };
@@ -310,6 +314,7 @@ class BackloggeryConnector :
                     return titleKey(g.title) === titleKey(change.name) && Number(g.platform_id) === Number(platform.platform_id);
                 })) {
                     console.log('[GL] backloggery already in library: ' + change.name + ' (' + platform.title + ')');
+                    __glSkip(change.name, 'ALREADY_PRESENT');
                     return null;
                 }
                 let registered = context.platforms.find(function(p) { return Number(p.platform_id) === Number(platform.platform_id); });
@@ -318,6 +323,7 @@ class BackloggeryConnector :
                     // The add endpoints answer `{ msg, payload }` with no `status`: the payload is the result.
                     if (!added || added.payload !== true) {
                         console.log('[GL] backloggery add_user_platform ' + platform.platform_id + ' rejected: ' + JSON.stringify(added).slice(0, 300));
+                        __glSkip(change.name, 'PLATFORM_REJECTED');
                         return null;
                     }
                     registered = platform;
@@ -335,6 +341,7 @@ class BackloggeryConnector :
                 let uid = saved && saved.payload;
                 if (!/^\d+$/.test(String(uid || ''))) {
                     console.log('[GL] backloggery add_game rejected ' + change.name + ': ' + JSON.stringify(saved).slice(0, 300));
+                    __glSkip(change.name, 'REJECTED');
                     return null;
                 }
                 context.library.push(Object.assign({}, game, { game_inst_id: uid }));

@@ -322,6 +322,13 @@ internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
     }
 }
 
+/** Why a write left a selected game out: reported by its script (`__glSkip`) or, for [UNCONFIRMED], inferred. */
+enum class SkipReason {
+    ALREADY_PRESENT, NO_PLATFORM, PLATFORM_REJECTED, REJECTED, NOTES_TOO_LONG, UNREADABLE, UNCONFIRMED,
+}
+
+data class SkippedWrite(val name: String, val reason: SkipReason)
+
 internal class ScriptWriteException(
     message: String,
     val written: List<ExternalGameRef>,
@@ -385,6 +392,9 @@ object SyncScripts {
     /** Bridge method scripts call (via [HELPERS]' `__glProgress`) to report `{done, total}` games so far. */
     const val PROGRESS_METHOD = "glProgress"
 
+    /** Bridge method scripts call (via [HELPERS]' `__glSkip`) to report a `{name, reason}` game they didn't write. */
+    const val SKIP_METHOD = "glSkip"
+
     /** Default polling budget of the wait helpers: tries × interval ≈ 15s, under the Kotlin script timeout. */
     private const val DEFAULT_TRIES = 30
     private const val POLL_MS = 500
@@ -410,6 +420,7 @@ object SyncScripts {
      * - `__glCancelled()` — true once Kotlin timed the step out; write loops stop starting new writes.
      * - `__glProgress(done, total)` — report how many games were read/written so far for the progress
      *   bar; `total` 0 when not known yet (e.g. paginated reads). Best-effort: never throws.
+     * - `__glSkip(name, reason)` — report a game the write left out, with a [SkipReason] name. Best-effort.
      */
     val HELPERS = """
         function __glSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
@@ -432,6 +443,13 @@ object SyncScripts {
             try {
                 __glEnsureNative();
                 window.$BRIDGE_OBJECT.call('$PROGRESS_METHOD', { done: done, total: total || 0 });
+            } catch (e) {}
+        }
+        function __glSkip(name, reason) {
+            console.log('[GL] skip ' + reason + ': ' + name);
+            try {
+                __glEnsureNative();
+                window.$BRIDGE_OBJECT.call('$SKIP_METHOD', { name: String(name || ''), reason: reason });
             } catch (e) {}
         }
         async function __glWaitFor(find, tries, interval) {
