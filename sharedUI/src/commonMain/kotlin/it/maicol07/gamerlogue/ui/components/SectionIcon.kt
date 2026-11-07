@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.RoundedPolygon
+import com.github.panpf.sketch.SubcomposeAsyncImage
+import com.github.panpf.sketch.cache.CachePolicy
+import com.github.panpf.sketch.request.ComposableImageRequest
 
 private val SectionIconSize = 36.dp
 private val SectionIconGlyphSize = 20.dp
@@ -39,13 +42,17 @@ fun SectionIcon(
     if (logoUrl == null) {
         glyph()
     } else {
-        RemoteImage(
-            url = logoUrl,
-            contentDescription = "",
+        // Not RemoteImage: its loading slot is a square placeholder, here the glyph stands in while loading too.
+        SubcomposeAsyncImage(
+            ComposableImageRequest(logoUrl) {
+                crossfade()
+                resultCachePolicy(CachePolicy.DISABLED) // Same workaround as RemoteImage (sketch issue 295)
+            },
+            contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier.size(SectionIconGlyphSize).clip(RoundedCornerShape(4.dp)),
-            loadingModifier = Modifier.size(SectionIconGlyphSize),
-            failure = glyph,
+            loading = { glyph() },
+            error = { glyph() },
         )
     }
 }
