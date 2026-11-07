@@ -94,8 +94,9 @@ internal fun WishlistPushScreen(
             resolved.forEach { put(it.uid, it.isPushable(matchesByName, requiresPlatform)) }
         }
     }
-    val onPlatform = resolved.filter { it.onPlatform }
-        .sortedByDescending { selected[it.uid] == true && it.isPushable(matchesByName, requiresPlatform) }
+    // Selected-first order is taken once, on open: re-sorting on each toggle would move rows under the user's finger.
+    val initiallySelected = remember(games) { selected.filterValues { it }.keys.toSet() }
+    val onPlatform = resolved.filter { it.onPlatform }.sortedByDescending { it.uid in initiallySelected }
     val offPlatform = resolved.filter { !it.onPlatform }
     val pushable = resolved.filter { it.isPushable(matchesByName, requiresPlatform) }
     val selectedCount = pushable.count { selected[it.uid] == true }
