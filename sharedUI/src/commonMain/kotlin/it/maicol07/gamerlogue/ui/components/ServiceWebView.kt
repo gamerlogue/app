@@ -35,6 +35,7 @@ import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
+import it.maicol07.gamerlogue.services.unwrapBridgeReply
 import it.maicol07.gamerlogue.services.configureServiceWebView
 import it.maicol07.gamerlogue.services.parseCredentialJson
 import it.maicol07.gamerlogue.services.parseWriteResult
@@ -71,6 +72,9 @@ interface WebSession {
 
     fun finishBatch(done: Int, total: Int) = reportProgress(done, total)
 
+    /** Leave batch mode once a batched write ends, so later progress isn't shown as part of a stale batch. */
+    fun endBatch() = Unit
+
     /** Run a write [step] in the WebView; the returned refs are the script's confirmation, if any. */
     suspend fun run(step: WebStep): List<ExternalGameRef>
 
@@ -105,6 +109,27 @@ data class BatchProgress(val index: Int, val count: Int, val completed: Int, val
 
     fun withDone(done: Int): BatchProgress = copy(step = step.copy(done = done.coerceIn(0, step.total)))
 }
+
+/** What the progress bars show: the games handled in the phase and, while writing in batches, the current batch. */
+data class ProgressState(val progress: StepProgress? = null, val batch: BatchProgress? = null) {
+    fun begin(index: Int, count: Int, completed: Int, total: Int, size: Int) =
+        ProgressState(StepProgress(completed, total), BatchProgress(index, count, completed, total, StepProgress(0, size)))
+
+    fun report(done: Int, total: Int): ProgressState =
+        batch?.withDone(done)?.let { ProgressState(it.overall, it) } ?: copy(progress = StepProgress(done, total))
+
+    fun finish(done: Int, total: Int) =
+        ProgressState(StepProgress(done, total), batch?.let { it.withDone(done - it.completed) })
+
+    fun end() = copy(batch = null)
+
+    /** A new phase starts counting from scratch; repeated steps of one phase (per-game writes) keep it. */
+    fun nextStep(phaseChanged: Boolean, writing: Boolean) =
+        if (phaseChanged && (!writing || batch == null)) ProgressState() else this
+}
+
+/** The user did not finish signing in to the store within the allowed time. */
+class LoginTimeoutException(message: String) : IllegalStateException(message)
 
 /** Coarse phases surfaced to the on-screen progress log. */
 enum class SyncPhase { LOGGED_IN, READING, READING_PROFILE, WRITING }
@@ -228,35 +253,30 @@ class ServiceWebViewSession internal constructor(
         private set
     val log = mutableStateListOf<SyncPhase>()
 
-    /** Games handled so far in the current phase, or null before any report. */
-    var progress by mutableStateOf<StepProgress?>(null)
-        private set
+    private var progressState by mutableStateOf(ProgressState())
 
-    var batchProgress by mutableStateOf<BatchProgress?>(null)
-        private set
+    /** Games handled so far in the current phase, or null before any report. */
+    val progress: StepProgress? get() = progressState.progress
+
+    val batchProgress: BatchProgress? get() = progressState.batch
 
     override fun beginBatch(index: Int, count: Int, completed: Int, total: Int, size: Int) {
-        batchProgress = BatchProgress(index, count, completed, total, StepProgress(0, size))
-        progress = StepProgress(completed, total)
+        progressState = progressState.begin(index, count, completed, total, size)
     }
 
     override fun finishBatch(done: Int, total: Int) {
-        batchProgress = batchProgress?.let { it.withDone(done - it.completed) }
-        progress = StepProgress(done, total)
+        progressState = progressState.finish(done, total)
+    }
+
+    override fun endBatch() {
+        progressState = progressState.end()
     }
 
     /** When the running script last showed signs of life (start or a progress report). */
     private var lastActivity = TimeSource.Monotonic.markNow()
 
     override fun reportProgress(done: Int, total: Int) {
-        val batch = batchProgress
-        if (batch == null) {
-            progress = StepProgress(done, total)
-        } else {
-            val updated = batch.withDone(done)
-            batchProgress = updated
-            progress = updated.overall
-        }
+        progressState = progressState.report(done, total)
         lastActivity = TimeSource.Monotonic.markNow()
     }
 
@@ -282,8 +302,11 @@ class ServiceWebViewSession internal constructor(
     val loginRequired: Boolean
         get() = awaitingLogin
 
+    /** Id of the step currently running; replies echoing another id (a timed-out script's) are dropped. */
+    private var stepId = 0
+
     internal fun deliver(json: String?) {
-        pending?.complete(json)
+        unwrapBridgeReply(json, stepId)?.let { pending?.complete(it) }
     }
 
     override suspend fun confirmPush(games: List<LibrarySync.OutgoingGame>): List<LibrarySync.OutgoingGame> {
@@ -331,10 +354,9 @@ class ServiceWebViewSession internal constructor(
             false
         }
         Logger.i(tag = TAG) { "awaitLogin done reached=$reached url=${state.lastLoadedUrl}" }
-        if (reached == true) {
-            loginDone = true
-            log.add(SyncPhase.LOGGED_IN)
-        }
+        if (reached != true) throw LoginTimeoutException("Login to ${connector.service} timed out")
+        loginDone = true
+        log.add(SyncPhase.LOGGED_IN)
     }
 
     override suspend fun run(step: WebStep): List<ExternalGameRef> = parseWriteResult(runStep(step, SyncPhase.WRITING))
@@ -356,28 +378,31 @@ class ServiceWebViewSession internal constructor(
 
     /** Navigate + inject [step], then await its raw bridge JSON (null on timeout). */
     private suspend fun runStep(step: WebStep, phase: SyncPhase): String? {
-        // A new phase starts counting from scratch; repeated steps of one phase (per-game writes) keep it.
-        if (log.lastOrNull() != phase && (phase != SyncPhase.WRITING || batchProgress == null)) {
-            progress = null
-            batchProgress = null
-        }
+        progressState = progressState.nextStep(log.lastOrNull() != phase, phase == SyncPhase.WRITING)
         log.add(phase)
         val deferred = CompletableDeferred<String?>()
-        pending = deferred
         Logger.i(tag = TAG) { "run: loadUrl ${step.url}" }
         if (step.reload || state.lastLoadedUrl != step.url) {
             controller.loadUrl(step.url)
             awaitLoaded()
         }
-        controller.evaluateJavascript(step.script) {} // fire-and-forget; result via the bridge
+        // Only replies arriving while this step's script runs complete it: not ones from the page load.
+        stepId++
+        pending = deferred
+        controller.evaluateJavascript("$RESET_CANCEL window.__glToken = $stepId; ${step.script}") {} // fire-and-forget; result via the bridge
         Logger.i(tag = TAG) { "run: injected script, awaiting bridge result…" }
         // An idle timeout, not a total one: a long paginated read that keeps reporting progress isn't cut off.
         lastActivity = TimeSource.Monotonic.markNow()
-        while (!deferred.isCompleted && (!hostActive || lastActivity.elapsedNow() <= SCRIPT_TIMEOUT.milliseconds)) {
-            delay(POLL_INTERVAL.milliseconds)
+        try {
+            while (!deferred.isCompleted && (!hostActive || lastActivity.elapsedNow() <= SCRIPT_TIMEOUT.milliseconds)) {
+                delay(POLL_INTERVAL.milliseconds)
+            }
+        } finally {
+            pending = null
         }
         val json = if (deferred.isCompleted) deferred.await() else null
-        pending = null
+        // Ask a timed-out script to stop, so it doesn't keep acting on the page in the next step.
+        if (json == null) controller.evaluateJavascript(SET_CANCEL) {}
         Logger.i(tag = TAG) { "run: got bridge result=${json != null}" }
         return json
     }
@@ -397,5 +422,7 @@ class ServiceWebViewSession internal constructor(
         const val LOAD_TIMEOUT = 30_000L
         const val SCRIPT_TIMEOUT = 25_000L
         const val LOGIN_TIMEOUT = 300_000L
+        const val RESET_CANCEL = "window.__glCancel = false;"
+        const val SET_CANCEL = "window.__glCancel = true;"
     }
 }

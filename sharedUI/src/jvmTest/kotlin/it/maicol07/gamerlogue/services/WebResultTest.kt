@@ -55,10 +55,48 @@ class WebResultTest : StringSpec({
         profile?.profileUrl shouldBe null
     }
 
-    "null, empty and malformed input yield no refs" {
-        parseRefsJson(null) shouldBe emptyList()
-        parseRefsJson("") shouldBe emptyList()
-        parseRefsJson("not json") shouldBe emptyList()
+    "a bridge reply is unwrapped only for the current step token" {
+        unwrapBridgeReply("""{"token":3,"out":[{"uid":"1"}]}""", 3) shouldBe """[{"uid":"1"}]"""
+        unwrapBridgeReply("""{"token":2,"out":[]}""", 3) shouldBe null
+        unwrapBridgeReply("""{"out":[]}""", 3) shouldBe null
+        unwrapBridgeReply("[]", 3) shouldBe null
+        unwrapBridgeReply(null, 3) shouldBe null
+    }
+
+    "a successful empty array is an empty read" {
+        parseRefsJson("[]") shouldBe emptyList()
+    }
+
+    "a missing, empty or unparseable read result is a failure, never an empty library" {
+        shouldThrow<ServiceReadException> { parseRefsJson(null) }
+        shouldThrow<ServiceReadException> { parseRefsJson("") }
+        shouldThrow<ServiceReadException> { parseRefsJson("not json") }
+    }
+
+    "an error payload from the script fails the read with its message" {
+        val error = shouldThrow<ServiceReadException> { parseRefsJson("""{"error":"HTTP 503","written":[]}""") }
+        error.message shouldBe "HTTP 503"
+        shouldThrow<ServiceReadException> { parseRefsJson("""{"unexpected":true}""") }
+    }
+
+    "one malformed ref fails the whole read instead of yielding a partial list" {
+        shouldThrow<ServiceReadException> { parseRefsJson("""[{"uid":"1"},{"name":"no uid"}]""") }
+    }
+
+    "an unexpected write payload becomes a write exception with nothing confirmed" {
+        shouldThrow<ScriptWriteException> { parseWriteResult("not json") }.written shouldBe emptyList()
+        shouldThrow<ScriptWriteException> { parseWriteResult("""{"unexpected":true}""") }.written shouldBe emptyList()
+        shouldThrow<ScriptWriteException> { parseWriteResult("""[{"name":"no uid"}]""") }.written shouldBe emptyList()
+    }
+
+    "a failed write with a malformed written list keeps the error and confirms nothing" {
+        val error = shouldThrow<ScriptWriteException> { parseWriteResult("""{"error":"boom","written":[{"name":"x"}]}""") }
+        error.message shouldBe "boom"
+        error.written shouldBe emptyList()
+    }
+
+    "a successful empty write is an empty list" {
+        parseWriteResult("[]") shouldBe emptyList()
     }
 
     "reads a credential delivered as a quoted string" {

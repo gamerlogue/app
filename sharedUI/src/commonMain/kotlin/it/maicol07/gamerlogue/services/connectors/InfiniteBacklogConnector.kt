@@ -72,7 +72,8 @@ class InfiniteBacklogConnector :
             if (s === 'played' && c === 'unfinished') return 'PAUSED';
             return 'BACKLOG';
         };
-        out = (me.id ? await __ibPages('/api/user_collections?user_id=' + me.id) : []).map(function(it) {
+        if (!me.id) throw new Error('Infinite Backlog session is missing');
+        out = (await __ibPages('/api/user_collections?user_id=' + me.id)).map(function(it) {
             return { uid: __ibUid(it), name: __ibName(it), status: status(it) };
         });
     """.trimIndent())))
@@ -98,9 +99,15 @@ class InfiniteBacklogConnector :
             const changes = ${changes.jsonArray()};
             out = [];
             for (const [n, c] of changes.entries()) {
+                if (__glCancelled()) break;
                 __glProgress(n, changes.length);
                 if (!me.id) break;
-                let entry = __ibList(await __ibGet('/api/user_collections?user_id=' + me.id + '&game_id=' + c.gameId))[0];
+                // The entry's own game id (an edition entry differs from the base game); `entry-N` uids aren't ids.
+                let id = /^\d+$/.test(c.uid || '') ? Number(c.uid) : c.gameId;
+                let found = await __ibGet('/api/user_collections?user_id=' + me.id + '&game_id=' + id);
+                // A failed lookup (429/5xx/expired token) is not "no entry": creating one then would duplicate it.
+                if (found === null) continue;
+                let entry = __ibList(found)[0];
                 let ok;
                 if (entry) {
                     let [status, completion] = target(c.to, entry.completion);
@@ -109,12 +116,12 @@ class InfiniteBacklogConnector :
                 } else if (c.platformIds.length) {
                     let [status, completion] = target(c.to, '');
                     ok = await __ibSend('POST', '/api/user_collections', {
-                        game_id: c.gameId, edition_id: null, status: status, completion: completion,
+                        game_id: id, edition_id: null, status: status, completion: completion,
                         digital_store: null, ownership: 'owned', physical: true, playtime_type: 'manual',
                         platform_id: c.platformIds[0],
                     });
                 }
-                if (ok) out.push({ uid: String(c.gameId), name: c.name, gameId: c.gameId });
+                if (ok) out.push({ uid: String(id), name: c.name, gameId: c.gameId });
             }
         """.trimIndent()))
     }
@@ -126,6 +133,7 @@ class InfiniteBacklogConnector :
             const ids = $ids;
             out = [];
             for (const [n, id] of ids.entries()) {
+                if (__glCancelled()) break;
                 __glProgress(n, ids.length);
                 if (await __ibSend('POST', '/api/user_wishlists', { game_id: id })) out.push({ uid: String(id), name: '' });
             }
@@ -135,7 +143,8 @@ class InfiniteBacklogConnector :
     override val wishlist = webRefs(WebStep(HOME, SyncScripts.wrap("""
         $API_JS
         let me = await __ibMe();
-        out = (me.id ? await __ibPages('/api/user_wishlists?user_id=' + me.id) : []).map(function(it) {
+        if (!me.id) throw new Error('Infinite Backlog session is missing');
+        out = (await __ibPages('/api/user_wishlists?user_id=' + me.id)).map(function(it) {
             return { uid: __ibUid(it), name: __ibName(it) };
         });
     """.trimIndent())))
@@ -216,12 +225,22 @@ class InfiniteBacklogConnector :
                 return Array.isArray(j) ? j : (j && (j.data || j.items || j.results)) || [];
             }
             async function __ibPages(base) {
-                let all = [];
+                let all = [], seen = {};
                 for (let offset = 0; offset < 20000; offset += 50) {
-                    let page = __ibList(await __ibGet(base + '&limit=50&offset=' + offset));
-                    all = all.concat(page);
+                    let json = await __ibGet(base + '&limit=50&offset=' + offset);
+                    // A failed page must fail the read: a partial library would be treated as the whole one.
+                    if (json === null) throw new Error('Infinite Backlog request failed at offset ' + offset);
+                    let page = __ibList(json);
+                    // Stop when a page brings nothing new, in case the server repeats the last page.
+                    let fresh = page.filter(function(it) {
+                        let key = it.id !== undefined ? 'id:' + it.id : JSON.stringify(it);
+                        if (seen[key]) return false;
+                        seen[key] = true;
+                        return true;
+                    });
+                    all = all.concat(fresh);
                     __glProgress(all.length, 0);
-                    if (page.length < 50) break;
+                    if (page.length < 50 || !fresh.length) break;
                 }
                 return all;
             }

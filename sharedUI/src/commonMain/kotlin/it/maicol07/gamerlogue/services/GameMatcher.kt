@@ -84,7 +84,7 @@ class GameMatcher(
         val byUid = (byStoreId +
             matchBySlug(rest.filter { it.igdbSlug != null }) +
             matchBySteamAppId(rest.filter { it.steamAppId != null }))
-            .filterValues { (it.version_parent ?: it).isBaseGame }
+            .filterValues { it.isMatchable }
         Logger.i(tag = TAG) { "store-id matched ${byUid.size}/${refs.size}" }
 
         // Store-id hits (and refs with no name to search) resolve immediately.
@@ -175,7 +175,7 @@ class GameMatcher(
                 igdb.getExternalGames {
                     externalGameFields()
                     where("external_game_source = $source & url = ($quoted)")
-                    limit(chunk.size)
+                    limit(IGDB_MAX_LIMIT)
                 }
             }
             response?.externalgames?.forEach { ext ->
@@ -200,7 +200,7 @@ class GameMatcher(
                 igdb.getExternalGames {
                     externalGameFields()
                     where("external_game_source = $source & uid = ($quoted)")
-                    limit(chunk.size)
+                    limit(IGDB_MAX_LIMIT)
                 }
             }
             response?.externalgames?.forEach { ext ->
@@ -272,7 +272,7 @@ class GameMatcher(
                 igdb.getExternalGames {
                     fields("url", "game.id")
                     where("external_game_source = $source & game = ($ids)")
-                    limit(chunk.size)
+                    limit(IGDB_MAX_LIMIT)
                 }
             }
             response?.externalgames?.forEach { ext ->
@@ -325,8 +325,21 @@ class GameMatcher(
                 }
             }?.games?.let { games.addAll(it) }
         }
-        return games.filter { (it.version_parent ?: it).isBaseGame }
+        return games
     }
+
+    /** The version parent id of each of [ids] that is an edition; the other ids are absent. Library entries saved
+     *  before editions were folded into their base game are keyed by the edition's id. */
+    suspend fun editionParents(ids: Collection<Int>): Map<Int, Int> =
+        ids.distinct().chunked(IGDB_MAX_LIMIT).flatMap { chunk ->
+            igdbCall("version parents lookup failed") {
+                igdb.getGames {
+                    fields("id", "version_parent.id")
+                    where("id = (${chunk.joinToString(",")}) & version_parent != null")
+                    limit(chunk.size)
+                }
+            }?.games.orEmpty()
+        }.mapNotNull { game -> game.version_parent?.let { game.id.toInt() to it.id.toInt() } }.toMap()
 
     /** IGDB fuzzy full-text search restricted to games shown in GameList. */
     suspend fun searchByName(query: String, limit: Int = SEARCH_LIMIT): List<Game> {
@@ -364,6 +377,9 @@ class GameMatcher(
         // Websites: many rows per game, so fewer games per request against IGDB's 500-row page cap.
         private const val WEBSITE_GAME_CHUNK = 30
         private const val WEBSITE_LIMIT = 500
+
+        // IGDB's page cap: external_games can hold several rows per game, so the key count is not enough.
+        private const val IGDB_MAX_LIMIT = 500
     }
 }
 

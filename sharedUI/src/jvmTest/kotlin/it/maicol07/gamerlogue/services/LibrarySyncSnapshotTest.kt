@@ -66,7 +66,7 @@ private class SnapshotFixtureIgdb : IgdbClient {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LibrarySyncSnapshotTest : StringSpec({
-    "reviewed wishlist loads the library once and carries successful imports into the push preview" {
+    "reviewed wishlist reloads the library at confirm and carries successful imports into the push preview" {
         runTest {
             Dispatchers.setMain(StandardTestDispatcher(testScheduler))
             val node = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
@@ -119,7 +119,7 @@ class LibrarySyncSnapshotTest : StringSpec({
                 preview.uiState.first { !it.matching }.loading shouldBe false
                 reads.get() shouldBe 1
                 preview.confirm().join()
-                reads.get() shouldBe 1
+                reads.get() shouldBe 2
                 writes.get() shouldBe 1
                 val push = library.pendingWishlistImports.getValue(connector.service)
                 push.added shouldBe 1
@@ -139,7 +139,7 @@ class LibrarySyncSnapshotTest : StringSpec({
                 val snapshot = mutableListOf(owned)
                 val editions = listOf(10L, 11L).map { Game(id = it, version_parent = Game(id = 1)) }
                 library.importOwned(connector, editions, snapshot) shouldBe 1
-                reads.get() shouldBe 1
+                reads.get() shouldBe 2
                 writes.get() shouldBe 2
                 writtenMethods shouldBe listOf(HttpMethod.Post, HttpMethod.Patch)
                 snapshot.single().gameId shouldBe 1

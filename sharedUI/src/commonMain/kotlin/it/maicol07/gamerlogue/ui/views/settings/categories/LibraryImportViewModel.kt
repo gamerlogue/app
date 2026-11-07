@@ -2,20 +2,23 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.lifecycle.viewModelScope
 import at.released.igdbclient.model.Game
+import co.touchlab.kermit.Logger
 import it.maicol07.gamerlogue.core.StateViewModel
+import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
-import it.maicol07.gamerlogue.extensions.igdb.isBaseGame
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
+import it.maicol07.gamerlogue.services.LibraryLoadException
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncChange
 import it.maicol07.gamerlogue.services.SyncSide
+import it.maicol07.gamerlogue.services.SyncedGame
 import it.maicol07.gamerlogue.services.TrackerSync
+import it.maicol07.gamerlogue.services.isMatchable
+import it.maicol07.gamerlogue.services.onePerGame
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.core.annotation.InjectedParam
@@ -72,7 +75,17 @@ class LibraryImportViewModel(
     /** IGDB game ids already in the user's library/backlog — those rows don't need importing. */
     private var existingIds: Set<Int> = emptySet()
     private var existingEditions: Map<Int, List<Int>> = emptyMap()
-    private val librarySnapshot = viewModelScope.async(start = CoroutineStart.LAZY) { librarySync.allEntries().toMutableList() }
+
+    /** The agreed games of the reviewed sync plan, recorded once the plan is applied (or when it has nothing to apply). */
+    private var agreed: Map<Int, SyncedGame> = emptyMap()
+
+    /** A fresh library each time: it is never cached, so a failed load can be retried and a write never runs on a stale one. */
+    private suspend fun loadLibrary(): MutableList<LibraryEntry> = librarySync.allEntries().toMutableList()
+
+    private fun onLibraryFailed(e: LibraryLoadException) {
+        Logger.w(tag = "LibraryImport", throwable = e) { "library load failed" }
+        update { copy(importing = false, libraryFailed = true) }
+    }
 
     /**
      * A store game and its editable IGDB match.
@@ -100,6 +113,8 @@ class LibraryImportViewModel(
         val importing: Boolean = false,
         val importedCount: Int? = null,
         val editingIndex: Int? = null,
+        /** The library could not be loaded; nothing was written, and confirming again retries the load. */
+        val libraryFailed: Boolean = false,
         /** [ImportMode.SYNC] second step: the reviewed changes, once the matches are confirmed. */
         val plan: List<PlanRow>? = null,
         /** The reviewed wishlist or library sync has outgoing writes left, to run in the WebView. */
@@ -107,9 +122,15 @@ class LibraryImportViewModel(
     )
 
     /** One change of the sync plan, labelled with its IGDB [game]; [choice] is the side kept (conflicts
-     *  start on Gamerlogue's) and [conflict] whether the user may switch it. */
-    data class PlanRow(val change: SyncChange, val game: Game?, val choice: SyncSide, val conflict: Boolean)
-
+     *  start on Gamerlogue's) and [conflict] whether the user may switch it. Any other row can be left out
+     *  ([included] = false) instead. */
+    data class PlanRow(
+        val change: SyncChange,
+        val game: Game?,
+        val choice: SyncSide,
+        val conflict: Boolean,
+        val included: Boolean = true,
+    )
 
     init {
         val refs = ImportHandoff.take(service)
@@ -128,12 +149,16 @@ class LibraryImportViewModel(
             // The whole library is only needed to flag games already in it, so it loads alongside the matching
             // instead of holding it up: rows matched before it arrives get flagged (and deselected) once it does.
             // A sync touches games already in the library too, so none is "already present" there.
-            val existingLoad = if (mode == ImportMode.ID_SYNC) {
+            val existingLoad = if (mode == ImportMode.ID_SYNC || mode == ImportMode.SYNC) {
                 null
             } else {
                 launch {
-                    val entries = librarySnapshot.await()
-                    if (mode == ImportMode.SYNC) return@launch
+                    val entries = try {
+                        loadLibrary()
+                    } catch (e: LibraryLoadException) {
+                        onLibraryFailed(e)
+                        return@launch
+                    }
                     existingIds = entries.filter { mode != ImportMode.OWNED || it.owned }.mapTo(mutableSetOf()) { it.gameId }
                     existingEditions = entries.associate { it.gameId to runCatching { it.editionsIds }.getOrDefault(emptyList()) }
                     update {
@@ -209,7 +234,9 @@ class LibraryImportViewModel(
     fun chooseMatchId(id: Int) {
         val index = state.editingIndex ?: return
         viewModelScope.launch {
-            matcher.gamesByIds(listOf(id)).firstOrNull { it.id.toInt() == id && it.isBaseGame }?.let { chooseMatch(index, it) }
+            // Same rule as the automatic matching: an edition is accepted through its base game.
+            val game = matcher.gamesByIds(listOf(id)).firstOrNull { it.id.toInt() == id && it.isMatchable }
+            if (game != null) chooseMatch(index, game) else update { copy(editingIndex = editingIndex.takeUnless { it == index }) }
         }
     }
 
@@ -228,6 +255,14 @@ class LibraryImportViewModel(
 
     /** Persist the selected games — or, for [ImportMode.SYNC], plan the sync over the confirmed matches. */
     fun confirm() = viewModelScope.launch {
+        try {
+            doConfirm()
+        } catch (e: LibraryLoadException) {
+            onLibraryFailed(e)
+        }
+    }
+
+    private suspend fun doConfirm() {
         update { copy(importing = true) }
         val included = state.rows.filter { it.included }
         if (mode == ImportMode.ID_SYNC) {
@@ -235,23 +270,27 @@ class LibraryImportViewModel(
                 row.ref.copy(gameId = row.game?.takeIf { row.included && row.confident }?.id?.toInt())
             })
             update { copy(importing = false, importedCount = 0, pushPending = true) }
-            return@launch
+            return
         }
         if (mode == ImportMode.SYNC) {
-            val remote = included.mapNotNull { row -> row.game?.let { it.baseGameId to row.ref } }.toMap()
-            val plan = trackerSync.plan(connector, remote, librarySnapshot.await())
-            // Games equal on both sides are a fact now, not a choice: record them (and their confirmed matches)
-            // straight away, so they're remembered even if the plan is closed without applying.
-            trackerSync.record(service, plan.agreed)
+            // Games on the tracker under any row, confirmed or not, are never added to it; only the confirmed,
+            // selected rows say what their status there is.
+            val onTracker = state.rows.mapNotNull { it.game?.baseGameId }.toSet()
+            val plan = trackerSync.plan(connector, confirmedRemote(), loadLibrary(), onTracker)
+            // Agreed games are recorded (with their confirmed matches) once the plan is applied: recording them now
+            // would make this look like a synced library, and the next unattended run would apply unreviewed changes.
+            // With nothing to apply there is nothing to approve, so they are recorded right away.
+            if (plan.changes.isEmpty()) trackerSync.record(service, plan.agreed) else agreed = plan.agreed
             val games = matcher.gamesByIds(plan.changes.map { it.gameId }).associateBy { it.id.toInt() }
             val rows = plan.changes.map { c ->
                 PlanRow(c, games[c.gameId], choice = c.winner ?: SyncSide.LOCAL, conflict = c.winner == null)
             }
-            update { copy(importing = false, plan = rows) }
-            return@launch
+            update { copy(importing = false, libraryFailed = false, plan = rows) }
+            return
         }
         val games = included.mapNotNull { it.game }
-        val entries = librarySnapshot.await()
+        // Read now rather than at preview time, so what changed in the meantime isn't overwritten.
+        val entries = loadLibrary()
         val count = if (games.isEmpty()) 0 else when (mode) {
             ImportMode.OWNED -> librarySync.importOwned(connector, games, entries)
             ImportMode.WISHLIST -> librarySync.importWishlist(connector, games, entries)
@@ -264,28 +303,46 @@ class LibraryImportViewModel(
             ImportMode.SYNC, ImportMode.ID_SYNC -> error("sync confirmation is handled above")
         }
         if (canPushWishlist) {
-            val wishlistIds = state.rows.filter { it.confident }.mapNotNull { it.game?.baseGameId }.toSet()
+            // Every matched row is on the wishlist, whether or not its match was confirmed: same as the automatic path.
+            val wishlistIds = state.rows.mapNotNull { it.game?.baseGameId }.toSet()
             val outgoing = librarySync.computeWishlistPush(connector, emptyList(), entries, wishlistIds)
             librarySync.pendingWishlistImports[service] = LibrarySync.WishlistResult(count, outgoing)
         }
-        update { copy(importing = false, importedCount = count, pushPending = canPushWishlist) }
+        update { copy(importing = false, libraryFailed = false, importedCount = count, pushPending = canPushWishlist) }
     }
+
+    /** Tracker refs by IGDB game from the confirmed, selected rows, each carrying its matched IGDB id. */
+    private fun confirmedRemote(): Map<Int, ExternalGameRef> = state.rows.filter { it.included }.mapNotNull { row ->
+        row.game?.let { it.baseGameId to row.ref.copy(gameId = it.id.toInt()) }
+    }.onePerGame()
 
     fun choose(index: Int, side: SyncSide) = update {
         copy(plan = plan?.mapIndexed { i, row -> if (i == index && row.conflict) row.copy(choice = side) else row })
     }
 
+    /** Leave a settled (non-conflict) row out of the sync, or put it back. */
+    fun togglePlanRow(index: Int) = update {
+        copy(plan = plan?.mapIndexed { i, row -> if (i == index && !row.conflict) row.copy(included = !row.included) else row })
+    }
+
     /** Apply the reviewed plan: tracker → Gamerlogue now, Gamerlogue → tracker handed to the WebView. */
     fun applySync() = viewModelScope.launch {
-        val rows = state.plan ?: return@launch
+        try {
+            doApplySync()
+        } catch (e: LibraryLoadException) {
+            onLibraryFailed(e)
+        }
+    }
+
+    private suspend fun doApplySync() {
+        val rows = state.plan?.filter { it.included } ?: return
         update { copy(importing = true) }
-        val entries = librarySnapshot.await()
-        val remote = state.rows.filter { it.included }.mapNotNull { row ->
-            row.game?.let { it.baseGameId to row.ref.copy(gameId = it.id.toInt()) }
-        }.toMap()
-        val pulled = trackerSync.pull(service, rows.filter { it.choice == SyncSide.REMOTE }.map { it.change }, entries, remote)
+        // Read now: the plan may have been open for a while.
+        val entries = loadLibrary()
+        val pulled = trackerSync.pull(service, rows.filter { it.choice == SyncSide.REMOTE }.map { it.change }, entries, confirmedRemote())
+        trackerSync.record(service, agreed)
         val outgoing = trackerSync.outgoing(rows.filter { it.choice == SyncSide.LOCAL }.map { it.change }, entries)
         trackerSync.pendingWrites[service] = outgoing
-        update { copy(importing = false, importedCount = pulled, pushPending = outgoing.isNotEmpty()) }
+        update { copy(importing = false, libraryFailed = false, importedCount = pulled, pushPending = outgoing.isNotEmpty()) }
     }
 }

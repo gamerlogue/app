@@ -48,7 +48,8 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * [ImportMode.SYNC] step 2: the sync plan in three groups — tracker → Gamerlogue, Gamerlogue → tracker and
- * conflicts, where the user picks which status to keep. Indices passed to [onChoose] are plan indices.
+ * conflicts, where the user picks which status to keep. Any other row can be tapped to leave it out of the sync.
+ * Indices passed to [onChoose] and [onToggle] are plan indices.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -57,6 +58,7 @@ internal fun SyncPlanContent(
     rows: List<LibraryImportViewModel.PlanRow>,
     applying: Boolean,
     onChoose: (Int, SyncSide) -> Unit,
+    onToggle: (Int) -> Unit,
     onApply: () -> Unit,
     onDone: () -> Unit,
 ) {
@@ -82,9 +84,9 @@ internal fun SyncPlanContent(
         ) {
             val (conflicts, settled) = indexed.partition { it.value.conflict }
             val (pulled, pushed) = settled.partition { it.value.choice == SyncSide.REMOTE }
-            planGroup(Res.string.settings__library_sync_group_from, tracker, pulled, onChoose)
-            planGroup(Res.string.settings__library_sync_group_to, tracker, pushed, onChoose)
-            planGroup(Res.string.settings__library_sync_group_conflicts, tracker, conflicts, onChoose)
+            planGroup(Res.string.settings__library_sync_group_from, tracker, pulled, onChoose, onToggle)
+            planGroup(Res.string.settings__library_sync_group_to, tracker, pushed, onChoose, onToggle)
+            planGroup(Res.string.settings__library_sync_group_conflicts, tracker, conflicts, onChoose, onToggle)
         }
         Button(
             onClick = onApply,
@@ -103,6 +105,7 @@ private fun LazyListScope.planGroup(
     tracker: String,
     rows: List<IndexedValue<LibraryImportViewModel.PlanRow>>,
     onChoose: (Int, SyncSide) -> Unit,
+    onToggle: (Int) -> Unit,
 ) {
     if (rows.isEmpty()) return
     item(key = "group-${titleRes.key}") { SettingsGroupHeader(stringResource(titleRes, tracker, rows.size)) }
@@ -114,48 +117,64 @@ private fun LazyListScope.planGroup(
                 fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
             ),
         ) {
-            PlanItem(row, tracker, indexInGroup, rows.size) { onChoose(index, it) }
+            PlanItem(row, tracker, indexInGroup, rows.size, onToggle = { onToggle(index) }) { onChoose(index, it) }
         }
     }
 }
 
-/** A plan row: the game, its status on each side and, for a conflict, the side to keep. */
+/** A plan row: the game, its status on each side and, for a conflict, the side to keep. Other rows toggle on tap. */
 @Composable
 private fun PlanItem(
     row: LibraryImportViewModel.PlanRow,
     tracker: String,
     indexInGroup: Int,
     groupCount: Int,
+    onToggle: () -> Unit,
     onChoose: (SyncSide) -> Unit,
 ) {
     val missing = stringResource(Res.string.settings__library_sync_missing)
     val app = stringResource(Res.string.app_name)
     val local = row.change.local?.let { stringResource(it.displayName) } ?: missing
     val remote = row.change.remote?.let { stringResource(it.displayName) } ?: missing
-    SegmentedListItem(
-        onClick = {},
-        shapes = ListItemDefaults.segmentedShapes(index = indexInGroup, count = groupCount),
-        colors = ListItemDefaults.expressiveSegmentedColors(),
-        leadingContent = { MatchCover(row.game) },
-        supportingContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    stringResource(Res.string.settings__library_sync_status_change, local, tracker, remote),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (row.conflict) {
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        listOf(SyncSide.LOCAL to app, SyncSide.REMOTE to tracker).forEachIndexed { i, (side, name) ->
-                            SegmentedButton(
-                                selected = row.choice == side,
-                                onClick = { onChoose(side) },
-                                shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
-                            ) { Text(name) }
-                        }
+    val shapes = ListItemDefaults.segmentedShapes(index = indexInGroup, count = groupCount)
+    val colors = ListItemDefaults.expressiveSegmentedColors()
+    val leading: @Composable () -> Unit = { MatchCover(row.game) }
+    val supporting: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                stringResource(Res.string.settings__library_sync_status_change, local, tracker, remote),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (row.conflict) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(SyncSide.LOCAL to app, SyncSide.REMOTE to tracker).forEachIndexed { i, (side, name) ->
+                        SegmentedButton(
+                            selected = row.choice == side,
+                            onClick = { onChoose(side) },
+                            shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                        ) { Text(name) }
                     }
                 }
             }
-        },
-    ) { Text(row.game?.name.orEmpty()) }
+        }
+    }
+    if (row.conflict) {
+        SegmentedListItem(
+            onClick = {},
+            shapes = shapes,
+            colors = colors,
+            leadingContent = leading,
+            supportingContent = supporting,
+        ) { Text(row.game?.name.orEmpty()) }
+    } else {
+        SegmentedListItem(
+            selected = row.included,
+            onClick = onToggle,
+            shapes = shapes,
+            colors = colors,
+            leadingContent = leading,
+            supportingContent = supporting,
+        ) { Text(row.game?.name.orEmpty()) }
+    }
 }
 

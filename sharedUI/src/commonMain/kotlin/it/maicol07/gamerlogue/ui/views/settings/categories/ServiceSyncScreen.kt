@@ -147,8 +147,8 @@ fun ServiceSyncView(
                 }
             }
 
-            ServiceSyncAction.PREVIEW_LIBRARY_SYNC -> {
-                ImportHandoff.put(service, viewModel.runReadOwned(service, session))
+            ServiceSyncAction.PREVIEW_LIBRARY_SYNC -> viewModel.runReadOwned(service, session)?.let { refs ->
+                ImportHandoff.put(service, refs)
                 navigatedAway = true
                 navigateToImportPreview(service, ImportMode.SYNC)
             }
@@ -160,16 +160,18 @@ fun ServiceSyncView(
                 } else {
                     viewModel.runReadOwned(service, session)
                 }
-                ImportHandoff.put(service, refs)
-                navigatedAway = true
-                navigateToImportPreview(
-                    service,
-                    when {
-                        wishlist -> ImportMode.WISHLIST
-                        service.category == ServiceCategory.TRACKER -> ImportMode.TRACKED
-                        else -> ImportMode.OWNED
-                    },
-                )
+                refs?.let {
+                    ImportHandoff.put(service, it)
+                    navigatedAway = true
+                    navigateToImportPreview(
+                        service,
+                        when {
+                            wishlist -> ImportMode.WISHLIST
+                            service.category == ServiceCategory.TRACKER -> ImportMode.TRACKED
+                            else -> ImportMode.OWNED
+                        },
+                    )
+                }
             }
         }
     }
@@ -394,7 +396,7 @@ private fun LoadingContent(log: List<SyncPhase>, progress: StepProgress?, batch:
 @Composable
 private fun AnimatedSyncProgress(done: Int, total: Int) {
     val animated by animateFloatAsState(
-        (done.toFloat() / total).coerceIn(0f, 1f),
+        if (total > 0) (done.toFloat() / total).coerceIn(0f, 1f) else 0f,
         MaterialTheme.motionScheme.defaultEffectsSpec(),
     )
     LinearWavyProgressIndicator(progress = { animated }, Modifier.fillMaxWidth())

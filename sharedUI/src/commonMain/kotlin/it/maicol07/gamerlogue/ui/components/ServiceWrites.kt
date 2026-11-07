@@ -15,21 +15,40 @@ internal suspend fun <T> WebSession.writeBatches(
     var written = 0
     var done = 0
     val batches = games.chunked(WRITE_BATCH_SIZE)
-    for ((index, batch) in batches.withIndex()) {
-        beginBatch(index + 1, batches.size, done, games.size, batch.size)
-        val refs = try {
-            run(step(batch))
-        } catch (error: ScriptWriteException) {
-            record(batch, error.written)
-            finishBatch(done + error.written.size, games.size)
-            throw error
+    try {
+        for ((index, batch) in batches.withIndex()) {
+            beginBatch(index + 1, batches.size, done, games.size, batch.size)
+            val refs = try {
+                run(step(batch))
+            } catch (error: ScriptWriteException) {
+                record(batch, error.written)
+                finishBatch(done + error.written.size, games.size)
+                throw error
+            }
+            record(batch, refs)
+            written += refs.size
+            done += batch.size
+            finishBatch(done, games.size)
         }
-        record(batch, refs)
-        written += refs.size
-        done += batch.size
-        finishBatch(done, games.size)
+    } finally {
+        endBatch()
     }
     return written
+}
+
+/** Runs [action] once per item as a one-step batch and returns the sum of the writes it confirmed. */
+internal suspend fun <T> WebSession.writeEach(items: List<T>, action: suspend (T) -> Int): Int {
+    var confirmed = 0
+    try {
+        items.forEachIndexed { index, item ->
+            beginBatch(index + 1, items.size, index, items.size, 1)
+            confirmed += action(item)
+            finishBatch(index + 1, items.size)
+        }
+    } finally {
+        endBatch()
+    }
+    return confirmed
 }
 
 private const val WRITE_BATCH_SIZE = 10

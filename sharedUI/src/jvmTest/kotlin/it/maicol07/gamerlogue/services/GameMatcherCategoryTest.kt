@@ -52,4 +52,9 @@ class GameMatcherCategoryTest : StringSpec({
         val matcher = GameMatcher(CategoryFixtureIgdb(), ExceptionReporter())
         matcher.searchByName("Base").map { it.id } shouldBe listOf(1L, 7L)
     }
+
+    "lookups by id keep add-ons and bundles: those ids come from the library, not from matching" {
+        val matcher = GameMatcher(CategoryFixtureIgdb(), ExceptionReporter())
+        matcher.gamesByIds(listOf(3, 4, 5, 6)).map { it.id } shouldBe (1L..7L).toList()
+    }
 })

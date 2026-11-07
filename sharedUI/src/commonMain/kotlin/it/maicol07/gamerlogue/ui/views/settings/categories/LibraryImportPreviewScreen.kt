@@ -125,6 +125,7 @@ fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
                 rows = plan,
                 applying = uiState.importing,
                 onChoose = viewModel::choose,
+                onToggle = viewModel::togglePlanRow,
                 onApply = viewModel::applySync,
                 onDone = onDone,
             )

@@ -42,4 +42,17 @@ class PlanSyncTest : StringSpec({
         plan.changes.shouldBeEmpty()
         plan.agreed shouldBe mapOf(2 to SyncedGame("u", BACKLOG))
     }
+
+    "a tracker status the tracker side can't store is left alone instead of imported" {
+        val plan = planSync(emptyMap(), mapOf(1 to ref(PAUSED)), emptyMap(), setOf(PLAYING, BACKLOG))
+        plan.changes.shouldBeEmpty()
+        plan.agreed.isEmpty() shouldBe true
+    }
+
+    "several tracker rows of one game resolve to the lowest uid, whatever their order" {
+        val rows = listOf(1 to ExternalGameRef("b"), 1 to ExternalGameRef("a"), 2 to ExternalGameRef("c"))
+        val expected = mapOf(1 to ExternalGameRef("a"), 2 to ExternalGameRef("c"))
+        rows.onePerGame() shouldBe expected
+        rows.reversed().onePerGame() shouldBe expected
+    }
 })

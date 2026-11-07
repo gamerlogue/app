@@ -23,6 +23,9 @@ import kotlinx.coroutines.sync.withPermit
 import org.koin.core.annotation.Single
 import kotlin.uuid.Uuid
 
+/** The user's library could not be loaded. Never read it as an empty library: writing against one duplicates entries. */
+class LibraryLoadException(message: String) : IllegalStateException(message)
+
 /**
  * Writes Gamerlogue [LibraryEntry]s from data read off an external store, reusing the JSON:API CRUD.
  *
@@ -85,11 +88,12 @@ class LibrarySync(
                 existing = existing[game.baseGameId]?.detachedCopy(::LibraryEntry),
                 platformsIds = connector.platformIdsFor(game),
             ).apply { owned = true }
-        }
+        }.size
     }
 
     /** Persist confirmed wishlisted [games] as BACKLOG (owned=false), skipping games already tracked.
-     *  [connector] derives `platformsIds` (see [platformIdsFor]) for the new entries. */
+     *  [connector] derives `platformsIds` (see [platformIdsFor]) for the new entries. Returns how many entries
+     *  were created: an existing entry that only gains an edition isn't counted. */
     suspend fun importWishlist(
         connector: ServiceConnector,
         games: List<Game>,
@@ -111,7 +115,7 @@ class LibrarySync(
                 existing = entry?.detachedCopy(::LibraryEntry),
                 platformsIds = connector.platformIdsFor(game),
             ).apply { this.owned = owned }
-        }
+        }.count { it.gameId !in existing }
     }
 
     /** Set each game's status: existing entries are updated in place (keeping `owned`), missing ones are
@@ -119,20 +123,21 @@ class LibrarySync(
     suspend fun applyStatuses(games: List<Pair<Game, GameLibraryStatus>>, snapshot: MutableList<LibraryEntry>? = null): Int {
         val entries = snapshot ?: allEntries().toMutableList()
         val existing = entries.associateBy { it.gameId }
-        val statusOf = games.associate { (game, status) -> game.baseGameId to status }
+        val statusOf = games.associate { (game, status) -> game.id to status }
         return persistEach(games.map { it.first }, entries) { game ->
             val entry = existing[game.baseGameId]
             val owned = entry?.owned ?: false
-            LibraryEntry.quickDraft(game, statusOf.getValue(game.baseGameId), existing = entry?.detachedCopy(::LibraryEntry))
+            LibraryEntry.quickDraft(game, statusOf.getValue(game.id), existing = entry?.detachedCopy(::LibraryEntry))
                 .apply { this.owned = owned }
-        }
+        }.size
     }
 
+    /** Saves one entry per base game and returns the saved ones. */
     private suspend fun persistEach(
         games: List<Game>,
         entries: MutableList<LibraryEntry>,
         draft: (Game) -> LibraryEntry,
-    ): Int = coroutineScope {
+    ): List<LibraryEntry> = coroutineScope {
         // One import batch per sync: the server sums its new entries into one `library_imported` activity.
         val batch = Uuid.random().toString()
         // Distinct by id: several store entries (game + demo/DLC) can map to one IGDB game; saving the
@@ -153,6 +158,8 @@ class LibrarySync(
                                 (runCatching { entry.editionsIds }.getOrDefault(emptyList()) + editionIds).distinct()
                         }
                         profileApi.saveImported(entry, batch)
+                        // An entry saved under an edition's id (legacy) is still looked up by its base game.
+                        entry.gameId = game.baseGameId
                         entry
                     }
                 }
@@ -165,11 +172,22 @@ class LibrarySync(
                 saved
             }
         }.mapNotNull { it.await() }.also { saved ->
-            val ids = saved.mapTo(mutableSetOf()) { it.gameId }
-            entries.removeAll { it.gameId in ids }
-            entries.addAll(saved)
+            if (saved.size < distinct.size) {
+                // A failed save may still have reached the server (a timeout, an unreadable response): reload, so the
+                // next write of this flow doesn't create a duplicate of it.
+                entries.refill(allEntries())
+            } else {
+                val ids = saved.mapTo(mutableSetOf()) { it.gameId }
+                entries.removeAll { it.gameId in ids }
+                entries.addAll(saved)
+            }
             if (saved.isNotEmpty()) libraryChanges.notifyChanged()
-        }.size
+        }
+    }
+
+    private fun MutableList<LibraryEntry>.refill(fresh: List<LibraryEntry>) {
+        clear()
+        addAll(fresh)
     }
 
     /**
@@ -232,7 +250,20 @@ class LibrarySync(
         )
     }
 
-    /** Every entry of the user's library. */
-    suspend fun allEntries(): List<LibraryEntry> =
-        exceptionReporter.safeRequest { LibraryEntry.currentUserEntries().allPages() }.get().orEmpty()
+    /**
+     * Every entry of the user's library, keyed by base game: an entry saved under an edition's id (before editions
+     * were folded into their base game) is read as the base game, with the edition kept in `editionsIds`.
+     * @throws LibraryLoadException when the library could not be loaded; an empty result is a real empty library.
+     */
+    suspend fun allEntries(): List<LibraryEntry> {
+        val entries = exceptionReporter.safeRequest { LibraryEntry.currentUserEntries().allPages() }.get()
+            ?: throw LibraryLoadException("The library could not be loaded")
+        val parents = matcher.editionParents(entries.map { it.gameId })
+        entries.filter { it.gameId in parents }.forEach { entry ->
+            val edition = entry.gameId
+            entry.gameId = parents.getValue(edition)
+            entry.editionsIds = (runCatching { entry.editionsIds }.getOrDefault(emptyList()) + edition).distinct()
+        }
+        return entries
+    }
 }

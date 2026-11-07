@@ -7,10 +7,12 @@ import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.LibraryLoadException
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ScriptWriteException
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.ServiceProfile
+import it.maicol07.gamerlogue.services.ServiceReadException
 import it.maicol07.gamerlogue.services.StatusChange
 import it.maicol07.gamerlogue.services.SyncSide
 import it.maicol07.gamerlogue.services.TrackerSync
@@ -18,15 +20,16 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.connectors.BackloggeryConnector
 import it.maicol07.gamerlogue.services.settingsKey
+import it.maicol07.gamerlogue.ui.components.LoginTimeoutException
 import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.WebSession
 import it.maicol07.gamerlogue.ui.components.confirmLibraryAdditions
 import it.maicol07.gamerlogue.ui.components.writeBatches
+import it.maicol07.gamerlogue.ui.components.writeEach
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.core.annotation.KoinViewModel
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 
 /** A store flow that requires the WebView; carried by the [it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree.ServiceSync] key. */
@@ -158,13 +161,37 @@ class LinkedServicesViewModel(
 
     // --- WebView flows (called by the ServiceSyncView's WebView) ---
 
+    /**
+     * Runs [block]; a failed read, library load, write or login aborts it, records [SyncOutcome.Failed] and
+     * returns null. Cancellation and any other exception propagate.
+     */
+    private suspend fun <T> abortOnFailure(what: String, service: ExternalService, block: suspend () -> T): T? = try {
+        block()
+    } catch (error: ServiceReadException) {
+        abort(what, service, error)
+    } catch (error: LibraryLoadException) {
+        abort(what, service, error)
+    } catch (error: ScriptWriteException) {
+        abort(what, service, error)
+    } catch (error: LoginTimeoutException) {
+        abort(what, service, error)
+    }
+
+    private fun abort(what: String, service: ExternalService, error: IllegalStateException): Nothing? {
+        Logger.e(error) { "$what failed for $service" }
+        update { copy(outcome = SyncOutcome.Failed) }
+        return null
+    }
+
     suspend fun runConnect(service: ExternalService, session: WebSession) {
         val connector = connector(service)
-        session.awaitLogin(connector)
-        if (session.currentUrl?.let { connector.isLoggedIn(it) } == true) {
-            setConnected(service, true)
-            fetchProfile(connector, session)?.let { setProfile(service, it) }
-            refresh(service)
+        abortOnFailure("Connect", service) {
+            session.awaitLogin(connector)
+            if (session.currentUrl?.let { connector.isLoggedIn(it) } == true) {
+                setConnected(service, true)
+                fetchProfile(connector, session)?.let { setProfile(service, it) }
+                refresh(service)
+            }
         }
     }
 
@@ -173,8 +200,10 @@ class LinkedServicesViewModel(
         val connector = connector(service)
         setBusy(service, true)
         try {
-            session.awaitLogin(connector)
-            fetchProfile(connector, session)?.let { setProfile(service, it) }
+            abortOnFailure("Profile refresh", service) {
+                session.awaitLogin(connector)
+                fetchProfile(connector, session)?.let { setProfile(service, it) }
+            }
         } finally {
             setBusy(service, false)
             refresh(service)
@@ -188,52 +217,39 @@ class LinkedServicesViewModel(
 
     suspend fun runReadForIdSync(service: ExternalService, session: WebSession): List<ExternalGameRef>? {
         val connector = connector(service) as BackloggeryConnector
-        return try {
+        return abortOnFailure("ID resync read", service) {
             session.awaitLogin(connector)
             session.read(connector.gamesForIdSync, SyncPhase.READING)
-        } catch (error: ScriptWriteException) {
-            Logger.e(error) { "ID resync read failed for $service" }
-            update { copy(outcome = SyncOutcome.Failed) }
-            null
         }
     }
 
     suspend fun runApplyResyncIds(service: ExternalService, session: WebSession) {
         val connector = connector(service) as BackloggeryConnector
         val refs = ImportHandoff.take(service)
-        try {
+        abortOnFailure("ID resync", service) {
             session.awaitLogin(connector)
             val confirmed = refs.filter { (it.gameId ?: 0) > 0 }
             val updated = session.writeBatches(confirmed, connector::resyncIds) { _, _ -> }
             update { copy(outcome = SyncOutcome.IdsResynced(updated, refs.size - confirmed.size)) }
-        } catch (error: ScriptWriteException) {
-            Logger.e(error) { "ID resync failed for $service" }
-            update { copy(outcome = SyncOutcome.Failed) }
         }
     }
 
-    // This UI flow reports failures from multiple APIs; cancellation is rethrown.
-    @Suppress("TooGenericExceptionCaught")
     suspend fun runWishlistSync(service: ExternalService, session: WebSession) {
         val connector = connector(service)
         setBusy(service, true)
         try {
-            session.awaitLogin(connector)
-            val wishlist = wishlistRefs(connector, session)
-            val result = librarySync.pullWishlist(connector, wishlist)
-            val selected = when (service) {
-
-                ExternalService.BACKLOGGERY -> session.confirmPush(result.toPush)
-                else -> result.toPush
+            abortOnFailure("Wishlist sync", service) {
+                session.awaitLogin(connector)
+                val wishlist = wishlistRefs(connector, session)
+                val result = librarySync.pullWishlist(connector, wishlist)
+                val selected = when (service) {
+                    ExternalService.BACKLOGGERY -> session.confirmPush(result.toPush)
+                    else -> result.toPush
+                }
+                val pushed = pushWishlist(connector, session, selected)
+                setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
+                update { copy(outcome = SyncOutcome.WishlistSynced(result.added, pushed)) }
             }
-            val pushed = pushWishlist(connector, session, selected)
-            setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-            update { copy(outcome = SyncOutcome.WishlistSynced(result.added, pushed)) }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.e(e) { "Wishlist sync failed for $service" }
-            update { copy(outcome = SyncOutcome.Failed) }
         } finally {
             setBusy(service, false)
             refresh(service)
@@ -244,49 +260,45 @@ class LinkedServicesViewModel(
      * Unattended tracker library sync: synced mappings and confident matches only, and only the changes one
      * side made since the last sync — conflicts are counted and left for the reviewed sync.
      */
-    // This UI flow reports failures from multiple APIs; cancellation is rethrown.
-    @Suppress("TooGenericExceptionCaught")
     suspend fun runLibrarySync(service: ExternalService, session: WebSession) {
         val connector = connector(service)
         val write = connector.statusWrite ?: return
         setBusy(service, true)
         try {
-            session.awaitLogin(connector)
-            val refs = session.read(connector.ownedGames, SyncPhase.READING)
-            val entries = librarySync.allEntries().toMutableList()
-            val remote = trackerSync.resolve(connector, refs)
-            val plan = trackerSync.plan(connector, remote, entries)
-            trackerSync.record(service, plan.agreed)
-            val pulled = trackerSync.pull(service, plan.changes.filter { it.winner == SyncSide.REMOTE }, entries, remote)
-            val outgoing = trackerSync.outgoing(plan.changes.filter { it.winner == SyncSide.LOCAL }, entries)
-            val pushed = writeStatuses(service, session, write, outgoing)
-            val conflicts = plan.changes.count { it.winner == null }
-            update { copy(outcome = SyncOutcome.LibrarySynced(pulled, pushed, conflicts)) }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.e(e) { "Library sync failed for $service" }
-            update { copy(outcome = SyncOutcome.Failed) }
+            abortOnFailure("Library sync", service) {
+                session.awaitLogin(connector)
+                val refs = session.read(connector.ownedGames, SyncPhase.READING)
+                val entries = librarySync.allEntries().toMutableList()
+                val (remote, onTracker) = trackerSync.resolve(connector, refs)
+                val plan = trackerSync.plan(connector, remote, entries, onTracker)
+                trackerSync.record(service, plan.agreed)
+                val pulled = trackerSync.pull(service, plan.changes.filter { it.winner == SyncSide.REMOTE }, entries, remote)
+                val outgoing = trackerSync.outgoing(plan.changes.filter { it.winner == SyncSide.LOCAL }, entries)
+                val pushed = writeStatuses(service, session, write, outgoing)
+                val conflicts = plan.changes.count { it.winner == null }
+                setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
+                update { copy(outcome = SyncOutcome.LibrarySynced(pulled, pushed, conflicts)) }
+            }
         } finally {
             setBusy(service, false)
             refresh(service)
         }
     }
 
-    /** Writes the tracker side of a reviewed library sync, handed over by the preview screen. */
+    /**
+     * Writes the tracker side of a reviewed library sync, handed over by the preview screen. The plan stays
+     * pending until the push succeeds, so a failed write or login can be retried.
+     */
     suspend fun runApplyLibrarySync(service: ExternalService, session: WebSession) {
         val connector = connector(service)
         val write = connector.statusWrite ?: return
-        val changes = trackerSync.pendingWrites.remove(service).orEmpty()
-        session.awaitLogin(connector)
-        val pushed = try {
-            writeStatuses(service, session, write, changes)
-        } catch (error: ScriptWriteException) {
-            Logger.e(error) { "Library push failed for $service" }
-            update { copy(outcome = SyncOutcome.Failed) }
-            return
+        abortOnFailure("Library push", service) {
+            session.awaitLogin(connector)
+            val pushed = writeStatuses(service, session, write, trackerSync.pendingWrites[service].orEmpty())
+            trackerSync.pendingWrites.remove(service)
+            setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
+            update { copy(outcome = SyncOutcome.LibrarySynced(pulled = 0, pushed = pushed, conflicts = 0)) }
         }
-        update { copy(outcome = SyncOutcome.LibrarySynced(pulled = 0, pushed = pushed, conflicts = 0)) }
     }
 
     private suspend fun writeStatuses(
@@ -299,52 +311,62 @@ class LinkedServicesViewModel(
         val reviewed = if (service == ExternalService.BACKLOGGERY) session.confirmLibraryAdditions(changes) else changes
         return session.writeBatches(reviewed, write) { batch, written ->
             trackerSync.recordWritten(service, batch, written)
+            // Drop what's written from a pending reviewed plan, so a retry after a failure doesn't resend it.
+            val done = written.mapNotNull { it.gameId }.toSet()
+            trackerSync.pendingWrites[service]?.let { pending -> trackerSync.pendingWrites[service] = pending.filterNot { it.gameId in done } }
         }
     }
 
     /** Reads owned games for the import preview; matching/persisting happen on the preview screen. */
-    suspend fun runReadOwned(service: ExternalService, session: WebSession): List<ExternalGameRef> =
+    suspend fun runReadOwned(service: ExternalService, session: WebSession): List<ExternalGameRef>? =
         connector(service).let { connector ->
-            session.awaitLogin(connector)
-            session.read(connector.ownedGames, SyncPhase.READING)
+            abortOnFailure("Owned games read", service) {
+                session.awaitLogin(connector)
+                session.read(connector.ownedGames, SyncPhase.READING)
+            }
         }
 
     /** Read the incoming wishlist for the editable preview before the outgoing step. */
-    suspend fun runWishlistPreview(service: ExternalService, session: WebSession): List<ExternalGameRef> {
+    suspend fun runWishlistPreview(service: ExternalService, session: WebSession): List<ExternalGameRef>? {
         val connector = connector(service)
-        session.awaitLogin(connector)
-        return wishlistRefs(connector, session)
+        return abortOnFailure("Wishlist read", service) {
+            session.awaitLogin(connector)
+            wishlistRefs(connector, session)
+        }
     }
 
-    /** Review and push backlog games after the incoming wishlist has been confirmed. */
+    /**
+     * Review and push backlog games after the incoming wishlist has been confirmed. The reviewed import is
+     * only held in memory, so after a screen recreation or process death there is nothing to push: the flow
+     * just closes. It is dropped once the push succeeds, so a failed one can be retried.
+     */
     suspend fun runWishlistPush(service: ExternalService, session: WebSession) {
         val connector = connector(service)
-        val pending = checkNotNull(librarySync.pendingWishlistImports.remove(service)) {
-            "Missing reviewed wishlist import for $service"
-        }
-        session.awaitLogin(connector)
-        // Outgoing preview: let the user pick which backlog games to push to the store, then push them. A store
-        // that can't be written to gets no checklist: every row would just read "no match".
-        val selected = if (connector.wishlistWrite == null) {
-            emptyList()
-        } else {
-            session.confirmPush(pending.toPush)
-        }
-        val pushed = try {
-            if (selected.isNotEmpty()) pushWishlist(connector, session, selected) else 0
-        } catch (error: ScriptWriteException) {
-            Logger.e(error) { "Wishlist push failed for $service" }
-            update { copy(outcome = SyncOutcome.Failed) }
+        val pending = librarySync.pendingWishlistImports[service]
+        if (pending == null) {
+            Logger.w { "No reviewed wishlist import to push for $service" }
             return
         }
-        update { copy(outcome = SyncOutcome.WishlistSynced(pending.added, pushed)) }
+        abortOnFailure("Wishlist push", service) {
+            session.awaitLogin(connector)
+            // Outgoing preview: let the user pick which backlog games to push to the store, then push them. A store
+            // that can't be written to gets no checklist: every row would just read "no match".
+            val selected = if (connector.wishlistWrite == null) {
+                emptyList()
+            } else {
+                session.confirmPush(pending.toPush)
+            }
+            val pushed = if (selected.isNotEmpty()) pushWishlist(connector, session, selected) else 0
+            librarySync.pendingWishlistImports.remove(service)
+            update { copy(outcome = SyncOutcome.WishlistSynced(pending.added, pushed)) }
+        }
     }
 
     // The connector's [ServiceConnector.wishlist] source decides Web vs API internally; null = no wishlist.
     private suspend fun wishlistRefs(connector: ServiceConnector, session: WebSession): List<ExternalGameRef> =
         connector.wishlist?.let { session.read(it, SyncPhase.READING) }.orEmpty()
 
-    /** Pushes [games] to the store wishlist and returns how many it actually sent. */
+    /** Pushes [games] to the store wishlist and returns how many the store confirmed (by the write results). */
     // One linear branch per WishlistWrite variant; splitting it would only scatter the dispatch.
     @Suppress("CyclomaticComplexMethod")
     private suspend fun pushWishlist(
@@ -357,41 +379,22 @@ class LinkedServicesViewModel(
         val onPlatform = games.filter { it.onPlatform && !it.alreadyOnWishlist }
         val withStorePage = onPlatform.filter { it.storeUrl != null }
         return when (write) {
-            is WishlistWrite.Batch -> {
-                if (withStorePage.isNotEmpty()) {
-                    session.run(write.step(withStorePage.map { ExternalGameRef(it.uid, it.name) }))
+            is WishlistWrite.Batch ->
+                if (withStorePage.isEmpty()) {
+                    0
+                } else {
+                    session.run(write.step(withStorePage.map { ExternalGameRef(it.uid, it.name) })).size
                 }
-                withStorePage.size
-            }
             // Per-game write: open each store page and click its add-to-wishlist button (e.g. PSN).
-            is WishlistWrite.PerGame -> {
-
-                withStorePage.forEachIndexed { i, g ->
-                    session.beginBatch(i + 1, withStorePage.size, i, withStorePage.size, 1)
-                    write.step(g.storeUrl!!)?.let { session.run(it) }
-                    session.finishBatch(i + 1, withStorePage.size)
-                }
-                withStorePage.size
-            }
+            is WishlistWrite.PerGame ->
+                session.writeEach(withStorePage) { g -> write.step(g.storeUrl!!)?.let { session.run(it).size } ?: 0 }
             // Resolve the real product URL from an intermediate page first, then act on it (Nintendo).
-            is WishlistWrite.PerGameResolved -> {
-                withStorePage.forEachIndexed { i, g ->
-                    session.beginBatch(i + 1, withStorePage.size, i, withStorePage.size, 1)
-                    val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
-                    if (!resolved.isNullOrBlank()) write.step(resolved)?.let { session.run(it) }
-                    session.finishBatch(i + 1, withStorePage.size)
-                }
-                withStorePage.size
+            is WishlistWrite.PerGameResolved -> session.writeEach(withStorePage) { g ->
+                val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
+                if (resolved.isNullOrBlank()) 0 else write.step(resolved)?.let { session.run(it).size } ?: 0
             }
             // Search-driven write: no store URL needed, the game's name drives the search (Ubisoft).
-            is WishlistWrite.SearchByName -> {
-                onPlatform.forEachIndexed { i, g ->
-                    session.beginBatch(i + 1, onPlatform.size, i, onPlatform.size, 1)
-                    session.run(write.step(g.name))
-                    session.finishBatch(i + 1, onPlatform.size)
-                }
-                onPlatform.size
-            }
+            is WishlistWrite.SearchByName -> session.writeEach(onPlatform) { g -> session.run(write.step(g.name)).size }
             // IGDB-id write: the tracker's game ids are IGDB ids, so no store page is needed (Backloggd).
             is WishlistWrite.ById -> {
                 session.writeBatches(onPlatform, { batch -> write.step(batch.map { it.gameId }) }) { _, _ -> }

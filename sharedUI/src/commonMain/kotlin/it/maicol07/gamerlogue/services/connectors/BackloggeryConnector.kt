@@ -89,17 +89,18 @@ class BackloggeryConnector :
         const games = ${Json.encodeToString(games)};
         let rows = await __bgIdRows();
         for (const [n, ref] of games.entries()) {
+            if (__glCancelled()) break;
             __bgProgress(n, games.length);
             let row = rows[ref.uid];
             if (!row) throw new Error('Backloggery entry no longer exists: ' + ref.uid);
-            if (__bgNotes(row.notes, ref.gameId) === String(row.notes || '')) continue;
+            let rowNotes = __bgNotes(row.notes, ref.gameId);
+            if (rowNotes === null || rowNotes === String(row.notes || '')) continue;
             let info = await __bgPost('fetch_gameinfo.php', { game_inst_id: Number(ref.uid) });
             let game = info && info.status && info.payload;
             if (!game || Array.isArray(game)) throw new Error('Backloggery entry could not be read: ' + ref.uid);
-            let body = Object.assign(__bgEdit(row, game), {
-                notes: __bgNotes(game.notes ?? row.notes, ref.gameId),
-                is_stealth: true,
-            });
+            let notes = __bgNotes(game.notes ?? row.notes, ref.gameId);
+            if (notes === null) continue;
+            let body = Object.assign(__bgEdit(row, game), { notes: notes, is_stealth: true });
             let saved = await __bgPost('update_game.php', body);
             if (!saved || !saved.status) throw new Error('Backloggery rejected the ID update: ' + ref.uid);
             row.notes = body.notes;
@@ -135,6 +136,7 @@ class BackloggeryConnector :
             const changes = ${changes.jsonArray()};
             out = [];
             for (const [n, c] of changes.entries()) {
+                if (__glCancelled()) break;
                 __bgProgress(n, changes.length);
                 let uid = await __bgAdd(c, 7, context);
                 if (uid) out.push({ uid: uid, name: c.name, gameId: c.gameId });
@@ -150,12 +152,11 @@ class BackloggeryConnector :
     private fun libraryScrape(wishlist: Boolean) = SyncScripts.wrap(
         """
         $API_JS
-        let user = await __bgUser();
-        // The site posts the store action itself ({type, username}) and keeps the response as the library.
-        let data = user ? await __bgPost('fetch_library.php', { type: 'load_user_library', username: user }) : null;
-        let games = Array.isArray(data) ? data : (data && Array.isArray(data.payload) ? data.payload : []);
-        console.log('[GL] backloggery user=' + (user ? 'yes' : 'no') + ' response=' + (Array.isArray(data) ? 'array' : typeof data) +
-            ' games=' + games.length + ' wishlist=' + games.filter(function(g) { return Number(g.own) === 7; }).length);
+        // The site posts the store action itself ({type, username}) and keeps the response as the library; a
+        // missing session or invalid response throws, so the read reports an error instead of an empty library.
+        let games = await __bgLibrary();
+        console.log('[GL] backloggery games=' + games.length +
+            ' wishlist=' + games.filter(function(g) { return Number(g.own) === 7; }).length);
         out = games
             .filter(function(g) { return (Number(g.own) === 7) === $wishlist; })
             .map(function(g) {
@@ -189,6 +190,7 @@ class BackloggeryConnector :
                 (Array.isArray(library) ? library : []).forEach(function(g) { rows[String(g.game_inst_id)] = g; });
                 out = [];
                 for (const [n, c] of changes.entries()) {
+                    if (__glCancelled()) break;
                     __bgProgress(n, changes.length);
                     if (!c.uid) {
                         let uid = await __bgAdd(c, c.owned ? 1 : 0, context);
@@ -204,11 +206,16 @@ class BackloggeryConnector :
                     }
                     let [status, priority] = __bgTarget(c.to, game);
                     let row = rows[c.uid] || {};
+                    let notes = __bgNotes(game.notes ?? row.notes, c.gameId);
+                    if (notes === null) {
+                        console.log('[GL] backloggery notes too long for the IGDB marker, skipping ' + c.uid);
+                        continue;
+                    }
                     let body = Object.assign(__bgEdit(row, game), {
                         status: status,
                         priority: priority,
                         is_stealth: false,
-                        notes: __bgNotes(game.notes ?? row.notes, c.gameId),
+                        notes: notes,
                     });
                     let saved = await __bgPost('update_game.php', body);
                     console.log('[GL] backloggery update ' + c.uid + ': ' + JSON.stringify(saved).slice(0, 300));
@@ -338,8 +345,9 @@ class BackloggeryConnector :
                     return marker + (old.endsWith('\r') ? '\r' : '');
                 });
                 if (!found) text += (text && !text.endsWith('\n') ? (text.includes('\r\n') ? '\r\n' : '\n') : '') + marker;
-                // The site's Notes editor is limited to 700 characters; never truncate the user's text.
-                if (text.length > 700) throw new Error('Backloggery notes exceed 700 characters with the IGDB marker');
+                // The site's Notes editor is limited to 700 characters; never truncate the user's text. Null = the
+                // caller skips that game (a throw would abort every remaining batch).
+                if (text.length > 700) return null;
                 return text;
             }
             let __bgDone = 0, __bgTotal = 0;
@@ -356,6 +364,7 @@ class BackloggeryConnector :
             }
             async function __bgPost(endpoint, body) {
                 for (let attempt = 0; ; attempt++) {
+                    if (__glCancelled()) throw new Error("Backloggery write cancelled");
                     // Pace all requests, including the editor reads; transport failures are never replayed.
                     await __bgWait(1000);
                     let r = await fetch('/api/' + endpoint, {

@@ -40,8 +40,8 @@ data class SyncPlan(val changes: List<SyncChange>, val agreed: Map<Int, SyncedGa
  * Three-way plan of a library sync. [local] and [remote] are the current statuses by IGDB id (remote as
  * the tracker refs, carrying uid + status); [base] is the state of the last sync.
  *
- * - A game is synced only while its Gamerlogue status is one of [supported]: otherwise the tracker can't
- *   represent it and the two sides would never agree.
+ * - A game is synced only while its Gamerlogue status and its tracker status are both in [supported]:
+ *   otherwise the two sides can't represent each other's status and would never agree.
  * - A game missing on one side is added there — unless [base] knows it, meaning it was removed on that
  *   side since: removals aren't propagated, so it is left alone.
  * - When both sides differ, the side still equal to [base] lost; if neither (or there is no base), it's a
@@ -62,6 +62,7 @@ fun planSync(
         val r = ref?.let { it.status ?: GameLibraryStatus.BACKLOG }
         when {
             l != null && l !in supported -> Unit
+            r != null && r !in supported -> Unit
             ref != null && r != null && r == l -> agreed[id] = SyncedGame(ref.uid, r)
             else -> decide(l, r, base[id])?.let { changes += SyncChange(id, ref?.uid, l, r, it.winner) }
         }
@@ -79,6 +80,13 @@ private fun decide(local: GameLibraryStatus?, remote: GameLibraryStatus?, synced
     remote == synced?.status -> Decision.PUSH
     else -> Decision.CONFLICT
 }
+
+/**
+ * One tracker ref per IGDB game. A game can have several tracker rows (Backloggery keeps one per platform): the
+ * lowest uid wins, so the plan and what is recorded after it always agree on the same row.
+ */
+internal fun List<Pair<Int, ExternalGameRef>>.onePerGame(): Map<Int, ExternalGameRef> =
+    groupBy({ it.first }, { it.second }).mapValues { (_, refs) -> refs.minBy { it.uid } }
 
 /** JSON array literal of the changes, for embedding in a [ServiceConnector.statusWrite] script. */
 internal fun List<StatusChange>.jsonArray(): String =
@@ -129,37 +137,46 @@ class TrackerSync(
     }
 
     /** Tracker refs by IGDB id, for an unattended run: synced mappings plus confident matches only — a
-     *  name guess is never acted on without the user confirming it in the preview. */
-    suspend fun resolve(connector: ServiceConnector, refs: List<ExternalGameRef>): Map<Int, ExternalGameRef> {
+     *  name guess is never acted on without the user confirming it in the preview. Second: every game any ref
+     *  maps to, guesses included, for [plan]'s `onTracker`. */
+    suspend fun resolve(connector: ServiceConnector, refs: List<ExternalGameRef>): Pair<Map<Int, ExternalGameRef>, Set<Int>> {
         val known = knownGames(connector.service, refs)
-        val matched = matcher.match(connector, refs.filter { it.uid !in known })
-            .filter { it.confident }
+        val matches = matcher.match(connector, refs.filter { it.uid !in known })
+        val matched = matches.filter { it.confident }
             .mapNotNull { m -> m.game?.let { it.baseGameId to m.ref.copy(gameId = it.id.toInt()) } }
-        return refs.mapNotNull { ref -> known[ref.uid]?.let { it.baseGameId to ref.copy(gameId = it.id.toInt()) } }
-            .toMap() + matched
+        val remote = (refs.mapNotNull { ref -> known[ref.uid]?.let { it.baseGameId to ref.copy(gameId = it.id.toInt()) } } + matched)
+            .onePerGame()
+        return remote to remote.keys + matches.mapNotNull { it.game?.baseGameId }
     }
 
     /**
      * Plan a library sync with the tracker. The Gamerlogue wishlist (backlog, not owned) belongs to the
      * wishlist sync, so it isn't pushed here — except games already synced with this tracker, which came from
-     * its library and must keep following it.
+     * its library and must keep following it. [remote] only holds the tracker rows whose match is confirmed;
+     * [onTracker] is every game any tracker row maps to, confirmed or not: such a game is on the tracker already,
+     * so it's never added there.
      */
     suspend fun plan(
         connector: ServiceConnector,
         remote: Map<Int, ExternalGameRef>,
         snapshot: List<LibraryEntry>? = null,
+        onTracker: Set<Int> = emptySet(),
     ): SyncPlan {
         val base = base(connector.service)
         val local = (snapshot ?: librarySync.allEntries())
             .filterNot { it.status == GameLibraryStatus.BACKLOG && !it.owned && it.gameId !in base }
             .associate { it.gameId to it.status }
         val plan = planSync(local, remote, base, connector.syncStatuses)
-        // A tracker that can't add games only gets status updates for the ones it already has.
-        return if (connector.canAddGames) plan else plan.copy(changes = plan.changes.filter { it.remote != null })
+        // A change with no remote status is an addition to the tracker. A tracker that can't add games only gets
+        // status updates for the ones it already has.
+        return plan.copy(
+            changes = plan.changes.filter { it.remote != null || (connector.canAddGames && it.gameId !in onTracker) },
+        )
     }
 
     /** Apply the tracker side of [changes] to Gamerlogue and record them. Recorded only when every save
-     *  succeeded: an unrecorded change is simply planned again next time. Returns how many were saved. */
+     *  succeeded: an unrecorded change is simply planned again next time, as is one whose game IGDB didn't
+     *  return. Returns how many were saved. */
     suspend fun pull(
         service: ExternalService,
         changes: List<SyncChange>,
@@ -167,9 +184,12 @@ class TrackerSync(
         remote: Map<Int, ExternalGameRef> = emptyMap(),
     ): Int {
         val pulled = changes.mapNotNull { c -> c.remote?.let { r -> c.uid?.let { c.gameId to SyncedGame(it, r) } } }.toMap()
-        val games = matcher.gamesByIds(pulled.keys.map { remote[it]?.gameId ?: it })
-        val saved = librarySync.applyStatuses(games.map { it to pulled.getValue(it.baseGameId).status }, snapshot)
-        if (saved == pulled.size) record(service, pulled)
+        // The game to fetch for a change: the edition the tracker row was matched to, else the base game itself.
+        val requested = pulled.keys.associateWith { remote[it]?.gameId ?: it }
+        val gameById = matcher.gamesByIds(requested.values.toList()).associateBy { it.id.toInt() }
+        val resolved = requested.mapNotNull { (key, id) -> gameById[id]?.let { key to it } }
+        val saved = librarySync.applyStatuses(resolved.map { (key, game) -> game to pulled.getValue(key).status }, snapshot)
+        if (saved == resolved.size) record(service, resolved.associate { (key, _) -> key to pulled.getValue(key) })
         return saved
     }
 

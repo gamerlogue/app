@@ -3,9 +3,12 @@ package it.maicol07.gamerlogue.services
 import at.released.igdbclient.model.Game
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
 
 /**
  * A game as seen on an external store: its store-specific [uid] (Steam appid, GOG/Epic product id,
@@ -281,23 +284,68 @@ internal fun cleanJsResult(raw: String?): String? {
     return runCatching { resultJson.decodeFromString<String>(s) }.getOrDefault(s)
 }
 
-/** Parse the `[{uid,name}, …]` JSON a connector script delivers through the WebView JS bridge. */
-internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
-    val s = cleanJsResult(raw) ?: return emptyList()
-    return runCatching { resultJson.decodeFromString<List<ExternalGameRef>>(s) }.getOrDefault(emptyList())
+/**
+ * Unwrap a `{token, out}` bridge reply: the `out` JSON of the reply for step [token], or null for a reply
+ * from another (earlier, timed-out) step or a malformed one.
+ */
+internal fun unwrapBridgeReply(json: String?, token: Int): String? {
+    val reply = json?.let { runCatching { resultJson.parseToJsonElement(it) as? JsonObject }.getOrNull() } ?: return null
+    return reply["out"]?.toString().takeIf { (reply["token"] as? JsonPrimitive)?.content == token.toString() }
 }
 
-internal class ScriptWriteException(message: String, val written: List<ExternalGameRef>) : IllegalStateException(message)
+/** A store read that failed (timeout, script error, unreadable payload) rather than found nothing. */
+class ServiceReadException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
+
+private fun decodeRefs(element: JsonElement): List<ExternalGameRef> = resultJson.decodeFromJsonElement(element)
+
+/**
+ * Parse the `[{uid,name}, …]` JSON a connector script delivers through the WebView JS bridge. A failure (no
+ * result, an `{error}` payload, invalid JSON or a malformed ref) throws [ServiceReadException]: it must never
+ * look like an empty library, which sync would treat as authoritative. Only a successful `[]` is empty.
+ */
+@Suppress("ThrowsCount")
+internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
+    val s = cleanJsResult(raw) ?: throw ServiceReadException("Service read timed out")
+    try {
+        val element = resultJson.parseToJsonElement(s)
+        if (element is JsonObject) {
+            throw ServiceReadException(
+                (element["error"] as? JsonPrimitive)?.content ?: "Unexpected service read result",
+            )
+        }
+        return decodeRefs(element)
+    } catch (e: SerializationException) {
+        throw ServiceReadException("Unreadable service read result: ${e.message}", e)
+    }
+}
+
+internal class ScriptWriteException(
+    message: String,
+    val written: List<ExternalGameRef>,
+    cause: Throwable? = null,
+) : IllegalStateException(message, cause)
 
 /** A failed write retains the confirmed prefix so it can be checkpointed before surfacing the error. */
+@Suppress("ThrowsCount")
 internal fun parseWriteResult(raw: String?): List<ExternalGameRef> {
     val value = cleanJsResult(raw) ?: throw ScriptWriteException("Tracker write timed out", emptyList())
-    val result = resultJson.parseToJsonElement(value)
-    if (result is JsonObject) {
-        val error = (result["error"] as? JsonPrimitive)?.content
-        if (error != null) throw ScriptWriteException(error, parseRefsJson(result["written"]?.toString()))
+    try {
+        val result = resultJson.parseToJsonElement(value)
+        if (result is JsonObject) {
+            val written = try {
+                result["written"]?.let(::decodeRefs).orEmpty()
+            } catch (ignored: SerializationException) {
+                emptyList()
+            }
+            throw ScriptWriteException(
+                (result["error"] as? JsonPrimitive)?.content ?: "Unexpected tracker write result",
+                written,
+            )
+        }
+        return decodeRefs(result)
+    } catch (e: SerializationException) {
+        throw ScriptWriteException("Unreadable tracker write result: ${e.message}", emptyList(), e)
     }
-    return resultJson.decodeFromString(value)
 }
 
 /** Parse the `{username, avatarUrl, profileUrl}` JSON a [ServiceConnector.profile] script delivers
@@ -353,11 +401,30 @@ object SyncScripts {
      * - `__glClickUntil(find, confirmed, attempts?, settle?)` — click then verify, with retry: the
      *   React/SSR stores render the button before binding its handler, so a single early click hits a
      *   dead handler and silently does nothing. Resolves `confirmed()`.
+     * - `__glFetchDoc(path)` — same-origin GET parsed as an HTML document; throws an Error carrying `status` on a
+     *   non-OK response. `__glDoc(path)` is the soft variant: null on a non-OK response.
+     * - `__glPool(items, size, task)` — runs `task(item)` over `items` with `size` parallel workers.
+     * - `__glCancelled()` — true once Kotlin timed the step out; write loops stop starting new writes.
      * - `__glProgress(done, total)` — report how many games were read/written so far for the progress
      *   bar; `total` 0 when not known yet (e.g. paginated reads). Best-effort: never throws.
      */
     val HELPERS = """
         function __glSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+        async function __glFetchDoc(path) {
+            let r = await fetch(path, { credentials: 'include' });
+            if (!r.ok) { let e = new Error('HTTP ' + r.status + ' ' + path); e.status = r.status; throw e; }
+            return new DOMParser().parseFromString(await r.text(), 'text/html');
+        }
+        async function __glDoc(path) {
+            try { return await __glFetchDoc(path); } catch (e) { if (e.status) return null; throw e; }
+        }
+        function __glCancelled() { return window.__glCancel === true; }
+        async function __glPool(items, size, task) {
+            let queue = items.slice();
+            await Promise.all(Array.from({ length: size }, async function() {
+                while (queue.length && !__glCancelled()) await task(queue.shift());
+            }));
+        }
         function __glProgress(done, total) {
             try {
                 __glEnsureNative();
@@ -449,6 +516,8 @@ object SyncScripts {
     fun wrap(body: String): String = """
         (function() {
             $HELPERS
+            // This run's step token (set by Kotlin just before injection), echoed back so a late reply is dropped.
+            var __glTok = window.__glToken;
             // Desktop/CEF re-injects window.$BRIDGE_OBJECT after each navigation but NOT the native
             // polyfill; the CEF message router persists, so re-create the polyfill here. Guarded by
             // window.cefQuery so on Android (real native interface, no cefQuery) we never overwrite it.
@@ -472,7 +541,7 @@ object SyncScripts {
                     console.log('[GL] send ' + (out ? out.length : 'null'));
                     // Pass the plain value: the bridge JSON-stringifies its `data` argument itself, so
                     // pre-stringifying here would double-encode and break the native-side decode.
-                    window.$BRIDGE_OBJECT.call('$RESULT_METHOD', out || []);
+                    window.$BRIDGE_OBJECT.call('$RESULT_METHOD', { token: __glTok, out: out || [] });
                 } catch (e) { console.log('[GL] send error ' + e); }
             }
             function __glRun() {

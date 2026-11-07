@@ -39,9 +39,9 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
         super.isLoggedIn(currentUrl) && !currentUrl.contains("sign_in")
 
     override val profile = webProfile(WebStep(HOME, SyncScripts.wrap("""
-        $USERNAME_JS
+        $API_JS
         let user = await __blUser();
-        let doc = user ? await __blDoc('/u/' + user + '/') : null;
+        let doc = user ? await __glDoc('/u/' + user + '/') : null;
         let og = doc && doc.querySelector('meta[property="og:image"]');
         out = {
             username: user,
@@ -56,22 +56,13 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
 
     override val wishlistWrite = WishlistWrite.ById { ids ->
         WebStep(HOME, SyncScripts.wrap("""
-            let token = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+            $API_JS
             out = [];
             const ids = $ids;
             for (const [n, id] of ids.entries()) {
+                if (__glCancelled()) break;
                 __glProgress(n, ids.length);
-                let r = await fetch('/log/', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'X-CSRF-Token': token,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'type=wishlist&game_id=' + id,
-                });
-                if (r.ok) out.push({ uid: String(id), name: '' });
+                if ((await __blSend('POST', '/log/', 'type=wishlist&game_id=' + id)).ok) out.push({ uid: String(id), name: '' });
             }
         """.trimIndent()))
     }
@@ -83,41 +74,33 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
 
     override val statusWrite: (List<StatusChange>) -> WebStep = { changes ->
         WebStep(HOME, SyncScripts.wrap("""
-            let token = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
-            let send = function(method, path, body) {
-                return fetch(path, {
-                    method: method,
-                    credentials: 'include',
-                    headers: {
-                        'X-CSRF-Token': token,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: body,
-                });
-            };
+            $API_JS
             let played = { COMPLETED: 0, ABANDONED: 2, PAUSED: 4 };
             let shelf = function(s) { return s in played ? 'play' : (s === 'PLAYING' ? 'playing' : 'backlog'); };
             out = [];
             const changes = ${changes.jsonArray()};
             for (const [n, c] of changes.entries()) {
+                if (__glCancelled()) break;
                 __glProgress(n, changes.length);
+                // The tracker entry's own id (an edition entry differs from the base game's IGDB id).
+                let id = c.uid || c.gameId;
                 let from = c.from ? shelf(c.from) : null, to = shelf(c.to), ok = true;
-                if (from && from !== to) ok = (await send('POST', '/log/', 'type=' + from + '&game_id=' + c.gameId)).ok;
-                if (ok && from !== to) ok = (await send('POST', '/log/', 'type=' + to + '&game_id=' + c.gameId)).ok;
+                if (from && from !== to) ok = (await __blSend('POST', '/log/', 'type=' + from + '&game_id=' + id)).ok;
+                if (ok && from !== to) ok = (await __blSend('POST', '/log/', 'type=' + to + '&game_id=' + id)).ok;
                 if (ok && to === 'play') {
-                    ok = (await send('PATCH', '/log/status/', 'game_id=' + c.gameId + '&status_id=' + played[c.to])).ok;
+                    ok = (await __blSend('PATCH', '/log/status/', 'game_id=' + id + '&status_id=' + played[c.to])).ok;
                 }
-                if (ok) out.push({ uid: String(c.gameId), name: c.name, gameId: c.gameId });
+                if (ok) out.push({ uid: String(id), name: c.name, gameId: c.gameId });
             }
         """.trimIndent()))
     }
 
     // Every shelf page is the same card grid: `.card.game-cover[game_id]` with the title in the cover's alt
     // and the user's log state in a sibling `#preloaded-log-{id}` whose shelf attributes are timestamps or
-    // empty strings (non-empty = on that shelf). Paginated until a page has no cards.
+    // empty strings (non-empty = on that shelf). Paginated until a page has no new cards; a failed page throws, so
+    // the read reports an error instead of a partial library.
     private fun shelfScrape(shelf: String, withStatus: Boolean) = SyncScripts.wrap("""
-        $USERNAME_JS
+        $API_JS
         let user = await __blUser();
         out = [];
         let on = function(el, attr) { return !!(el && el.getAttribute(attr)); };
@@ -133,13 +116,23 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
             if (on(log, 'data-is-backlog')) return 'BACKLOG';
             return null;
         };
-        // A `return` here would skip the wrapper's result delivery, so an unknown user just runs no page.
-        for (let page = 1; user && page <= 200; page++) {
-            let doc = await __blDoc('/u/' + user + '/$shelf/?page=' + page);
-            let cards = doc ? doc.querySelectorAll('.card.game-cover[game_id]') : [];
-            if (!cards.length) break;
-            cards.forEach(function(card) {
+        if (!user) throw new Error('Backloggd session is missing');
+        let seen = {};
+        for (let page = 1; page <= 200; page++) {
+            let doc;
+            try {
+                doc = await __glFetchDoc('/u/' + user + '/$shelf/?page=' + page);
+            } catch (e) {
+                // Some paginators answer 404 past the last page; that is the end, any other failure is not.
+                if (page > 1 && e.status === 404) break;
+                throw e;
+            }
+            let added = 0;
+            doc.querySelectorAll('.card.game-cover[game_id]').forEach(function(card) {
                 let id = card.getAttribute('game_id');
+                if (seen[id]) return;
+                seen[id] = true;
+                added++;
                 let img = card.querySelector('img');
                 let ref = { uid: id, name: img ? img.getAttribute('alt') || '' : '' };
                 if ($withStatus) {
@@ -151,6 +144,7 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
                 out.push(ref);
             });
             __glProgress(out.length, 0);
+            if (!added) break;
         }
     """.trimIndent())
 
@@ -158,13 +152,21 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
         const val HOME = "https://backloggd.com/"
 
         // The signed-in username: the settings form holds it; the navbar profile link is the fallback.
-        val USERNAME_JS = """
-            async function __blDoc(path) {
-                let r = await fetch(path, { credentials: 'include' });
-                return r.ok ? new DOMParser().parseFromString(await r.text(), 'text/html') : null;
+        val API_JS = """
+            function __blSend(method, path, body) {
+                return fetch(path, {
+                    method: method,
+                    credentials: 'include',
+                    headers: {
+                        'X-CSRF-Token': (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: body,
+                });
             }
             async function __blUser() {
-                let settings = await __blDoc('/settings/');
+                let settings = await __glDoc('/settings/');
                 let input = settings && settings.querySelector('input[name="user[username]"]');
                 if (input && input.value) return input.value;
                 let a = document.querySelector('nav a[href^="/u/"]');

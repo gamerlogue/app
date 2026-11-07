@@ -81,6 +81,7 @@ class HowLongToBeatConnector :
             const changes = ${changes.jsonArray()};
             out = [];
             for (const [n, c] of changes.entries()) {
+                if (__glCancelled()) break;
                 __glProgress(n, changes.length);
                 let entry = me.user_id && c.uid ? entries[c.uid] : null;
                 let page = entry ? await __hlPageProps('/submit/edit/' + entry.id) : null;
@@ -111,7 +112,16 @@ class HowLongToBeatConnector :
     // One flag per HLTB list; a game can sit on several, so the most "advanced" one wins.
     private fun listScrape() = SyncScripts.wrap("""
         $API_JS
-        let games = await __hlList(await __hlUser());
+        let me = await __hlUser();
+        if (!me.user_id) throw new Error('HowLongToBeat session is missing');
+        // One ref per game, from its first entry: the same playthrough statusWrite updates, so the two agree.
+        let first = {};
+        let games = (await __hlList(me)).filter(function(g) {
+            let key = String(g.game_id);
+            if (first[key]) return false;
+            first[key] = true;
+            return true;
+        });
         let on = function(g, f) { return Number(g[f]) > 0; };
         let status = function(g) {
             if (on(g, 'list_playing')) return 'PLAYING';
@@ -126,17 +136,13 @@ class HowLongToBeatConnector :
         });
         // A game's Steam app id (`profile_steam`, its "Steam" link) makes the match exact instead of by name. The
         // list may not carry it, so it's read from each game's submit-page props; a few run in parallel.
-        let queue = out.filter(function(r) { return !r.steamAppId; }), done = 0;
-        let worker = async function() {
-            while (queue.length) {
-                let ref = queue.shift();
-                let page = await __hlPageProps('/submit/game/' + ref.uid);
-                let steam = page && page.gameData && Number(page.gameData.profile_steam);
-                if (steam > 0) ref.steamAppId = String(steam);
-                __glProgress(++done, out.length);
-            }
-        };
-        await Promise.all([1, 2, 3, 4, 5, 6].map(worker));
+        let done = 0;
+        await __glPool(out.filter(function(r) { return !r.steamAppId; }), 6, async function(ref) {
+            let page = await __hlPageProps('/submit/game/' + ref.uid);
+            let steam = page && page.gameData && Number(page.gameData.profile_steam);
+            if (steam > 0) ref.steamAppId = String(steam);
+            __glProgress(++done, out.length);
+        });
     """.trimIndent())
 
     private companion object {
@@ -162,7 +168,8 @@ class HowLongToBeatConnector :
                         set_playstyle: 'comp_all', name: '', platform: '', storefront: '', sortBy: '', sortFlip: 0,
                         view: '', random: 0, limit: 5000, currentUserHome: true }),
                 });
-                return r.ok ? (((await r.json()).data || {}).gamesList || []) : [];
+                if (!r.ok) throw new Error('HowLongToBeat game list HTTP ' + r.status);
+                return ((await r.json()).data || {}).gamesList || [];
             }
             // Next.js serves a page's server props as JSON at /_next/data/{buildId}{path}.json — far lighter than
             // the HTML; the HTML's __NEXT_DATA__ is the fallback when that route isn't available.
