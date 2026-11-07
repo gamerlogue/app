@@ -60,22 +60,32 @@ internal fun LazyListScope.importRows(
         addAll(groups.toReview)
         addAll(groups.alreadyPresent)
     }
+    val row: @Composable (IndexedValue<LibraryImportViewModel.Row>, Int, Int) -> Unit =
+        { (index, row), position, count ->
+            ImportRow(
+                row = row,
+                indexInGroup = position,
+                groupCount = count,
+                selectable = row.isSelectable,
+                service = service,
+                onToggle = { onToggle(index) },
+                onEdit = { onEdit(index) },
+                onOpenStore = onOpenStore,
+            )
+        }
     if (all.none { it.value.ref.status != null }) {
-        groupSections(groups, service, expanded, onSectionExpanded, onToggle, onEdit, onOpenStore)
+        groupSections(groups, expanded, onSectionExpanded, row)
     } else {
-        statusSections(all, service, expanded, onSectionExpanded, onToggle, onEdit, onOpenStore)
+        statusSections(all, expanded, onSectionExpanded, row)
     }
 }
 
 /** The three state groups, each its own section. */
 private fun LazyListScope.groupSections(
     groups: ImportGroups,
-    service: ExternalService,
     expanded: Map<String, Boolean>,
     onSectionExpanded: (key: String, expanded: Boolean) -> Unit,
-    onToggle: (Int) -> Unit,
-    onEdit: (Int) -> Unit,
-    onOpenStore: (String) -> Unit,
+    row: @Composable (IndexedValue<LibraryImportViewModel.Row>, position: Int, count: Int) -> Unit,
 ) {
     listOf(
         groups.matchedTitle to groups.toImport,
@@ -99,10 +109,8 @@ private fun LazyListScope.groupSections(
                     modifier = modifier,
                 )
             },
-            service = service,
-            onToggle = onToggle,
-            onEdit = onEdit,
-            onOpenStore = onOpenStore,
+            rowKey = { "row-${it.index}" },
+            row = row,
         )
     }
 }
@@ -110,12 +118,9 @@ private fun LazyListScope.groupSections(
 /** One section per status, listing its rows in the state order of [all]. */
 private fun LazyListScope.statusSections(
     all: List<IndexedValue<LibraryImportViewModel.Row>>,
-    service: ExternalService,
     expanded: Map<String, Boolean>,
     onSectionExpanded: (key: String, expanded: Boolean) -> Unit,
-    onToggle: (Int) -> Unit,
-    onEdit: (Int) -> Unit,
-    onOpenStore: (String) -> Unit,
+    row: @Composable (IndexedValue<LibraryImportViewModel.Row>, position: Int, count: Int) -> Unit,
 ) {
     // Same fallback as the import: a tracker game with no status of ours lands in the backlog.
     val byStatus = all.groupBy { it.value.ref.status ?: GameLibraryStatus.BACKLOG }
@@ -139,27 +144,24 @@ private fun LazyListScope.statusSections(
                     modifier = modifier,
                 )
             },
-            service = service,
-            onToggle = onToggle,
-            onEdit = onEdit,
-            onOpenStore = onOpenStore,
+            rowKey = { "row-${it.index}" },
+            row = row,
         )
     }
 }
 
 /**
  * One collapsible section: a header segment that expands/collapses it, with its rows segmented below it; no-op
- * when there are no rows. [header] draws the header with the shapes and item modifier it is given.
+ * when there are no rows. [header] draws the header with the shapes and item modifier it is given; [row] draws a
+ * row at its segment position (the header is position 0) out of the section's segment count.
  */
-private fun LazyListScope.collapsibleSection(
+internal fun <T> LazyListScope.collapsibleSection(
     key: String,
-    rows: List<IndexedValue<LibraryImportViewModel.Row>>,
+    rows: List<T>,
+    rowKey: (T) -> Any,
     expanded: Boolean,
     header: @Composable (shapes: ListItemShapes, modifier: Modifier) -> Unit,
-    service: ExternalService,
-    onToggle: (Int) -> Unit,
-    onEdit: (Int) -> Unit,
-    onOpenStore: (String) -> Unit,
+    row: @Composable (item: T, position: Int, count: Int) -> Unit,
 ) {
     if (rows.isEmpty()) return
     val count = if (expanded) rows.size + 1 else 1
@@ -167,30 +169,19 @@ private fun LazyListScope.collapsibleSection(
         header(ListItemDefaults.segmentedShapes(index = 0, count = count), Modifier.animateItem().padding(top = 8.dp))
     }
     if (!expanded) return
-    itemsIndexed(rows, key = { _, indexed -> "row-${indexed.index}" }) { i, (index, row) ->
+    itemsIndexed(rows, key = { _, item -> rowKey(item) }) { i, item ->
         Box(
             Modifier.animateItem(
                 fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                 placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
                 fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
             ),
-        ) {
-            ImportRow(
-                row = row,
-                indexInGroup = i + 1,
-                groupCount = count,
-                selectable = row.isSelectable,
-                service = service,
-                onToggle = { onToggle(index) },
-                onEdit = { onEdit(index) },
-                onOpenStore = onOpenStore,
-            )
-        }
+        ) { row(item, i + 1, count) }
     }
 }
 
 @Composable
-private fun SectionHeader(
+internal fun SectionHeader(
     title: String,
     icon: ImageVector?,
     supporting: String?,
