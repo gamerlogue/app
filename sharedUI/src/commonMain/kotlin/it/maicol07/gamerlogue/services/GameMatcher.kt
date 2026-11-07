@@ -18,7 +18,9 @@ import it.maicol07.gamerlogue.extensions.igdb.BUNDLE_OR_ADDON_GAME_TYPES
 import it.maicol07.gamerlogue.extensions.igdb.isBaseGame
 import it.maicol07.gamerlogue.extensions.multiqueryResults
 import it.maicol07.gamerlogue.services.connectors.SteamConnector
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -100,17 +102,22 @@ class GameMatcher(
         }
         if (resolved.isNotEmpty()) onBatch(resolved)
 
-        // Name fallback, batched via multiquery (≤10/request) + throttled to dodge IGDB's 429 limit.
-        // These are guesses (confident = false) — the UI makes the user confirm one before selecting.
-        unmatched.chunked(MULTIQUERY_CHUNK).forEachIndexed { batchIndex, batch ->
-            if (batchIndex > 0) delay(THROTTLE_MS.milliseconds)
-            val candidates = nameSearchBatch(batch)
-            onBatch(
-                batch.map { ref ->
-                    val c = candidates[ref.uid].orEmpty().rankedBy(ref.name)
-                    Match(ref, c.firstOrNull(), c, confident = false)
+        // Name fallback, batched via multiquery (≤10/request). Batches overlap, their starts spaced to stay
+        // under IGDB's 4 req/s; a 429 is retried by the HTTP client. These are guesses (confident = false) —
+        // the UI makes the user confirm one before selecting.
+        coroutineScope {
+            unmatched.chunked(MULTIQUERY_CHUNK).forEachIndexed { batchIndex, batch ->
+                launch {
+                    delay((THROTTLE_MS * batchIndex).milliseconds)
+                    val candidates = nameSearchBatch(batch)
+                    onBatch(
+                        batch.map { ref ->
+                            val c = candidates[ref.uid].orEmpty().rankedBy(ref.name)
+                            Match(ref, c.firstOrNull(), c, confident = false)
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 
