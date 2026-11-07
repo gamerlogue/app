@@ -267,7 +267,7 @@ private fun EditionCovers(editions: List<Pair<Game, String>>, viewModel: AddToLi
 // element for the list -> detail nav transition, which crashes ("layouts are not part of the same
 // hierarchy") when placed inside a ModalBottomSheet's separate layout hierarchy.
 @Composable
-private fun EditionCover(game: Game, label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun EditionCover(game: Game, label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = MaterialTheme.shapes.medium
     val coverModifier = Modifier.width(150.dp).height(200.dp)
     // Box has no intrinsic width of its own; inside the horizontalScroll Row (unbounded width) it

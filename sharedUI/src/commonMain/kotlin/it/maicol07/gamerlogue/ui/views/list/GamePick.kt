@@ -14,10 +14,16 @@ import org.koin.core.annotation.Single
 /**
  * The game list opened to pick games for another screen: one game, picked by tapping it, or several,
  * confirmed together. The picked IGDB ids go back through [GamePicks] under [request]. A [query] opens the
- * list already searching it.
+ * list already searching it. With [variants], a single pick of a game that has editions, DLCs or expansions asks
+ * which of them is meant.
  */
 @Serializable
-data class GamePick(val request: String, val multiple: Boolean, val query: String? = null)
+data class GamePick(
+    val request: String,
+    val multiple: Boolean,
+    val query: String? = null,
+    val variants: Boolean = false,
+)
 
 /**
  * The games picked in a game list, waiting for the screen that asked for them. Navigation 3 has no

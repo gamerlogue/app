@@ -87,6 +87,7 @@ fun GameListView(
         return
     }
     LaunchedEffect(viewModel) { pick?.query?.let(viewModel::submitSearchQuery) }
+    val pickVariant = rememberVariantPick { id -> pick?.let { finishPick(it.request, listOf(id)) } }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val filterOptions by viewModel.filterOptions.state.collectAsStateWithLifecycle()
     ScreenScaffold(
@@ -111,10 +112,12 @@ fun GameListView(
         }
     ) {
         GameListBody(uiState, filterOptions, viewModel, section, preset, selected.toSet()) { game ->
-            if (pick == null) {
-                navigationState.backStack.add(game.detailNavKey)
-            } else {
-                pickGame(game.id.toInt(), pick, selected, onSelect = { selected = it }) { finishPick(pick.request, it) }
+            when {
+                pick == null -> navigationState.backStack.add(game.detailNavKey)
+                pick.variants && !pick.multiple -> pickVariant(game)
+                else -> pickGame(game.id.toInt(), pick, selected, onSelect = { selected = it }) {
+                    finishPick(pick.request, it)
+                }
             }
         }
         pick?.let { PickConfirmButton(selected.size) { finishPick(it.request, selected) } }

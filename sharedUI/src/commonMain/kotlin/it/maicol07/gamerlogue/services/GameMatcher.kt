@@ -350,6 +350,23 @@ class GameMatcher(
             }?.games.orEmpty()
         }.mapNotNull { game -> game.version_parent?.let { game.id.toInt() to it.id.toInt() } }.toMap()
 
+    /** The editions, DLCs and expansions of game [id] that a match may be instead of the game itself. */
+    suspend fun variantsOf(id: Int): List<Game> = igdbCall("variants lookup failed") {
+        igdb.getGames {
+            fields(
+                "id",
+                "name",
+                "version_title",
+                "cover.image_id",
+                "platforms.id",
+                "platforms.platform_family",
+                *identityFields(),
+            )
+            where("(version_parent = $id | parent_game = $id) & $LIBRARY_TYPES_FILTER")
+            limit(IGDB_MAX_LIMIT)
+        }
+    }?.games.orEmpty()
+
     /** IGDB fuzzy full-text search restricted to games shown in GameList. */
     suspend fun searchByName(query: String, limit: Int = SEARCH_LIMIT): List<Game> {
         val q = query.sanitizeForSearch()
