@@ -19,6 +19,7 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -85,6 +86,7 @@ fun GameListView(
         GlobalSearch(viewModel)
         return
     }
+    LaunchedEffect(viewModel) { pick?.query?.let(viewModel::submitSearchQuery) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val filterOptions by viewModel.filterOptions.state.collectAsStateWithLifecycle()
     ScreenScaffold(
@@ -97,7 +99,8 @@ fun GameListView(
                 onQueryChange = viewModel::setSearchQuery,
                 onSearch = viewModel::submitSearchQuery,
                 onBack = navigationState::navigateBack,
-                autoFocus = pick != null,
+                // A pick that already searches a title shows its results instead of the keyboard.
+                autoFocus = pick != null && pick.query == null,
                 trailingActions = {
                     FilterButton(
                         hasActiveFilters = uiState.filterState.hasActiveFilters,

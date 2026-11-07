@@ -106,7 +106,9 @@ fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
     GamePickEffect(pickRequest) { ids -> ids.singleOrNull()?.let(viewModel::chooseMatchId) }
     val onEdit: (Int) -> Unit = { index ->
         viewModel.startEdit(index)
-        navigationState.backStack.add(RootNavTree.GameList(null, null, null, null, null, null, GamePick(pickRequest, false)))
+        val query = uiState.rows[index].ref.name.ifBlank { null }
+        val pick = GamePick(pickRequest, multiple = false, query = query)
+        navigationState.backStack.add(RootNavTree.GameList(null, null, null, null, null, null, pick))
     }
     val plan = uiState.plan
     ScreenScaffold(title = title) {

@@ -13,10 +13,11 @@ import org.koin.core.annotation.Single
 
 /**
  * The game list opened to pick games for another screen: one game, picked by tapping it, or several,
- * confirmed together. The picked IGDB ids go back through [GamePicks] under [request].
+ * confirmed together. The picked IGDB ids go back through [GamePicks] under [request]. A [query] opens the
+ * list already searching it.
  */
 @Serializable
-data class GamePick(val request: String, val multiple: Boolean)
+data class GamePick(val request: String, val multiple: Boolean, val query: String? = null)
 
 /**
  * The games picked in a game list, waiting for the screen that asked for them. Navigation 3 has no
