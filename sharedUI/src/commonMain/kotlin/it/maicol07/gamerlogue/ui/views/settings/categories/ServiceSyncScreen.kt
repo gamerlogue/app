@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -211,20 +212,27 @@ fun ServiceSyncView(
         onConfirm = onFinish,
     )
 
+    // The push review hides the sheet. Dropping the peek height to 0 instead crashed the scaffold: the partial
+    // anchor vanished while the sheet was still animating to it.
+    val reviewing by rememberUpdatedState(pending != null)
     val sheetState = rememberBottomSheetState(
         SheetValue.PartiallyExpanded,
-        enabledValues = setOf(SheetValue.PartiallyExpanded, SheetValue.Expanded),
+        confirmValueChange = { it != SheetValue.Hidden || reviewing },
     )
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
 
     // Expand the sheet to a full, interactive WebView while login is needed; peek otherwise.
     LaunchedEffect(loginRequired, pending != null) {
-        if (loginRequired) sheetState.expand() else sheetState.partialExpand()
+        when {
+            loginRequired -> sheetState.expand()
+            pending != null -> sheetState.hide()
+            else -> sheetState.partialExpand()
+        }
     }
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetPeekHeight = if (pending == null) 220.dp else 0.dp,
+        sheetPeekHeight = 220.dp,
         // While the WebView is interactive the sheet is expanded and stays put: the Android WebView doesn't
         // report reliably how much of a scroll it consumed (pages scrolling an inner container), so the
         // nested-scroll interop alone let the sheet steal drags. It collapses by itself once login is done.
