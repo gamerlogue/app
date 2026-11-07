@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -291,7 +292,8 @@ fun ServiceSyncView(
             }
         },
     ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+        // The body is always padded by the peek height, even while the review hides the sheet: drop it then.
+        Box(Modifier.padding(if (pending == null) padding else PaddingValues()).fillMaxSize()) {
             val outcome = uiState.outcome
             when {
                 pending != null -> WishlistPushScreen(

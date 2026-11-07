@@ -371,7 +371,11 @@
     <string name="settings__wishlist_push_title">Aggiungi alla wishlist dello store</string>
     <string name="settings__wishlist_push_confirm">Aggiungi</string>
     <string name="settings__wishlist_push_skip">Salta</string>
-    <string name="settings__wishlist_push_off_platform">Non disponibili su questa piattaforma</string>
+    <string name="settings__wishlist_push_off_platform">Non disponibili su questa piattaforma (%1$d)</string>
+    <string name="settings__wishlist_group_to_add">Da aggiungere (%1$d)</string>
+    <string name="settings__wishlist_group_choose_platform">Scegli una piattaforma (%1$d)</string>
+    <string name="settings__wishlist_group_no_match">Senza corrispondenza (%1$d)</string>
+    <string name="settings__wishlist_group_already_present">Già nella wishlist (%1$d)</string>
     <string name="settings__wishlist_choose_platform">Scegli una piattaforma</string>
     <string name="settings__wishlist_no_platform">Informazioni sulla piattaforma non disponibili</string>
     <string name="settings__library_push_title">Aggiungi alla libreria del tracker</string>

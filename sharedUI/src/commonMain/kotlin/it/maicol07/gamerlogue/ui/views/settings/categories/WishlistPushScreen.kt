@@ -8,11 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
@@ -48,6 +47,10 @@ import gamerlogue.sharedui.generated.resources.settings__import_selected
 import gamerlogue.sharedui.generated.resources.settings__open_store
 import gamerlogue.sharedui.generated.resources.settings__wishlist_already_present
 import gamerlogue.sharedui.generated.resources.settings__wishlist_choose_platform
+import gamerlogue.sharedui.generated.resources.settings__wishlist_group_already_present
+import gamerlogue.sharedui.generated.resources.settings__wishlist_group_choose_platform
+import gamerlogue.sharedui.generated.resources.settings__wishlist_group_no_match
+import gamerlogue.sharedui.generated.resources.settings__wishlist_group_to_add
 import gamerlogue.sharedui.generated.resources.settings__wishlist_no_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
@@ -58,13 +61,13 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.ui.components.RemoteImage
-import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** Outgoing-direction preview: pick which backlog games to add to the store wishlist. */
-// Platform choices and list ordering use the same selection state.
-@Suppress("LongMethod")
+/** Outgoing-direction preview: pick which backlog games to add to the store wishlist, in collapsible sections. */
+// Platform choices, sections and selection share the same state.
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 internal fun WishlistPushScreen(
     games: List<LibrarySync.OutgoingGame>,
@@ -94,61 +97,30 @@ internal fun WishlistPushScreen(
             resolved.forEach { put(it.uid, it.isPushable(matchesByName, requiresPlatform)) }
         }
     }
-    // Selected-first order is taken once, on open: re-sorting on each toggle would move rows under the user's finger.
-    val initiallySelected = remember(games) { selected.filterValues { it }.keys.toSet() }
-    val onPlatform = resolved.filter { it.onPlatform }.sortedByDescending { it.uid in initiallySelected }
-    val offPlatform = resolved.filter { !it.onPlatform }
+    // Sections are taken once, on open: moving a game when its platform is picked would move it under the finger.
+    val sectionOf = remember(games) { resolved.associate { it.uid to it.pushSection(matchesByName, requiresPlatform) } }
+    val bySection = resolved.groupBy { sectionOf.getValue(it.uid) }
+    val expanded = remember(games) { mutableStateMapOf<PushSection, Boolean>() }
     val pushable = resolved.filter { it.isPushable(matchesByName, requiresPlatform) }
     val selectedCount = pushable.count { selected[it.uid] == true }
     val allSelected = pushable.isNotEmpty() && selectedCount == pushable.size
     val uriHandler = LocalUriHandler.current
-    val rows: LazyListScope.(List<LibrarySync.OutgoingGame>) -> Unit = { group ->
-        itemsIndexed(group, key = { _, game -> game.gameId }) { index, game ->
-            Box(
-                Modifier.animateItem(
-                    fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                    placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                    fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                ),
-            ) {
-                PushRow(
-                    game,
-                    index,
-                    group.size,
-                    selected[game.uid] == true,
-                    matchesByName,
-                    uriHandler::openURL,
-                    onSelectPlatform = if (requiresPlatform && !game.alreadyOnWishlist) {
-                        { id ->
-                            platforms[game.uid] = id;
-                            selected[game.uid] = true
-                        }
-                    } else {
-                        null
-                    },
-                    onCheckedChange = { selected[game.uid] = it },
-                )
-            }
-        }
-    }
 
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    pluralStringResource(
-                        Res.plurals.settings__import_selected,
-                        selectedCount,
-                        selectedCount,
-                        pushable.size
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                pluralStringResource(
+                    Res.plurals.settings__import_selected,
+                    selectedCount,
+                    selectedCount,
+                    pushable.size
+                ),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+            )
             TextButton(
                 onClick = { pushable.forEach { selected[it.uid] = !allSelected } },
                 enabled = pushable.isNotEmpty(),
@@ -170,14 +142,48 @@ internal fun WishlistPushScreen(
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
-            rows(onPlatform)
-            if (offPlatform.isNotEmpty()) {
-                item { SettingsGroupHeader(stringResource(Res.string.settings__wishlist_push_off_platform)) }
-                rows(offPlatform)
+            PushSection.entries.forEach { section ->
+                val rows = bySection[section].orEmpty()
+                val open = expanded[section] ?: section.startsExpanded
+                collapsibleSection(
+                    key = "section-${section.name}",
+                    rows = rows,
+                    rowKey = { it.gameId },
+                    expanded = open,
+                    header = { shapes, modifier ->
+                        SectionHeader(
+                            title = stringResource(section.title, rows.size),
+                            icon = null,
+                            supporting = null,
+                            expanded = open,
+                            shapes = shapes,
+                            onToggle = { expanded[section] = !open },
+                            modifier = modifier,
+                        )
+                    },
+                ) { game, position, count ->
+                    PushRow(
+                        game,
+                        position,
+                        count,
+                        selected[game.uid] == true,
+                        matchesByName,
+                        uriHandler::openURL,
+                        onSelectPlatform = if (requiresPlatform && !game.alreadyOnWishlist) {
+                            { id ->
+                                platforms[game.uid] = id
+                                selected[game.uid] = true
+                            }
+                        } else {
+                            null
+                        },
+                        onCheckedChange = { selected[game.uid] = it },
+                    )
+                }
             }
         }
         Row(
-            Modifier.fillMaxWidth().padding(16.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
             val height = ButtonDefaults.MediumContainerHeight
@@ -208,6 +214,23 @@ internal fun WishlistPushScreen(
             }
         }
     }
+}
+
+/** The preview's sections, in display order; the ones with nothing to do start collapsed. */
+private enum class PushSection(val title: StringResource, val startsExpanded: Boolean) {
+    TO_ADD(Res.string.settings__wishlist_group_to_add, true),
+    CHOOSE_PLATFORM(Res.string.settings__wishlist_group_choose_platform, true),
+    NO_MATCH(Res.string.settings__wishlist_group_no_match, true),
+    ALREADY_PRESENT(Res.string.settings__wishlist_group_already_present, false),
+    OFF_PLATFORM(Res.string.settings__wishlist_push_off_platform, false),
+}
+
+private fun LibrarySync.OutgoingGame.pushSection(matchesByName: Boolean, requiresPlatform: Boolean) = when {
+    !onPlatform -> PushSection.OFF_PLATFORM
+    alreadyOnWishlist -> PushSection.ALREADY_PRESENT
+    !hasPushTarget(matchesByName) -> PushSection.NO_MATCH
+    requiresPlatform && platformIds.isEmpty() -> PushSection.CHOOSE_PLATFORM
+    else -> PushSection.TO_ADD
 }
 
 @Composable
