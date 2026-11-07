@@ -167,6 +167,7 @@ class UbisoftConnector(private val api: UbisoftApi) :
                     if (!btn) {
                         out = [];
                         console.log('[GL] ubisoft wishlist push: no result for $escaped');
+                        __glSkip('$escaped', 'NOT_FOUND');
                     } else {
                         // The button toggles its own class rather than re-rendering, so this is a
                         // click-then-poll rather than __glClickUntil's click-then-retry.

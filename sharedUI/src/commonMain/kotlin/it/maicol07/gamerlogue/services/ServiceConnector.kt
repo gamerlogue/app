@@ -324,7 +324,7 @@ internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
 
 /** Why a write left a selected game out: reported by its script (`__glSkip`) or, for [UNCONFIRMED], inferred. */
 enum class SkipReason {
-    ALREADY_PRESENT, NO_PLATFORM, PLATFORM_REJECTED, REJECTED, NOTES_TOO_LONG, UNREADABLE, UNCONFIRMED,
+    ALREADY_PRESENT, NO_PLATFORM, PLATFORM_REJECTED, REJECTED, NOTES_TOO_LONG, UNREADABLE, NOT_FOUND, UNCONFIRMED,
 }
 
 data class SkippedWrite(val name: String, val reason: SkipReason)

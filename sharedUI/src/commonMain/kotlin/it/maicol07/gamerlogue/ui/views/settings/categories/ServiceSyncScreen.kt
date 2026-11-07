@@ -79,6 +79,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
 import gamerlogue.sharedui.generated.resources.settings__service_resync_ids_result
 import gamerlogue.sharedui.generated.resources.settings__service_skip_already_present
 import gamerlogue.sharedui.generated.resources.settings__service_skip_no_platform
+import gamerlogue.sharedui.generated.resources.settings__service_skip_not_found
 import gamerlogue.sharedui.generated.resources.settings__service_skip_notes_too_long
 import gamerlogue.sharedui.generated.resources.settings__service_skip_platform_rejected
 import gamerlogue.sharedui.generated.resources.settings__service_skip_rejected
@@ -600,6 +601,7 @@ private val SkipReason.label: StringResource
         SkipReason.REJECTED -> Res.string.settings__service_skip_rejected
         SkipReason.NOTES_TOO_LONG -> Res.string.settings__service_skip_notes_too_long
         SkipReason.UNREADABLE -> Res.string.settings__service_skip_unreadable
+        SkipReason.NOT_FOUND -> Res.string.settings__service_skip_not_found
         SkipReason.UNCONFIRMED -> Res.string.settings__service_skip_unconfirmed
     }
 

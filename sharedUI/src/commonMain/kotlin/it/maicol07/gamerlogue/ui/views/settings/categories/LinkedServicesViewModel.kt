@@ -446,7 +446,12 @@ class LinkedServicesViewModel(
             // Resolve the real product URL from an intermediate page first, then act on it (Nintendo).
             is WishlistWrite.PerGameResolved -> session.writeEach(withStorePage, missed) { g ->
                 val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
-                if (resolved.isNullOrBlank()) 0 else write.step(resolved)?.let { session.run(it).size } ?: 0
+                if (resolved.isNullOrBlank()) {
+                    session.reportSkip(SkippedWrite(g.name, SkipReason.NOT_FOUND))
+                    0
+                } else {
+                    write.step(resolved)?.let { session.run(it).size } ?: 0
+                }
             }
             // Search-driven write: no store URL needed, the game's name drives the search (Ubisoft).
             is WishlistWrite.SearchByName -> session.writeEach(onPlatform, missed) { g ->

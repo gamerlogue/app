@@ -367,6 +367,7 @@
     <string name="settings__service_skip_rejected">Il servizio ha rifiutato la scrittura</string>
     <string name="settings__service_skip_notes_too_long">Note troppo lunghe per aggiungere il marcatore di Gamerlogue</string>
     <string name="settings__service_skip_unreadable">Impossibile leggere la voce sul servizio</string>
+    <string name="settings__service_skip_not_found">Non trovato sul servizio</string>
     <string name="settings__service_skip_unconfirmed">Il servizio non l’ha confermato</string>
     <string name="settings__service_technical_details">Dettagli tecnici</string>
     <string name="settings__service_connect">Collega</string>

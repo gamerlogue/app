@@ -60,6 +60,7 @@ class GrouveeConnector : ServiceConnector(ExternalService.GROUVEE, host = "www.g
             let shelf = (await __gvShelves())['$WISH_LIST'];
             let hit = await __gvFind($query);
             out = [];
+            if (!hit) __glSkip($query, 'NOT_FOUND');
             if (shelf && hit) {
                 let j = await __gvToggle(hit.id, shelf);
                 if (j.success && !j.removed) out = [{ uid: String(hit.id), name: hit.name || '' }];
@@ -89,6 +90,7 @@ class GrouveeConnector : ServiceConnector(ExternalService.GROUVEE, host = "www.g
                 if (!id) {
                     let hit = await __gvFind(c.name);
                     id = hit ? String(hit.id) : null;
+                    if (!id) __glSkip(c.name, 'NOT_FOUND');
                 }
                 if (!id || !shelves[slug[c.to]]) continue;
                 if (c.from && slug[c.from] && slug[c.from] !== slug[c.to]) {

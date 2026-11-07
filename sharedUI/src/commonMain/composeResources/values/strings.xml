@@ -369,6 +369,7 @@
     <string name="settings__service_skip_rejected">The service rejected the write</string>
     <string name="settings__service_skip_notes_too_long">Notes too long to add the Gamerlogue marker</string>
     <string name="settings__service_skip_unreadable">The entry on the service couldn't be read</string>
+    <string name="settings__service_skip_not_found">Not found on the service</string>
     <string name="settings__service_skip_unconfirmed">The service didn't confirm it</string>
     <string name="settings__service_technical_details">Technical details</string>
     <string name="settings__service_connect">Connect</string>
