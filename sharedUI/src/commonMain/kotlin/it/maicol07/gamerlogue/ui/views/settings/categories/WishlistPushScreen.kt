@@ -52,6 +52,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_group_choose_p
 import gamerlogue.sharedui.generated.resources.settings__wishlist_group_no_match
 import gamerlogue.sharedui.generated.resources.settings__wishlist_group_to_add
 import gamerlogue.sharedui.generated.resources.settings__wishlist_no_platform
+import gamerlogue.sharedui.generated.resources.settings__wishlist_platform_for_all
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
@@ -137,6 +138,14 @@ internal fun WishlistPushScreen(
                 )
             }
         }
+        BulkPlatformButton(
+            bySection[PushSection.CHOOSE_PLATFORM].orEmpty().filter { it.platformIds.isEmpty() },
+        ) { id, games ->
+            games.forEach {
+                platforms[it.uid] = id
+                selected[it.uid] = true
+            }
+        }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -210,6 +219,42 @@ internal fun WishlistPushScreen(
                 Text(
                     stringResource(Res.string.settings__wishlist_push_confirm),
                     style = ButtonDefaults.textStyleFor(height)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Sets one platform on many [unresolved] games at once: the menu lists their platforms, most common first, and
+ * [onPick] gets the picked platform with the games that release on it. Hidden when there is nothing to pick.
+ */
+@Composable
+private fun BulkPlatformButton(
+    unresolved: List<LibrarySync.OutgoingGame>,
+    onPick: (platformId: Int, games: List<LibrarySync.OutgoingGame>) -> Unit,
+) {
+    val options = unresolved
+        .flatMap { game -> game.platformNames.filterValues { it.isNotEmpty() }.entries }
+        .groupBy({ it.key }, { it.value.first() })
+        .entries.sortedByDescending { it.value.size }
+    if (options.isEmpty()) return
+    var menu by remember { mutableStateOf(false) }
+    Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
+        FilledTonalButton(
+            onClick = { menu = true },
+            shapes = ButtonDefaults.shapes(),
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(stringResource(Res.string.settings__wishlist_platform_for_all)) }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            options.forEach { (id, names) ->
+                DropdownMenuItem(
+                    text = { Text(names.first()) },
+                    trailingIcon = { Text(names.size.toString()) },
+                    onClick = {
+                        onPick(id, unresolved.filter { it.platformNames[id].orEmpty().isNotEmpty() })
+                        menu = false
+                    },
                 )
             }
         }

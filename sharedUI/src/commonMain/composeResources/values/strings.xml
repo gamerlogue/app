@@ -378,6 +378,7 @@
     <string name="settings__wishlist_group_choose_platform">Choose a platform (%1$d)</string>
     <string name="settings__wishlist_group_no_match">No match (%1$d)</string>
     <string name="settings__wishlist_group_already_present">Already on wishlist (%1$d)</string>
+    <string name="settings__wishlist_platform_for_all">Platform for all</string>
     <string name="settings__wishlist_choose_platform">Choose a platform</string>
     <string name="settings__wishlist_no_platform">Platform information unavailable</string>
     <string name="settings__library_push_title">Add to tracker library</string>
