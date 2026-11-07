@@ -108,6 +108,11 @@ class AppPreferences(private val settings: ObservableSettings) {
         get() = settings.getBoolean(SettingsKeys.CALENDAR_BACKLOG_ONLY.name, false)
         set(value) = settings.putBoolean(SettingsKeys.CALENDAR_BACKLOG_ONLY.name, value)
 
+    /** IGDB platforms used in past wishlist pushes, most preferred first: preselected for games without one. */
+    var wishlistPlatforms: List<Int>
+        get() = settings.getString(SettingsKeys.WISHLIST_PLATFORMS.name, "").split(',').mapNotNull(String::toIntOrNull)
+        set(value) = settings.putString(SettingsKeys.WISHLIST_PLATFORMS.name, value.joinToString(","))
+
     private fun putOrRemove(key: SettingsKeys, value: String?) =
         if (value == null) settings.remove(key.name) else settings.putString(key.name, value)
 

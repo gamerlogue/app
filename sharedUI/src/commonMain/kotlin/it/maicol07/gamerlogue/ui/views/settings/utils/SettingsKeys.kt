@@ -9,4 +9,5 @@ enum class SettingsKeys {
     CALENDAR_BACKLOG_ONLY,
     RATING_SCALE,
     REVIEW_MODE,
+    WISHLIST_PLATFORMS,
 }

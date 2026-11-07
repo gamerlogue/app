@@ -58,6 +58,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platf
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
+import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.LibrarySync
@@ -65,6 +66,7 @@ import it.maicol07.gamerlogue.ui.components.RemoteImage
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 
 /** Outgoing-direction preview: pick which backlog games to add to the store wishlist, in collapsible sections. */
 // Platform choices, sections and selection share the same state.
@@ -79,10 +81,12 @@ internal fun WishlistPushScreen(
 ) {
     // A by-name push needs a publisher match when IGDB has no store URL.
 
+    val preferences = koinInject<AppPreferences>()
     val platforms = remember(games) {
+        val preferred = preferences.wishlistPlatforms
         mutableStateMapOf<String, Int>().apply {
             games.forEach { game ->
-                game.defaultPlatformId?.let { put(game.uid, it) }
+                game.preselectedPlatformId(preferred)?.let { put(game.uid, it) }
             }
         }
     }
@@ -210,7 +214,14 @@ internal fun WishlistPushScreen(
                 )
             }
             Button(
-                onClick = { onConfirm(pushable.filter { selected[it.uid] == true }) },
+                onClick = {
+                    val confirmed = pushable.filter { selected[it.uid] == true }
+                    if (requiresPlatform) {
+                        preferences.wishlistPlatforms =
+                            LibrarySync.OutgoingGame.rankPlatforms(confirmed, preferences.wishlistPlatforms)
+                    }
+                    onConfirm(confirmed)
+                },
                 enabled = selectedCount > 0,
                 shapes = ButtonDefaults.shapes(trailing.shape, trailing.pressedShape),
                 contentPadding = ButtonDefaults.contentPaddingFor(height),

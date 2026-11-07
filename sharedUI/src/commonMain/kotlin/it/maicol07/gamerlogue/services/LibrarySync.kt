@@ -73,6 +73,20 @@ class LibrarySync(
             get() = platformNames.filterValues { it.isNotEmpty() }.let { available ->
                 platformIds.firstOrNull { it in available } ?: available.keys.singleOrNull()
             }
+
+        /** [defaultPlatformId], else — for a game with no platform in the library — the first of the user's
+         *  [preferred] platforms it releases on. */
+        fun preselectedPlatformId(preferred: List<Int>): Int? = defaultPlatformId
+            ?: preferred.takeIf { platformIds.isEmpty() }?.firstOrNull { platformNames[it].orEmpty().isNotEmpty() }
+
+        companion object {
+            /** The platforms of the [confirmed] games, most used first, ahead of the [previous] preference. */
+            fun rankPlatforms(confirmed: List<OutgoingGame>, previous: List<Int>): List<Int> {
+                val used = confirmed.mapNotNull { it.platformIds.firstOrNull() }
+                    .groupingBy { it }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
+                return used + (previous - used.toSet())
+            }
+        }
     }
 
     /** Persist confirmed IGDB [games] as owned. Existing entries keep their status/ratings and only
