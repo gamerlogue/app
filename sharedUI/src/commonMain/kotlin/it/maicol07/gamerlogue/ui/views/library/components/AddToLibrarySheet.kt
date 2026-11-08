@@ -130,7 +130,7 @@ fun GameAddEditLibrarySheet(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            statusSection(game.name, viewModel, isEditing)
+            statusSection((game.version_parent ?: game).name, viewModel, isEditing)
             item {
                 // Kept enabled while set, so an entry owned before the release can still be unset.
                 OwnedSwitch(
