@@ -28,10 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.released.igdbclient.model.Game
+import at.released.igdbclient.model.GameCategoryEnum
 import gamerlogue.sharedui.generated.resources.Res
-import gamerlogue.sharedui.generated.resources.game__dlcs_expansions_title
 import gamerlogue.sharedui.generated.resources.game__editions_title
 import gamerlogue.sharedui.generated.resources.game_category__main_game
+import gamerlogue.sharedui.generated.resources.game_category__unknown
+import it.maicol07.gamerlogue.extensions.igdb.gameCategoryStringResource
 import it.maicol07.gamerlogue.services.GameMatcher
 import it.maicol07.gamerlogue.ui.views.library.components.EditionCover
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
@@ -100,7 +102,15 @@ private fun GameVariantSheet(
         Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { LoadingIndicator() }
         return@ModalBottomSheet
     }
-    val (editions, addOns) = variants.partition { it.version_parent != null }
+    val (editions, others) = variants.partition { it.version_parent != null }
+    // DLCs, expansions, expanded games, remasters…: each under its own type, in IGDB's type order.
+    val othersByType = others
+        .groupBy { variant -> GameCategoryEnum.entries.firstOrNull { it.value.toLong() == variant.game_type?.id } }
+        .entries.sortedBy { it.key?.ordinal ?: Int.MAX_VALUE }
+        .map { (type, games) ->
+            (type?.let { gameCategoryStringResource(it.name) } ?: Res.string.game_category__unknown) to
+                games.map { it to it.name.withoutPrefix(game.name) }
+        }
     LazyColumn(contentPadding = PaddingValues(vertical = 16.dp)) {
         item {
             Text(
@@ -112,8 +122,7 @@ private fun GameVariantSheet(
         listOf(
             Res.string.game_category__main_game to listOf(game to game.name),
             Res.string.game__editions_title to editions.map { it to it.version_title.ifEmpty { it.name } },
-            Res.string.game__dlcs_expansions_title to addOns.map { it to it.name.withoutPrefix(game.name) },
-        ).filter { it.second.isNotEmpty() }.forEach { (title, games) ->
+        ).plus(othersByType).filter { it.second.isNotEmpty() }.forEach { (title, games) ->
             item(key = title.key) {
                 Column {
                     SettingsGroupHeader(stringResource(title))
