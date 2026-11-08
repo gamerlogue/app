@@ -6,6 +6,7 @@ import at.released.igdbclient.IgdbResult
 import at.released.igdbclient.IgdbWebhookApi
 import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
+import com.russhwolf.settings.MapSettings
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
@@ -32,7 +33,7 @@ private val FIELDS_CLAUSE = Regex("(?:^|;)f ([^;]*);")
 class GameMatcherQueryFieldsTest : StringSpec({
     "every matcher query asks for its own fields together with the identity ones" {
         val igdb = RecordingIgdb()
-        val matcher = GameMatcher(igdb, ExceptionReporter())
+        val matcher = GameMatcher(igdb, ExceptionReporter(), MatchMemory(MapSettings()))
         matcher.searchByName("zelda")
         matcher.gamesByIds(listOf(1))
         // A store-id lookup (external_games) and a by-slug lookup (games).

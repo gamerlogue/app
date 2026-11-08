@@ -9,6 +9,7 @@ import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameResult
+import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.PreferencesSettings
 import io.kotest.core.spec.style.StringSpec
@@ -27,6 +28,7 @@ import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
 import it.maicol07.gamerlogue.services.LibrarySync
+import it.maicol07.gamerlogue.services.MatchMemory
 import it.maicol07.gamerlogue.services.SyncedGame
 import it.maicol07.gamerlogue.services.TrackerSync
 import it.maicol07.gamerlogue.services.connectors.BackloggdConnector
@@ -106,7 +108,7 @@ class LibraryImportViewModelTest : StringSpec({
                 val client = libraryClient()
                 startLibraryKoin(client, PreferencesSettings(preferences))
                 val reporter = ExceptionReporter()
-                val matcher = GameMatcher(noRequestsIgdb, reporter)
+                val matcher = GameMatcher(noRequestsIgdb, reporter, MatchMemory(MapSettings()))
                 val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
                 val tracker = TrackerSync(PreferencesSettings(preferences), matcher, library)
                 ImportHandoff.put(connector.service, emptyList())
@@ -146,7 +148,7 @@ class LibraryImportViewModelTest : StringSpec({
         startLibraryKoin(client, settings)
         val connector = BackloggdConnector()
         val reporter = ExceptionReporter()
-        val matcher = GameMatcher(SyncFixtureIgdb(), reporter)
+        val matcher = GameMatcher(SyncFixtureIgdb(), reporter, MatchMemory(MapSettings()))
         val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
         val tracker = TrackerSync(settings, matcher, library)
         tracker.forget(connector.service)

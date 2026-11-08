@@ -100,6 +100,8 @@ class LibraryImportViewModel(
         // True for an exact store-id match or a user-confirmed pick. Name-fallback guesses start false
         // and can't be selected until the user confirms/changes the match.
         val confident: Boolean = false,
+        // The user picked this match, so it's remembered for the next matching of this game.
+        val picked: Boolean = false,
         // The store page URL for this game (for the "open store" link), or null if unknown.
         val sourceUrl: String? = null,
         // The automatic match for this game hasn't come back yet.
@@ -210,6 +212,7 @@ class LibraryImportViewModel(
             game = game,
             alreadyPresent = present,
             confident = confident,
+            picked = false,
             included = game != null && !present && confident,
             searching = false,
         )
@@ -251,7 +254,9 @@ class LibraryImportViewModel(
     private fun chooseMatch(index: Int, game: Game) = update {
         // A manual pick is a confirmation → confident.
         copy(
-            rows = rows.mapIndexed { i, row -> if (i == index) row.withMatch(game, confident = true) else row },
+            rows = rows.mapIndexed { i, row ->
+                if (i == index) row.withMatch(game, confident = true).copy(picked = true) else row
+            },
             editingIndex = editingIndex.takeUnless { it == index },
         )
     }
@@ -267,6 +272,8 @@ class LibraryImportViewModel(
 
     private suspend fun doConfirm() {
         update { copy(importing = true) }
+        // Every pick is remembered, selected or not: it says what the game is, not whether to import it.
+        matcher.memory.remember(service, picks)
         val included = state.rows.filter { it.included }
         if (mode == ImportMode.ID_SYNC) {
             ImportHandoff.put(service, state.rows.map { row ->
@@ -313,6 +320,12 @@ class LibraryImportViewModel(
         }
         update { copy(importing = false, libraryFailed = false, importedCount = count, pushPending = canPushWishlist) }
     }
+
+    /** The IGDB id the user picked, by store uid. */
+    private val picks: Map<String, Int>
+        get() = state.rows.filter { it.picked }
+            .mapNotNull { row -> row.game?.let { row.ref.uid to it.id.toInt() } }
+            .toMap()
 
     /** Tracker refs by IGDB game from the confirmed, selected rows, each carrying its matched IGDB id. */
     private fun confirmedRemote(): Map<Int, ExternalGameRef> = state.rows.filter { it.included }.mapNotNull { row ->

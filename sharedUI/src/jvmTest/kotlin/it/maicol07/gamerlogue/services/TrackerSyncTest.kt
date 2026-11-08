@@ -8,6 +8,7 @@ import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameResult
+import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.PreferencesSettings
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -41,7 +42,7 @@ private class OtherGameIgdb : IgdbClient {
 class TrackerSyncTest : StringSpec({
     fun trackerSync(preferences: Preferences): TrackerSync {
         val reporter = ExceptionReporter()
-        val matcher = GameMatcher(OtherGameIgdb(), reporter)
+        val matcher = GameMatcher(OtherGameIgdb(), reporter, MatchMemory(MapSettings()))
         return TrackerSync(
             PreferencesSettings(preferences),
             matcher,

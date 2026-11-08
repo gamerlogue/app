@@ -130,6 +130,7 @@ kotlin {
             implementation(libs.kotest.assertions.core)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+            implementation(libs.multiplatform.settings.test)
             // sealedSubclasses needs kotlin-reflect on the JVM (NavEntriesCoverageTest).
             implementation(kotlin("reflect"))
         }

@@ -9,6 +9,7 @@ import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameResult
+import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.PreferencesSettings
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -67,7 +68,7 @@ class GameMatcherExplicitIdTest : StringSpec({
             val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
             val settings = PreferencesSettings(preferences)
             val reporter = ExceptionReporter()
-            val matcher = GameMatcher(IdFixtureIgdb(), reporter)
+            val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
             val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
             val connector = BackloggeryConnector()
             ImportHandoff.put(
@@ -105,7 +106,7 @@ class GameMatcherExplicitIdTest : StringSpec({
                 val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
                 val settings = PreferencesSettings(preferences)
                 val reporter = ExceptionReporter()
-                val matcher = GameMatcher(IdFixtureIgdb(), reporter)
+                val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
 
                 val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
                 val tracker = TrackerSync(settings, matcher, library)
@@ -172,6 +173,8 @@ class GameMatcherExplicitIdTest : StringSpec({
                     review.confirm()
                     advanceUntilIdle()
                     review.uiState.value.pushPending shouldBe true
+                    matcher.memory.picks(ExternalService.BACKLOGGERY) shouldBe
+                        if (confirmUnknown) mapOf("bg-unknown" to 7) else emptyMap()
                     reporter.state.value shouldBe null
                     viewModel.runApplyResyncIds(ExternalService.BACKLOGGERY, session)
                     val expectedWrites = (if (excludeKnown) 0 else 1) + (if (confirmUnknown) 1 else 0)
@@ -193,7 +196,7 @@ class GameMatcherExplicitIdTest : StringSpec({
 
     "a tracker metadata id matches exactly despite a different title and keeps the remote uid" {
         val client = IdFixtureIgdb()
-        val matcher = GameMatcher(client, ExceptionReporter())
+        val matcher = GameMatcher(client, ExceptionReporter(), MatchMemory(MapSettings()))
         val refs = listOf(
             ExternalGameRef("bg-100", "User renamed this game", gameId = 42),
             ExternalGameRef("bg-200", "Another platform edition", gameId = 42),
@@ -206,11 +209,25 @@ class GameMatcherExplicitIdTest : StringSpec({
         client.requests shouldBe 1
     }
 
+    "a remembered pick matches exactly, below the tracker metadata" {
+        val client = IdFixtureIgdb()
+        val memory = MatchMemory(MapSettings())
+        memory.remember(ExternalService.BACKLOGGERY, mapOf("bg-100" to 7, "bg-200" to 7))
+        memory.remember(ExternalService.BACKLOGGERY, mapOf("bg-100" to 42))
+        val matched = GameMatcher(client, ExceptionReporter(), memory).match(
+            BackloggeryConnector(),
+            listOf(ExternalGameRef("bg-100", "Renamed"), ExternalGameRef("bg-200", "Tagged", gameId = 42)),
+        )
+        matched.map { it.game?.id } shouldBe listOf(42L, 42L)
+        matched.all { it.confident } shouldBe true
+        client.requests shouldBe 1
+    }
+
     "tracker metadata takes precedence over an older stored mapping" {
         val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
         try {
             val reporter = ExceptionReporter()
-            val matcher = GameMatcher(IdFixtureIgdb(), reporter)
+            val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
             val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
             val tracker = TrackerSync(PreferencesSettings(preferences), matcher, library)
             tracker.record(ExternalService.BACKLOGGERY, mapOf(7 to SyncedGame("bg-100", GameLibraryStatus.BACKLOG)))

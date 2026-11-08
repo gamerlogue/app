@@ -38,6 +38,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class GameMatcher(
     private val igdb: IgdbClient,
     private val exceptionReporter: ExceptionReporter,
+    val memory: MatchMemory,
 ) {
 
     /**
@@ -75,9 +76,13 @@ class GameMatcher(
         onBatch: (List<Match>) -> Unit,
     ) {
         if (refs.isEmpty()) return
-        val tagged = refs.filter { (it.gameId ?: 0) > 0 }
-        val games = gamesByIds(tagged.mapNotNull { it.gameId }).associateBy { it.id.toInt() }
-        val byGameId = tagged.mapNotNull { ref -> games[ref.gameId]?.let { ref.uid to it } }.toMap()
+        // The id the service's metadata carries, else the game the user picked for this uid before.
+        val picks = memory.picks(connector.service)
+        val idByUid = refs.mapNotNull { ref ->
+            (ref.gameId?.takeIf { it > 0 } ?: picks[ref.uid])?.let { ref.uid to it }
+        }.toMap()
+        val games = gamesByIds(idByUid.values.toList()).associateBy { it.id.toInt() }
+        val byGameId = idByUid.mapNotNull { (uid, id) -> games[id]?.let { uid to it } }.toMap()
         val untagged = refs.filter { it.uid !in byGameId }
         val byStoreId =
             byGameId + (connector.igdbKey?.let { matchByIgdbKey(it, untagged) } ?: matchByStoreId(connector, untagged))
