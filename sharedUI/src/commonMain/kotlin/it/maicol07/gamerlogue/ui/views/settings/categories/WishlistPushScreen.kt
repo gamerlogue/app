@@ -63,6 +63,8 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.ui.components.RemoteImage
+import it.maicol07.gamerlogue.ui.components.layout.CollapsibleSectionHeader
+import it.maicol07.gamerlogue.ui.components.layout.collapsibleSection
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -164,7 +166,7 @@ internal fun WishlistPushScreen(
                     rowKey = { it.gameId },
                     expanded = open,
                     header = { shapes, modifier ->
-                        SectionHeader(
+                        CollapsibleSectionHeader(
                             title = stringResource(section.title, rows.size),
                             icon = null,
                             supporting = null,

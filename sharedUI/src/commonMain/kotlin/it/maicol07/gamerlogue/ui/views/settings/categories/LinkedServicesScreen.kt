@@ -92,6 +92,7 @@ import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.TooltipBox
+import it.maicol07.gamerlogue.ui.components.layout.ExpandArrow
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState

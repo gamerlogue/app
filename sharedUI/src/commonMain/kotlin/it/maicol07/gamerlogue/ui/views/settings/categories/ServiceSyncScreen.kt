@@ -122,6 +122,8 @@ import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.StepProgress
 import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.label
+import it.maicol07.gamerlogue.ui.components.layout.CollapsibleSectionHeader
+import it.maicol07.gamerlogue.ui.components.layout.collapsibleSection
 import it.maicol07.gamerlogue.ui.components.rememberServiceWebViewHost
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
@@ -515,7 +517,7 @@ private fun SyncReport(
             rowKey = { "skip-${it.index}" },
             expanded = showSkipped,
             header = { shapes, modifier ->
-                SectionHeader(
+                CollapsibleSectionHeader(
                     stringResource(Res.string.settings__service_sync_skipped_list),
                     Icons.ErrorW500Rounded,
                     supporting = null,
@@ -544,7 +546,7 @@ private fun LazyListScope.technicalDetails(console: List<String>, expanded: Bool
         rowKey = { "log-text" },
         expanded = expanded,
         header = { shapes, modifier ->
-            SectionHeader(
+            CollapsibleSectionHeader(
                 stringResource(Res.string.settings__service_technical_details),
                 Icons.CodeW500Rounded,
                 supporting = null,

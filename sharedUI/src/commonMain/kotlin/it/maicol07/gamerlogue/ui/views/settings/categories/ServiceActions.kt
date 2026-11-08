@@ -1,15 +1,11 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CornerBasedShape
-import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -17,7 +13,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Switch
@@ -30,16 +25,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__service_import_library
 import gamerlogue.sharedui.generated.resources.settings__service_sync_library
@@ -56,6 +47,7 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
+import it.maicol07.gamerlogue.ui.components.layout.rememberCollapsibleHeaderShapes
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -98,33 +90,11 @@ internal fun CollapsibleServices(
             var expanded by rememberSaveable { mutableStateOf(false) }
             val open = expanded && connected(service)
             SegmentedListLayout(Modifier.fillMaxWidth()) {
-                val shapes = rememberHeaderShapes(open)
+                val shapes = rememberCollapsibleHeaderShapes(open)
                 item(service, shapes, expanded.takeIf { connected(service) }) { expanded = !expanded }
                 AnimatedVisibility(open) { actions(service) }
             }
         }
-    }
-}
-
-/**
- * A group header's shapes: a lone segment, whose bottom corners morph into the top segment's ones as the group
- * [open]s. The instance never changes, since M3 rebuilds a list item's ripple when its shapes change: swapping
- * them on the toggling tap would cancel that tap's ripple.
- */
-@Composable
-private fun rememberHeaderShapes(open: Boolean): ListItemShapes {
-    val single = ListItemDefaults.expressiveSegmentedShapes(0, 1)
-    val top = ListItemDefaults.segmentedShapes(0, 2)
-    val progress = animateFloatAsState(if (open) 1f else 0f, MaterialTheme.motionScheme.defaultSpatialSpec())
-    return remember(single, top) {
-        val closed = (single.shape as CornerBasedShape).bottomStart
-        val joined = (top.shape as CornerBasedShape).bottomStart
-        // Read at draw time, so the corners follow the animation without recomposing or replacing the shape.
-        val bottom = object : CornerSize {
-            override fun toPx(shapeSize: Size, density: Density): Float =
-                lerp(closed.toPx(shapeSize, density), joined.toPx(shapeSize, density), progress.value)
-        }
-        top.copy(shape = (top.shape as RoundedCornerShape).copy(bottomStart = bottom, bottomEnd = bottom))
     }
 }
 
