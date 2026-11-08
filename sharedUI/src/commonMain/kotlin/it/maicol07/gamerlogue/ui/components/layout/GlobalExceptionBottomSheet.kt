@@ -2,7 +2,6 @@ package it.maicol07.gamerlogue.ui.components.layout
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +39,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
@@ -61,12 +59,12 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ContentCopyW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LightbulbW500Rounded
 import it.maicol07.gamerlogue.AppEnvironment
 import it.maicol07.gamerlogue.BuildConfig
 import it.maicol07.gamerlogue.clipEntryFor
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.ui.components.ButtonIcon
+import it.maicol07.gamerlogue.ui.components.HintCard
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -147,29 +145,7 @@ fun GlobalExceptionBottomSheet(
             }
 
             // Once for the whole list: the advice does not get truer by repeating it per failure.
-            if (showsNetworkHint) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.LightbulbW500Rounded,
-                        null,
-                        Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(Res.string.exception__hint_network),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            if (showsNetworkHint) HintCard(stringResource(Res.string.exception__hint_network))
 
             // Technical details
             if (showTechnicalDetails) {
