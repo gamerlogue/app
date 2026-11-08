@@ -86,7 +86,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.Stea
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.UbisoftSimpleIcons
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.icons.XboxSvgl
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
-import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceCategory
@@ -94,20 +93,16 @@ import it.maicol07.gamerlogue.services.isServiceSyncSupported
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
-import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
-import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
-
-private val NestedListIndent = 16.dp
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
@@ -179,9 +174,6 @@ private fun LinkedServicesContent(
             }
         }
 
-        // Each category's services form a top-level segmented list under its header. A connected service's
-        // actions are a nested list right below it, so the list closes on that service and reopens, spaced,
-        // with the next one.
         val stateOf = { service: ExternalService -> uiState.services[service] ?: LinkedServicesViewModel.ServiceState() }
         val uriHandler = LocalUriHandler.current
         // A service with no sign-in asks for the user's public handle before its connect flow.
@@ -196,63 +188,80 @@ private fun LinkedServicesContent(
                 onDismiss = { askHandleFor = null },
             )
         }
+        val serviceItem: @Composable (ExternalService, ListItemShapes, Boolean?, () -> Unit) -> Unit =
+            { service, shapes, expanded, onToggleExpanded ->
+                val state = stateOf(service)
+                ServiceItem(
+                    service = service,
+                    state = state,
+                    shapes = shapes,
+                    expanded = expanded,
+                    onToggleExpanded = onToggleExpanded,
+                    onOpenProfile = { state.profile?.profileUrl?.let { uriHandler.openURL(it) } },
+                    onRefreshProfile = { navigateToSync(service, ServiceSyncAction.REFRESH_PROFILE) },
+                    onConnect = {
+                        if (viewModel.connector(service).needsHandle) {
+                            askHandleFor = service
+                        } else {
+                            navigateToSync(service, ServiceSyncAction.CONNECT)
+                        }
+                    },
+                    onDisconnect = { viewModel.disconnect(service) },
+                    onResyncIds = if (state.connected && service == ExternalService.BACKLOGGERY) {
+                        { navigateToSync(service, ServiceSyncAction.RESYNC_IDS) }
+                    } else null,
+                )
+            }
+        val serviceActions: @Composable (ExternalService, Int, Modifier) -> Unit = { service, segmentOffset, modifier ->
+            val state = stateOf(service)
+            ServiceActions(
+                wishlistSync = state.wishlistSync.takeIf { viewModel.connector(service).wishlist != null },
+                onToggleWishlist = { enabled ->
+                    viewModel.toggleWishlistSync(service, enabled)
+                    if (enabled) navigateToSync(service, ServiceSyncAction.SYNC_WISHLIST)
+                },
+                onWishlistSyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_WISHLIST) },
+                librarySync = state.librarySync.takeIf { viewModel.connector(service).statusWrite != null },
+                onToggleLibrarySync = { enabled ->
+                    viewModel.toggleLibrarySync(service, enabled)
+                    // The first sync is always reviewed: nothing is written unattended before it.
+                    if (enabled) {
+                        navigateToSync(
+                            service,
+                            if (viewModel.hasSyncedLibrary(service)) {
+                                ServiceSyncAction.SYNC_LIBRARY
+                            } else {
+                                ServiceSyncAction.PREVIEW_LIBRARY_SYNC
+                            },
+                        )
+                    }
+                },
+                onLibrarySyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_LIBRARY_SYNC) },
+                onImport = { navigateToSync(service, ServiceSyncAction.IMPORT_LIBRARY) },
+                segmentOffset = segmentOffset,
+                modifier = modifier,
+            )
+        }
         ExternalService.entries.groupBy { it.category }.forEach { (category, services) ->
             Column {
                 SettingsGroupHeader(stringResource(category.labelRes()))
-                SegmentedListLayout(Modifier.fillMaxWidth()) {
-                    services.chunkedAfter { stateOf(it).connected }.forEach { run ->
-                        run.forEachIndexed { index, service ->
-                            val state = stateOf(service)
-                            ServiceItem(
-                                service = service,
-                                state = state,
-                                shapes = ListItemDefaults.expressiveSegmentedShapes(index, run.size),
-                                onOpenProfile = { state.profile?.profileUrl?.let { uriHandler.openURL(it) } },
-                                onRefreshProfile = { navigateToSync(service, ServiceSyncAction.REFRESH_PROFILE) },
-                                onConnect = {
-                                    if (viewModel.connector(service).needsHandle) {
-                                        askHandleFor = service
-                                    } else {
-                                        navigateToSync(service, ServiceSyncAction.CONNECT)
-                                    }
-                                },
-                                onDisconnect = { viewModel.disconnect(service) },
-                                onResyncIds = if (state.connected && service == ExternalService.BACKLOGGERY) {
-                                    { navigateToSync(service, ServiceSyncAction.RESYNC_IDS) }
-                                } else null,
-                            )
-                        }
-                        val service = run.last()
-                        val state = stateOf(service)
-                        if (state.connected) {
-                            ServiceActions(
-                                wishlistSync = state.wishlistSync.takeIf { viewModel.connector(service).wishlist != null },
-                                onToggleWishlist = { enabled ->
-                                    viewModel.toggleWishlistSync(service, enabled)
-                                    if (enabled) navigateToSync(service, ServiceSyncAction.SYNC_WISHLIST)
-                                },
-                                onWishlistSyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_WISHLIST) },
-                                librarySync = state.librarySync.takeIf { viewModel.connector(service).statusWrite != null },
-                                onToggleLibrarySync = { enabled ->
-                                    viewModel.toggleLibrarySync(service, enabled)
-                                    // The first sync is always reviewed: nothing is written unattended before it.
-                                    if (enabled) {
-                                        navigateToSync(
-                                            service,
-                                            if (viewModel.hasSyncedLibrary(service)) {
-                                                ServiceSyncAction.SYNC_LIBRARY
-                                            } else {
-                                                ServiceSyncAction.PREVIEW_LIBRARY_SYNC
-                                            },
-                                        )
-                                    }
-                                },
-                                onLibrarySyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_LIBRARY_SYNC) },
-                                onImport = { navigateToSync(service, ServiceSyncAction.IMPORT_LIBRARY) },
-                                modifier = Modifier.padding(start = NestedListIndent, bottom = Dimens.ItemGap),
-                            )
-                        }
-                    }
+                val connected = { service: ExternalService -> stateOf(service).connected }
+                if (category == ServiceCategory.TRACKER) {
+                    // Like the sync preview's sections: each tracker is its own group, and a connected one
+                    // collapses its actions, drawn as the segments right below it.
+                    CollapsibleServices(
+                        services = services,
+                        connected = connected,
+                        item = serviceItem,
+                        actions = { serviceActions(it, 1, Modifier) },
+                    )
+                } else {
+                    ServiceRuns(
+                        services = services,
+                        connected = connected,
+                        item = { service, shapes -> serviceItem(service, shapes, null) {} },
+                        actions = { service, modifier -> serviceActions(service, 0, modifier) },
+                    )
                 }
             }
         }
@@ -267,13 +276,18 @@ internal fun <T> List<T>.chunkedAfter(predicate: (T) -> Boolean): List<List<T>> 
         chunks
     }.filter { it.isNotEmpty() }
 
-/** Top-level row: service logo + name + connect/disconnect, with the linked account below when connected. */
+/**
+ * Top-level row: service logo + name + connect/disconnect, with the linked account below when connected.
+ * A non-null [expanded] adds an arrow toggling the service's collapsible actions.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ServiceItem(
     service: ExternalService,
     state: LinkedServicesViewModel.ServiceState,
     shapes: ListItemShapes,
+    expanded: Boolean?,
+    onToggleExpanded: () -> Unit,
     onOpenProfile: () -> Unit,
     onRefreshProfile: () -> Unit,
     onConnect: () -> Unit,
@@ -307,6 +321,11 @@ private fun ServiceItem(
                         Text(stringResource(Res.string.settings__service_disconnect))
                     }
                     onResyncIds?.let { ServiceMoreMenu(it) }
+                    expanded?.let {
+                        IconButton(onClick = onToggleExpanded, shapes = IconButtonDefaults.shapes()) {
+                            ExpandArrow(it, Modifier)
+                        }
+                    }
                 }
             } else {
                 FilledTonalButton(onClick = onConnect, shapes = ButtonDefaults.shapes()) {

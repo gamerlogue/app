@@ -205,7 +205,7 @@ internal fun SectionHeader(
 
 /** A section's arrow: down when collapsed, turning up as it expands. */
 @Composable
-private fun ExpandArrow(expanded: Boolean, modifier: Modifier) {
+internal fun ExpandArrow(expanded: Boolean, modifier: Modifier) {
     val arrowTurn by animateFloatAsState(
         if (expanded) HALF_TURN_DEGREES else 0f,
         MaterialTheme.motionScheme.defaultSpatialSpec(),

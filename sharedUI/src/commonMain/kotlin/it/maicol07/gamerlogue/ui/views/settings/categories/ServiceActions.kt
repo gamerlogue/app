@@ -1,7 +1,15 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -9,6 +17,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Switch
@@ -18,9 +27,19 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__service_import_library
 import gamerlogue.sharedui.generated.resources.settings__service_sync_library
@@ -34,14 +53,86 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Key
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
+import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
+import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+
+private val NestedListIndent = 16.dp
+
+/**
+ * Services as one top-level segmented list. A connected service's actions are a nested list right below it,
+ * so the list closes on that service and reopens, spaced, with the next one.
+ */
+@Composable
+internal fun ServiceRuns(
+    services: List<ExternalService>,
+    connected: (ExternalService) -> Boolean,
+    item: @Composable (ExternalService, ListItemShapes) -> Unit,
+    actions: @Composable (ExternalService, Modifier) -> Unit,
+) = SegmentedListLayout(Modifier.fillMaxWidth()) {
+    services.chunkedAfter(connected).forEach { run ->
+        run.forEachIndexed { index, service ->
+            item(service, ListItemDefaults.expressiveSegmentedShapes(index, run.size))
+        }
+        val service = run.last()
+        if (connected(service)) actions(service, Modifier.padding(start = NestedListIndent, bottom = Dimens.ItemGap))
+    }
+}
+
+/**
+ * Each service as its own segmented group: [item] is the header segment and, once the service is connected,
+ * toggles its [actions] right below it. [item] gets a null expanded state while the service is disconnected.
+ */
+@Composable
+internal fun CollapsibleServices(
+    services: List<ExternalService>,
+    connected: (ExternalService) -> Boolean,
+    item: @Composable (ExternalService, ListItemShapes, expanded: Boolean?, onToggle: () -> Unit) -> Unit,
+    actions: @Composable (ExternalService) -> Unit,
+) = Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.ItemGap)) {
+    services.forEach { service ->
+        key(service) {
+            var expanded by rememberSaveable { mutableStateOf(false) }
+            val open = expanded && connected(service)
+            SegmentedListLayout(Modifier.fillMaxWidth()) {
+                val shapes = rememberHeaderShapes(open)
+                item(service, shapes, expanded.takeIf { connected(service) }) { expanded = !expanded }
+                AnimatedVisibility(open) { actions(service) }
+            }
+        }
+    }
+}
+
+/**
+ * A group header's shapes: a lone segment, whose bottom corners morph into the top segment's ones as the group
+ * [open]s. The instance never changes, since M3 rebuilds a list item's ripple when its shapes change: swapping
+ * them on the toggling tap would cancel that tap's ripple.
+ */
+@Composable
+private fun rememberHeaderShapes(open: Boolean): ListItemShapes {
+    val single = ListItemDefaults.expressiveSegmentedShapes(0, 1)
+    val top = ListItemDefaults.segmentedShapes(0, 2)
+    val progress = animateFloatAsState(if (open) 1f else 0f, MaterialTheme.motionScheme.defaultSpatialSpec())
+    return remember(single, top) {
+        val closed = (single.shape as CornerBasedShape).bottomStart
+        val joined = (top.shape as CornerBasedShape).bottomStart
+        // Read at draw time, so the corners follow the animation without recomposing or replacing the shape.
+        val bottom = object : CornerSize {
+            override fun toPx(shapeSize: Size, density: Density): Float =
+                lerp(closed.toPx(shapeSize, density), joined.toPx(shapeSize, density), progress.value)
+        }
+        top.copy(shape = (top.shape as RoundedCornerShape).copy(bottomStart = bottom, bottomEnd = bottom))
+    }
+}
 
 /**
  * Second-level list with a connected service's actions. The wishlist row is shown only for services with a
  * wishlist ([wishlistSync] non-null: its auto-sync flag). The library row syncs when the service can be
- * written to ([librarySync] non-null: the auto-sync flag), and is a plain import otherwise.
+ * written to ([librarySync] non-null: the auto-sync flag), and is a plain import otherwise. The rows are shaped
+ * as segments after [segmentOffset] leading ones (e.g. a header segment above them in the same group).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -53,9 +144,10 @@ internal fun ServiceActions(
     onToggleLibrarySync: (Boolean) -> Unit,
     onLibrarySyncNow: () -> Unit,
     onImport: () -> Unit,
+    segmentOffset: Int,
     modifier: Modifier = Modifier,
 ) = SegmentedListLayout(modifier.fillMaxWidth()) {
-    val count = if (wishlistSync != null) 2 else 1
+    val count = segmentOffset + if (wishlistSync != null) 2 else 1
     if (wishlistSync != null) {
         SyncToggleItem(
             enabled = wishlistSync,
@@ -63,7 +155,7 @@ internal fun ServiceActions(
             onSyncNow = onWishlistSyncNow,
             icon = Icons.BookmarkW500Rounded,
             label = Res.string.settings__service_sync_wishlist,
-            shapes = ListItemDefaults.segmentedShapes(0, count),
+            shapes = ListItemDefaults.segmentedShapes(segmentOffset, count),
         )
     }
     if (librarySync != null) {
