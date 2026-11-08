@@ -399,6 +399,7 @@
     <string name="settings__service_resync_ids_result">ID aggiornati: %1$d\nEsclusi o non confermati: %2$d</string>
     <string name="settings__open_store">Apri pagina dello store</string>
     <string name="settings__import_change_match">Cambia</string>
+    <string name="settings__import_accept_match">Accetta il match suggerito</string>
     <string name="settings__import_cancel">Annulla</string>
     <string name="settings__import_search">Cerca</string>
     <string name="settings__import_search_hint">Cerca un gioco</string>

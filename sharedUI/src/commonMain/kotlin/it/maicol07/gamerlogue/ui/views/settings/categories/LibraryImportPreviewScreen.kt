@@ -45,6 +45,7 @@ import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.settings__id_sync_matches
+import gamerlogue.sharedui.generated.resources.settings__import_accept_match
 import gamerlogue.sharedui.generated.resources.settings__import_already_present
 import gamerlogue.sharedui.generated.resources.settings__import_change_match
 import gamerlogue.sharedui.generated.resources.settings__import_confirm
@@ -67,6 +68,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_preview_title
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
@@ -241,6 +243,7 @@ private fun LibraryImportPreviewContent(
                 onSectionExpanded = { key, expanded -> expandedSections[key] = expanded },
                 onToggle = viewModel::toggleIncluded,
                 onEdit = onEdit,
+                onConfirm = viewModel::confirmMatch,
                 onOpenStore = uriHandler::openURL,
             )
         }
@@ -274,6 +277,7 @@ internal fun ImportRow(
     service: ExternalService,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
+    onConfirm: () -> Unit,
     onOpenStore: (String) -> Unit,
 ) {
     val shapes = ListItemDefaults.segmentedShapes(index = indexInGroup, count = groupCount)
@@ -284,6 +288,11 @@ internal fun ImportRow(
             if (row.sourceUrl != null) {
                 IconButton(onClick = { onOpenStore(row.sourceUrl) }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.OpenInNewW500Rounded, contentDescription = stringResource(Res.string.settings__open_store))
+                }
+            }
+            if (row.game != null && !row.confident && !row.searching) {
+                IconButton(onClick = onConfirm, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.CheckW500Rounded, contentDescription = stringResource(Res.string.settings__import_accept_match))
                 }
             }
             IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {

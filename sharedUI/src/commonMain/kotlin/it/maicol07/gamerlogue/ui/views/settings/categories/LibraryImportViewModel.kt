@@ -251,6 +251,11 @@ class LibraryImportViewModel(
         chooseMatch(index, game)
     }
 
+    /** Accept the suggested (non-confident) match of a row as if the user had picked it. */
+    fun confirmMatch(index: Int) {
+        state.rows.getOrNull(index)?.game?.let { chooseMatch(index, it) }
+    }
+
     private fun chooseMatch(index: Int, game: Game) = update {
         // A manual pick is a confirmation → confident.
         copy(

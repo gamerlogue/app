@@ -53,6 +53,7 @@ internal fun LazyListScope.importRows(
     onSectionExpanded: (key: String, expanded: Boolean) -> Unit,
     onToggle: (Int) -> Unit,
     onEdit: (Int) -> Unit,
+    onConfirm: (Int) -> Unit,
     onOpenStore: (String) -> Unit,
 ) {
     val all = buildList {
@@ -70,6 +71,7 @@ internal fun LazyListScope.importRows(
                 service = service,
                 onToggle = { onToggle(index) },
                 onEdit = { onEdit(index) },
+                onConfirm = { onConfirm(index) },
                 onOpenStore = onOpenStore,
             )
         }

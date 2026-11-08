@@ -401,6 +401,7 @@
     <string name="settings__service_resync_ids_result">ID markers updated: %1$d\nExcluded or unconfirmed: %2$d</string>
     <string name="settings__open_store">Open store page</string>
     <string name="settings__import_change_match">Change</string>
+    <string name="settings__import_accept_match">Accept the suggested match</string>
     <string name="settings__import_cancel">Cancel</string>
     <string name="settings__import_search">Search</string>
     <string name="settings__import_search_hint">Search a game</string>
