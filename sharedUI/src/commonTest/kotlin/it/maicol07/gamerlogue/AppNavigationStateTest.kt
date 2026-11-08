@@ -17,7 +17,7 @@ class AppNavigationStateTest {
     fun navigationSuiteVisibilityFollowsDestination() {
         assertTrue(RootNavTree.Discover.showsNavigationSuite)
         assertFalse(RootNavTree.LinkedServices.showsNavigationSuite)
-        assertFalse(RootNavTree.GameDetail(1, null, null).showsNavigationSuite)
+        assertTrue(RootNavTree.GameDetail(1, null, null).showsNavigationSuite)
     }
 
     @Test

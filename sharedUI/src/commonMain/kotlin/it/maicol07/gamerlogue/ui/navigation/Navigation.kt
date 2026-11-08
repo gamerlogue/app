@@ -30,7 +30,7 @@ val TopLevelNavKeys: List<NavKey> =
  *
  * Returns `false` for:
  * - `RootNavTree.LinkedServices` and `RootNavTree.Appearance`
- * - Instances of `RootNavTree.ServiceSync`, `RootNavTree.LibraryImportPreview`, and `RootNavTree.GameDetail`
+ * - Instances of `RootNavTree.ServiceSync` and `RootNavTree.LibraryImportPreview`
  *
  * Returns `true` for all other cases.
  */
@@ -40,8 +40,7 @@ val NavKey.showsNavigationSuite: Boolean
         RootNavTree.Appearance -> false
 
         is RootNavTree.ServiceSync,
-        is RootNavTree.LibraryImportPreview,
-        is RootNavTree.GameDetail -> false
+        is RootNavTree.LibraryImportPreview -> false
 
         else -> true
     }
