@@ -47,7 +47,7 @@ internal fun <T> LazyListScope.collapsibleSection(
     if (rows.isEmpty()) return
     val count = if (expanded) rows.size + 1 else 1
     item(key = key) {
-        header(ListItemDefaults.segmentedShapes(index = 0, count = count), Modifier.animateItem().padding(top = 8.dp))
+        header(rememberCollapsibleHeaderShapes(expanded), Modifier.animateItem().padding(top = 8.dp))
     }
     if (!expanded) return
     itemsIndexed(rows, key = { _, item -> rowKey(item) }) { i, item ->
