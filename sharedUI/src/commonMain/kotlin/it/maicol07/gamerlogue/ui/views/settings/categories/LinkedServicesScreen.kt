@@ -11,13 +11,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AppBarRow
+import androidx.compose.material3.AppBarRowScope
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -25,9 +26,9 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -72,9 +74,12 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Edi
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatListBulletedW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkOffW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MoreVertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TimerW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ToysAndGamesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TrophyW500Rounded
@@ -92,6 +97,7 @@ import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SectionIcon
+import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
@@ -103,6 +109,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons as MaterialSymbols
 import io.github.kingsword09.symbolcraft.symbols.icons.svgl.Icons as SvglIcons
+
+// ponytail: fixed room for the service name; measure the title if long names still crowd the actions.
+private val MinHeadlineWidth = 128.dp
+private val ActionGap = 2.dp
 
 @Branch(RootTree::class, metadata = DetailPaneMetadata::class)
 @Composable
@@ -280,7 +290,7 @@ internal fun <T> List<T>.chunkedAfter(predicate: (T) -> Boolean): List<List<T>> 
  * Top-level row: service logo + name + connect/disconnect, with the linked account below when connected.
  * A non-null [expanded] adds an arrow toggling the service's collapsible actions.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ServiceItem(
     service: ExternalService,
@@ -316,11 +326,31 @@ private fun ServiceItem(
         },
         trailingContent = {
             if (connected) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onDisconnect, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(Res.string.settings__service_disconnect))
+                // The actions leave MinHeadlineWidth to the name: those that don't fit move to the overflow menu.
+                Row(
+                    Modifier.layout { measurable, constraints ->
+                        val maxWidth = (constraints.maxWidth - MinHeadlineWidth.roundToPx()).coerceAtLeast(0)
+                        val placeable = measurable.measure(constraints.copy(maxWidth = maxWidth))
+                        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                    },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val disconnect = stringResource(Res.string.settings__service_disconnect)
+                    val resyncIds = stringResource(Res.string.settings__service_resync_ids)
+                    val moreOptions = stringResource(Res.string.common__more_options)
+                    AppBarRow(
+                        modifier = Modifier.weight(1f, fill = false),
+                        overflowIndicator = { menu ->
+                            IconButton(
+                                onClick = { if (menu.isShowing) menu.dismiss() else menu.show() },
+                                modifier = Modifier.padding(horizontal = ActionGap),
+                                shapes = IconButtonDefaults.shapes(),
+                            ) { Icon(MaterialSymbols.MoreVertW500Rounded, contentDescription = moreOptions) }
+                        },
+                    ) {
+                        serviceAction(MaterialSymbols.LinkOffW500Rounded, disconnect, onDisconnect)
+                        onResyncIds?.let { serviceAction(MaterialSymbols.SyncW500Rounded, resyncIds, it) }
                     }
-                    onResyncIds?.let { ServiceMoreMenu(it) }
                     expanded?.let {
                         IconButton(onClick = onToggleExpanded, shapes = IconButtonDefaults.shapes()) {
                             ExpandArrow(it, Modifier)
@@ -328,8 +358,11 @@ private fun ServiceItem(
                     }
                 }
             } else {
-                FilledTonalButton(onClick = onConnect, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(Res.string.settings__service_connect))
+                val connect = stringResource(Res.string.settings__service_connect)
+                TooltipBox({ PlainTooltip { Text(connect) } }) {
+                    FilledTonalIconButton(onClick = onConnect, shapes = IconButtonDefaults.shapes()) {
+                        Icon(MaterialSymbols.LinkW500Rounded, contentDescription = connect)
+                    }
                 }
             }
         },
@@ -381,21 +414,27 @@ private fun ServiceItem(
     }
 }
 
-@Composable
-private fun ServiceMoreMenu(onResyncIds: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
-            Icon(MaterialSymbols.MoreVertW500Rounded, contentDescription = stringResource(Res.string.common__more_options))
+/** A connected service's action: a spaced icon button with a tooltip, or a menu entry once overflowed. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+private fun AppBarRowScope.serviceAction(icon: ImageVector, label: String, onClick: () -> Unit) = customItem(
+    appbarContent = {
+        TooltipBox({ PlainTooltip { Text(label) } }, Modifier.padding(horizontal = ActionGap)) {
+            IconButton(onClick = onClick, shapes = IconButtonDefaults.shapes()) {
+                Icon(icon, contentDescription = label)
+            }
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.settings__service_resync_ids)) },
-                onClick = { expanded = false; onResyncIds() },
-            )
-        }
-    }
-}
+    },
+    menuContent = { menu ->
+        DropdownMenuItem(
+            text = { Text(label) },
+            onClick = {
+                menu.dismiss()
+                onClick()
+            },
+            leadingIcon = { Icon(icon, contentDescription = null) },
+        )
+    },
+)
 
 private fun ExternalService.icon(): ImageVector = when (this) {
     ExternalService.STEAM -> Icons.SteamSimpleIcons

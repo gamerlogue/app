@@ -308,6 +308,7 @@ symbolCraft {
         "language",
         "linked_services",
         "link",
+        "link_off",
         "lips",
         "lightbulb",
         "local_fire_department",
