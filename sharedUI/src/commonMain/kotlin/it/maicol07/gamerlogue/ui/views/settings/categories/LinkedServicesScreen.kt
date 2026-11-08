@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AppBarRow
 import androidx.compose.material3.AppBarRowScope
@@ -36,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalUriHandler
@@ -62,7 +59,6 @@ import gamerlogue.sharedui.generated.resources.settings__service_infinite_backlo
 import gamerlogue.sharedui.generated.resources.settings__service_nintendo
 import gamerlogue.sharedui.generated.resources.settings__service_pc_only
 import gamerlogue.sharedui.generated.resources.settings__service_playstation
-import gamerlogue.sharedui.generated.resources.settings__service_refresh_profile
 import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
 import gamerlogue.sharedui.generated.resources.settings__service_stash
 import gamerlogue.sharedui.generated.resources.settings__service_steam
@@ -77,7 +73,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Joy
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkOffW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MoreVertW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TimerW500Rounded
@@ -95,7 +90,6 @@ import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
-import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
@@ -207,7 +201,7 @@ private fun LinkedServicesContent(
                     shapes = shapes,
                     expanded = expanded,
                     onToggleExpanded = onToggleExpanded,
-                    onOpenProfile = { state.profile?.profileUrl?.let { uriHandler.openURL(it) } },
+                    onOpenProfile = state.profile?.profileUrl?.let { url -> { uriHandler.openURL(url) } },
                     onRefreshProfile = { navigateToSync(service, ServiceSyncAction.REFRESH_PROFILE) },
                     onConnect = {
                         if (viewModel.connector(service).needsHandle) {
@@ -288,7 +282,8 @@ internal fun <T> List<T>.chunkedAfter(predicate: (T) -> Boolean): List<List<T>> 
 
 /**
  * Top-level row: service logo + name + connect/disconnect, with the linked account below when connected.
- * A non-null [expanded] adds an arrow toggling the service's collapsible actions.
+ * A non-null [expanded] makes the row toggle the service's collapsible actions, with an arrow showing the state;
+ * a non-null [onOpenProfile] adds a button opening the account's public page.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -298,19 +293,22 @@ private fun ServiceItem(
     shapes: ListItemShapes,
     expanded: Boolean?,
     onToggleExpanded: () -> Unit,
-    onOpenProfile: () -> Unit,
+    onOpenProfile: (() -> Unit)?,
     onRefreshProfile: () -> Unit,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
     onResyncIds: (() -> Unit)?,
 ) {
     val connected = state.connected
-    val profile = state.profile
 
-    // Tapping connects the service, or opens the linked account's public page once connected (no-op when
-    // the store exposes none).
+    // Tapping connects the service; once connected it toggles the actions when they collapse, and otherwise
+    // opens the linked account's public page (no-op when the store exposes none).
     SegmentedListItem(
-        onClick = if (connected) onOpenProfile else onConnect,
+        onClick = when {
+            !connected -> onConnect
+            expanded != null -> onToggleExpanded
+            else -> onOpenProfile ?: {}
+        },
         shapes = shapes,
         colors = ListItemDefaults.expressiveSegmentedColors(),
         leadingContent = {
@@ -351,11 +349,7 @@ private fun ServiceItem(
                         serviceAction(MaterialSymbols.LinkOffW500Rounded, disconnect, onDisconnect)
                         onResyncIds?.let { serviceAction(MaterialSymbols.SyncW500Rounded, resyncIds, it) }
                     }
-                    expanded?.let {
-                        IconButton(onClick = onToggleExpanded, shapes = IconButtonDefaults.shapes()) {
-                            ExpandArrow(it, Modifier)
-                        }
-                    }
+                    expanded?.let { ExpandArrow(it, Modifier.padding(start = ActionGap)) }
                 }
             } else {
                 val connect = stringResource(Res.string.settings__service_connect)
@@ -366,37 +360,9 @@ private fun ServiceItem(
                 }
             }
         },
-        // Account row (small avatar + username + refresh) below the platform name when connected.
+        // Account row below the platform name when connected.
         supportingContent = if (connected) {
-            {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    profile?.avatarUrl?.let { avatar ->
-                        RemoteImage(
-                            url = avatar,
-                            contentDescription = profile.username,
-                            modifier = Modifier.size(20.dp).clip(CircleShape),
-                            loadingModifier = Modifier.size(20.dp).clip(CircleShape),
-                        )
-                    }
-                    profile?.username?.let { username ->
-                        Text(username, style = MaterialTheme.typography.bodyMedium)
-                    }
-                    IconButton(
-                        onClick = onRefreshProfile,
-                        modifier = Modifier.size(28.dp),
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            MaterialSymbols.RefreshW500Rounded,
-                            contentDescription = stringResource(Res.string.settings__service_refresh_profile),
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-            }
+            { ServiceAccountRow(state.profile, onRefreshProfile, onOpenProfile) }
         } else {
             null
         },

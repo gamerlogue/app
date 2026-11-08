@@ -375,6 +375,7 @@
     <string name="settings__service_refresh_profile">Aggiorna profilo</string>
     <string name="settings__service_sync_wishlist">Sincronizza wishlist</string>
     <string name="settings__service_import_library">Importa libreria</string>
+    <string name="settings__service_open_profile">Apri profilo</string>
     <string name="settings__service_sync_summary">Wishlist sincronizzata</string>
     <string name="settings__service_sync_added">Aggiunti alla libreria</string>
     <string name="settings__service_sync_pushed">Inviati allo store</string>
