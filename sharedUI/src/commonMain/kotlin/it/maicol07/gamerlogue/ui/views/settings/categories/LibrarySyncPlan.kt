@@ -1,7 +1,6 @@
 package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,12 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -24,6 +23,8 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import gamerlogue.sharedui.generated.resources.Res
@@ -42,13 +43,14 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.SyncSide
 import it.maicol07.gamerlogue.ui.components.StatusMessage
-import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
-import org.jetbrains.compose.resources.StringResource
+import it.maicol07.gamerlogue.ui.components.layout.CollapsibleSectionHeader
+import it.maicol07.gamerlogue.ui.components.layout.collapsibleSection
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * [ImportMode.SYNC] step 2: the sync plan in three groups — tracker → Gamerlogue, Gamerlogue → tracker and
  * conflicts, where the user picks which status to keep. Any other row can be tapped to leave it out of the sync.
+ * The first two groups collapse; conflicts always stay open.
  * Indices passed to [onChoose] and [onToggle] are plan indices.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -76,17 +78,15 @@ internal fun SyncPlanContent(
     }
     val tracker = stringResource(service.labelRes())
     val indexed = rows.withIndex().toList()
+    // The groups toggled, by title key: they start expanded.
+    val expanded = remember { mutableStateMapOf<String, Boolean>() }
     Column(Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
-            val (conflicts, settled) = indexed.partition { it.value.conflict }
-            val (pulled, pushed) = settled.partition { it.value.choice == SyncSide.REMOTE }
-            planGroup(Res.string.settings__library_sync_group_from, tracker, pulled, onChoose, onToggle)
-            planGroup(Res.string.settings__library_sync_group_to, tracker, pushed, onChoose, onToggle)
-            planGroup(Res.string.settings__library_sync_group_conflicts, tracker, conflicts, onChoose, onToggle)
+            planGroups(indexed, tracker, expanded, onChoose, onToggle)
         }
         Button(
             onClick = onApply,
@@ -100,26 +100,60 @@ internal fun SyncPlanContent(
     }
 }
 
-private fun LazyListScope.planGroup(
-    titleRes: StringResource,
+/** The three plan groups: the two collapsing on their header's tap ([expanded] holds the toggled ones), then the
+ *  conflicts, which never collapse since each one must be settled before applying. */
+private fun LazyListScope.planGroups(
+    indexed: List<IndexedValue<LibraryImportViewModel.PlanRow>>,
     tracker: String,
-    rows: List<IndexedValue<LibraryImportViewModel.PlanRow>>,
+    expanded: MutableMap<String, Boolean>,
     onChoose: (Int, SyncSide) -> Unit,
     onToggle: (Int) -> Unit,
 ) {
-    if (rows.isEmpty()) return
-    item(key = "group-${titleRes.key}") { SettingsGroupHeader(stringResource(titleRes, tracker, rows.size)) }
-    itemsIndexed(rows, key = { _, indexed -> indexed.value.change.gameId }) { indexInGroup, (index, row) ->
-        Box(
-            Modifier.animateItem(
-                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                fadeOutSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-            ),
-        ) {
-            PlanItem(row, tracker, indexInGroup, rows.size, onToggle = { onToggle(index) }) { onChoose(index, it) }
+    val (conflicts, settled) = indexed.partition { it.value.conflict }
+    val (pulled, pushed) = settled.partition { it.value.choice == SyncSide.REMOTE }
+    listOf(
+        Res.string.settings__library_sync_group_from to pulled,
+        Res.string.settings__library_sync_group_to to pushed,
+    ).forEach { (title, group) ->
+        val open = expanded[title.key] ?: true
+        planGroup(title.key, group, open, tracker, onChoose, onToggle) { shapes, modifier ->
+            CollapsibleSectionHeader(
+                title = stringResource(title, tracker, group.size),
+                icon = null,
+                supporting = null,
+                expanded = open,
+                shapes = shapes,
+                onToggle = { expanded[title.key] = !open },
+                modifier = modifier,
+            )
         }
     }
+    val conflictsTitle = Res.string.settings__library_sync_group_conflicts
+    planGroup(conflictsTitle.key, conflicts, true, tracker, onChoose, onToggle) { shapes, modifier ->
+        val title = stringResource(conflictsTitle, tracker, conflicts.size)
+        SegmentedListItem(shapes = shapes, colors = ListItemDefaults.expressiveSegmentedColors(), modifier = modifier) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+/** A plan group as a [collapsibleSection] under [header], keyed by its title's [key]. */
+private fun LazyListScope.planGroup(
+    key: String,
+    rows: List<IndexedValue<LibraryImportViewModel.PlanRow>>,
+    expanded: Boolean,
+    tracker: String,
+    onChoose: (Int, SyncSide) -> Unit,
+    onToggle: (Int) -> Unit,
+    header: @Composable (shapes: ListItemShapes, modifier: Modifier) -> Unit,
+) = collapsibleSection(
+    key = "group-$key",
+    rows = rows,
+    rowKey = { it.value.change.gameId },
+    expanded = expanded,
+    header = header,
+) { (index, row), position, count ->
+    PlanItem(row, tracker, position, count, onToggle = { onToggle(index) }) { onChoose(index, it) }
 }
 
 /** A plan row: the game, its status on each side and, for a conflict, the side to keep. Other rows toggle on tap. */
