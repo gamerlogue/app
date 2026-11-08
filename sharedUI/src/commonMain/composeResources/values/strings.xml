@@ -105,6 +105,7 @@
     <string name="game__ports_title">Ports</string>
     <string name="game__standalone_expansions_title">Standalone Expansions</string>
     <string name="game__editions_title">Editions</string>
+    <string name="game__variant_pick_hint">Which one do you mean? Pick the base game, the edition you own or a single DLC/expansion: the covers scroll sideways.</string>
     <string name="game__expanded_games_title">Expanded Versions</string>
     <string name="game__parent_games_title">Base &amp; Original Games</string>
     <string name="game__franchises_title">Franchises</string>
@@ -354,6 +355,7 @@
     <string name="settings__library_sync_group_conflicts">Conflicts (%2$d)</string>
     <string name="settings__library_sync_status_change">Gamerlogue: %1$s · %2$s: %3$s</string>
     <string name="settings__library_sync_missing">missing</string>
+    <string name="settings__library_sync_hint">Check what will change on each side. Tap a game to leave it out of this sync; for each conflict, pick which status to keep.</string>
     <plurals name="settings__library_sync_conflicts_left">
         <item quantity="one">%1$d conflict left: settle it with a manual sync</item>
         <item quantity="other">%1$d conflicts left: settle them with a manual sync</item>
@@ -410,7 +412,7 @@
     <string name="settings__import_searching">Searching for a match…</string>
     <string name="settings__import_already_present">Already in your library</string>
     <string name="settings__wishlist_already_present">Already on the service</string>
-    <string name="settings__import_confirm_match">Tap to confirm the match</string>
+    <string name="settings__import_confirm_match">Uncertain match: confirm or change it</string>
     <string name="settings__import_confirm">Import selected</string>
     <plurals name="settings__import_done">
         <item quantity="one">Imported %1$d game</item>
@@ -425,6 +427,7 @@
     </plurals>
     <string name="settings__import_source">%1$s: %2$s</string>
     <string name="settings__import_group_to_import">To import (%1$d)</string>
+    <string name="settings__import_hint">Tap a game to select or deselect it. Under “To review” the match is uncertain: use the check to accept the suggestion or the pencil to pick the right game.</string>
     <string name="settings__import_group_to_review">To review (%1$d)</string>
     <string name="settings__import_group_already_present">Already in your library (%1$d)</string>
     <string name="settings__service_web_unsupported">Account linking isn't available on the web. Use the Android or desktop app to
@@ -839,6 +842,8 @@
         <item quantity="one">%1$d rating</item>
         <item quantity="other">%1$d ratings</item>
     </plurals>
+    <string name="gamelist__pick_hint_match">Tap the matching game; if it isn't listed, change the search. If it has editions or DLCs, you pick the right one next.</string>
+    <string name="gamelist__pick_hint_multiple">Tap the games to add, then confirm with the button at the bottom.</string>
     <plurals name="gamelist__pick_confirm">
         <item quantity="one">Add %1$d game</item>
         <item quantity="other">Add %1$d games</item>

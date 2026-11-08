@@ -31,10 +31,12 @@ import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameCategoryEnum
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.game__editions_title
+import gamerlogue.sharedui.generated.resources.game__variant_pick_hint
 import gamerlogue.sharedui.generated.resources.game_category__main_game
 import gamerlogue.sharedui.generated.resources.game_category__unknown
 import it.maicol07.gamerlogue.extensions.igdb.gameCategoryStringResource
 import it.maicol07.gamerlogue.services.GameMatcher
+import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.views.library.components.EditionCover
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import kotlinx.coroutines.Job
@@ -117,6 +119,12 @@ private fun GameVariantSheet(
                 game.name,
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp),
+            )
+        }
+        item {
+            HintCard(
+                stringResource(Res.string.game__variant_pick_hint),
+                Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp),
             )
         }
         listOf(

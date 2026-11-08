@@ -32,12 +32,15 @@ import at.released.igdbclient.model.Game
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.gamelist__filter_title
 import gamerlogue.sharedui.generated.resources.gamelist__pick_confirm
+import gamerlogue.sharedui.generated.resources.gamelist__pick_hint_match
+import gamerlogue.sharedui.generated.resources.gamelist__pick_hint_multiple
 import gamerlogue.sharedui.generated.resources.search__global_hint
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TuneW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
+import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.event.EventHeader
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.components.search.GameListSearchBar
@@ -49,6 +52,7 @@ import it.maicol07.gamerlogue.ui.views.discover.DiscoverSection
 import it.maicol07.gamerlogue.ui.views.discover.cardMetadata
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import it.maicol07.gamerlogue.ui.views.library.cardMetadata
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -111,7 +115,7 @@ fun GameListView(
             )
         }
     ) {
-        GameListBody(uiState, filterOptions, viewModel, section, preset, selected.toSet()) { game ->
+        GameListBody(uiState, filterOptions, viewModel, section, preset, selected.toSet(), pick?.hint()) { game ->
             when {
                 pick == null -> navigationState.backStack.add(game.detailNavKey)
                 pick.variants && !pick.multiple -> pickVariant(game)
@@ -167,7 +171,7 @@ private fun pickGame(
     else -> onSelect(selected + gameId)
 }
 
-/** The active filters above the cover grid; the games in [selected] show as picked. */
+/** The active filters above the cover grid; the games in [selected] show as picked, under [hint] if any. */
 @Composable
 internal fun GameListBody(
     uiState: GameListViewModel.UiState,
@@ -176,6 +180,7 @@ internal fun GameListBody(
     section: DiscoverSection?,
     preset: GameListPreset?,
     selected: Set<Int>,
+    hint: StringResource?,
     onGameClick: (Game) -> Unit,
 ) = Column(Modifier.fillMaxSize()) {
     AnimatedVisibility(visible = uiState.filterState.hasActiveFilters) {
@@ -197,8 +202,17 @@ internal fun GameListBody(
         onEndReached = viewModel::onEndReached,
         modifier = Modifier.weight(1f),
         selected = selected,
+        // A pick never lists an event, so the two headers don't compete.
         header = uiState.event?.let { event -> { EventHeader(event) } }
+            ?: hint?.let { res -> { HintCard(stringResource(res)) } }
     )
+}
+
+/** What to do on the list for this pick; null when tapping a game is self-explanatory. */
+private fun GamePick.hint(): StringResource? = when {
+    variants -> Res.string.gamelist__pick_hint_match
+    multiple -> Res.string.gamelist__pick_hint_multiple
+    else -> null
 }
 
 /** Confirms the games picked so far, over the grid's corner; it grows in with the first one. */

@@ -34,6 +34,7 @@ import gamerlogue.sharedui.generated.resources.settings__library_sync_apply
 import gamerlogue.sharedui.generated.resources.settings__library_sync_group_conflicts
 import gamerlogue.sharedui.generated.resources.settings__library_sync_group_from
 import gamerlogue.sharedui.generated.resources.settings__library_sync_group_to
+import gamerlogue.sharedui.generated.resources.settings__library_sync_hint
 import gamerlogue.sharedui.generated.resources.settings__library_sync_missing
 import gamerlogue.sharedui.generated.resources.settings__library_sync_nothing
 import gamerlogue.sharedui.generated.resources.settings__library_sync_status_change
@@ -42,6 +43,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Che
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.SyncSide
+import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.layout.CollapsibleSectionHeader
 import it.maicol07.gamerlogue.ui.components.layout.collapsibleSection
@@ -86,6 +88,9 @@ internal fun SyncPlanContent(
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
+            item(key = "hint") {
+                HintCard(stringResource(Res.string.settings__library_sync_hint), Modifier.padding(bottom = 8.dp))
+            }
             planGroups(indexed, tracker, expanded, onChoose, onToggle)
         }
         Button(

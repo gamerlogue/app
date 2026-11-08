@@ -103,7 +103,7 @@ internal fun GlobalSearch(viewModel: GameListViewModel) {
             }
             AnimatedContent(scope, transitionSpec = { fadeIn() togetherWith fadeOut() }) { shown ->
                 when (shown) {
-                    SearchScope.GAMES -> GameListBody(uiState, filterOptions, viewModel, null, null, emptySet()) {
+                    SearchScope.GAMES -> GameListBody(uiState, filterOptions, viewModel, null, null, emptySet(), null) {
                         navigationState.backStack.add(it.detailNavKey)
                     }
                     SearchScope.USERS -> AuthenticatedContent { UserResults(userSearch, userQuery) }

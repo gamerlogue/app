@@ -54,6 +54,7 @@ import gamerlogue.sharedui.generated.resources.settings__import_deselect_all
 import gamerlogue.sharedui.generated.resources.settings__import_done
 import gamerlogue.sharedui.generated.resources.settings__import_finish
 import gamerlogue.sharedui.generated.resources.settings__import_group_to_import
+import gamerlogue.sharedui.generated.resources.settings__import_hint
 import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__import_searching
@@ -75,6 +76,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Ope
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
@@ -236,6 +238,9 @@ private fun LibraryImportPreviewContent(
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
+            item(key = "hint") {
+                HintCard(stringResource(Res.string.settings__import_hint), Modifier.padding(bottom = 8.dp))
+            }
             importRows(
                 ImportGroups(toImport, toReview, alreadyPresent, matchedTitle),
                 service,
