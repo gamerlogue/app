@@ -577,19 +577,21 @@ private fun LazyListScope.technicalDetails(console: List<String>, expanded: Bool
 /** Copies [text] to the clipboard, like the exception sheet's details. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CopyButton(text: String, modifier: Modifier) = TooltipBox(
-    TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-    { PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) } },
-    rememberTooltipState(),
-    modifier,
-) {
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    FilledTonalIconButton(
-        onClick = { scope.launch { clipboard.setClipEntry(clipEntryFor(text)) } },
-        shapes = IconButtonDefaults.shapes(),
+// TooltipBox puts its modifier on an inner Box, which drops parent data like align: wrap it instead.
+private fun CopyButton(text: String, modifier: Modifier) = Box(modifier) {
+    TooltipBox(
+        TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+        { PlainTooltip { Text(stringResource(Res.string.exception__details_copy)) } },
+        rememberTooltipState(),
     ) {
-        Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))
+        val clipboard = LocalClipboard.current
+        val scope = rememberCoroutineScope()
+        FilledTonalIconButton(
+            onClick = { scope.launch { clipboard.setClipEntry(clipEntryFor(text)) } },
+            shapes = IconButtonDefaults.shapes(),
+        ) {
+            Icon(Icons.ContentCopyW500Rounded, stringResource(Res.string.exception__details_copy))
+        }
     }
 }
 
