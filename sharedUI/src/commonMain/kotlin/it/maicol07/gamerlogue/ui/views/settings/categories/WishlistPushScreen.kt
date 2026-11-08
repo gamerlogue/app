@@ -54,6 +54,8 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_group_to_add
 import gamerlogue.sharedui.generated.resources.settings__wishlist_no_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_platform_for_all
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_confirm
+import gamerlogue.sharedui.generated.resources.settings__wishlist_push_hint
+import gamerlogue.sharedui.generated.resources.settings__wishlist_push_hint_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
@@ -62,6 +64,7 @@ import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.LibrarySync
+import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.layout.CollapsibleSectionHeader
 import it.maicol07.gamerlogue.ui.components.layout.collapsibleSection
@@ -157,6 +160,11 @@ internal fun WishlistPushScreen(
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
+            item(key = "hint") {
+                val hint = stringResource(Res.string.settings__wishlist_push_hint)
+                val platformHint = stringResource(Res.string.settings__wishlist_push_hint_platform)
+                HintCard(if (requiresPlatform) "$hint $platformHint" else hint, Modifier.padding(bottom = 8.dp))
+            }
             PushSection.entries.forEach { section ->
                 val rows = bySection[section].orEmpty()
                 val open = expanded[section] ?: section.startsExpanded

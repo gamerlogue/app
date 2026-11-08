@@ -44,6 +44,7 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common__more_options
 import gamerlogue.sharedui.generated.resources.settings__linked_services
 import gamerlogue.sharedui.generated.resources.settings__linked_services_disclaimer
+import gamerlogue.sharedui.generated.resources.settings__linked_services_hint
 import gamerlogue.sharedui.generated.resources.settings__service_backloggd
 import gamerlogue.sharedui.generated.resources.settings__service_backloggery
 import gamerlogue.sharedui.generated.resources.settings__service_category_console
@@ -68,10 +69,10 @@ import gamerlogue.sharedui.generated.resources.settings__service_xbox
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditNoteW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.FormatListBulletedW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.InfoW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkOffW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LockW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MoreVertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
@@ -90,6 +91,7 @@ import it.maicol07.gamerlogue.extensions.openURL
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.isServiceSyncSupported
+import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.components.layout.ExpandArrow
@@ -171,13 +173,14 @@ private fun LinkedServicesContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(MaterialSymbols.InfoW500Rounded, contentDescription = null)
+                Icon(MaterialSymbols.LockW500Rounded, contentDescription = null)
                 Text(
                     text = stringResource(Res.string.settings__linked_services_disclaimer),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
+        HintCard(stringResource(Res.string.settings__linked_services_hint))
 
         val stateOf = { service: ExternalService -> uiState.services[service] ?: LinkedServicesViewModel.ServiceState() }
         val uriHandler = LocalUriHandler.current

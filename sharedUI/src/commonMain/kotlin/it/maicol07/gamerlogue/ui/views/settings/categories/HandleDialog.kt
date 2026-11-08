@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_cancel
 import gamerlogue.sharedui.generated.resources.settings__service_connect
+import gamerlogue.sharedui.generated.resources.settings__service_handle_hint
 import gamerlogue.sharedui.generated.resources.settings__service_handle_label
 import gamerlogue.sharedui.generated.resources.settings__service_handle_message
 import gamerlogue.sharedui.generated.resources.settings__service_handle_title
@@ -37,6 +38,7 @@ internal fun HandleDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
                 TextField(
                     state = handle,
                     label = { Text(stringResource(Res.string.settings__service_handle_label)) },
+                    supportingText = { Text(stringResource(Res.string.settings__service_handle_hint)) },
                     lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                 )

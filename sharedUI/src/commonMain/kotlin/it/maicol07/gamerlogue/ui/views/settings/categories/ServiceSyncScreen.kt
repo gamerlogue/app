@@ -93,6 +93,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_sync_skipped_li
 import gamerlogue.sharedui.generated.resources.settings__service_sync_summary
 import gamerlogue.sharedui.generated.resources.settings__service_technical_details
 import gamerlogue.sharedui.generated.resources.settings__service_webview_busy
+import gamerlogue.sharedui.generated.resources.settings__service_webview_login_hint
 import gamerlogue.sharedui.generated.resources.settings__service_working
 import gamerlogue.sharedui.generated.resources.settings__sync_title_connect
 import gamerlogue.sharedui.generated.resources.settings__sync_title_import_library
@@ -118,6 +119,7 @@ import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.SkipReason
 import it.maicol07.gamerlogue.services.SkippedWrite
 import it.maicol07.gamerlogue.ui.components.BatchProgress
+import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.StepProgress
 import it.maicol07.gamerlogue.ui.components.SyncPhase
@@ -299,7 +301,18 @@ fun ServiceSyncView(
         },
         sheetContent = {
             Box(Modifier.fillMaxSize().then(if (running) Modifier.keepScreenOn() else Modifier)) {
-                host.webView(Modifier.fillMaxSize())
+                Column(Modifier.fillMaxSize()) {
+                    if (loginRequired) {
+                        HintCard(
+                            stringResource(
+                                Res.string.settings__service_webview_login_hint,
+                                stringResource(service.labelRes()),
+                            ),
+                            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
+                    host.webView(Modifier.fillMaxWidth().weight(1f))
+                }
                 // Non-interactive while working: a scrim hides the page and tells the user it can't be used
                 // right now. It does NOT consume pointer events, so vertical drags still reach the WebView's
                 // nested-scroll bridge and keep the bottom sheet draggable.

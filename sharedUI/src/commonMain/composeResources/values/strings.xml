@@ -304,9 +304,8 @@
     <string name="settings__linked_services_summary">Steam, PlayStation, Xbox and more</string>
     <string name="settings__group_app">App</string>
     <string name="settings__group_account">Account</string>
-    <string name="settings__linked_services_disclaimer">Links and credentials are saved locally and are never transmitted
-        elsewhere.
-    </string>
+    <string name="settings__linked_services_disclaimer">You sign in on the service's own page. Links and credentials stay saved on this device only and are never sent anywhere else.</string>
+    <string name="settings__linked_services_hint">Link an account to import its library and keep wishlists and game statuses in sync. Tap a linked tracker to see its options: the switch turns automatic sync on, the ▶ button syncs now after you review the changes.</string>
     <string name="settings__theme">Theme</string>
     <string name="settings__language">Language</string>
     <string name="settings__dynamic_colors">Use device colors</string>
@@ -331,11 +330,13 @@
         wishlist.
     </string>
     <string name="settings__service_handle_label">Username</string>
+    <string name="settings__service_handle_hint">It is in your profile address: stash.games/users/username</string>
     <string name="settings__service_category_console">Consoles</string>
     <string name="settings__service_category_pc">PC stores</string>
     <string name="settings__service_category_tracker">Trackers</string>
     <string name="settings__service_pc_only">PC only</string>
     <string name="settings__service_webview_busy">Operation in progress — the WebView can't be used right now</string>
+    <string name="settings__service_webview_login_hint">Sign in to %1$s below as you would in a browser. Once you are in, Gamerlogue carries on by itself.</string>
     <string name="settings__service_webview_collapse">Shrink the page</string>
     <string name="settings__service_webview_expand">Expand the page</string>
     <string name="settings__sync_title_connect">Signing in</string>
@@ -390,6 +391,8 @@
     <string name="settings__wishlist_push_title">Add to %1$s wishlist</string>
     <string name="settings__wishlist_push_confirm">Add</string>
     <string name="settings__wishlist_push_skip">Skip</string>
+    <string name="settings__wishlist_push_hint">These are the games in your Backlog that you don't own. Pick which to add to the store wishlist; the ones already there, with no match on the store or not sold for this platform are left out.</string>
+    <string name="settings__wishlist_push_hint_platform">The store also needs a platform: choose it on each game, or for several at once with “Platform for all”.</string>
     <string name="settings__wishlist_push_off_platform">Not available on this platform (%1$d)</string>
     <string name="settings__wishlist_group_to_add">To add (%1$d)</string>
     <string name="settings__wishlist_group_choose_platform">Choose a platform (%1$d)</string>

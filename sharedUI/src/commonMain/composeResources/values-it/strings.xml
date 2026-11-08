@@ -302,9 +302,8 @@
     <string name="settings__linked_services_summary">Steam, PlayStation, Xbox e altri</string>
     <string name="settings__group_app">App</string>
     <string name="settings__group_account">Account</string>
-    <string name="settings__linked_services_disclaimer">I collegamenti e le credenziali sono salvati localmente e non vengono mai
-        trasmessi altrove.
-    </string>
+    <string name="settings__linked_services_disclaimer">Accedi dalla pagina del servizio. Collegamenti e credenziali restano salvati solo su questo dispositivo e non vengono mai inviati altrove.</string>
+    <string name="settings__linked_services_hint">Collega un account per importare la libreria e tenere sincronizzati wishlist e stati di gioco. Tocca un tracker collegato per vederne le opzioni: l'interruttore attiva la sincronizzazione automatica, il pulsante ▶ sincronizza subito dopo aver rivisto le modifiche.</string>
     <string name="settings__theme">Tema</string>
     <string name="settings__language">Lingua</string>
     <string name="settings__dynamic_colors">Usa i colori del dispositivo</string>
@@ -329,11 +328,13 @@
         importare giochi e wishlist.
     </string>
     <string name="settings__service_handle_label">Nome utente</string>
+    <string name="settings__service_handle_hint">Lo trovi nell'indirizzo del tuo profilo: stash.games/users/nome-utente</string>
     <string name="settings__service_category_console">Console</string>
     <string name="settings__service_category_pc">Store PC</string>
     <string name="settings__service_category_tracker">Tracker</string>
     <string name="settings__service_pc_only">Solo PC</string>
     <string name="settings__service_webview_busy">Operazione in corso — la WebView non è utilizzabile ora</string>
+    <string name="settings__service_webview_login_hint">Accedi a %1$s qui sotto come faresti nel browser. Dopo l'accesso, Gamerlogue prosegue da solo.</string>
     <string name="settings__service_webview_collapse">Riduci la pagina</string>
     <string name="settings__service_webview_expand">Espandi la pagina</string>
     <string name="settings__sync_title_connect">Accesso</string>
@@ -388,6 +389,8 @@
     <string name="settings__wishlist_push_title">Aggiungi alla wishlist di %1$s</string>
     <string name="settings__wishlist_push_confirm">Aggiungi</string>
     <string name="settings__wishlist_push_skip">Salta</string>
+    <string name="settings__wishlist_push_hint">Questi sono i giochi del tuo Backlog che non possiedi. Scegli quali aggiungere alla wishlist dello store; quelli già presenti, senza corrispondenza o non venduti per questa piattaforma restano esclusi.</string>
+    <string name="settings__wishlist_push_hint_platform">Lo store chiede anche la piattaforma: sceglila su ogni gioco, o per più giochi insieme con “Piattaforma per tutti”.</string>
     <string name="settings__wishlist_push_off_platform">Non disponibili su questa piattaforma (%1$d)</string>
     <string name="settings__wishlist_group_to_add">Da aggiungere (%1$d)</string>
     <string name="settings__wishlist_group_choose_platform">Scegli una piattaforma (%1$d)</string>
