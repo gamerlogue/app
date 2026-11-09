@@ -69,7 +69,13 @@ class GameMatcherExplicitIdTest : StringSpec({
             val settings = PreferencesSettings(preferences)
             val reporter = ExceptionReporter()
             val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
-            val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+            val library = LibrarySync(
+                matcher,
+                reporter,
+                LibraryChanges(),
+                ProfileApi(),
+                WishlistSyncState(MapSettings()),
+            )
             val connector = BackloggeryConnector()
             ImportHandoff.put(
                 connector.service,
@@ -108,7 +114,13 @@ class GameMatcherExplicitIdTest : StringSpec({
                 val reporter = ExceptionReporter()
                 val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
 
-                val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+                val library = LibrarySync(
+                    matcher,
+                    reporter,
+                    LibraryChanges(),
+                    ProfileApi(),
+                    WishlistSyncState(MapSettings()),
+                )
                 val tracker = TrackerSync(settings, matcher, library)
                 tracker.record(
                     ExternalService.BACKLOGGERY,
@@ -228,7 +240,13 @@ class GameMatcherExplicitIdTest : StringSpec({
         try {
             val reporter = ExceptionReporter()
             val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
-            val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+            val library = LibrarySync(
+                matcher,
+                reporter,
+                LibraryChanges(),
+                ProfileApi(),
+                WishlistSyncState(MapSettings()),
+            )
             val tracker = TrackerSync(PreferencesSettings(preferences), matcher, library)
             tracker.record(ExternalService.BACKLOGGERY, mapOf(7 to SyncedGame("bg-100", GameLibraryStatus.BACKLOG)))
             val games = tracker.knownGames(ExternalService.BACKLOGGERY, listOf(ExternalGameRef("bg-100", gameId = 42)))

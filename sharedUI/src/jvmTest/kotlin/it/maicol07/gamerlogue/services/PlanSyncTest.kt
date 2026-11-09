@@ -41,6 +41,11 @@ class PlanSyncTest : StringSpec({
         planSync(mapOf(2 to PLAYING), emptyMap(), base, all).forgotten shouldBe setOf(1)
     }
 
+    "the wishlist baseline keeps a game removed on one side and drops one gone from both" {
+        // 1: removed from the library; 2: removed from the store; 3: gone from both; 4: now on both.
+        nextWishlistBase(setOf(1, 2, 3), wishlist = setOf(1, 4), library = setOf(2, 4)) shouldBe setOf(1, 2, 4)
+    }
+
     "a status the tracker can't store is not synced, and agreed games become the new baseline" {
         val local = mapOf(1 to PAUSED, 2 to BACKLOG)
         val plan = planSync(local, mapOf(1 to ref(PLAYING), 2 to ref(BACKLOG)), emptyMap(), setOf(PLAYING, BACKLOG))

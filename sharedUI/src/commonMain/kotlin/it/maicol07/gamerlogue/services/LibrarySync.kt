@@ -4,6 +4,7 @@ import at.released.igdbclient.model.Game
 import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
+import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.safeRequest
@@ -27,10 +28,38 @@ import kotlin.uuid.Uuid
 class LibraryLoadException(message: String) : IllegalStateException(message)
 
 /**
+ * The wishlist baseline after a sync: the [previous] games still on one side (one missing from a side was removed
+ * there, so the other side keeps it out of the merge) plus the ones now on both the store [wishlist] and in the [library].
+ */
+internal fun nextWishlistBase(previous: Set<Int>, wishlist: Set<Int>, library: Set<Int>): Set<Int> =
+    (previous + (wishlist intersect library)) intersect (wishlist + library)
+
+/** The persisted wishlist baseline of each service (see [nextWishlistBase]). */
+@Single
+class WishlistSyncState(private val settings: ObservableSettings) {
+    /** IGDB ids on both the [service] wishlist and in the library at a past wishlist sync, and still on one side. */
+    fun base(service: ExternalService): Set<Int> =
+        settings.getString(service.settingsKey(KEY), "").split(',').mapNotNull { it.toIntOrNull() }.toSet()
+
+    /** Record the baseline of [service] after a sync that saw [wishlist] on the store and [entries] locally. */
+    fun record(service: ExternalService, wishlist: Set<Int>, entries: List<LibraryEntry>) {
+        val base = nextWishlistBase(base(service), wishlist, entries.mapTo(mutableSetOf()) { it.gameId })
+        settings.putString(service.settingsKey(KEY), base.joinToString(","))
+    }
+
+    fun forget(service: ExternalService) = settings.remove(service.settingsKey(KEY))
+
+    private companion object {
+        const val KEY = "wishlistSyncState"
+    }
+}
+
+/**
  * Writes Gamerlogue [LibraryEntry]s from data read off an external store, reusing the JSON:API CRUD.
  *
  * Two flows: [importOwned] (store → Gamerlogue, one-way, after the user confirms the mapping preview)
- * and [pullWishlist] (bidirectional additive merge; wishlist ≡ [GameLibraryStatus.BACKLOG]).
+ * and [pullWishlist] (bidirectional additive merge; wishlist ≡ [GameLibraryStatus.BACKLOG]; a game removed on one
+ * side since the last sync isn't added back there, see [WishlistSyncState]).
  */
 @Single
 class LibrarySync(
@@ -38,6 +67,7 @@ class LibrarySync(
     private val exceptionReporter: ExceptionReporter,
     private val libraryChanges: LibraryChanges,
     private val profileApi: ProfileApi,
+    val wishlistState: WishlistSyncState,
 ) {
     /** Entries imported by the reviewed wishlist flow before its outgoing WebView step. */
     val pendingWishlistImports: MutableMap<ExternalService, WishlistResult> = mutableMapOf()
@@ -217,10 +247,13 @@ class LibrarySync(
     ): List<OutgoingGame> {
         val entries = snapshot ?: allEntries()
         // Only un-owned backlog games belong on a wishlist — an owned game isn't "wished for".
-        val backlogIds = entries.filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
-        if (backlogIds.isEmpty()) return emptyList()
+        val backlog = entries.filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
+        if (backlog.isEmpty()) return emptyList()
         val onWishlistIds =
             matchedWishlistIds ?: matcher.match(connector, storeWishlist).mapNotNull { it.game?.baseGameId }.toSet()
+        // Removed from the store wishlist since a past sync: not pushed back.
+        val base = wishlistState.base(connector.service)
+        val backlogIds = backlog.filterNot { it in base && it !in onWishlistIds }
 
         // Name, IGDB-id and full-game writes never open a store page: looking the pages up is wasted requests.
         val needsUrls = connector.wishlistWrite?.needsStorePage == true
@@ -252,18 +285,21 @@ class LibrarySync(
     }
 
     /**
-     * Merge the store wishlist with the Gamerlogue backlog (additive both ways; removals out of scope).
+     * Merge the store wishlist with the Gamerlogue backlog (additive both ways; removals aren't propagated).
      * Adds wishlisted games missing from the library as backlog (owned=false), and returns the backlog
      * games not yet on the store wishlist so the caller can push them.
      */
     suspend fun pullWishlist(connector: ServiceConnector, serviceWishlist: List<ExternalGameRef>): WishlistResult {
         val matches = matcher.match(connector, serviceWishlist)
         val entries = allEntries().toMutableList()
-        val added = importWishlist(connector, matches.filter { it.confident }.mapNotNull { it.game }, entries)
-        return WishlistResult(
-            added,
-            computeWishlistPush(connector, serviceWishlist, entries, matches.mapNotNull { it.game?.baseGameId }.toSet()),
-        )
+        val onWishlist = matches.mapNotNull { it.game?.baseGameId }.toSet()
+        // Removed from the library since a past sync: not imported again.
+        val removed = wishlistState.base(connector.service) - entries.mapTo(mutableSetOf()) { it.gameId }
+        val incoming = matches.filter { it.confident }.mapNotNull { it.game }.filterNot { it.baseGameId in removed }
+        val added = importWishlist(connector, incoming, entries)
+        val toPush = computeWishlistPush(connector, serviceWishlist, entries, onWishlist)
+        wishlistState.record(connector.service, onWishlist, entries)
+        return WishlistResult(added, toPush)
     }
 
     /**

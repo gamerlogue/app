@@ -76,6 +76,9 @@ class LibraryImportViewModel(
     private var existingIds: Set<Int> = emptySet()
     private var existingEditions: Map<Int, List<Int>> = emptyMap()
 
+    /** Wishlist games removed from the library since a past sync: selectable, but not preselected. */
+    private var removedIds: Set<Int> = emptySet()
+
     /** The agreed games of the reviewed sync plan, recorded once the plan is applied (or when it has nothing to apply). */
     private var agreed: Map<Int, SyncedGame> = emptyMap()
 
@@ -165,11 +168,13 @@ class LibraryImportViewModel(
                     }
                     existingIds = entries.filter { mode != ImportMode.OWNED || it.owned }.mapTo(mutableSetOf()) { it.gameId }
                     existingEditions = entries.associate { it.gameId to runCatching { it.editionsIds }.getOrDefault(emptyList()) }
+                    if (mode == ImportMode.WISHLIST) removedIds = librarySync.wishlistState.base(service) - existingIds
                     update {
                         copy(
                             rows = rows.map { row ->
                                 val present = row.game?.let(::isAlreadyPresent) == true
-                                row.copy(alreadyPresent = present, included = row.included && !present)
+                                val removed = row.game?.baseGameId in removedIds
+                                row.copy(alreadyPresent = present, included = row.included && !present && !removed)
                             },
                         )
                     }
@@ -213,7 +218,7 @@ class LibraryImportViewModel(
             alreadyPresent = present,
             confident = confident,
             picked = false,
-            included = game != null && !present && confident,
+            included = game != null && !present && confident && game.baseGameId !in removedIds,
             searching = false,
         )
     }
@@ -319,13 +324,19 @@ class LibraryImportViewModel(
 
             ImportMode.SYNC, ImportMode.ID_SYNC -> error("sync confirmation is handled above")
         }
-        if (canPushWishlist) {
-            // Every matched row is on the wishlist, whether or not its match was confirmed: same as the automatic path.
-            val wishlistIds = state.rows.mapNotNull { it.game?.baseGameId }.toSet()
-            val outgoing = librarySync.computeWishlistPush(connector, emptyList(), entries, wishlistIds)
-            librarySync.pendingWishlistImports[service] = LibrarySync.WishlistResult(count, outgoing)
-        }
+        if (mode == ImportMode.WISHLIST) finishWishlist(count, entries)
         update { copy(importing = false, libraryFailed = false, importedCount = count, pushPending = canPushWishlist) }
+    }
+
+    /** Prepare the outgoing step of the reviewed wishlist, if any, and record the wishlist baseline. */
+    private suspend fun finishWishlist(imported: Int, entries: List<LibraryEntry>) {
+        // Every matched row is on the wishlist, whether or not its match was confirmed: same as the automatic path.
+        val wishlistIds = state.rows.mapNotNull { it.game?.baseGameId }.toSet()
+        if (canPushWishlist) {
+            val outgoing = librarySync.computeWishlistPush(connector, emptyList(), entries, wishlistIds)
+            librarySync.pendingWishlistImports[service] = LibrarySync.WishlistResult(imported, outgoing)
+        }
+        librarySync.wishlistState.record(service, wishlistIds, entries)
     }
 
     /** The IGDB id the user picked, by store uid. */

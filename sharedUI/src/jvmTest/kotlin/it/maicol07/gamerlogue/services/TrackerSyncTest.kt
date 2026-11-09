@@ -46,7 +46,13 @@ class TrackerSyncTest : StringSpec({
         return TrackerSync(
             PreferencesSettings(preferences),
             matcher,
-            LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+            LibrarySync(
+                matcher,
+                reporter,
+                LibraryChanges(),
+                ProfileApi(),
+                WishlistSyncState(MapSettings()),
+            )
         )
     }
 

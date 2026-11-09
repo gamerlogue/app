@@ -152,6 +152,7 @@ class LinkedServicesViewModel(
     fun disconnect(service: ExternalService) {
         setConnected(service, false)
         trackerSync.forget(service)
+        librarySync.wishlistState.forget(service)
         refresh(service)
         clearSession(service)
     }

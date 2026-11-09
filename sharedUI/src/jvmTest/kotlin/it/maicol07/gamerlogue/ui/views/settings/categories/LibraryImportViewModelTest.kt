@@ -31,6 +31,7 @@ import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.MatchMemory
 import it.maicol07.gamerlogue.services.SyncedGame
 import it.maicol07.gamerlogue.services.TrackerSync
+import it.maicol07.gamerlogue.services.WishlistSyncState
 import it.maicol07.gamerlogue.services.connectors.BackloggdConnector
 import it.maicol07.gamerlogue.services.connectors.BackloggeryConnector
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -109,7 +110,13 @@ class LibraryImportViewModelTest : StringSpec({
                 startLibraryKoin(client, PreferencesSettings(preferences))
                 val reporter = ExceptionReporter()
                 val matcher = GameMatcher(noRequestsIgdb, reporter, MatchMemory(MapSettings()))
-                val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+                val library = LibrarySync(
+                    matcher,
+                    reporter,
+                    LibraryChanges(),
+                    ProfileApi(),
+                    WishlistSyncState(MapSettings()),
+                )
                 val tracker = TrackerSync(PreferencesSettings(preferences), matcher, library)
                 ImportHandoff.put(connector.service, emptyList())
                 val viewModel = LibraryImportViewModel(
@@ -149,7 +156,13 @@ class LibraryImportViewModelTest : StringSpec({
         val connector = BackloggdConnector()
         val reporter = ExceptionReporter()
         val matcher = GameMatcher(SyncFixtureIgdb(), reporter, MatchMemory(MapSettings()))
-        val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+        val library = LibrarySync(
+            matcher,
+            reporter,
+            LibraryChanges(),
+            ProfileApi(),
+            WishlistSyncState(MapSettings()),
+        )
         val tracker = TrackerSync(settings, matcher, library)
         tracker.forget(connector.service)
         ImportHandoff.put(

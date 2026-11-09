@@ -105,7 +105,13 @@ class LibrarySyncSnapshotTest : StringSpec({
             }
             val reporter = ExceptionReporter()
             val matcher = GameMatcher(SnapshotFixtureIgdb(), reporter, MatchMemory(MapSettings()))
-            val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi())
+            val library = LibrarySync(
+                matcher,
+                reporter,
+                LibraryChanges(),
+                ProfileApi(),
+                WishlistSyncState(MapSettings()),
+            )
             val connector = BackloggdConnector()
             ImportHandoff.put(connector.service, listOf(ExternalGameRef("2")))
             val preview = LibraryImportViewModel(
