@@ -35,15 +35,13 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Arr
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SearchW500Rounded
 import it.maicol07.gamerlogue.ui.components.layout.GlobalErrorAction
-import it.maicol07.gamerlogue.ui.components.layout.NotificationsAction
 
 private val BarHorizontalPadding = 8.dp
 private val BarVerticalPadding = 4.dp
 
 /**
  * Common chrome around a top-bar search field: window insets plus the bar's own padding, with the
- * notifications bell and the global network-error action pinned to its right so they stay reachable in
- * both variants.
+ * global network-error action pinned to its right so it stays reachable in both variants.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +53,6 @@ private fun SearchBarShell(modifier: Modifier, bar: @Composable (Modifier) -> Un
     verticalAlignment = Alignment.CenterVertically
 ) {
     bar(Modifier.weight(1f))
-    NotificationsAction()
     GlobalErrorAction()
 }
 

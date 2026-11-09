@@ -30,6 +30,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.EditW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MoreVertW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SettingsW500Rounded
+import it.maicol07.gamerlogue.ui.components.layout.NotificationsAction
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import org.jetbrains.compose.resources.StringResource
@@ -40,10 +41,11 @@ internal fun SettingsAction(onClick: () -> Unit) = IconButton(onClick = onClick,
     Icon(Icons.SettingsW500Rounded, contentDescription = stringResource(Res.string.nav__settings))
 }
 
-/** The own profile's bar: edit, settings and a menu with the blocked users. */
+/** The own profile's bar: notifications, edit, settings and a menu with the blocked users. */
 @Composable
 internal fun SelfActions(onEdit: () -> Unit) {
     val navigationState = LocalNavigationState.current
+    NotificationsAction(navigationState)
     IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
         Icon(Icons.EditW500Rounded, contentDescription = stringResource(Res.string.profile__edit))
     }

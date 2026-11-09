@@ -9,7 +9,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** The signed-in user's unread notifications count, shared by the bell of every top bar. */
+/** The signed-in user's unread notifications count, shared by the profile's bell and its navigation badge. */
 @Single
 class UnreadNotifications(private val api: ProfileApi, private val reporter: ExceptionReporter) {
     val count: StateFlow<Int>
@@ -17,7 +17,7 @@ class UnreadNotifications(private val api: ProfileApi, private val reporter: Exc
 
     private var fetchedAt: Instant? = null
 
-    /** Fetches the count, unless it was fetched moments ago: every screen's bar asks when it shows. */
+    /** Fetches the count, unless it was fetched moments ago: the app shell asks on every navigation. */
     suspend fun refreshIfStale() {
         val last = fetchedAt
         if (last != null && Clock.System.now() - last < StaleAfter) return

@@ -13,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,7 +25,6 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NotificationsW500Rounded
-import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.UnreadNotifications
 import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
@@ -70,20 +68,15 @@ fun AppTopBar(
         },
         actions = {
             actions()
-            NotificationsAction(navigationState)
             GlobalErrorAction()
         }
     )
 }
 
-/** The bell with the unread count, on every bar of a signed-in user except the notifications' own. */
+/** The bell with the unread count, on the signed-in user's own profile. */
 @Composable
 fun NotificationsAction(navigationState: AppNavigationState = LocalNavigationState.current) {
-    val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
-    if (session.userId == null || navigationState.backStack.lastOrNull() == RootNavTree.Notifications) return
-    val unread = koinInject<UnreadNotifications>()
-    val count by unread.count.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { unread.refreshIfStale() }
+    val count by koinInject<UnreadNotifications>().count.collectAsStateWithLifecycle()
     IconButton(
         onClick = { navigationState.backStack.add(RootNavTree.Notifications) },
         shapes = IconButtonDefaults.shapes()

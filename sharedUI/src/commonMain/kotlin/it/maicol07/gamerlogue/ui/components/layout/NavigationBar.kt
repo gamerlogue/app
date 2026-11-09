@@ -1,5 +1,7 @@
 package it.maicol07.gamerlogue.ui.components.layout
 
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
@@ -24,13 +26,19 @@ import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-fun NavigationSuiteScope.appNavigationItems(navigationState: AppNavigationState) {
+/** [unreadNotifications] badges the profile entry, the only place the notifications open from. */
+fun NavigationSuiteScope.appNavigationItems(navigationState: AppNavigationState, unreadNotifications: Int) {
     for (item in NavBarItem.entries) {
         val selected = navigationState.currentRoot == item.navKey
+        val badge = if (item == NavBarItem.Profile) unreadNotifications else 0
         item(
             selected = selected,
             onClick = { navigationState.selectRoot(item.navKey) },
-            icon = { Icon(if (selected) item.iconSelected else item.icon, null) },
+            icon = {
+                BadgedBox(badge = { if (badge > 0) Badge { Text(badge.toString()) } }) {
+                    Icon(if (selected) item.iconSelected else item.icon, null)
+                }
+            },
             label = { Text(stringResource(item.title)) },
         )
     }

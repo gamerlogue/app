@@ -17,13 +17,18 @@ import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.maicol07.gamerlogue.NavigationBarContrastEnforced
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.UnreadNotifications
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.showsNavigationSuite
 import org.jetbrains.compose.resources.StringResource
+import org.koin.compose.koinInject
 
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
     error("LocalSnackbarHostState not provided")
@@ -48,12 +53,19 @@ fun AppScaffold(
         if (showNavigation) NavigationSuiteScaffoldValue.Visible else NavigationSuiteScaffoldValue.Hidden
     )
     val snackbarHostState = remember { SnackbarHostState() }
+    val signedIn = koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle().value.userId != null
+    val unreadNotifications = koinInject<UnreadNotifications>()
+    val unreadCount by unreadNotifications.count.collectAsStateWithLifecycle()
     NavigationBarContrastEnforced(!showNavigation)
     LaunchedEffect(showNavigation) {
         if (showNavigation) navigationSuiteState.show() else navigationSuiteState.hide()
     }
+    // On every navigation, throttled by the stale window, so the badge catches new notifications.
+    LaunchedEffect(signedIn, navigationState.backStack.last()) {
+        if (signedIn) unreadNotifications.refreshIfStale()
+    }
     NavigationSuiteScaffold(
-        navigationSuiteItems = { appNavigationItems(navigationState) },
+        navigationSuiteItems = { appNavigationItems(navigationState, if (signedIn) unreadCount else 0) },
         layoutType = layoutType,
         state = navigationSuiteState,
     ) {
