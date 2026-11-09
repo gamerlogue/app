@@ -57,6 +57,7 @@ import gamerlogue.sharedui.generated.resources.settings__import_group_to_import
 import gamerlogue.sharedui.generated.resources.settings__import_hint
 import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
+import gamerlogue.sharedui.generated.resources.settings__import_removed_locally
 import gamerlogue.sharedui.generated.resources.settings__import_searching
 import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
@@ -130,6 +131,7 @@ fun LibraryImportPreviewView(service: ExternalService, mode: ImportMode) {
             plan != null && uiState.importedCount == null -> SyncPlanContent(
                 service = service,
                 rows = plan,
+                removedOnOneSide = uiState.removedOnOneSide,
                 applying = uiState.importing,
                 onChoose = viewModel::choose,
                 onToggle = viewModel::togglePlanRow,
@@ -377,6 +379,9 @@ private fun matchStatus(row: LibraryImportViewModel.Row): Pair<String, Color>? =
 
     !row.confident -> stringResource(Res.string.settings__import_confirm_match) to
         MaterialTheme.colorScheme.tertiary
+
+    row.removedLocally -> stringResource(Res.string.settings__import_removed_locally) to
+        MaterialTheme.colorScheme.onSurfaceVariant
 
     else -> null
 }

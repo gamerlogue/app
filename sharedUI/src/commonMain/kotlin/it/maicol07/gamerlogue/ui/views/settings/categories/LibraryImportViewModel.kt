@@ -76,7 +76,7 @@ class LibraryImportViewModel(
     private var existingIds: Set<Int> = emptySet()
     private var existingEditions: Map<Int, List<Int>> = emptyMap()
 
-    /** Wishlist games removed from the library since a past sync: selectable, but not preselected. */
+    /** Wishlist games removed from the library since a past sync (see [Row.removedLocally]). */
     private var removedIds: Set<Int> = emptySet()
 
     /** The agreed games of the reviewed sync plan, recorded once the plan is applied (or when it has nothing to apply). */
@@ -109,6 +109,8 @@ class LibraryImportViewModel(
         val sourceUrl: String? = null,
         // The automatic match for this game hasn't come back yet.
         val searching: Boolean = false,
+        // Removed from the library since the last wishlist sync: selectable, but not preselected.
+        val removedLocally: Boolean = false,
     )
 
     data class UiState(
@@ -124,6 +126,8 @@ class LibraryImportViewModel(
         val libraryFailed: Boolean = false,
         /** [ImportMode.SYNC] second step: the reviewed changes, once the matches are confirmed. */
         val plan: List<PlanRow>? = null,
+        /** [ImportMode.SYNC]: games removed on one side since the last sync and left on the other. */
+        val removedOnOneSide: Int = 0,
         /** The reviewed wishlist or library sync has outgoing writes left, to run in the WebView. */
         val pushPending: Boolean = false,
     )
@@ -174,7 +178,11 @@ class LibraryImportViewModel(
                             rows = rows.map { row ->
                                 val present = row.game?.let(::isAlreadyPresent) == true
                                 val removed = row.game?.baseGameId in removedIds
-                                row.copy(alreadyPresent = present, included = row.included && !present && !removed)
+                                row.copy(
+                                    alreadyPresent = present,
+                                    removedLocally = removed,
+                                    included = row.included && !present && !removed,
+                                )
                             },
                         )
                     }
@@ -213,13 +221,15 @@ class LibraryImportViewModel(
      */
     private fun Row.withMatch(game: Game?, confident: Boolean): Row {
         val present = game != null && isAlreadyPresent(game)
+        val removed = game != null && game.baseGameId in removedIds
         return copy(
             game = game,
             alreadyPresent = present,
             confident = confident,
             picked = false,
-            included = game != null && !present && confident && game.baseGameId !in removedIds,
+            included = game != null && !present && confident && !removed,
             searching = false,
+            removedLocally = removed,
         )
     }
 
@@ -307,7 +317,14 @@ class LibraryImportViewModel(
             val rows = plan.changes.map { c ->
                 PlanRow(c, games[c.gameId], choice = c.winner ?: SyncSide.LOCAL, conflict = c.winner == null)
             }
-            update { copy(importing = false, libraryFailed = false, plan = rows) }
+            update {
+                copy(
+                    importing = false,
+                    libraryFailed = false,
+                    plan = rows,
+                    removedOnOneSide = plan.removedOnOneSide.size,
+                )
+            }
             return
         }
         val games = included.mapNotNull { it.game }
@@ -334,7 +351,9 @@ class LibraryImportViewModel(
         val wishlistIds = state.rows.mapNotNull { it.game?.baseGameId }.toSet()
         if (canPushWishlist) {
             val outgoing = librarySync.computeWishlistPush(connector, emptyList(), entries, wishlistIds)
-            librarySync.pendingWishlistImports[service] = LibrarySync.WishlistResult(imported, outgoing)
+            // The previews already flag what was removed on one side.
+            librarySync.pendingWishlistImports[service] =
+                LibrarySync.WishlistResult(imported, outgoing, removedOnOneSide = 0)
         }
         librarySync.wishlistState.record(service, wishlistIds, entries)
     }

@@ -361,6 +361,10 @@
         <item quantity="one">%1$d conflict left: settle it with a manual sync</item>
         <item quantity="other">%1$d conflicts left: settle them with a manual sync</item>
     </plurals>
+    <plurals name="settings__sync_removed_one_side">
+        <item quantity="one">%1$d game removed on one side since the last sync is still on the other: removals aren't synced</item>
+        <item quantity="other">%1$d games removed on one side since the last sync are still on the other: removals aren't synced</item>
+    </plurals>
     <plurals name="settings__service_sync_skipped">
         <item quantity="one">%1$d selected game could not be written</item>
         <item quantity="other">%1$d selected games could not be written</item>
@@ -398,6 +402,7 @@
     <string name="settings__wishlist_group_choose_platform">Choose a platform (%1$d)</string>
     <string name="settings__wishlist_group_no_match">No match (%1$d)</string>
     <string name="settings__wishlist_group_already_present">Already on wishlist (%1$d)</string>
+    <string name="settings__wishlist_group_removed">Removed from the wishlist (%1$d)</string>
     <string name="settings__wishlist_platform_for_all">Platform for all</string>
     <string name="settings__wishlist_choose_platform">Choose a platform</string>
     <string name="settings__wishlist_no_platform">Platform information unavailable</string>
@@ -415,6 +420,8 @@
     <string name="settings__import_searching">Searching for a match…</string>
     <string name="settings__import_already_present">Already in your library</string>
     <string name="settings__wishlist_already_present">Already on the service</string>
+    <string name="settings__wishlist_removed_from_store">Removed from the wishlist since the last sync</string>
+    <string name="settings__import_removed_locally">Removed from your library since the last sync</string>
     <string name="settings__import_confirm_match">Uncertain match: confirm or change it</string>
     <string name="settings__import_confirm">Import selected</string>
     <plurals name="settings__import_done">

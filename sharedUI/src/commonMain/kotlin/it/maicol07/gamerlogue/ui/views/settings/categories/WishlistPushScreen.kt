@@ -50,6 +50,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_choose_platfor
 import gamerlogue.sharedui.generated.resources.settings__wishlist_group_already_present
 import gamerlogue.sharedui.generated.resources.settings__wishlist_group_choose_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_group_no_match
+import gamerlogue.sharedui.generated.resources.settings__wishlist_group_removed
 import gamerlogue.sharedui.generated.resources.settings__wishlist_group_to_add
 import gamerlogue.sharedui.generated.resources.settings__wishlist_no_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_platform_for_all
@@ -58,6 +59,7 @@ import gamerlogue.sharedui.generated.resources.settings__wishlist_push_hint
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_hint_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_off_platform
 import gamerlogue.sharedui.generated.resources.settings__wishlist_push_skip
+import gamerlogue.sharedui.generated.resources.settings__wishlist_removed_from_store
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import it.maicol07.gamerlogue.core.AppPreferences
@@ -104,7 +106,7 @@ internal fun WishlistPushScreen(
     }
     val selected = remember(games) {
         mutableStateMapOf<String, Boolean>().apply {
-            resolved.forEach { put(it.uid, it.isPushable(matchesByName, requiresPlatform)) }
+            resolved.forEach { put(it.uid, it.isPushable(matchesByName, requiresPlatform) && !it.removedFromStore) }
         }
     }
     // Sections are taken once, on open: moving a game when its platform is picked would move it under the finger.
@@ -287,6 +289,7 @@ private enum class PushSection(val title: StringResource, val startsExpanded: Bo
     TO_ADD(Res.string.settings__wishlist_group_to_add, true),
     CHOOSE_PLATFORM(Res.string.settings__wishlist_group_choose_platform, true),
     NO_MATCH(Res.string.settings__wishlist_group_no_match, true),
+    REMOVED(Res.string.settings__wishlist_group_removed, false),
     ALREADY_PRESENT(Res.string.settings__wishlist_group_already_present, false),
     OFF_PLATFORM(Res.string.settings__wishlist_push_off_platform, false),
 }
@@ -295,6 +298,7 @@ private fun LibrarySync.OutgoingGame.pushSection(matchesByName: Boolean, require
     !onPlatform -> PushSection.OFF_PLATFORM
     alreadyOnWishlist -> PushSection.ALREADY_PRESENT
     !hasPushTarget(matchesByName) -> PushSection.NO_MATCH
+    removedFromStore -> PushSection.REMOVED
     requiresPlatform && platformIds.isEmpty() -> PushSection.CHOOSE_PLATFORM
     else -> PushSection.TO_ADD
 }
@@ -384,6 +388,7 @@ private fun PushRow(
                 onSelectPlatform != null && game.platformIds.isEmpty() -> stringResource(
                     Res.string.settings__wishlist_choose_platform
                 )
+                game.removedFromStore -> stringResource(Res.string.settings__wishlist_removed_from_store)
 
                 else -> null
             }

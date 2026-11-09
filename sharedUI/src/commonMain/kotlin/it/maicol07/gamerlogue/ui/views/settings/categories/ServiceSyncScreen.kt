@@ -95,6 +95,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_technical_detai
 import gamerlogue.sharedui.generated.resources.settings__service_webview_busy
 import gamerlogue.sharedui.generated.resources.settings__service_webview_login_hint
 import gamerlogue.sharedui.generated.resources.settings__service_working
+import gamerlogue.sharedui.generated.resources.settings__sync_removed_one_side
 import gamerlogue.sharedui.generated.resources.settings__sync_title_connect
 import gamerlogue.sharedui.generated.resources.settings__sync_title_import_library
 import gamerlogue.sharedui.generated.resources.settings__sync_title_refresh_profile
@@ -375,6 +376,7 @@ fun ServiceSyncView(
                         Res.string.settings__service_sync_pushed,
                         outcome.skipped.size,
                         conflicts = 0,
+                        outcome.removedOnOneSide,
                         onFinish,
                     )
                 }
@@ -389,6 +391,7 @@ fun ServiceSyncView(
                         Res.string.settings__library_sync_pushed,
                         outcome.skipped.size,
                         outcome.conflicts,
+                        outcome.removedOnOneSide,
                         onFinish,
                     )
                 }
@@ -646,6 +649,7 @@ private fun SyncSummary(
     pushedLabel: StringResource,
     skipped: Int,
     conflicts: Int,
+    removedOnOneSide: Int,
     onFinish: () -> Unit,
 ) = StatusMessage(
     Icons.CheckCircleW500Rounded,
@@ -681,6 +685,12 @@ private fun SyncSummary(
     if (conflicts > 0) {
         Text(
             pluralStringResource(Res.plurals.settings__library_sync_conflicts_left, conflicts, conflicts),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+    if (removedOnOneSide > 0) {
+        Text(
+            pluralStringResource(Res.plurals.settings__sync_removed_one_side, removedOnOneSide, removedOnOneSide),
             style = MaterialTheme.typography.bodyMedium,
         )
     }

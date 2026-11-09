@@ -77,8 +77,9 @@ class LibrarySync(
         const val MAX_CONCURRENT_SAVES = 4
     }
 
-    /** [added] = entries created in Gamerlogue; [toPush] = backlog games to add to the store wishlist. */
-    data class WishlistResult(val added: Int, val toPush: List<OutgoingGame>)
+    /** [added] = entries created in Gamerlogue; [toPush] = backlog games to add to the store wishlist;
+     *  [removedOnOneSide] = games removed on one side since the last sync and left on the other. */
+    data class WishlistResult(val added: Int, val toPush: List<OutgoingGame>, val removedOnOneSide: Int)
 
     /** A Gamerlogue backlog game about to be pushed to a store wishlist (for the outgoing preview).
      *  [onPlatform] is false when the game doesn't release on the store's platform family (shown in a
@@ -94,6 +95,8 @@ class LibrarySync(
         val onPlatform: Boolean = true,
         /** Already on the store wishlist — shown in the preview but disabled/deselected, not pushed. */
         val alreadyOnWishlist: Boolean = false,
+        /** Removed from the store wishlist since the last sync — shown in the preview, but not preselected. */
+        val removedFromStore: Boolean = false,
         val matchesPublisher: Boolean = true,
         val platformIds: List<Int> = emptyList(),
         val platformNames: Map<Int, List<String>> = emptyMap(),
@@ -247,13 +250,11 @@ class LibrarySync(
     ): List<OutgoingGame> {
         val entries = snapshot ?: allEntries()
         // Only un-owned backlog games belong on a wishlist — an owned game isn't "wished for".
-        val backlog = entries.filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
-        if (backlog.isEmpty()) return emptyList()
+        val backlogIds = entries.filter { it.status == GameLibraryStatus.BACKLOG && !it.owned }.map { it.gameId }
+        if (backlogIds.isEmpty()) return emptyList()
         val onWishlistIds =
             matchedWishlistIds ?: matcher.match(connector, storeWishlist).mapNotNull { it.game?.baseGameId }.toSet()
-        // Removed from the store wishlist since a past sync: not pushed back.
         val base = wishlistState.base(connector.service)
-        val backlogIds = backlog.filterNot { it in base && it !in onWishlistIds }
 
         // Name, IGDB-id and full-game writes never open a store page: looking the pages up is wasted requests.
         val needsUrls = connector.wishlistWrite?.needsStorePage == true
@@ -277,6 +278,7 @@ class LibrarySync(
                 url?.let { connector.normalizePushUrl(it) },
                 onPlatform,
                 alreadyOnWishlist = id in onWishlistIds,
+                removedFromStore = id in base && id !in onWishlistIds,
                 matchesPublisher = game != null && connector.matchesPublisher(game),
                 platformIds = platforms[id].orEmpty(),
                 platformNames = game?.platformNames.orEmpty(),
@@ -287,7 +289,7 @@ class LibrarySync(
     /**
      * Merge the store wishlist with the Gamerlogue backlog (additive both ways; removals aren't propagated).
      * Adds wishlisted games missing from the library as backlog (owned=false), and returns the backlog
-     * games not yet on the store wishlist so the caller can push them.
+     * games not yet on the store wishlist so the caller can push them (except the [OutgoingGame.removedFromStore] ones).
      */
     suspend fun pullWishlist(connector: ServiceConnector, serviceWishlist: List<ExternalGameRef>): WishlistResult {
         val matches = matcher.match(connector, serviceWishlist)
@@ -299,7 +301,7 @@ class LibrarySync(
         val added = importWishlist(connector, incoming, entries)
         val toPush = computeWishlistPush(connector, serviceWishlist, entries, onWishlist)
         wishlistState.record(connector.service, onWishlist, entries)
-        return WishlistResult(added, toPush)
+        return WishlistResult(added, toPush, (removed intersect onWishlist).size + toPush.count { it.removedFromStore })
     }
 
     /**

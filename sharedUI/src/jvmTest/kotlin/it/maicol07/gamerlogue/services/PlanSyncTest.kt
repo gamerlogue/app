@@ -32,8 +32,10 @@ class PlanSyncTest : StringSpec({
         planSync(mapOf(1 to COMPLETED), mapOf(1 to ref(PAUSED)), emptyMap(), all).changes.single().winner shouldBe null
     }
 
-    "a game removed on one side since the last sync is left alone" {
-        planSync(mapOf(1 to PLAYING), emptyMap(), mapOf(1 to SyncedGame("u", PLAYING)), all).changes.shouldBeEmpty()
+    "a game removed on one side since the last sync is left alone, and reported" {
+        val plan = planSync(mapOf(1 to PLAYING), emptyMap(), mapOf(1 to SyncedGame("u", PLAYING)), all)
+        plan.changes.shouldBeEmpty()
+        plan.removedOnOneSide shouldBe setOf(1)
     }
 
     "a game gone from both sides leaves the baseline, so a later re-add is synced as new" {

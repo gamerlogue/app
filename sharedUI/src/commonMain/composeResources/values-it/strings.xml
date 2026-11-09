@@ -359,6 +359,10 @@
         <item quantity="one">%1$d conflitto da risolvere con una sincronizzazione manuale</item>
         <item quantity="other">%1$d conflitti da risolvere con una sincronizzazione manuale</item>
     </plurals>
+    <plurals name="settings__sync_removed_one_side">
+        <item quantity="one">%1$d gioco rimosso da una parte dopo l'ultima sincronizzazione è ancora dall'altra: le rimozioni non vengono sincronizzate</item>
+        <item quantity="other">%1$d giochi rimossi da una parte dopo l'ultima sincronizzazione sono ancora dall'altra: le rimozioni non vengono sincronizzate</item>
+    </plurals>
     <plurals name="settings__service_sync_skipped">
         <item quantity="one">%1$d gioco selezionato non è stato scritto</item>
         <item quantity="other">%1$d giochi selezionati non sono stati scritti</item>
@@ -396,6 +400,7 @@
     <string name="settings__wishlist_group_choose_platform">Scegli una piattaforma (%1$d)</string>
     <string name="settings__wishlist_group_no_match">Senza corrispondenza (%1$d)</string>
     <string name="settings__wishlist_group_already_present">Già nella wishlist (%1$d)</string>
+    <string name="settings__wishlist_group_removed">Rimossi dalla wishlist (%1$d)</string>
     <string name="settings__wishlist_platform_for_all">Piattaforma per tutti</string>
     <string name="settings__wishlist_choose_platform">Scegli una piattaforma</string>
     <string name="settings__wishlist_no_platform">Informazioni sulla piattaforma non disponibili</string>
@@ -413,6 +418,8 @@
     <string name="settings__import_searching">Ricerca della corrispondenza…</string>
     <string name="settings__import_already_present">Già nella tua libreria</string>
     <string name="settings__wishlist_already_present">Già presente sul servizio</string>
+    <string name="settings__wishlist_removed_from_store">Rimosso dalla wishlist dopo l'ultima sincronizzazione</string>
+    <string name="settings__import_removed_locally">Rimosso dalla tua libreria dopo l'ultima sincronizzazione</string>
     <string name="settings__import_confirm_match">Corrispondenza incerta: confermala o cambiala</string>
     <string name="settings__import_confirm">Importa selezionati</string>
     <plurals name="settings__import_done">

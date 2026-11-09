@@ -88,22 +88,29 @@ class LinkedServicesViewModel(
     sealed interface SyncOutcome {
         /**
          * [added] entries created in Gamerlogue, [pushed] backlog games sent to the store wishlist, [skipped]
-         * selected games the store didn't take.
+         * selected games the store didn't take, [removedOnOneSide] games removed on one side and left on the other
+         * (reported only alongside a change: they'd stop every later sync otherwise).
          */
-        data class WishlistSynced(val added: Int, val pushed: Int, val skipped: List<SkippedWrite>) : SyncOutcome {
+        data class WishlistSynced(
+            val added: Int,
+            val pushed: Int,
+            val skipped: List<SkippedWrite>,
+            val removedOnOneSide: Int,
+        ) : SyncOutcome {
             /** False when the two libraries already agreed — nothing worth stopping to report. */
             val changedAnything: Boolean get() = added > 0 || pushed > 0 || skipped.isNotEmpty()
         }
 
         /**
          * [pulled] games updated from the tracker, [pushed] written to it, [skipped] selected writes the tracker
-         * didn't take, [conflicts] left for a manual sync.
+         * didn't take, [conflicts] left for a manual sync, [removedOnOneSide] as in [WishlistSynced].
          */
         data class LibrarySynced(
             val pulled: Int,
             val pushed: Int,
             val skipped: List<SkippedWrite>,
             val conflicts: Int,
+            val removedOnOneSide: Int,
         ) : SyncOutcome {
             val changedAnything: Boolean get() = pulled > 0 || pushed > 0 || skipped.isNotEmpty() || conflicts > 0
         }
@@ -258,11 +265,17 @@ class LinkedServicesViewModel(
                 val result = librarySync.pullWishlist(connector, wishlist)
                 val selected = when (service) {
                     ExternalService.BACKLOGGERY -> session.confirmPush(markPresent(connector, session, result.toPush))
-                    else -> result.toPush
+                    else -> result.toPush.filterNot { it.removedFromStore }
                 }
                 val (pushed, missed) = pushWishlist(connector, session, selected)
                 setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-                update { copy(outcome = SyncOutcome.WishlistSynced(result.added, pushed, session.leftOut(missed))) }
+                val outcome = SyncOutcome.WishlistSynced(
+                    result.added,
+                    pushed,
+                    session.leftOut(missed),
+                    result.removedOnOneSide,
+                )
+                update { copy(outcome = outcome) }
             }
         } finally {
             setBusy(service, false)
@@ -292,7 +305,13 @@ class LinkedServicesViewModel(
                 val (pushed, missed) = writeStatuses(service, session, write, outgoing)
                 val conflicts = plan.changes.count { it.winner == null }
                 setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-                val outcome = SyncOutcome.LibrarySynced(pulled, pushed, session.leftOut(missed), conflicts)
+                val outcome = SyncOutcome.LibrarySynced(
+                    pulled,
+                    pushed,
+                    session.leftOut(missed),
+                    conflicts,
+                    plan.removedOnOneSide.size,
+                )
                 update { copy(outcome = outcome) }
             }
         } finally {
@@ -313,7 +332,14 @@ class LinkedServicesViewModel(
             val (pushed, missed) = writeStatuses(service, session, write, trackerSync.pendingWrites[service].orEmpty())
             trackerSync.pendingWrites.remove(service)
             setLastSyncAt(service, Clock.System.now().toEpochMilliseconds())
-            val outcome = SyncOutcome.LibrarySynced(pulled = 0, pushed, session.leftOut(missed), conflicts = 0)
+            // The reviewed plan already showed what was removed on one side.
+            val outcome = SyncOutcome.LibrarySynced(
+                pulled = 0,
+                pushed,
+                session.leftOut(missed),
+                conflicts = 0,
+                removedOnOneSide = 0,
+            )
             update { copy(outcome = outcome) }
         }
     }
@@ -420,7 +446,13 @@ class LinkedServicesViewModel(
                 else -> pushWishlist(connector, session, selected)
             }
             librarySync.pendingWishlistImports.remove(service)
-            update { copy(outcome = SyncOutcome.WishlistSynced(pending.added, pushed, session.leftOut(missed))) }
+            val outcome = SyncOutcome.WishlistSynced(
+                pending.added,
+                pushed,
+                session.leftOut(missed),
+                pending.removedOnOneSide,
+            )
+            update { copy(outcome = outcome) }
         }
     }
 

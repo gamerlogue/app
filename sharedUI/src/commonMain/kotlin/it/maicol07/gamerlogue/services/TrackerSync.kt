@@ -34,10 +34,16 @@ data class SyncChange(
 )
 
 /**
- * The [changes] to make, the games already [agreed] on both sides (recorded as the new baseline) and the
- * baseline games [forgotten] because they are gone from both sides: re-added later, they count as new.
+ * The [changes] to make, the games already [agreed] on both sides (recorded as the new baseline), the baseline
+ * games [forgotten] because they are gone from both sides (re-added later, they count as new) and the ones
+ * [removedOnOneSide] since, still on the other: removals aren't propagated, so they are only reported.
  */
-data class SyncPlan(val changes: List<SyncChange>, val agreed: Map<Int, SyncedGame>, val forgotten: Set<Int>)
+data class SyncPlan(
+    val changes: List<SyncChange>,
+    val agreed: Map<Int, SyncedGame>,
+    val forgotten: Set<Int>,
+    val removedOnOneSide: Set<Int>,
+)
 
 /**
  * Three-way plan of a library sync. [local] and [remote] are the current statuses by IGDB id (remote as
@@ -58,6 +64,7 @@ fun planSync(
 ): SyncPlan {
     val changes = mutableListOf<SyncChange>()
     val agreed = mutableMapOf<Int, SyncedGame>()
+    val removed = mutableSetOf<Int>()
     for (id in local.keys + remote.keys) {
         val l = local[id]
         val ref = remote[id]
@@ -67,10 +74,13 @@ fun planSync(
             l != null && l !in supported -> Unit
             r != null && r !in supported -> Unit
             ref != null && r != null && r == l -> agreed[id] = SyncedGame(ref.uid, r)
-            else -> decide(l, r, base[id])?.let { changes += SyncChange(id, ref?.uid, l, r, it.winner) }
+            else -> when (val decision = decide(l, r, base[id])) {
+                null -> removed += id
+                else -> changes += SyncChange(id, ref?.uid, l, r, decision.winner)
+            }
         }
     }
-    return SyncPlan(changes, agreed, base.keys - local.keys - remote.keys)
+    return SyncPlan(changes, agreed, base.keys - local.keys - remote.keys, removed)
 }
 
 private enum class Decision(val winner: SyncSide?) { PULL(SyncSide.REMOTE), PUSH(SyncSide.LOCAL), CONFLICT(null) }
@@ -181,6 +191,8 @@ class TrackerSync(
         return plan.copy(
             changes = plan.changes.filter { it.remote != null || (connector.canAddGames && it.gameId !in onTracker) },
             forgotten = plan.forgotten - onTracker,
+            // A game on the tracker under an unconfirmed row isn't removed from it.
+            removedOnOneSide = plan.removedOnOneSide - (onTracker - remote.keys),
         )
     }
 

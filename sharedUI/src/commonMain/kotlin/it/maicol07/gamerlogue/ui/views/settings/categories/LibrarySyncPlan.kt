@@ -38,6 +38,7 @@ import gamerlogue.sharedui.generated.resources.settings__library_sync_hint
 import gamerlogue.sharedui.generated.resources.settings__library_sync_missing
 import gamerlogue.sharedui.generated.resources.settings__library_sync_nothing
 import gamerlogue.sharedui.generated.resources.settings__library_sync_status_change
+import gamerlogue.sharedui.generated.resources.settings__sync_removed_one_side
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
@@ -47,6 +48,7 @@ import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.StatusMessage
 import it.maicol07.gamerlogue.ui.components.layout.CollapsibleSectionHeader
 import it.maicol07.gamerlogue.ui.components.layout.collapsibleSection
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -60,12 +62,15 @@ import org.jetbrains.compose.resources.stringResource
 internal fun SyncPlanContent(
     service: ExternalService,
     rows: List<LibraryImportViewModel.PlanRow>,
+    removedOnOneSide: Int,
     applying: Boolean,
     onChoose: (Int, SyncSide) -> Unit,
     onToggle: (Int) -> Unit,
     onApply: () -> Unit,
     onDone: () -> Unit,
 ) {
+    val removedNote = removedOnOneSide.takeIf { it > 0 }
+        ?.let { pluralStringResource(Res.plurals.settings__sync_removed_one_side, it, it) }
     if (rows.isEmpty()) {
         StatusMessage(
             Icons.CheckCircleW500Rounded,
@@ -74,6 +79,7 @@ internal fun SyncPlanContent(
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             shape = MaterialShapes.Sunny,
         ) {
+            removedNote?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             Button(onClick = onDone, shapes = ButtonDefaults.shapes()) { Text(stringResource(Res.string.common_close)) }
         }
         return
@@ -89,7 +95,8 @@ internal fun SyncPlanContent(
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         ) {
             item(key = "hint") {
-                HintCard(stringResource(Res.string.settings__library_sync_hint), Modifier.padding(bottom = 8.dp))
+                val hint = stringResource(Res.string.settings__library_sync_hint)
+                HintCard(removedNote?.let { "$hint\n\n$it." } ?: hint, Modifier.padding(bottom = 8.dp))
             }
             planGroups(indexed, tracker, expanded, onChoose, onToggle)
         }
