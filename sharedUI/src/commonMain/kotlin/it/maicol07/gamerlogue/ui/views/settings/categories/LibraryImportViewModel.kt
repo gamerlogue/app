@@ -296,6 +296,8 @@ class LibraryImportViewModel(
             // would make this look like a synced library, and the next unattended run would apply unreviewed changes.
             // With nothing to apply there is nothing to approve, so they are recorded right away.
             if (plan.changes.isEmpty()) trackerSync.record(service, plan.agreed) else agreed = plan.agreed
+            // Gone from both sides: nothing to review.
+            trackerSync.prune(service, plan.forgotten)
             val games = matcher.gamesByIds(plan.changes.map { it.gameId }).associateBy { it.id.toInt() }
             val rows = plan.changes.map { c ->
                 PlanRow(c, games[c.gameId], choice = c.winner ?: SyncSide.LOCAL, conflict = c.winner == null)

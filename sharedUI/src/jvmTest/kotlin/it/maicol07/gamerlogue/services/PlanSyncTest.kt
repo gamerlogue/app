@@ -36,6 +36,11 @@ class PlanSyncTest : StringSpec({
         planSync(mapOf(1 to PLAYING), emptyMap(), mapOf(1 to SyncedGame("u", PLAYING)), all).changes.shouldBeEmpty()
     }
 
+    "a game gone from both sides leaves the baseline, so a later re-add is synced as new" {
+        val base = mapOf(1 to SyncedGame("u", PLAYING), 2 to SyncedGame("u", PLAYING))
+        planSync(mapOf(2 to PLAYING), emptyMap(), base, all).forgotten shouldBe setOf(1)
+    }
+
     "a status the tracker can't store is not synced, and agreed games become the new baseline" {
         val local = mapOf(1 to PAUSED, 2 to BACKLOG)
         val plan = planSync(local, mapOf(1 to ref(PLAYING), 2 to ref(BACKLOG)), emptyMap(), setOf(PLAYING, BACKLOG))

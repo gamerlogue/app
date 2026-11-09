@@ -285,6 +285,7 @@ class LinkedServicesViewModel(
                 val (remote, onTracker) = trackerSync.resolve(connector, refs)
                 val plan = trackerSync.plan(connector, remote, entries, onTracker)
                 trackerSync.record(service, plan.agreed)
+                trackerSync.prune(service, plan.forgotten)
                 val pulled = trackerSync.pull(service, plan.changes.filter { it.winner == SyncSide.REMOTE }, entries, remote)
                 val outgoing = trackerSync.outgoing(plan.changes.filter { it.winner == SyncSide.LOCAL }, entries)
                 val (pushed, missed) = writeStatuses(service, session, write, outgoing)

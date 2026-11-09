@@ -33,8 +33,11 @@ data class SyncChange(
     val winner: SyncSide?,
 )
 
-/** The [changes] to make and the games already [agreed] on both sides (recorded as the new baseline). */
-data class SyncPlan(val changes: List<SyncChange>, val agreed: Map<Int, SyncedGame>)
+/**
+ * The [changes] to make, the games already [agreed] on both sides (recorded as the new baseline) and the
+ * baseline games [forgotten] because they are gone from both sides: re-added later, they count as new.
+ */
+data class SyncPlan(val changes: List<SyncChange>, val agreed: Map<Int, SyncedGame>, val forgotten: Set<Int>)
 
 /**
  * Three-way plan of a library sync. [local] and [remote] are the current statuses by IGDB id (remote as
@@ -43,7 +46,7 @@ data class SyncPlan(val changes: List<SyncChange>, val agreed: Map<Int, SyncedGa
  * - A game is synced only while its Gamerlogue status and its tracker status are both in [supported]:
  *   otherwise the two sides can't represent each other's status and would never agree.
  * - A game missing on one side is added there — unless [base] knows it, meaning it was removed on that
- *   side since: removals aren't propagated, so it is left alone.
+ *   side since: removals aren't propagated, so it is left alone. Once it's gone from both sides, it leaves [base].
  * - When both sides differ, the side still equal to [base] lost; if neither (or there is no base), it's a
  *   conflict.
  */
@@ -67,7 +70,7 @@ fun planSync(
             else -> decide(l, r, base[id])?.let { changes += SyncChange(id, ref?.uid, l, r, it.winner) }
         }
     }
-    return SyncPlan(changes, agreed)
+    return SyncPlan(changes, agreed, base.keys - local.keys - remote.keys)
 }
 
 private enum class Decision(val winner: SyncSide?) { PULL(SyncSide.REMOTE), PUSH(SyncSide.LOCAL), CONFLICT(null) }
@@ -123,6 +126,12 @@ class TrackerSync(
         settings.putString(service.settingsKey(KEY), json.encodeToString(serializer, base(service) + games))
     }
 
+    /** Drop [ids] from the stored state of [service]. */
+    fun prune(service: ExternalService, ids: Set<Int>) {
+        if (ids.isEmpty()) return
+        settings.putString(service.settingsKey(KEY), json.encodeToString(serializer, base(service) - ids))
+    }
+
     fun forget(service: ExternalService) = settings.remove(service.settingsKey(KEY))
 
     /** IGDB games identified by tracker metadata or the last sync, by tracker uid; metadata takes precedence. */
@@ -154,7 +163,7 @@ class TrackerSync(
      * wishlist sync, so it isn't pushed here — except games already synced with this tracker, which came from
      * its library and must keep following it. [remote] only holds the tracker rows whose match is confirmed;
      * [onTracker] is every game any tracker row maps to, confirmed or not: such a game is on the tracker already,
-     * so it's never added there.
+     * so it's never added there, nor forgotten.
      */
     suspend fun plan(
         connector: ServiceConnector,
@@ -171,6 +180,7 @@ class TrackerSync(
         // status updates for the ones it already has.
         return plan.copy(
             changes = plan.changes.filter { it.remote != null || (connector.canAddGames && it.gameId !in onTracker) },
+            forgotten = plan.forgotten - onTracker,
         )
     }
 
