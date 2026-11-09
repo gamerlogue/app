@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,6 +96,9 @@ private fun GameVariantSheet(
     onDismissRequest: () -> Unit,
 ) = ModalBottomSheet(
     onDismissRequest = onDismissRequest,
+    // A fixed top margin: by default the content pads the status bar minus the sheet's offset, so a sheet almost as
+    // tall as the screen changes height while dragged and its anchors snap it back under the finger, again and again.
+    modifier = Modifier.statusBarsPadding(),
     sheetState = rememberBottomSheetState(
         SheetValue.Hidden,
         enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
