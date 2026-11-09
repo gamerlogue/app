@@ -16,6 +16,7 @@ git-semantic-versioning-base = "7.3.3"
 igdbclientKtor = "0.8"
 javaKeyring = "1.0.4"
 kermit = "2.2.0"
+kmpnotifier = "2.0.2"
 kotlin = "2.4.21"
 kotlinResult = "2.3.1"
 kotlinx-coroutines = "1.11.0"
@@ -53,6 +54,7 @@ systemUIBarsTweaker = "1.2.4"
 desugarJdkLibs = "2.1.5"
 zoomimageCompose = "1.7.0"
 filekit = "0.17.0"
+googleServices = "4.5.0"
 
 [libraries]
 androidx-activityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -82,6 +84,7 @@ composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", na
 composeSettings-ui-expressive = { group = "com.github.alorma.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
 java-keyring = { module = "com.github.javakeyring:java-keyring", version.ref = "javaKeyring" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+kmpnotifier-push-firebase = { module = "io.github.mirzemehdi:kmpnotifier-push-firebase", version.ref = "kmpnotifier" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -148,6 +151,7 @@ compose-hot-reload = { id = "org.jetbrains.compose.hot-reload", version.ref = "c
 git-semantic-versioning = { id = "io.github.andreabrighi.android-git-sensitive-semantic-versioning-gradle-plugin", version.ref = "git-semantic-versioning" }
 git-semantic-versioning-base = { id = "org.danilopianini.git-sensitive-semantic-versioning", version.ref = "git-semantic-versioning-base" }
 koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

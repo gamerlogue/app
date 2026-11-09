@@ -43,3 +43,10 @@ expect val isAndroidEmulator: Boolean
  */
 @Composable
 expect fun LocalNetworkAccess(serverUrl: String)
+
+/**
+ * Asks for the permission to post notifications once a user is signed in, since only they get push notifications.
+ * No-op where the platform needs no such permission.
+ */
+@Composable
+expect fun NotificationPermission(signedIn: Boolean)

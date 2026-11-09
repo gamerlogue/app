@@ -4,19 +4,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.maicol07.gamerlogue.auth.AuthHandler
+import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.PushNotifications
 import it.maicol07.gamerlogue.di.KoinApp
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
 import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.navigation.AppNavDisplay
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.rememberAppNavigationState
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.theme.AppTheme
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
@@ -32,6 +36,8 @@ import org.koin.plugin.module.dsl.koinConfiguration
 fun App(
     authCallbackUri: String? = null,
     onAuthCallbackHandled: () -> Unit = {},
+    openNotifications: Boolean = false,
+    onNotificationsOpened: () -> Unit = {},
 ) {
     val navigationState = rememberAppNavigationState()
 
@@ -39,6 +45,14 @@ fun App(
         CompositionLocalProvider(LocalNavigationState provides navigationState) {
             AuthHandler(authCallbackUri, onAuthCallbackHandled)
             LocalNetworkAccess(koinInject<AppPreferences>().serverUrl.collectAsStateWithLifecycle().value)
+            PushNotificationsHost()
+            // A tapped notification: the list lives under the profile, where its bell is.
+            LaunchedEffect(openNotifications) {
+                if (!openNotifications) return@LaunchedEffect
+                navigationState.selectRoot(RootNavTree.Profile)
+                navigationState.backStack.add(RootNavTree.Notifications)
+                onNotificationsOpened()
+            }
 
             // Compose resources read the platform locale during composition, so an in-app language
             // change is only picked up by composing the tree again. Keyed here rather than higher up
@@ -58,6 +72,15 @@ fun App(
             }
         }
     }
+}
+
+// Its own scope, so a sign-in or sign-out recomposes only this.
+@Composable
+private fun PushNotificationsHost() {
+    val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
+    NotificationPermission(session.isAuthenticated)
+    val pushNotifications = koinInject<PushNotifications>()
+    LaunchedEffect(pushNotifications) { pushNotifications.run() }
 }
 
 @Composable

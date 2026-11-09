@@ -635,7 +635,7 @@ otherwise). Newest first, standard pagination.
 
 Nobody is notified of their own actions, nor by a user they are in a block with. Taking back a
 reaction or deleting a comment deletes its notification; deleting content deletes the
-notifications about it. Push notifications are not part of this phase.
+notifications about it.
 
 ```json
 {"data": [{"id": "9f1c…", "type": "Notification", "attributes": {"type": "review_liked",
@@ -645,6 +645,22 @@ notifications about it. Push notifications are not part of this phase.
   "updated_at": "2026-10-17T16:00:00+02:00"}}],
  "meta": {"totalItems": 1, "itemsPerPage": 30, "currentPage": 1}}
 ```
+
+### Push (FCM)
+
+Every notification is also pushed to the recipient's devices through Firebase Cloud Messaging; only the Android app
+registers one.
+
+| Method and path | Effect |
+|---|---|
+| `POST /device-tokens` | **Plain JSON** `{"token": "<FCM token>", "platform": "android"}`, ability `profile`; any `2xx` |
+
+- Upsert by `token`: the app sends it on every start and whenever FCM rotates it. A token tied to another user moves to
+  the caller.
+- No unregister call: on sign-out the app deletes its FCM token, as the bearer is already gone. Delete a token when FCM
+  answers `UNREGISTERED` (or `INVALID_ARGUMENT` for it) to a send; deleting the account deletes its tokens.
+- Send a `notification` message (title and body), so Android shows it even when the app is not running. Tapping it
+  opens the notifications list; one received in the foreground refreshes the unread badge.
 
 ---
 

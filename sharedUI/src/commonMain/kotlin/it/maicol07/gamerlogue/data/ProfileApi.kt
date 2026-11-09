@@ -118,6 +118,15 @@ class ProfileApi : KoinComponent {
     /** The unread notifications, counted by the server as the `meta.totalItems` of their collection. */
     suspend fun unreadNotificationsCount(): Int = AppNotification.where("unread", "true").fetchPage(1).total ?: 0
 
+    /**
+     * Ties this device's FCM [token] to the signed-in user; the server upserts by token. Android is the only platform
+     * that gets one (see `PushNotifications`).
+     */
+    suspend fun registerPushToken(token: String): String {
+        val body = Json.encodeToString(mapOf("token" to token, "platform" to "android"))
+        return send(HttpMethod.Post, "device-tokens", jsonBody = body)
+    }
+
     /** Permanently deletes the account and revokes every session; it does not touch the identity provider. */
     suspend fun deleteAccount() = send(HttpMethod.Delete, "account")
 

@@ -7,7 +7,11 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.android.application)
     alias(libs.plugins.git.semantic.versioning)
+    alias(libs.plugins.google.services) apply false
 }
+
+// The Firebase config is not in the repository: without it the app builds anyway, with no push notifications.
+if (file("google-services.json").exists()) apply(plugin = libs.plugins.google.services.get().pluginId)
 
 android {
     namespace = appPackageName

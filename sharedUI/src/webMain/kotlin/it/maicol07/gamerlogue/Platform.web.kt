@@ -44,3 +44,6 @@ actual val isAndroidEmulator = false
 
 @Composable
 actual fun LocalNetworkAccess(serverUrl: String) = Unit
+
+@Composable
+actual fun NotificationPermission(signedIn: Boolean) = Unit

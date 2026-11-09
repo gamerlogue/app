@@ -8,4 +8,5 @@ plugins {
     alias(libs.plugins.kotlinx.serialization).apply(false)
     alias(libs.plugins.buildConfig).apply(false)
     alias(libs.plugins.compose.hot.reload) apply false
+    alias(libs.plugins.google.services) apply false
 }

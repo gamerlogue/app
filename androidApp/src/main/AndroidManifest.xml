@@ -11,6 +11,7 @@
         android:maxSdkVersion="28" />
 
     <application
+        android:name=".GamerlogueApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="Gamerlogue"
         android:theme="@style/AppTheme">

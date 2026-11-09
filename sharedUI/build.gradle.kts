@@ -77,6 +77,8 @@ kotlin {
             implementation(libs.nav3ksp)
             implementation(libs.nav3ksp.annotation)
             api(libs.kermit)
+            // api: the Android app initializes it and forwards the notification intents.
+            api(libs.kmpnotifier.push.firebase)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)

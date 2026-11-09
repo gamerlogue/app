@@ -105,6 +105,19 @@ actual fun LocalNetworkAccess(serverUrl: String) {
     }
 }
 
+@Composable
+actual fun NotificationPermission(signedIn: Boolean) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(signedIn) {
+        if (!signedIn || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@LaunchedEffect
+        val permission = Manifest.permission.POST_NOTIFICATIONS
+        if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+            launcher.launch(permission)
+        }
+    }
+}
+
 // IPv6 unique local addresses, fc00::/7: InetAddress.isSiteLocalAddress only knows the deprecated fec0::/10.
 private const val UniqueLocalMask = 0xFE
 private const val UniqueLocalPrefix = 0xFC
