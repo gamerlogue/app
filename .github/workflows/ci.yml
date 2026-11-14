@@ -33,6 +33,19 @@ jobs:
       release: false
     secrets: inherit
 
+  # detekt as the IDE plugin runs it (.idea/detekt.xml): detekt.yml on the default config, all
+  # rules, formatting. There is no Gradle plugin, so the CLI. JDK 21: detekt 1.23 predates 25.
+  # Not in release.needs until it is verified clean.
+  detekt:
+    uses: maicol07/actions/.github/workflows/gradle.yml@v1
+    with:
+      java_version: '21'
+      run: >-
+        curl -fsSLO https://github.com/detekt/detekt/releases/download/v1.23.8/detekt-cli-1.23.8-all.jar &&
+        curl -fsSLO https://github.com/detekt/detekt/releases/download/v1.23.8/detekt-formatting-1.23.8.jar &&
+        java -jar detekt-cli-1.23.8-all.jar --config detekt.yml --build-upon-default-config --all-rules
+        --plugins detekt-formatting-1.23.8.jar
+
   release:
     needs: [security, build]
     if: github.event_name == 'push'
