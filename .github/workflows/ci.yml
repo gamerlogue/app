@@ -1,18 +1,170 @@
 name: CI
+# Shared pipeline of maicol07/actions: checks on PRs and main, then on main the release PR, and
+# once it is merged the GitHub Release with the builds of its tag and the web app on Pages.
+# A job is overridden by replacing its `uses:` with steps of its own.
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [main]
+  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Never cancel a release half done on main.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
   packages: read
 
 jobs:
+  security:
+    uses: maicol07/actions/.github/workflows/security.yml@v1
+
+  commit_lint:
+    uses: maicol07/actions/.github/workflows/commit-lint.yml@v1
+
+  # Own workflow: the Android, desktop and web build matrix.
   build:
     name: Build
     uses: ./.github/workflows/build.yml
     with:
       release: false
     secrets: inherit
+
+  release:
+    needs: [security, build]
+    if: github.event_name == 'push'
+    uses: maicol07/actions/.github/workflows/release.yml@v1
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      # 0.1-0.5 are x.y: they keep their CHANGELOG.md sections.
+      tag_pattern: '^[0-9]+\.[0-9]+(\.[0-9]+)?$'
+      # Repo variable PRERELEASE=true: the next merged release PR is a pre-release (Play: beta).
+      prerelease: ${{ vars.PRERELEASE == 'true' }}
+    # No bump: the app versions come from the git tags (gitSemVer).
+
+  release_build:
+    name: Release build
+    needs: release
+    if: needs.release.outputs.tag
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ needs.release.outputs.tag }}
+      release: true
+    secrets: inherit
+
+  # Also uploads what was built when another platform failed
+  release_assets:
+    name: Upload Release Assets
+    needs: [release, release_build]
+    if: ${{ !cancelled() && needs.release.outputs.tag }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.release.outputs.tag }}
+    steps:
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: android-release
+          path: artifacts
+
+      - name: Download desktop artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: artifacts
+
+      # Multi-file artifacts are zipped below, so they're downloaded outside the flat upload dir
+      - name: Download web artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: web-app
+          path: bundles
+
+      - name: Package web app
+        run: |
+          mkdir -p artifacts
+          if [ -d bundles/web-app ]; then
+            (cd bundles/web-app && zip -qr "$GITHUB_WORKSPACE/artifacts/web-app-$VERSION.zip" .)
+          fi
+
+      - name: Download Android debug symbols
+        uses: actions/download-artifact@v8
+        with:
+          pattern: android-debug-symbols
+          path: bundles
+
+      # One zip per flavor: R8 mapping and native symbols share file names across flavors
+      - name: Package Android debug symbols
+        run: |
+          shopt -s nullglob
+          cd bundles/android-debug-symbols 2>/dev/null || exit 0
+          for dir in mapping/*Release; do
+            flavor=$(basename "$dir" Release)
+            find . -path "*/${flavor}Release/*" -type f | zip -q "$GITHUB_WORKSPACE/artifacts/debug-symbols-$flavor-$VERSION.zip" -@
+          done
+
+      - name: Display downloaded files
+        run: ls -R artifacts
+
+      # Upload only: the release notes are the git-cliff ones of release.yml in maicol07/actions.
+      - name: Upload to Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: find artifacts -type f -exec gh release upload "$VERSION" --repo "$GITHUB_REPOSITORY" --clobber {} +
+
+  deploy_web:
+    name: Deploy to GitHub Pages
+    needs: [release, release_build]
+    if: ${{ !cancelled() && needs.release.outputs.tag }}
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Web Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: web-app
+          path: web-app
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: web-app
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  # TODO: enable (drop `if: false`) once the app is ready for the Play Store
+  publish_play_store:
+    name: Publish to Play Store
+    needs: release_build
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: android-release
+          path: android-release
+
+      - name: Publish to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName: com.maicol07.gamerlogue # Update with actual package name if different
+          releaseFiles: android-release/bundle/release/*.aab
+          track: ${{ vars.PRERELEASE == 'true' && 'beta' || 'production' }}
+          status: completed
