@@ -1,5 +1,6 @@
 # git-cliff configuration: https://git-cliff.org/docs/configuration
-# On each published release CI writes the release notes and commits CHANGELOG.md (see AGENTS.md).
+# The release PR of maicol07/actions' release.yml regenerates CHANGELOG.md with it; the GitHub
+# Release of each version takes its notes from git-cliff too.
 
 [changelog]
 header = """
@@ -70,6 +71,8 @@ commit_parsers = [
   { message = "^test", group = "<!-- 07 -->✅ Tests" },
   { message = "^build", group = "<!-- 08 -->👷 Building scripts changes" },
   { message = "^ci", group = "<!-- 09 -->👷 CI changes" },
+  # The release PR's own commit: its content is the changelog itself.
+  { message = '^chore\(release\)', skip = true },
   { message = "^chore", group = "<!-- 10 -->Other changes" },
   { message = "^Revert", group = "<!-- 11 -->⏪ Reverts" },
   { message = "^Merge pull request", group = "<!-- 12 -->🔀 Pull Requests" },
@@ -79,7 +82,7 @@ filter_commits = true
 tag_pattern = "[0-9].*"
 sort_commits = "oldest"
 
-# Next version when the release workflow gets none: feat bumps the minor, the rest the patch.
+# Next version of the release PR: feat bumps the minor, the rest the patch.
 [bump]
 # In 0.x a breaking change bumps the minor too; 1.0.0 is passed explicitly.
 breaking_always_bump_major = false
