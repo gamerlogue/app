@@ -27,7 +27,7 @@ browser (JS). All UI and logic live in `:sharedUI`; `androidApp`, `desktopApp` a
 
 3. *(Optional)* For push notifications, add `androidApp/google-services.json` from the Firebase project. Both
    `it.maicol07.gamerlogue` and `it.maicol07.gamerlogue.dev` (debug builds) must be registered in it. Without the file
-   the app builds and runs, just without push.
+   the app builds and runs, just without push. CI writes it from the `GOOGLE_SERVICES_JSON` repository secret.
 
 ## Backend
 

@@ -46,13 +46,18 @@ jobs:
       - name: Create local.properties
         env:
           APP_ENV: ${{ secrets.APP_ENV }}
-          IGDB_API_URL: ${{ secrets.IGDB_API_URL }}
-          GAMERLOGUE_URL: ${{ secrets.GAMERLOGUE_URL }}
         run: |
           touch local.properties
           echo "APP_ENV=$APP_ENV" >> local.properties
-          echo "IGDB_API_URL=$IGDB_API_URL" >> local.properties
-          echo "GAMERLOGUE_URL=$GAMERLOGUE_URL" >> local.properties
+
+      # Firebase config for push notifications: without the secret the app builds without push.
+      - name: Create google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > androidApp/google-services.json
+          fi
 
       # Decode Keystore for Release builds
       - name: Decode Keystore
@@ -136,13 +141,9 @@ jobs:
         shell: bash
         env:
           APP_ENV: ${{ secrets.APP_ENV }}
-          IGDB_API_URL: ${{ secrets.IGDB_API_URL }}
-          GAMERLOGUE_URL: ${{ secrets.GAMERLOGUE_URL }}
         run: |
           touch local.properties
           echo "APP_ENV=$APP_ENV" >> local.properties
-          echo "IGDB_API_URL=$IGDB_API_URL" >> local.properties
-          echo "GAMERLOGUE_URL=$GAMERLOGUE_URL" >> local.properties
 
       - name: Grant execute permission for gradlew
         if: runner.os != 'Windows'
@@ -193,13 +194,9 @@ jobs:
       - name: Create local.properties
         env:
           APP_ENV: ${{ secrets.APP_ENV }}
-          IGDB_API_URL: ${{ secrets.IGDB_API_URL }}
-          GAMERLOGUE_URL: ${{ secrets.GAMERLOGUE_URL }}
         run: |
           touch local.properties
           echo "APP_ENV=$APP_ENV" >> local.properties
-          echo "IGDB_API_URL=$IGDB_API_URL" >> local.properties
-          echo "GAMERLOGUE_URL=$GAMERLOGUE_URL" >> local.properties
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
