@@ -25,9 +25,8 @@ browser (JS). All UI and logic live in `:sharedUI`; `androidApp`, `desktopApp` a
    APP_ENV=LOCAL
    ```
 
-3. *(Optional)* For push notifications, add `androidApp/google-services.json` from the Firebase project. Both
-   `it.maicol07.gamerlogue` and `it.maicol07.gamerlogue.dev` (debug builds) must be registered in it. Without the file
-   the app builds and runs, just without push. CI writes it from the `GOOGLE_SERVICES_JSON` repository secret.
+3. *(Optional)* Set up Firebase for push notifications, see [below](#push-notifications-firebase). The app builds and
+   runs without it, just without push.
 
 ## Backend
 
@@ -44,6 +43,25 @@ To develop against a local backend:
   redirects to HTTPS. From API 36 the app also needs `ACCESS_LOCAL_NETWORK`: the Gradle `install*Debug` tasks grant it
   over `adb` after installing, but a Run from Android Studio does not, so the app asks for it on start.
 - **Desktop and web:** set the server to the backend's local address in the settings.
+
+## Push notifications (Firebase)
+
+Only the Android app receives push notifications, through Firebase Cloud Messaging.
+
+1. In the [Firebase console](https://console.firebase.google.com/), create a project (or open the existing one).
+2. Add two Android apps to it: `it.maicol07.gamerlogue` (release) and `it.maicol07.gamerlogue.dev` (debug builds).
+   FCM needs no SHA-1 fingerprint.
+3. Download `google-services.json` (from either app: it covers both) into `androidApp/`. It is not committed; the
+   Google Services Gradle plugin is applied only when the file exists.
+4. For CI, store the file's content in the `GOOGLE_SERVICES_JSON` repository secret: `build.yml` writes it back before
+   the Android build.
+5. For the backend, generate a service account key in **Project settings → Service accounts** and give it to
+   `gamerlogue_web`, which sends the messages through the FCM HTTP v1 API. The device token endpoint is described under
+   Notification → Push in [docs/CONTRACTS.md](docs/CONTRACTS.md).
+
+To check the client alone, sign in on a device (the app asks for the notification permission on Android 13+), then send
+a message from **Messaging → New campaign → Notifications** in the console, targeting the app. Tapping it opens the
+notifications list.
 
 ## Run
 
