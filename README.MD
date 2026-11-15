@@ -1,31 +1,83 @@
-# Multiplatform App
+# Gamerlogue
 
-### Android
-To run the application on android device/emulator:
-- open project in Android Studio and run imported android run configuration
+A game-library tracker built with Kotlin Multiplatform and Compose Multiplatform, for Android, desktop (JVM) and the
+browser (JS). All UI and logic live in `:sharedUI`; `androidApp`, `desktopApp` and `webApp` are thin launchers.
 
-To build the application bundle:
-- run `./gradlew :androidApp:assembleDebug`
-- find `.apk` file in `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+## Requirements
 
-### Desktop
-Run the desktop application: `./gradlew :desktopApp:run`  
-Run the desktop **hot reload** application: `./gradlew :desktopApp:hotRun --auto`
+- **JDK 21 or newer.** The JBR bundled with Android Studio works: point `JAVA_HOME` at it
+  (`<Android Studio>/jbr`) if no other JDK is installed. CI builds with Temurin 25.
+- **Android SDK** with the platform in `androidCompileSdk` (`gradle.properties`). Android Studio installs it and writes
+  `sdk.dir` in `local.properties`.
+- **Android Studio** or IntelliJ IDEA with the Android plugin. Android Studio 2026.2.2 breaks the Gradle sync: stay on
+  2026.2.1 until a fix ships.
+- **detekt** IDE plugin, for linting (see [Checks](#checks)).
 
-### iOS
-To run the application on iPhone device/simulator:
-- Open `iosApp/iosApp.xcproject` in Xcode and run standard configuration
-- Or use [Kotlin Multiplatform Mobile plugin](https://plugins.jetbrains.com/plugin/14936-kotlin-multiplatform-mobile) for Android Studio
+## Setup
 
-### Web Distribution
-Build web distribution: `./gradlew :webApp:composeCompatibilityBrowserDistribution`  
-Deploy a dir `webApp/build/dist/composeWebCompatibility/productionExecutable` to a web server
+1. Clone the repository and open it in Android Studio; let the Gradle sync finish.
+2. Create `local.properties` in the root if the IDE did not, and set the environment:
 
-### JS Browser
-Run the browser application: `./gradlew :webApp:jsBrowserDevelopmentRun`
+   ```properties
+   sdk.dir=<path to the Android SDK>
+   # LOCAL enables verbose logging (HTTP headers included) and the technical details in the error sheet.
+   # PRODUCTION for release-like builds. Defaults to LOCAL.
+   APP_ENV=LOCAL
+   ```
 
-### Wasm Browser
-Run the browser application: `./gradlew :webApp:wasmJsBrowserDevelopmentRun`  
+3. *(Optional)* For push notifications, add `androidApp/google-services.json` from the Firebase project. Both
+   `it.maicol07.gamerlogue` and `it.maicol07.gamerlogue.dev` (debug builds) must be registered in it. Without the file
+   the app builds and runs, just without push.
+
+## Backend
+
+The app talks to the Gamerlogue backend (the `gamerlogue_web` repository) and to IGDB through it. Both URLs are runtime
+settings, in **Settings → Advanced → Server**:
+
+- Default: `http://10.0.2.2` on an Android emulator, `https://gamerlogue.maicol07.it` everywhere else.
+- IGDB follows `<server>/api/igdb` unless set separately.
+
+To develop against a local backend:
+
+- **Android emulator:** `10.0.2.2` is the host machine. The backend's Caddy must serve it over plain HTTP: set
+  `CADDY_HTTP_SERVER_ADDRESS` and `SSL_MODE: mixed` on the `laravel` service in `gamerlogue_web`, otherwise it
+  redirects to HTTPS. From API 36 the app also needs `ACCESS_LOCAL_NETWORK`: the Gradle `install*Debug` tasks grant it
+  over `adb` after installing, but a Run from Android Studio does not, so the app asks for it on start.
+- **Desktop and web:** set the server to the backend's local address in the settings.
+
+## Run
+
+| Target | Command |
+|---|---|
+| Android | Run the `androidApp` configuration, or `./gradlew :androidApp:installBetaDebug` |
+| Desktop | `./gradlew :desktopApp:run` (hot reload: `./gradlew :desktopApp:hotRun --auto`) |
+| Web (JS) | `./gradlew :webApp:jsBrowserDevelopmentRun` |
+
+Android has two flavors, `beta` and `alpha`, which differ only in the launcher icon; debug builds get the `.dev`
+application id, so they install next to a release build.
+
+Packaging:
+
+- Android APK: `./gradlew :androidApp:assembleBetaDebug` → `androidApp/build/outputs/apk/beta/debug/`
+- Desktop installers (DMG, EXE, DEB, for the current OS): `./gradlew :desktopApp:packageDistributionForCurrentOS`
+- Web: `./gradlew :webApp:jsBrowserDistribution`
+
+## Checks
+
+- Tests: `./gradlew :sharedUI:jvmTest`, or one class with `--tests "it.maicol07.gamerlogue.services.WebResultTest"`.
+- Lint: detekt has no Gradle task. It runs through the IDE plugin against `detekt.yml` (or the detekt CLI 1.23.8 with
+  the same config), so a green build does not mean clean files.
+
+Project conventions, architecture notes and known issues are in [AGENTS.md](AGENTS.md); the backend API contract is in
+[docs/CONTRACTS.md](docs/CONTRACTS.md).
+
+## Release
+
+Releases are cut by CI: every push to `main` opens or updates a release PR with the changelog, and merging it tags,
+publishes the GitHub Release with the builds and deploys the web app. Details in the Release section of
+[AGENTS.md](AGENTS.md). A signed Android release build reads the
+keystore from `ANDROID_KEYSTORE_PATH` (default: `release.keystore` in the root) and its credentials from
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`.
 
 # Credits
 ## Icons

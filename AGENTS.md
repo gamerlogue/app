@@ -10,7 +10,7 @@ Gamerlogue is a Kotlin Multiplatform + Compose Multiplatform game-library tracke
 
 `JAVA_HOME` is usually unset — run Gradle through PowerShell using the Android Studio JBR. The wrapper is `./gradlew` (`gradlew.bat` on Windows).
 
-- Android APK: `./gradlew :androidApp:assembleDebug` → `androidApp/build/outputs/apk/debug/`
+- Android APK: `./gradlew :androidApp:assembleBetaDebug` → `androidApp/build/outputs/apk/beta/debug/` (flavors `beta`/`alpha` differ only in the launcher icon)
 - Desktop: `./gradlew :desktopApp:run` — hot reload: `./gradlew :desktopApp:hotRun --auto`
 - Web (JS): `./gradlew :webApp:jsBrowserDevelopmentRun`
 - Lint: detekt runs through the IDE plugin against `detekt.yml`; there is no Gradle detekt task. So a green Gradle build does not mean a clean file: when AgentBridge is connected, run `get_problems` on every file you touched (it reports detekt plus the IDE inspections) and fix warnings and weak warnings before finishing. Information-level hints (smart casts, etc.) can stay.
@@ -30,7 +30,7 @@ A local backend is reached from the emulator at `http://10.0.2.2`, the emulator 
 
 ## Release
 
-Releases are cut by CI — publishing one from the GitHub UI triggers nothing (no build, notes or changelog). Run the "Release" workflow (`release.yml`), optionally with a `version` (and `prerelease`): without one, `git cliff --bumped-version` computes it from the commits (`[bump]` in `cliff.toml`), which needs the latest tag to be a full `x.y.z` (tags up to `0.5` have two parts). It commits the git-cliff (`cliff.toml`) `CHANGELOG.md` to the default branch as `docs(changelog)` (a scope left out of the changelog), tags that commit (app versions come from the tag via gitSemVer), creates the release with that version's notes and builds/publishes from the tag. So commit subjects and bodies are the release notes; don't edit `CHANGELOG.md` by hand, and pull after a release. Builds live in the reusable, read-only `build.yml`, called by `ci.yml` (every push) and `release.yml`; publishing jobs stay in the callers. Play Store publishing is disabled (`if: false`) until the app is ready for it.
+Releases are cut by CI (`ci.yml`, on the reusable workflows of `maicol07/actions`), release-please style with git-cliff (`cliff.toml`): every push to `main` runs the checks, then rewrites the `release/next` branch with the regenerated `CHANGELOG.md` and opens or updates its PR. Merging that PR (`chore(release): 🔖 <version>`) creates the tag and the GitHub Release with its notes; `ci.yml` then builds every platform from the tag (`build.yml`, reusable and read-only) and deploys the web app to Pages. The version is git-cliff's bump (feat → minor, breaking → major, else patch); app versions come from the tag via gitSemVer. The repo variable `PRERELEASE=true` makes the next merged release PR a pre-release. Publishing one from the GitHub UI triggers nothing. Commit subjects and bodies are the release notes: don't edit `CHANGELOG.md` by hand, and pull after a release. Play Store publishing is disabled (`if: false`) until the app is ready for it.
 
 ## Conventions (enforced)
 
