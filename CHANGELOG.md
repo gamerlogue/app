@@ -2892,7 +2892,7 @@
   >     - Moves platform-specific build logic from `composeApp/build.gradle.kts` to the respective new app modules (`androidApp/build.gradle.kts`, `desktopApp/build.gradle.kts`, `webApp/build.gradle.kts`).
   >     - The `composeApp` module has been completely removed.
   > - **File Relocation:** All source code, resources, and platform-specific files have been moved from `composeApp` to their corresponding new modules.
-  > - **Build Scripts:** The `README.MD` and `.gitignore` files have been updated to align with the new project layout and build commands.
+  > - **Build Scripts:** The `README.md` and `.gitignore` files have been updated to align with the new project layout and build commands.
 
   </details>
 - <details><summary><a href="https://github.com/gamerlogue/app/commit/251057204fbf6217f49169a154ecedda64b59c1b"><code>2510572</code></a> <b>auth:</b> ♻️ Refactor auth handling with Koin and a base provider</summary>
