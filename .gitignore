@@ -19,6 +19,7 @@ kotlin-js-store
 .idea/claudeCodeEditorTabs.xml
 .agent-work
 androidApp/*/release/mapping.txt
+androidApp/google-services.json
 
 # Created by https://www.toptal.com/developers/gitignore/api/xcode,kotlin,androidstudio,git,windows,macos,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=xcode,kotlin,androidstudio,git,windows,macos,linux
