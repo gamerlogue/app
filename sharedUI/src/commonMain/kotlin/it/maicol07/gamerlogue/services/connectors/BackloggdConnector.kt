@@ -50,9 +50,12 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
         };
     """.trimIndent())))
 
-    override val ownedGames = webRefs(WebStep(HOME, shelfScrape("games", withStatus = true)))
+    // "games" lists only the played shelf: playing and backlog games have pages of their own.
+    override val ownedGames = webRefs(
+        WebStep(HOME, shelfScrape(listOf("games", "playing", "backlog"), withStatus = true)),
+    )
 
-    override val wishlist = webRefs(WebStep(HOME, shelfScrape("wishlist", withStatus = false)))
+    override val wishlist = webRefs(WebStep(HOME, shelfScrape(listOf("wishlist"), withStatus = false)))
 
     override val wishlistWrite = WishlistWrite.ById { ids ->
         WebStep(HOME, SyncScripts.wrap("""
@@ -62,14 +65,15 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
             for (const [n, id] of ids.entries()) {
                 if (__glCancelled()) break;
                 __glProgress(n, ids.length);
-                if ((await __blSend('POST', '/log/', 'type=wishlist&game_id=' + id)).ok) out.push({ uid: String(id), name: '' });
+                if (await __blSet('wishlist', id, true)) out.push({ uid: String(id), name: '' });
             }
         """.trimIndent()))
     }
 
     // Backloggd keeps "playing" and "backlog" as shelves and every finished state under the "played" shelf
-    // with a sub-status (completed=0, abandoned=2, shelved=4). Shelves are toggles, so the old one is
-    // switched off before the new one is switched on; a move between played sub-statuses only patches it.
+    // with a sub-status (completed=0, abandoned=2, shelved=4). The new shelf is switched on before the old one is
+    // switched off, so a game is never left on none (which drops its log); a move between played sub-statuses only
+    // patches it.
     override val syncStatuses = GameLibraryStatus.entries.toSet()
 
     override val statusWrite: (List<StatusChange>) -> WebStep = { changes ->
@@ -85,8 +89,10 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
                 // The tracker entry's own id (an edition entry differs from the base game's IGDB id).
                 let id = c.uid || c.gameId;
                 let from = c.from ? shelf(c.from) : null, to = shelf(c.to), ok = true;
-                if (from && from !== to) ok = (await __blSend('POST', '/log/', 'type=' + from + '&game_id=' + id)).ok;
-                if (ok && from !== to) ok = (await __blSend('POST', '/log/', 'type=' + to + '&game_id=' + id)).ok;
+                if (from !== to) {
+                    ok = await __blSet(to, id, true);
+                    if (ok && from) ok = await __blSet(from, id, false);
+                }
                 if (ok && to === 'play') {
                     ok = (await __blSend('PATCH', '/log/status/', 'game_id=' + id + '&status_id=' + played[c.to])).ok;
                 }
@@ -96,10 +102,10 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
     }
 
     // Every shelf page is the same card grid: `.card.game-cover[game_id]` with the title in the cover's alt
-    // and the user's log state in a sibling `#preloaded-log-{id}` whose shelf attributes are timestamps or
-    // empty strings (non-empty = on that shelf). Paginated until a page has no new cards; a failed page throws, so
-    // the read reports an error instead of a partial library.
-    private fun shelfScrape(shelf: String, withStatus: Boolean) = SyncScripts.wrap("""
+    // and the user's log state in a sibling `#preloaded-log-{id}`, on an inner element whose shelf attributes are
+    // timestamps or empty strings (non-empty = on that shelf). Paginated until a page has no new cards; a failed
+    // page throws, so the read reports an error instead of a partial library.
+    private fun shelfScrape(shelves: List<String>, withStatus: Boolean) = SyncScripts.wrap("""
         $API_JS
         let user = await __blUser();
         out = [];
@@ -117,34 +123,43 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
             return null;
         };
         if (!user) throw new Error('Backloggd session is missing');
+        // A game on several shelves is read once; `onShelf` only tells when a shelf's paginator runs out.
         let seen = {};
-        for (let page = 1; page <= 200; page++) {
-            let doc;
-            try {
-                doc = await __glFetchDoc('/u/' + user + '/$shelf/?page=' + page);
-            } catch (e) {
-                // Some paginators answer 404 past the last page; that is the end, any other failure is not.
-                if (page > 1 && e.status === 404) break;
-                throw e;
-            }
-            let added = 0;
-            doc.querySelectorAll('.card.game-cover[game_id]').forEach(function(card) {
-                let id = card.getAttribute('game_id');
-                if (seen[id]) return;
-                seen[id] = true;
-                added++;
-                let img = card.querySelector('img');
-                let ref = { uid: id, name: img ? img.getAttribute('alt') || '' : '' };
-                if ($withStatus) {
-                    let st = status(doc.getElementById('preloaded-log-' + id));
-                    // Wishlist-only games belong to the wishlist read, not the tracked library.
-                    if (!st) return;
-                    ref.status = st;
+        for (const shelf of [${shelves.joinToString { "'$it'" }}]) {
+            let onShelf = {};
+            for (let page = 1; page <= 200; page++) {
+                let doc;
+                try {
+                    doc = await __glFetchDoc('/u/' + user + '/' + shelf + '/?page=' + page);
+                } catch (e) {
+                    // Some paginators answer 404 past the last page; that is the end, any other failure is not.
+                    if (page > 1 && e.status === 404) break;
+                    throw e;
                 }
-                out.push(ref);
-            });
-            __glProgress(out.length, 0);
-            if (!added) break;
+                let added = 0;
+                doc.querySelectorAll('.card.game-cover[game_id]').forEach(function(card) {
+                    let id = card.getAttribute('game_id');
+                    if (onShelf[id]) return;
+                    onShelf[id] = true;
+                    added++;
+                    if (seen[id]) return;
+                    seen[id] = true;
+                    let img = card.querySelector('img');
+                    let ref = { uid: id, name: img ? img.getAttribute('alt') || '' : '' };
+                    if ($withStatus) {
+                        // The shelf attributes sit on the log's inner element (`[data-log-id]`); older pages put them on
+                        // the wrapper itself.
+                        let wrapper = doc.getElementById('preloaded-log-' + id);
+                        let st = status(wrapper && (wrapper.querySelector('[data-log-id]') || wrapper));
+                        // Wishlist-only games belong to the wishlist read, not the tracked library.
+                        if (!st) return;
+                        ref.status = st;
+                    }
+                    out.push(ref);
+                });
+                __glProgress(out.length, 0);
+                if (!added) break;
+            }
         }
     """.trimIndent())
 
@@ -164,6 +179,17 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
                     },
                     body: body,
                 });
+            }
+            // The log endpoint toggles a shelf and answers which way (`action`): a reply the wrong way means the shelf
+            // already was as wanted, so it is toggled back. A reply with no `action` is taken as done.
+            async function __blSet(type, id, wanted) {
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    let r = await __blSend('POST', '/log/', 'type=' + type + '&game_id=' + id);
+                    if (!r.ok) return false;
+                    let reply = await r.json().catch(function() { return null; });
+                    if (!reply || reply.action === undefined || reply.action === wanted) return true;
+                }
+                return false;
             }
             async function __blUser() {
                 let settings = await __glDoc('/settings/');

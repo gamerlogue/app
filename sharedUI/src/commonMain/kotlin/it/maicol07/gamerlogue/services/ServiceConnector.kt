@@ -427,7 +427,10 @@ object SyncScripts {
         async function __glFetchDoc(path) {
             let r = await fetch(path, { credentials: 'include' });
             if (!r.ok) { let e = new Error('HTTP ' + r.status + ' ' + path); e.status = r.status; throw e; }
-            return new DOMParser().parseFromString(await r.text(), 'text/html');
+            let doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+            // An anti-bot challenge (Anubis) answers 200 with a page of its own: a failure, never an empty page.
+            if (doc.getElementById('anubis_challenge')) throw new Error('Bot challenge instead of ' + path);
+            return doc;
         }
         async function __glDoc(path) {
             try { return await __glFetchDoc(path); } catch (e) { if (e.status) return null; throw e; }
