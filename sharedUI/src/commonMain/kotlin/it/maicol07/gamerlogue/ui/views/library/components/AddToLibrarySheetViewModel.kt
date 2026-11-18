@@ -15,6 +15,7 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.library__error_select_status
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.BaseViewModel
+import it.maicol07.gamerlogue.core.LibraryChange
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.data.LibraryEntrySchema.CompletionStatus
@@ -134,7 +135,7 @@ class AddToLibrarySheetViewModel(
         deleteLoading = true
         error = null
         if (existingEntry != null) {
-            if (safeRequest { existingEntry.destroy() }.isOk) libraryChanges.notifyChanged()
+            if (safeRequest { existingEntry.destroy() }.isOk) libraryChanges.notifyChanged(LibraryChange.Other)
             onDelete()
         }
         deleteLoading = false
@@ -160,7 +161,7 @@ class AddToLibrarySheetViewModel(
         saveLoading = true
         val entry = getEntryToSave()
         val saved = safeRequest { entry.save() }.isOk
-        if (saved) libraryChanges.notifyChanged()
+        if (saved) libraryChanges.notifyChanged(LibraryChange.Saved(entry.status))
         saveLoading = false
         return entry to saved
     }

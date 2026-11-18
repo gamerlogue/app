@@ -6,6 +6,7 @@ import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.ExceptionReporter
+import it.maicol07.gamerlogue.core.LibraryChange
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.safeRequest
 import it.maicol07.gamerlogue.data.LibraryEntry
@@ -228,7 +229,7 @@ class LibrarySync(
                 entries.removeAll { it.gameId in ids }
                 entries.addAll(saved)
             }
-            if (saved.isNotEmpty()) libraryChanges.notifyChanged()
+            if (saved.isNotEmpty()) libraryChanges.notifyChanged(LibraryChange.Other)
         }
     }
 

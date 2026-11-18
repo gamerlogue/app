@@ -90,6 +90,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Rat
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.VisibilityOffW500Rounded
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.BaseViewModel
+import it.maicol07.gamerlogue.core.LibraryChange
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.data.IgdbLookup
 import it.maicol07.gamerlogue.data.LibraryEntry
@@ -193,7 +194,7 @@ class ReviewEditorViewModel(@InjectedParam private val entryId: String) : BaseVi
         val saved = safeRequest { entry.save() }.isOk
         saveLoading = false
         if (saved) {
-            libraryChanges.notifyChanged()
+            libraryChanges.notifyChanged(LibraryChange.Other)
             onSaved()
         }
     }

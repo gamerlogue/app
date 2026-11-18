@@ -11,6 +11,7 @@ import at.released.igdbclient.model.GameTimeToBeat
 import at.released.igdbclient.multiquery
 import com.github.michaelbull.result.unwrap
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
+import it.maicol07.gamerlogue.core.LibraryChange
 import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.data.LibraryEntry
@@ -292,7 +293,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val result = safeRequest { draft.save() }
         if (result.isOk) {
             update { copy(libraryEntry = draft) }
-            libraryChanges.notifyChanged()
+            libraryChanges.notifyChanged(LibraryChange.Saved(draft.status))
         }
     }
 
@@ -301,7 +302,7 @@ class GameDetailViewModel(@InjectedParam val gameId: Int) : StateViewModel<GameD
         val result = safeRequest { current.destroy() }
         if (result.isOk) {
             update { copy(libraryEntry = null) }
-            libraryChanges.notifyChanged()
+            libraryChanges.notifyChanged(LibraryChange.Other)
         }
     }
 }
