@@ -8,13 +8,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import it.maicol07.gamerlogue.auth.AuthHandler
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.PushNotifications
 import it.maicol07.gamerlogue.di.KoinApp
+import it.maicol07.gamerlogue.services.SyncCoordinator
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
 import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.navigation.AppNavDisplay
@@ -46,6 +50,7 @@ fun App(
             AuthHandler(authCallbackUri, onAuthCallbackHandled)
             LocalNetworkAccess(koinInject<AppPreferences>().serverUrl.collectAsStateWithLifecycle().value)
             PushNotificationsHost()
+            BackgroundSyncHost()
             // A tapped notification: the list lives under the profile, where its bell is.
             LaunchedEffect(openNotifications) {
                 if (!openNotifications) return@LaunchedEffect
@@ -81,6 +86,18 @@ private fun PushNotificationsHost() {
     NotificationPermission(session.isAuthenticated)
     val pushNotifications = koinInject<PushNotifications>()
     LaunchedEffect(pushNotifications) { pushNotifications.run() }
+}
+
+// Signed in and with the app on screen: the background sync needs the library, and stops with the app.
+@Composable
+private fun BackgroundSyncHost() {
+    val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
+    if (!session.isAuthenticated) return
+    val coordinator = koinInject<SyncCoordinator>()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(coordinator, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { coordinator.watch() }
+    }
 }
 
 @Composable

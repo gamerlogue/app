@@ -127,9 +127,15 @@ class GameMatcherExplicitIdTest : StringSpec({
                     mapOf(42 to SyncedGame("bg-100", GameLibraryStatus.BACKLOG)),
                 )
                 val connector = BackloggeryConnector()
-                val viewModel =
-
-                    LinkedServicesViewModel(mapOf(ExternalService.BACKLOGGERY to connector), settings, library, tracker)
+                val connectors = mapOf<ExternalService, ServiceConnector>(ExternalService.BACKLOGGERY to connector)
+                val runner = SyncRunner(connectors, settings, library, tracker, matcher)
+                val noBackground = object : BackgroundWebHost {
+                    override suspend fun <T> withSession(block: suspend (WebSession) -> T): T =
+                        error("No background syncs expected")
+                }
+                val history = SyncHistory(MapSettings())
+                val coordinator = SyncCoordinator(settings, runner, history, noBackground, LibraryChanges())
+                val viewModel = LinkedServicesViewModel(connectors, settings, library, tracker, runner, coordinator)
 
                 // Both variables are assigned by the WebSession callbacks below.
                 @Suppress("CanBeVal")
@@ -190,7 +196,7 @@ class GameMatcherExplicitIdTest : StringSpec({
                     reporter.state.value shouldBe null
                     viewModel.runApplyResyncIds(ExternalService.BACKLOGGERY, session)
                     val expectedWrites = (if (excludeKnown) 0 else 1) + (if (confirmUnknown) 1 else 0)
-                    viewModel.uiState.value.outcome shouldBe LinkedServicesViewModel.SyncOutcome.IdsResynced(
+                    viewModel.uiState.value.outcome shouldBe SyncOutcome.IdsResynced(
                         expectedWrites,
                         2 - expectedWrites
                     )

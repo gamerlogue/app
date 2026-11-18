@@ -2,6 +2,7 @@ package it.maicol07.gamerlogue.ui.components.layout
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -9,24 +10,34 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common__back
 import gamerlogue.sharedui.generated.resources.exception__action_show
 import gamerlogue.sharedui.generated.resources.nav__notifications
+import gamerlogue.sharedui.generated.resources.sync__status_new
+import gamerlogue.sharedui.generated.resources.sync__status_running
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NotificationsW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.UnreadNotifications
+import it.maicol07.gamerlogue.services.SyncCoordinator
+import it.maicol07.gamerlogue.services.SyncHistory
+import it.maicol07.gamerlogue.services.SyncResult
 import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
@@ -68,6 +79,7 @@ fun AppTopBar(
         },
         actions = {
             actions()
+            SyncStatusAction(navigationState)
             GlobalErrorAction()
         }
     )
@@ -86,6 +98,42 @@ fun NotificationsAction(navigationState: AppNavigationState = LocalNavigationSta
         }
     }
 }
+
+/**
+ * Shown while a sync runs (a loading indicator) and after one the user hasn't looked at yet (the count of new results,
+ * red when one failed); it opens the sync history, which marks them seen.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun SyncStatusAction(navigationState: AppNavigationState = LocalNavigationState.current) {
+    val running by koinInject<SyncCoordinator>().running.collectAsStateWithLifecycle()
+    val runs by koinInject<SyncHistory>().runs.collectAsStateWithLifecycle()
+    val unseen = runs.filterNot { it.seen }
+    AnimatedVisibility(running.isNotEmpty() || unseen.isNotEmpty()) {
+        IconButton(
+            onClick = { navigationState.backStack.add(RootNavTree.SyncHistory) },
+            shapes = IconButtonDefaults.shapes()
+        ) {
+            if (running.isNotEmpty()) {
+                val runningLabel = stringResource(Res.string.sync__status_running)
+                LoadingIndicator(Modifier.size(SyncIndicatorSize).semantics { contentDescription = runningLabel })
+            } else {
+                val failed = unseen.any { it.result == SyncResult.FAILED || it.result == SyncResult.LOGIN_REQUIRED }
+                BadgedBox(
+                    badge = {
+                        Badge(
+                            containerColor = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        ) { Text(unseen.size.toString()) }
+                    }
+                ) {
+                    Icon(Icons.SyncW500Rounded, contentDescription = stringResource(Res.string.sync__status_new))
+                }
+            }
+        }
+    }
+}
+
+private val SyncIndicatorSize = 24.dp
 
 @Composable
 fun GlobalErrorAction() {

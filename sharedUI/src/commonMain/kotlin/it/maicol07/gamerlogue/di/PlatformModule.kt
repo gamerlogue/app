@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.di
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
+import it.maicol07.gamerlogue.services.BackgroundWebHost
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -19,4 +20,7 @@ expect object PlatformModule {
      */
     @Single
     fun provideAuthenticationHandler(scope: Scope): AuthenticationHandler
+
+    @Single
+    fun provideBackgroundWebHost(scope: Scope): BackgroundWebHost
 }

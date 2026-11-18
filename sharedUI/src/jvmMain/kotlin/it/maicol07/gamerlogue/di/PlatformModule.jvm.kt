@@ -6,6 +6,8 @@ import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.auth.JvmAuthTokenProvider
 import it.maicol07.gamerlogue.auth.JvmAuthenticationHandler
+import it.maicol07.gamerlogue.services.BackgroundWebHost
+import it.maicol07.gamerlogue.services.DesktopBackgroundWebHost
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -24,4 +26,7 @@ actual object PlatformModule {
         authClient = scope.get<HttpClient>(named("AuthHttpClient")),
         serverUrl = { scope.get<AppPreferences>().serverUrl.value },
     )
+
+    @Single
+    actual fun provideBackgroundWebHost(scope: Scope): BackgroundWebHost = DesktopBackgroundWebHost
 }

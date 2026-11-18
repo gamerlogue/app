@@ -327,7 +327,14 @@ enum class SkipReason {
     ALREADY_PRESENT, NO_PLATFORM, PLATFORM_REJECTED, REJECTED, NOTES_TOO_LONG, UNREADABLE, NOT_FOUND, UNCONFIRMED,
 }
 
-data class SkippedWrite(val name: String, val reason: SkipReason)
+/** A game a write left out, by [name] as the script reports it; the IGDB game and its cover once the sync knows them. */
+@Serializable
+data class SkippedWrite(
+    val name: String,
+    val reason: SkipReason,
+    val gameId: Int? = null,
+    val coverImageId: String? = null,
+)
 
 internal class ScriptWriteException(
     message: String,

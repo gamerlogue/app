@@ -8,6 +8,7 @@ import androidx.compose.ui.window.rememberWindowState
 import gamerlogue.desktopapp.generated.resources.Res
 import gamerlogue.desktopapp.generated.resources.app_icon
 import io.github.kdroidfilter.platformtools.darkmodedetector.windows.setWindowsAdaptiveTitleBar
+import it.maicol07.gamerlogue.services.BackgroundSyncWindow
 import org.jetbrains.compose.resources.painterResource
 import java.awt.Dimension
 
@@ -28,4 +29,6 @@ fun main() = application {
         window.setWindowsAdaptiveTitleBar()
         App()
     }
+
+    BackgroundSyncWindow()
 }

@@ -345,13 +345,17 @@ internal fun ImportRow(
 }
 
 @Composable
-internal fun MatchCover(game: Game?, modifier: Modifier = Modifier) {
+internal fun MatchCover(game: Game?, modifier: Modifier = Modifier) =
+    GameCover(game?.cover?.image_id, game?.name, modifier)
+
+/** A small game cover for a list row, from its IGDB [coverId]; a placeholder glyph when there is none. */
+@Composable
+internal fun GameCover(coverId: String?, name: String?, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(6.dp)
-    val coverId = game?.cover?.image_id
     if (coverId != null) {
         RemoteImage(
             url = igdbImageUrl(coverId, IgdbImageSize.COVER_SMALL),
-            contentDescription = game.name,
+            contentDescription = name.orEmpty(),
             modifier = modifier.size(width = 40.dp, height = 53.dp).clip(shape),
             loadingModifier = modifier.size(width = 40.dp, height = 53.dp).clip(shape),
         )

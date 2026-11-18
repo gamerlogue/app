@@ -306,6 +306,69 @@
     <string name="settings__group_account">Account</string>
     <string name="settings__linked_services_disclaimer">You sign in on the service's own page. Links and credentials stay saved on this device only and are never sent anywhere else.</string>
     <string name="settings__linked_services_hint">Link an account to import its library and keep wishlists and game statuses in sync. Tap a linked tracker to see its options: the switch turns automatic sync on, the ▶ button syncs now after you review the changes.</string>
+    <string name="sync__history">Sync history</string>
+    <string name="sync__history_summary">Every sync with its results</string>
+    <string name="sync__history_empty">No syncs yet. Automatic and manual syncs show up here with their results.</string>
+    <string name="sync__status_running">Syncing</string>
+    <string name="sync__status_new">New sync results</string>
+    <string name="sync__kind_wishlist">Wishlist</string>
+    <string name="sync__kind_library">Library</string>
+    <string name="sync__trigger_manual">Manual</string>
+    <string name="sync__trigger_change">After a change</string>
+    <string name="sync__trigger_periodic">Periodic</string>
+    <string name="sync__result_ok">Done</string>
+    <string name="sync__result_partial">Partly done</string>
+    <string name="sync__result_failed">Failed</string>
+    <string name="sync__result_login_required">Sign in again</string>
+    <string name="sync__login_required_hint">The service signed you out. Open Linked Services and sync it once to sign in again.</string>
+    <plurals name="sync__added">
+        <item quantity="one">%1$d game added or updated here</item>
+        <item quantity="other">%1$d games added or updated here</item>
+    </plurals>
+    <plurals name="sync__pushed">
+        <item quantity="one">%1$d game sent to the service</item>
+        <item quantity="other">%1$d games sent to the service</item>
+    </plurals>
+    <plurals name="sync__conflicts">
+        <item quantity="one">%1$d conflict: settle it with a reviewed sync</item>
+        <item quantity="other">%1$d conflicts: settle them with a reviewed sync</item>
+    </plurals>
+    <string name="sync__no_changes">Already in sync</string>
+    <string name="sync__error">Error: %1$s</string>
+    <string name="sync__removed_title">No longer on the service</string>
+    <string name="sync__removed_delete">Delete from Gamerlogue</string>
+    <string name="sync__removed_keep">Keep</string>
+    <string name="sync__removed_confirm_title">Delete %1$s?</string>
+    <string name="sync__removed_confirm_text">The game is deleted from your Gamerlogue library, with its review if it has one. The service isn't changed.</string>
+    <string name="sync__received_game">Received from %1$s · %2$s</string>
+    <string name="sync__sent_game">Sent to %1$s · %2$s</string>
+    <plurals name="sync__skipped_count">
+        <item quantity="one">%1$d game not taken by the service</item>
+        <item quantity="other">%1$d games not taken by the service</item>
+    </plurals>
+    <plurals name="sync__removed_count">
+        <item quantity="one">%1$d game no longer on the service: choose what to do</item>
+        <item quantity="other">%1$d games no longer on the service: choose what to do</item>
+    </plurals>
+    <plurals name="sync__removed_see_latest">
+        <item quantity="one">%1$d game to settle: see the latest sync of this service</item>
+        <item quantity="other">%1$d games to settle: see the latest sync of this service</item>
+    </plurals>
+    <string name="sync__help">What happened?</string>
+    <string name="sync__help_trigger_manual">You started this sync from Linked Services.</string>
+    <string name="sync__help_trigger_change">It started on its own a minute and a half after you changed your library, to bring the change to %1$s.</string>
+    <string name="sync__help_trigger_periodic">It started on its own, at the interval set in Linked Services, to keep %1$s and Gamerlogue in line.</string>
+    <string name="sync__help_library">A library sync compares each game's status on both sides with the last sync: what changed on %1$s is received here, what changed here is sent there.</string>
+    <string name="sync__help_wishlist">A wishlist sync adds the games on your %1$s wishlist to your backlog, and sends there the backlog games you don't own.</string>
+    <string name="sync__help_none">Gamerlogue and %1$s already agreed: there was nothing to change.</string>
+    <string name="sync__help_conflicts">A conflict is a game changed on both sides since the last sync: it is never settled on its own. Settle it with Sync now (▶) on the service in Linked Services.</string>
+    <string name="sync__help_skipped">%1$s didn't take some games: the reason is under each one. They are tried again at the next sync.</string>
+    <string name="sync__help_removed">Some games are no longer on %1$s but are still in your library. Removals are never copied on their own: Keep leaves the game here and stops asking, Delete from Gamerlogue deletes it here too. %1$s isn't changed either way.</string>
+    <string name="sync__help_failed">The sync stopped on the error below. It is tried again at the next sync.</string>
+    <string name="sync__period">Automatic sync</string>
+    <string name="sync__period_summary">How often the enabled syncs run while the app is open. A change to your library is synced a minute and a half after you make it.</string>
+    <string name="sync__period_off">Off</string>
+    <string name="sync__period_hours">%1$d h</string>
     <string name="settings__theme">Theme</string>
     <string name="settings__language">Language</string>
     <string name="settings__dynamic_colors">Use device colors</string>

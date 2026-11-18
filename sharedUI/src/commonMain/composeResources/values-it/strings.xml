@@ -304,6 +304,69 @@
     <string name="settings__group_account">Account</string>
     <string name="settings__linked_services_disclaimer">Accedi dalla pagina del servizio. Collegamenti e credenziali restano salvati solo su questo dispositivo e non vengono mai inviati altrove.</string>
     <string name="settings__linked_services_hint">Collega un account per importare la libreria e tenere sincronizzati wishlist e stati di gioco. Tocca un tracker collegato per vederne le opzioni: l'interruttore attiva la sincronizzazione automatica, il pulsante ▶ sincronizza subito dopo aver rivisto le modifiche.</string>
+    <string name="sync__history">Storico sincronizzazioni</string>
+    <string name="sync__history_summary">Ogni sincronizzazione con i suoi esiti</string>
+    <string name="sync__history_empty">Ancora nessuna sincronizzazione. Qui compaiono quelle automatiche e manuali, con i loro esiti.</string>
+    <string name="sync__status_running">Sincronizzazione in corso</string>
+    <string name="sync__status_new">Nuovi esiti di sincronizzazione</string>
+    <string name="sync__kind_wishlist">Wishlist</string>
+    <string name="sync__kind_library">Libreria</string>
+    <string name="sync__trigger_manual">Manuale</string>
+    <string name="sync__trigger_change">Dopo una modifica</string>
+    <string name="sync__trigger_periodic">Periodica</string>
+    <string name="sync__result_ok">Completata</string>
+    <string name="sync__result_partial">Completata in parte</string>
+    <string name="sync__result_failed">Non riuscita</string>
+    <string name="sync__result_login_required">Accedi di nuovo</string>
+    <string name="sync__login_required_hint">Il servizio ti ha disconnesso. Apri Servizi collegati e sincronizzalo una volta per accedere di nuovo.</string>
+    <plurals name="sync__added">
+        <item quantity="one">%1$d gioco aggiunto o aggiornato qui</item>
+        <item quantity="other">%1$d giochi aggiunti o aggiornati qui</item>
+    </plurals>
+    <plurals name="sync__pushed">
+        <item quantity="one">%1$d gioco inviato al servizio</item>
+        <item quantity="other">%1$d giochi inviati al servizio</item>
+    </plurals>
+    <plurals name="sync__conflicts">
+        <item quantity="one">%1$d conflitto: risolvilo con una sincronizzazione rivista</item>
+        <item quantity="other">%1$d conflitti: risolvili con una sincronizzazione rivista</item>
+    </plurals>
+    <string name="sync__no_changes">Già sincronizzato</string>
+    <string name="sync__error">Errore: %1$s</string>
+    <string name="sync__removed_title">Non più sul servizio</string>
+    <string name="sync__removed_delete">Elimina da Gamerlogue</string>
+    <string name="sync__removed_keep">Tieni</string>
+    <string name="sync__removed_confirm_title">Eliminare %1$s?</string>
+    <string name="sync__removed_confirm_text">Il gioco viene eliminato dalla tua libreria di Gamerlogue, con la recensione se ne ha una. Il servizio non viene modificato.</string>
+    <string name="sync__received_game">Ricevuto da %1$s · %2$s</string>
+    <string name="sync__sent_game">Inviato a %1$s · %2$s</string>
+    <plurals name="sync__skipped_count">
+        <item quantity="one">%1$d gioco non accettato dal servizio</item>
+        <item quantity="other">%1$d giochi non accettati dal servizio</item>
+    </plurals>
+    <plurals name="sync__removed_count">
+        <item quantity="one">%1$d gioco non più sul servizio: scegli cosa farne</item>
+        <item quantity="other">%1$d giochi non più sul servizio: scegli cosa farne</item>
+    </plurals>
+    <plurals name="sync__removed_see_latest">
+        <item quantity="one">%1$d gioco da decidere: guarda la sincronizzazione più recente di questo servizio</item>
+        <item quantity="other">%1$d giochi da decidere: guarda la sincronizzazione più recente di questo servizio</item>
+    </plurals>
+    <string name="sync__help">Cosa è successo?</string>
+    <string name="sync__help_trigger_manual">Hai avviato tu questa sincronizzazione da Servizi collegati.</string>
+    <string name="sync__help_trigger_change">È partita da sola un minuto e mezzo dopo una modifica alla tua libreria, per portarla su %1$s.</string>
+    <string name="sync__help_trigger_periodic">È partita da sola, all'intervallo impostato in Servizi collegati, per tenere allineati %1$s e Gamerlogue.</string>
+    <string name="sync__help_library">Una sincronizzazione della libreria confronta lo stato di ogni gioco sui due lati con l'ultima sincronizzazione: quello che è cambiato su %1$s viene ricevuto qui, quello che è cambiato qui viene inviato lì.</string>
+    <string name="sync__help_wishlist">Una sincronizzazione della wishlist aggiunge al tuo backlog i giochi della tua wishlist di %1$s, e invia lì i giochi del backlog che non possiedi.</string>
+    <string name="sync__help_none">Gamerlogue e %1$s erano già allineati: non c'era niente da cambiare.</string>
+    <string name="sync__help_conflicts">Un conflitto è un gioco cambiato su entrambi i lati dall'ultima sincronizzazione: non viene mai risolto da solo. Risolvilo con Sincronizza ora (▶) sul servizio in Servizi collegati.</string>
+    <string name="sync__help_skipped">%1$s non ha accettato alcuni giochi: il motivo è sotto ciascuno. Vengono ritentati alla prossima sincronizzazione.</string>
+    <string name="sync__help_removed">Alcuni giochi non sono più su %1$s ma sono ancora nella tua libreria. Le rimozioni non vengono mai copiate da sole: Tieni lascia qui il gioco e non te lo chiede più, Elimina da Gamerlogue lo elimina anche qui. In nessuno dei due casi %1$s viene modificato.</string>
+    <string name="sync__help_failed">La sincronizzazione si è fermata per l'errore qui sotto. Viene ritentata alla prossima.</string>
+    <string name="sync__period">Sincronizzazione automatica</string>
+    <string name="sync__period_summary">Ogni quanto partono le sincronizzazioni attive mentre l'app è aperta. Una modifica alla libreria viene sincronizzata un minuto e mezzo dopo averla fatta.</string>
+    <string name="sync__period_off">Mai</string>
+    <string name="sync__period_hours">%1$d h</string>
     <string name="settings__theme">Tema</string>
     <string name="settings__language">Lingua</string>
     <string name="settings__dynamic_colors">Usa i colori del dispositivo</string>

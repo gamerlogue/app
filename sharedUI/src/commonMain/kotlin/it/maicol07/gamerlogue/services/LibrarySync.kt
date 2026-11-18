@@ -78,9 +78,14 @@ class LibrarySync(
         const val MAX_CONCURRENT_SAVES = 4
     }
 
-    /** [added] = entries created in Gamerlogue; [toPush] = backlog games to add to the store wishlist;
-     *  [removedOnOneSide] = games removed on one side since the last sync and left on the other. */
-    data class WishlistResult(val added: Int, val toPush: List<OutgoingGame>, val removedOnOneSide: Int)
+    /** [added] = entries created in Gamerlogue, [addedGames] their games; [toPush] = backlog games to add to the store
+     *  wishlist; [removedOnOneSide] = games removed on one side since the last sync and left on the other. */
+    data class WishlistResult(
+        val added: Int,
+        val toPush: List<OutgoingGame>,
+        val removedOnOneSide: Int,
+        val addedGames: List<Game> = emptyList(),
+    )
 
     /** A Gamerlogue backlog game about to be pushed to a store wishlist (for the outgoing preview).
      *  [onPlatform] is false when the game doesn't release on the store's platform family (shown in a
@@ -299,10 +304,17 @@ class LibrarySync(
         // Removed from the library since a past sync: not imported again.
         val removed = wishlistState.base(connector.service) - entries.mapTo(mutableSetOf()) { it.gameId }
         val incoming = matches.filter { it.confident }.mapNotNull { it.game }.filterNot { it.baseGameId in removed }
+        val known = entries.mapTo(mutableSetOf()) { it.gameId }
         val added = importWishlist(connector, incoming, entries)
         val toPush = computeWishlistPush(connector, serviceWishlist, entries, onWishlist)
         wishlistState.record(connector.service, onWishlist, entries)
-        return WishlistResult(added, toPush, (removed intersect onWishlist).size + toPush.count { it.removedFromStore })
+        return WishlistResult(
+            added,
+            toPush,
+            (removed intersect onWishlist).size + toPush.count { it.removedFromStore },
+            // The games that made new entries, which is what `added` counts.
+            incoming.filterNot { it.baseGameId in known }.distinctBy { it.baseGameId },
+        )
     }
 
     /**

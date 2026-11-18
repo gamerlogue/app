@@ -119,6 +119,7 @@ import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.SkipReason
 import it.maicol07.gamerlogue.services.SkippedWrite
+import it.maicol07.gamerlogue.services.SyncOutcome
 import it.maicol07.gamerlogue.ui.components.BatchProgress
 import it.maicol07.gamerlogue.ui.components.HintCard
 import it.maicol07.gamerlogue.ui.components.StatusMessage
@@ -363,10 +364,10 @@ fun ServiceSyncView(
                     onSkip = { session.resolveConfirm(emptyList()) },
                 )
                 // Pop straight back to Linked Services unless there is something worth reporting.
-                finished && outcome == LinkedServicesViewModel.SyncOutcome.Failed ->
+                finished && outcome == SyncOutcome.Failed ->
                     SyncReport(leftOut = emptyList(), session.console) { ErrorContent(onFinish) }
 
-                finished && outcome is LinkedServicesViewModel.SyncOutcome.WishlistSynced &&
+                finished && outcome is SyncOutcome.WishlistSynced &&
                     outcome.changedAnything -> SyncReport(outcome.skipped, session.console) {
                     SyncSummary(
                         Res.string.settings__service_sync_summary,
@@ -381,7 +382,7 @@ fun ServiceSyncView(
                     )
                 }
 
-                finished && outcome is LinkedServicesViewModel.SyncOutcome.LibrarySynced &&
+                finished && outcome is SyncOutcome.LibrarySynced &&
                     outcome.changedAnything -> SyncReport(outcome.skipped, session.console) {
                     SyncSummary(
                         Res.string.settings__library_sync_summary,
@@ -396,7 +397,7 @@ fun ServiceSyncView(
                     )
                 }
 
-                finished && outcome is LinkedServicesViewModel.SyncOutcome.IdsResynced -> StatusMessage(
+                finished && outcome is SyncOutcome.IdsResynced -> StatusMessage(
                     Icons.CheckCircleW500Rounded,
                     stringResource(Res.string.settings__service_resync_ids_result, outcome.updated, outcome.unmatched),
                 ) {
@@ -613,7 +614,7 @@ private fun CopyButton(text: String, modifier: Modifier) = Box(modifier) {
     }
 }
 
-private val SkipReason.label: StringResource
+internal val SkipReason.label: StringResource
     get() = when (this) {
         SkipReason.ALREADY_PRESENT -> Res.string.settings__service_skip_already_present
         SkipReason.NO_PLATFORM -> Res.string.settings__service_skip_no_platform

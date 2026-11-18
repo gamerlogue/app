@@ -6,6 +6,8 @@ import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.auth.WebAuthTokenProvider
 import it.maicol07.gamerlogue.auth.WebAuthenticationHandler
+import it.maicol07.gamerlogue.services.BackgroundWebHost
+import it.maicol07.gamerlogue.ui.components.WebSession
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -24,4 +26,11 @@ actual object PlatformModule {
         authClient = scope.get<HttpClient>(named("AuthHttpClient")),
         serverUrl = { scope.get<AppPreferences>().serverUrl.value },
     )
+
+    // Store syncs need a WebView the browser can't host (see isServiceSyncSupported): nothing ever asks for one.
+    @Single
+    actual fun provideBackgroundWebHost(scope: Scope): BackgroundWebHost = object : BackgroundWebHost {
+        override suspend fun <T> withSession(block: suspend (WebSession) -> T): T =
+            throw UnsupportedOperationException("Store syncs don't run in the browser")
+    }
 }

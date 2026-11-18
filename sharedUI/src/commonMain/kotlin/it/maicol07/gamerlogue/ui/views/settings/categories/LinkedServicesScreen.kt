@@ -122,7 +122,8 @@ fun LinkedServicesView(
             viewModel = viewModel,
             navigateToSync = { service, action ->
                 navigationState.backStack.add(RootNavTree.ServiceSync(service, action))
-            }
+            },
+            navigateToHistory = { navigationState.backStack.add(RootNavTree.SyncHistory) },
         )
     }
 }
@@ -132,6 +133,7 @@ fun LinkedServicesView(
 private fun LinkedServicesContent(
     viewModel: LinkedServicesViewModel,
     navigateToSync: (ExternalService, ServiceSyncAction) -> Unit,
+    navigateToHistory: () -> Unit,
 ) {
     if (!isServiceSyncSupported) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -181,6 +183,8 @@ private fun LinkedServicesContent(
             }
         }
         HintCard(stringResource(Res.string.settings__linked_services_hint))
+        val periodHours by viewModel.syncPeriodHours.collectAsStateWithLifecycle()
+        SyncSettings(periodHours, viewModel::setSyncPeriodHours, navigateToHistory)
 
         val stateOf = { service: ExternalService -> uiState.services[service] ?: LinkedServicesViewModel.ServiceState() }
         val uriHandler = LocalUriHandler.current
@@ -406,7 +410,7 @@ private fun AppBarRowScope.serviceAction(icon: ImageVector, label: String, onCli
     },
 )
 
-private fun ExternalService.icon(): ImageVector = when (this) {
+internal fun ExternalService.icon(): ImageVector = when (this) {
     ExternalService.STEAM -> Icons.SteamSimpleIcons
     ExternalService.PLAYSTATION -> Icons.PlaystationSimpleIcons
     ExternalService.XBOX -> SvglIcons.XboxSvgl
@@ -429,7 +433,7 @@ private fun ExternalService.icon(): ImageVector = when (this) {
 // (content-hashed: a redeploy breaks the URL and falls back to the glyph); Stash's site has none, so it uses
 // the Play Store icon of its app (io.stashteam.games.tracker.stashapp). HowLongToBeat uses Google's cached
 // favicon because its own image endpoint returns 403 to non-browser requests.
-private fun ExternalService.logoUrl(): String? = when (this) {
+internal fun ExternalService.logoUrl(): String? = when (this) {
     ExternalService.BACKLOGGD -> "https://backloggd.com/apple-touch-icon.png"
     ExternalService.BACKLOGGERY -> "https://backloggery.com/img/icons/favicon-32x32.png"
     ExternalService.HOWLONGTOBEAT -> "https://www.google.com/s2/favicons?domain=howlongtobeat.com&sz=64"

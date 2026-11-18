@@ -298,6 +298,7 @@ symbolCraft {
         "flutter_dash",
         "grid_4x4",
         "group",
+        "help",
         "history",
         "home",
         "hourglass",
