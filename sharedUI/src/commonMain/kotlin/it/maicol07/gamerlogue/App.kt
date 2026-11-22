@@ -8,10 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import it.maicol07.gamerlogue.auth.AuthHandler
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.AppPreferences
@@ -96,17 +93,15 @@ private fun PushNotificationsHost() {
     LaunchedEffect(pushNotifications) { pushNotifications.run() }
 }
 
-// Signed in and with the app on screen: the background sync needs the library, and stops with the app.
+// Signed in: the background sync needs the library. It lasts as long as the app's composition, so on the desktop it
+// goes on with the window hidden in the tray; on Android WorkManager runs the syncs once the activity is gone.
 @Composable
 private fun BackgroundSyncHost() {
     val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
     if (!session.isAuthenticated) return
     val coordinator = koinInject<SyncCoordinator>()
     val scheduler = koinInject<SyncScheduler>()
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(coordinator, lifecycle) {
-        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { coordinator.watch(scheduler) }
-    }
+    LaunchedEffect(coordinator, scheduler) { coordinator.watch(scheduler) }
 }
 
 @Composable

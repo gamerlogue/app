@@ -379,6 +379,9 @@
         <item quantity="one">%1$s: %2$d conflict</item>
         <item quantity="other">%1$s: %2$d conflicts</item>
     </plurals>
+    <string name="sync__tray_open">Open Gamerlogue</string>
+    <string name="sync__tray_quit">Quit</string>
+    <string name="sync__tray_syncing">Gamerlogue · syncing</string>
     <string name="sync__period">Automatic sync</string>
     <string name="sync__period_summary">How often the enabled syncs run, with the app closed too: online and with the battery not low, and the system may delay them to save power. A change to your library is synced a minute and a half after you make it.</string>
     <string name="sync__period_off">Off</string>

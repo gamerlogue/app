@@ -377,6 +377,9 @@
         <item quantity="one">%1$s: %2$d conflitto</item>
         <item quantity="other">%1$s: %2$d conflitti</item>
     </plurals>
+    <string name="sync__tray_open">Apri Gamerlogue</string>
+    <string name="sync__tray_quit">Esci</string>
+    <string name="sync__tray_syncing">Gamerlogue · sincronizzazione in corso</string>
     <string name="sync__period">Sincronizzazione automatica</string>
     <string name="sync__period_summary">Ogni quanto partono le sincronizzazioni attive, anche con l'app chiusa: con la rete e la batteria non scarica, e il sistema può ritardarle per risparmiare energia. Una modifica alla libreria viene sincronizzata un minuto e mezzo dopo averla fatta.</string>
     <string name="sync__period_off">Mai</string>
