@@ -19,6 +19,7 @@ import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.PushNotifications
 import it.maicol07.gamerlogue.di.KoinApp
 import it.maicol07.gamerlogue.services.SyncCoordinator
+import it.maicol07.gamerlogue.services.SyncScheduler
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
 import it.maicol07.gamerlogue.ui.components.layout.GlobalExceptionBottomSheet
 import it.maicol07.gamerlogue.ui.navigation.AppNavDisplay
@@ -42,6 +43,8 @@ fun App(
     onAuthCallbackHandled: () -> Unit = {},
     openNotifications: Boolean = false,
     onNotificationsOpened: () -> Unit = {},
+    openSyncHistory: Boolean = false,
+    onSyncHistoryOpened: () -> Unit = {},
 ) {
     val navigationState = rememberAppNavigationState()
 
@@ -57,6 +60,11 @@ fun App(
                 navigationState.selectRoot(RootNavTree.Profile)
                 navigationState.backStack.add(RootNavTree.Notifications)
                 onNotificationsOpened()
+            }
+            LaunchedEffect(openSyncHistory) {
+                if (!openSyncHistory) return@LaunchedEffect
+                navigationState.backStack.add(RootNavTree.SyncHistory)
+                onSyncHistoryOpened()
             }
 
             // Compose resources read the platform locale during composition, so an in-app language
@@ -94,9 +102,10 @@ private fun BackgroundSyncHost() {
     val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
     if (!session.isAuthenticated) return
     val coordinator = koinInject<SyncCoordinator>()
+    val scheduler = koinInject<SyncScheduler>()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(coordinator, lifecycle) {
-        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { coordinator.watch() }
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { coordinator.watch(scheduler) }
     }
 }
 

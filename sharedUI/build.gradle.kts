@@ -147,6 +147,9 @@ kotlin {
             implementation(libs.systemUIBarsTweaker)
             implementation(libs.slf4j.api)
             implementation(libs.slf4j.android)
+            // Background sync: the scheduled and change-triggered runs, and Koin started outside the composition.
+            implementation(libs.androidx.work.runtime)
+            implementation(libs.koin.android)
         }
 
         jvmMain.dependencies {

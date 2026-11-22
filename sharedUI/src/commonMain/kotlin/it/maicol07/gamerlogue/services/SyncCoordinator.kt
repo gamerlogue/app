@@ -9,19 +9,11 @@ import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.ui.components.LoginTimeoutException
 import it.maicol07.gamerlogue.ui.components.WebSession
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -29,8 +21,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
@@ -38,11 +28,13 @@ import kotlin.uuid.Uuid
 /**
  * Runs the enabled syncs with no one watching and records every sync in the [SyncHistory].
  *
- * While [watch] is collected (the app is open), a library change the user made pushes it, after [PUSH_DELAY] of
- * quiet: the library sync of every tracker that has it on and, for a backlog game, the wishlist sync of every service
- * that has it on. Every [PERIOD_KEY] hours (default [DEFAULT_PERIOD_HOURS], 0 = off) both kinds run for all of them.
- * A tracker that never went through the reviewed first sync is left out: nothing is written unattended before it.
- * Background runs go one at a time through the [BackgroundWebHost]; a service never runs two syncs at once.
+ * While [watch] is collected (the app is open and signed in), it hands the [SyncScheduler] of the platform what to
+ * schedule: a library change the user made, to push after [PUSH_DELAY] of quiet (the library sync of every tracker that
+ * has it on and, for a backlog game, the wishlist sync of every service that has it on), and the period of the sync of
+ * both kinds for all of them ([PERIOD_KEY] hours, default [DEFAULT_PERIOD_HOURS], 0 = off). The scheduler calls
+ * [runDue] when one is due. A tracker that never went through the reviewed first sync is left out: nothing is written
+ * unattended before it. Background runs go one at a time through the [BackgroundWebHost]; a service never runs two
+ * syncs at once.
  */
 @Single
 class SyncCoordinator(
@@ -52,8 +44,6 @@ class SyncCoordinator(
     private val host: BackgroundWebHost,
     private val libraryChanges: LibraryChanges,
 ) {
-    // Outlives the screens: a run started while the app is open finishes even if the user leaves.
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val locks = ExternalService.entries.associateWith { Mutex() }
     private val background = Mutex()
 
@@ -63,55 +53,68 @@ class SyncCoordinator(
 
     /** A sync the user started on the sync screen, recorded as already seen. Null when it failed or can't run. */
     suspend fun runManual(service: ExternalService, kind: SyncKind, session: WebSession): SyncOutcome? =
-        run(service, kind, SyncTrigger.MANUAL, session)
+        run(service, kind, SyncTrigger.MANUAL, session).first
 
-    /** Pushes library changes and runs the periodic sync until cancelled. */
-    @OptIn(FlowPreview::class, ExperimentalSettingsApi::class)
-    suspend fun watch() {
+    /** Hands [scheduler] the library changes to push and the period to sync at, until cancelled. */
+    @OptIn(ExperimentalSettingsApi::class)
+    suspend fun watch(scheduler: SyncScheduler) {
         if (!isServiceSyncSupported) return
+        try {
+            watchChanges(scheduler)
+        } finally {
+            scheduler.stop()
+        }
+    }
+
+    @OptIn(ExperimentalSettingsApi::class)
+    private suspend fun watchChanges(scheduler: SyncScheduler) {
         coroutineScope {
             launch {
-                var wishlistDue = false
                 libraryChanges.changes.filterIsInstance<LibraryChange.Saved>()
-                    .onEach { if (it.status == GameLibraryStatus.BACKLOG) wishlistDue = true }
-                    .debounce(PUSH_DELAY)
-                    .collect {
-                        runInBackground(SyncTrigger.CHANGE, wishlist = wishlistDue)
-                        wishlistDue = false
-                    }
+                    .collect { scheduler.changed(wishlist = it.status == GameLibraryStatus.BACKLOG) }
             }
             launch {
-                settings.getIntFlow(PERIOD_KEY, DEFAULT_PERIOD_HOURS).collectLatest { hours ->
-                    if (hours <= 0) return@collectLatest
-                    while (true) {
-                        val next = settings.getLong(LAST_PERIODIC_KEY, 0L).milliseconds + hours.hours
-                        delay(next - Clock.System.now().toEpochMilliseconds().milliseconds)
-                        settings.putLong(LAST_PERIODIC_KEY, Clock.System.now().toEpochMilliseconds())
-                        runInBackground(SyncTrigger.PERIODIC, wishlist = true)
-                    }
-                }
+                settings.getIntFlow(PERIOD_KEY, DEFAULT_PERIOD_HOURS).collect { scheduler.period(it) }
             }
         }
     }
 
-    private fun runInBackground(trigger: SyncTrigger, wishlist: Boolean) = scope.launch {
-        val due = ExternalService.entries.filter { it.flag(CONNECTED) }.flatMap { service ->
+    /**
+     * Runs the syncs due for [trigger], one after the other in a single session: the library syncs, plus the
+     * wishlist ones when [wishlist]. [onProgress] hears of each service before it starts (its index among [total]).
+     * Returns the runs it recorded.
+     */
+    suspend fun runDue(
+        trigger: SyncTrigger,
+        wishlist: Boolean,
+        onProgress: suspend (service: ExternalService, index: Int, total: Int) -> Unit = { _, _, _ -> },
+    ): List<SyncRun> {
+        val due = ExternalService.entries.filter { isServiceSyncSupported && it.flag(CONNECTED) }.flatMap { service ->
             listOfNotNull(
                 SyncKind.LIBRARY.takeIf { service.flag(LIBRARY_SYNC) },
                 SyncKind.WISHLIST.takeIf { wishlist && service.flag(WISHLIST_SYNC) },
             ).filter { runner.runsUnattended(service, it) }.map { service to it }
         }
-        if (due.isEmpty()) return@launch
-        background.withLock {
+        if (due.isEmpty()) return emptyList()
+        return background.withLock {
             host.withSession { session ->
-                due.forEach { (service, kind) -> run(service, kind, trigger, UnattendedSession(session)) }
+                due.mapIndexedNotNull { i, (service, kind) ->
+                    onProgress(service, i, due.size)
+                    run(service, kind, trigger, UnattendedSession(session)).second
+                }
             }
         }
     }
 
     private fun ExternalService.flag(name: String) = settings.getBoolean(settingsKey(name), false)
 
-    private suspend fun run(service: ExternalService, kind: SyncKind, trigger: SyncTrigger, session: WebSession): SyncOutcome? =
+    /** Runs one sync and records it; the outcome is null when it failed or can't run. */
+    private suspend fun run(
+        service: ExternalService,
+        kind: SyncKind,
+        trigger: SyncTrigger,
+        session: WebSession,
+    ): Pair<SyncOutcome?, SyncRun?> =
         locks.getValue(service).withLock {
             running.update { it + service }
             val record = RunRecord(service, kind, trigger)
@@ -125,7 +128,7 @@ class SyncCoordinator(
                 // ponytail: one bound for a stuck script or page nobody watches; a background job gets about this
                 // long anyway. A manual run has the user there to leave it.
                 val outcome = if (trigger == SyncTrigger.MANUAL) sync() else withTimeout(RUN_TIMEOUT) { sync() }
-                outcome?.also { history.add(record.finished(it)) }
+                outcome to outcome?.let { record.finished(it) }?.also { history.add(it) }
             } catch (error: LoginRequiredException) {
                 record.failed(SyncResult.LOGIN_REQUIRED, error)
             } catch (error: LoginTimeoutException) {
@@ -172,11 +175,12 @@ class SyncCoordinator(
             else -> run(SyncResult.OK)
         }
 
-        /** Records the failure; the run's caller gets null. */
-        fun failed(result: SyncResult, error: Exception): SyncOutcome? {
+        /** Records the failure: the run's caller gets no outcome, only the recorded run. */
+        fun failed(result: SyncResult, error: Exception): Pair<SyncOutcome?, SyncRun?> {
             Logger.e(error) { "$kind sync of $service failed" }
-            history.add(run(result).copy(error = error.message))
-            return null
+            val run = run(result).copy(error = error.message)
+            history.add(run)
+            return null to run
         }
 
         private fun run(result: SyncResult) = SyncRun(
@@ -199,8 +203,12 @@ class SyncCoordinator(
         /** Hours between periodic syncs; 0 turns them off. */
         const val PERIOD_KEY = "sync.periodHours"
         const val DEFAULT_PERIOD_HOURS = 6
-        private const val LAST_PERIODIC_KEY = "sync.lastPeriodicAt"
-        private val PUSH_DELAY = 90.seconds
+
+        /** When the last periodic sync started, for a scheduler that keeps the period itself. */
+        const val LAST_PERIODIC_KEY = "sync.lastPeriodicAt"
+
+        /** How long a library change waits for the next one before it's pushed. */
+        val PUSH_DELAY = 90.seconds
         private val RUN_TIMEOUT = 10.minutes
     }
 }

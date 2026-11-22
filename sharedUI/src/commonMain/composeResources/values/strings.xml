@@ -365,8 +365,22 @@
     <string name="sync__help_skipped">%1$s didn't take some games: the reason is under each one. They are tried again at the next sync.</string>
     <string name="sync__help_removed">Some games are no longer on %1$s but are still in your library. Removals are never copied on their own: Keep leaves the game here and stops asking, Delete from Gamerlogue deletes it here too. %1$s isn't changed either way.</string>
     <string name="sync__help_failed">The sync stopped on the error below. It is tried again at the next sync.</string>
+    <string name="sync__notification_channel">Sync</string>
+    <string name="sync__notification_running">Syncing %1$s</string>
+    <string name="sync__notification_progress">%1$d of %2$d</string>
+    <string name="sync__notification_attention">Syncs to check</string>
+    <string name="sync__notification_login">%1$s: sign in again</string>
+    <string name="sync__notification_failed">%1$s: failed</string>
+    <plurals name="sync__notification_removed">
+        <item quantity="one">%1$s: %2$d game to settle</item>
+        <item quantity="other">%1$s: %2$d games to settle</item>
+    </plurals>
+    <plurals name="sync__notification_conflicts">
+        <item quantity="one">%1$s: %2$d conflict</item>
+        <item quantity="other">%1$s: %2$d conflicts</item>
+    </plurals>
     <string name="sync__period">Automatic sync</string>
-    <string name="sync__period_summary">How often the enabled syncs run while the app is open. A change to your library is synced a minute and a half after you make it.</string>
+    <string name="sync__period_summary">How often the enabled syncs run, with the app closed too: online and with the battery not low, and the system may delay them to save power. A change to your library is synced a minute and a half after you make it.</string>
     <string name="sync__period_off">Off</string>
     <string name="sync__period_hours">%1$d h</string>
     <string name="settings__theme">Theme</string>

@@ -8,6 +8,8 @@ import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.services.AndroidBackgroundWebHost
 import it.maicol07.gamerlogue.services.BackgroundWebHost
+import it.maicol07.gamerlogue.services.SyncScheduler
+import it.maicol07.gamerlogue.services.WorkManagerSyncScheduler
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -31,4 +33,7 @@ actual object PlatformModule {
 
     @Single
     actual fun provideBackgroundWebHost(scope: Scope): BackgroundWebHost = AndroidBackgroundWebHost(scope.get())
+
+    @Single
+    actual fun provideSyncScheduler(scope: Scope): SyncScheduler = WorkManagerSyncScheduler(scope.get())
 }

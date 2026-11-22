@@ -14,6 +14,7 @@ import com.mmk.kmpnotifier.extensions.onCreateOrOnNewIntent
 import com.mmk.kmpnotifier.notification.PayloadData
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
+import it.maicol07.gamerlogue.services.EXTRA_OPEN_SYNC_HISTORY
 
 // One pair per intent-filter in the manifest: the private-use scheme carries the callback in
 // host + path (`gamerlogue://auth/callback`), so it does not share the App Link's path.
@@ -30,6 +31,7 @@ class AppActivity : AppCompatActivity() {
 
     // Listened to here, not in App(): the tap that launches the activity is parsed before the first composition.
     private var openNotifications by mutableStateOf(false)
+    private var openSyncHistory by mutableStateOf(false)
     private val notificationListener = object : KMPNotifier.Listener {
         override fun onNotificationClicked(data: PayloadData) {
             openNotifications = true
@@ -45,6 +47,7 @@ class AppActivity : AppCompatActivity() {
         // A recreated activity gets the launching intent again: only a fresh start may open the list.
         if (savedInstanceState == null) KMPNotifier.onCreateOrOnNewIntent(intent)
         captureLoginDeepLink(intent)
+        if (savedInstanceState == null) captureSyncHistory(intent)
         setContent {
             App(
                 authCallbackUri = authCallbackUri,
@@ -53,6 +56,8 @@ class AppActivity : AppCompatActivity() {
                 onAuthCallbackHandled = { authCallbackUri = null },
                 openNotifications = openNotifications,
                 onNotificationsOpened = { openNotifications = false },
+                openSyncHistory = openSyncHistory,
+                onSyncHistoryOpened = { openSyncHistory = false },
             )
         }
     }
@@ -61,11 +66,16 @@ class AppActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         KMPNotifier.onCreateOrOnNewIntent(intent)
         captureLoginDeepLink(intent)
+        captureSyncHistory(intent)
     }
 
     override fun onDestroy() {
         KMPNotifier.removeListener(notificationListener)
         super.onDestroy()
+    }
+
+    private fun captureSyncHistory(intent: Intent) {
+        if (intent.getBooleanExtra(EXTRA_OPEN_SYNC_HISTORY, false)) openSyncHistory = true
     }
 
     private fun captureLoginDeepLink(intent: Intent) {

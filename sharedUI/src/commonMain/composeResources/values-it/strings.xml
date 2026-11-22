@@ -363,8 +363,22 @@
     <string name="sync__help_skipped">%1$s non ha accettato alcuni giochi: il motivo è sotto ciascuno. Vengono ritentati alla prossima sincronizzazione.</string>
     <string name="sync__help_removed">Alcuni giochi non sono più su %1$s ma sono ancora nella tua libreria. Le rimozioni non vengono mai copiate da sole: Tieni lascia qui il gioco e non te lo chiede più, Elimina da Gamerlogue lo elimina anche qui. In nessuno dei due casi %1$s viene modificato.</string>
     <string name="sync__help_failed">La sincronizzazione si è fermata per l'errore qui sotto. Viene ritentata alla prossima.</string>
+    <string name="sync__notification_channel">Sincronizzazione</string>
+    <string name="sync__notification_running">Sincronizzazione di %1$s</string>
+    <string name="sync__notification_progress">%1$d di %2$d</string>
+    <string name="sync__notification_attention">Sincronizzazioni da controllare</string>
+    <string name="sync__notification_login">%1$s: accedi di nuovo</string>
+    <string name="sync__notification_failed">%1$s: non riuscita</string>
+    <plurals name="sync__notification_removed">
+        <item quantity="one">%1$s: %2$d gioco da decidere</item>
+        <item quantity="other">%1$s: %2$d giochi da decidere</item>
+    </plurals>
+    <plurals name="sync__notification_conflicts">
+        <item quantity="one">%1$s: %2$d conflitto</item>
+        <item quantity="other">%1$s: %2$d conflitti</item>
+    </plurals>
     <string name="sync__period">Sincronizzazione automatica</string>
-    <string name="sync__period_summary">Ogni quanto partono le sincronizzazioni attive mentre l'app è aperta. Una modifica alla libreria viene sincronizzata un minuto e mezzo dopo averla fatta.</string>
+    <string name="sync__period_summary">Ogni quanto partono le sincronizzazioni attive, anche con l'app chiusa: con la rete e la batteria non scarica, e il sistema può ritardarle per risparmiare energia. Una modifica alla libreria viene sincronizzata un minuto e mezzo dopo averla fatta.</string>
     <string name="sync__period_off">Mai</string>
     <string name="sync__period_hours">%1$d h</string>
     <string name="settings__theme">Tema</string>

@@ -7,6 +7,8 @@ import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.auth.WebAuthTokenProvider
 import it.maicol07.gamerlogue.auth.WebAuthenticationHandler
 import it.maicol07.gamerlogue.services.BackgroundWebHost
+import it.maicol07.gamerlogue.services.InProcessSyncScheduler
+import it.maicol07.gamerlogue.services.SyncScheduler
 import it.maicol07.gamerlogue.ui.components.WebSession
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
@@ -33,4 +35,7 @@ actual object PlatformModule {
         override suspend fun <T> withSession(block: suspend (WebSession) -> T): T =
             throw UnsupportedOperationException("Store syncs don't run in the browser")
     }
+
+    @Single
+    actual fun provideSyncScheduler(scope: Scope): SyncScheduler = InProcessSyncScheduler(scope.get(), scope.get())
 }
