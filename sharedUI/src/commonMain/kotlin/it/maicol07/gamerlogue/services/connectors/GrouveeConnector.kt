@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.StatusChange
@@ -7,6 +8,7 @@ import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.jsonArray
+import it.maicol07.gamerlogue.services.refsJson
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -100,6 +102,27 @@ class GrouveeConnector : ServiceConnector(ExternalService.GROUVEE, host = "www.g
                 let j = await toggle(id, slug[c.to]);
                 if (j.success && j.removed) j = await toggle(id, slug[c.to]);
                 if (j.success) out.push({ uid: id, name: c.name, gameId: c.gameId });
+            }
+        """.trimIndent()))
+    }
+
+    // A game leaves the collection with the shelf of its status toggled off. A toggle that reports it added the
+    // game instead (the status was stale) is undone, and the game counts as not removed.
+    override val statusRemove: (List<ExternalGameRef>) -> WebStep = { refs ->
+        WebStep(HOME, SyncScripts.wrap("""
+            $SHELVES_JS
+            let shelves = await __gvShelves();
+            let slug = { ${OWNED_SHELVES.entries.joinToString { (slug, status) -> "'$status': '$slug'" }} };
+            out = [];
+            const refs = ${refs.refsJson()};
+            for (const [n, r] of refs.entries()) {
+                if (__glCancelled()) break;
+                __glProgress(n, refs.length);
+                let shelf = shelves[slug[r.status] || 'backlog'];
+                if (!shelf) continue;
+                let j = await __gvToggle(r.uid, shelf);
+                if (j.success && j.removed) out.push({ uid: r.uid, name: r.name, gameId: r.gameId });
+                else if (j.success) await __gvToggle(r.uid, shelf);
             }
         """.trimIndent()))
     }

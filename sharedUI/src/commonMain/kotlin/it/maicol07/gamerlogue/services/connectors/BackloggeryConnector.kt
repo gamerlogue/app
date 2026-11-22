@@ -10,6 +10,7 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.jsonArray
 import it.maicol07.gamerlogue.services.parseWriteResult
+import it.maicol07.gamerlogue.services.refsJson
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -223,6 +224,44 @@ class BackloggeryConnector :
                     console.log('[GL] backloggery update ' + c.uid + ': ' + JSON.stringify(saved).slice(0, 300));
                     if (saved && saved.status) out.push({ uid: c.uid, name: c.name, gameId: c.gameId });
                     else __glSkip(c.name, 'REJECTED');
+                }
+                """.trimIndent()
+            ),
+            reload = false,
+        )
+    }
+
+    // The editor's delete button, which posts these fields of the entry (the user id is the session's: library rows
+    // don't carry it) and answers `{ payload: { status: 1 } }`. Only the synced row goes: another row of the
+    // same game (one per platform) stays, as a game on its own. A row no longer in the library is already removed.
+    override val statusRemove: (List<ExternalGameRef>) -> WebStep = { refs ->
+        WebStep(
+            HOME,
+            SyncScripts.wrap(
+                """
+                $API_JS
+                let me = await __bgPost('auth_login.php', null);
+                let userId = me && me.payload && me.payload.user_id;
+                if (!userId) throw new Error('Backloggery session is missing');
+                let rows = {};
+                (await __bgLibrary()).forEach(function(g) { rows[String(g.game_inst_id)] = g; });
+                const refs = ${refs.refsJson()};
+                out = [];
+                for (const [n, r] of refs.entries()) {
+                    if (__glCancelled()) break;
+                    __bgProgress(n, refs.length);
+                    let g = rows[r.uid];
+                    let done = !g;
+                    if (g) {
+                        let res = await __bgPost('delete_game.php', {
+                            title: g.title, abbr: g.abbr, notes: g.notes, platform_id: g.platform_id,
+                            game_inst_id: g.game_inst_id, parent_inst_id: g.parent_inst_id, is_parent: g.is_parent,
+                            user_id: userId,
+                        });
+                        console.log('[GL] backloggery delete ' + r.uid + ': ' + JSON.stringify(res).slice(0, 300));
+                        done = !!(res && res.payload && res.payload.status);
+                    }
+                    if (done) out.push({ uid: r.uid, name: r.name, gameId: r.gameId });
                 }
                 """.trimIndent()
             ),

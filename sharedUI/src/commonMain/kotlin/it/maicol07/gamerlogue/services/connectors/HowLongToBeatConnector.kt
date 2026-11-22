@@ -1,11 +1,13 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.StatusChange
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.jsonArray
+import it.maicol07.gamerlogue.services.refsJson
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -105,6 +107,34 @@ class HowLongToBeatConnector :
                 });
                 let j = r.ok ? await r.json() : { error: true };
                 if (!j.error) out.push({ uid: c.uid, name: c.name, gameId: c.gameId });
+            }
+        """.trimIndent()))
+    }
+
+    // The site's delete button: one call per entry, so a game played several times loses every playthrough. A game
+    // with no entry left is already removed.
+    override val statusRemove: (List<ExternalGameRef>) -> WebStep = { refs ->
+        WebStep(HOME, SyncScripts.wrap("""
+            $API_JS
+            let me = await __hlUser();
+            if (!me.user_id) throw new Error('HowLongToBeat session is missing');
+            let list = await __hlList(me);
+            const refs = ${refs.refsJson()};
+            out = [];
+            for (const [n, r] of refs.entries()) {
+                if (__glCancelled()) break;
+                __glProgress(n, refs.length);
+                let ok = true;
+                for (const entry of list.filter(function(g) { return String(g.game_id) === r.uid; })) {
+                    let res = await fetch('/api/game/' + r.uid + '/user/' + me.user_id + '/actionDelete', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: entry.id }),
+                    });
+                    ok = ok && res.ok;
+                }
+                if (ok) out.push({ uid: r.uid, name: r.name, gameId: r.gameId });
             }
         """.trimIndent()))
     }

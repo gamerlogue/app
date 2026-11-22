@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.IgdbKey
 import it.maicol07.gamerlogue.services.ServiceConnector
@@ -8,6 +9,7 @@ import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.jsonArray
+import it.maicol07.gamerlogue.services.refsJson
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -122,6 +124,33 @@ class InfiniteBacklogConnector :
                     });
                 }
                 if (ok) out.push({ uid: String(id), name: c.name, gameId: c.gameId });
+            }
+        """.trimIndent()))
+    }
+
+    // The site's own delete call, on every collection entry of the game (looked up as the edit page does); an
+    // `entry-N` uid names the entry itself. A game with no entry left is already removed.
+    override val statusRemove: (List<ExternalGameRef>) -> WebStep = { refs ->
+        WebStep(HOME, SyncScripts.wrap("""
+            $API_JS
+            let me = await __ibMe();
+            if (!me.id) throw new Error('Infinite Backlog session is missing');
+            const refs = ${refs.refsJson()};
+            out = [];
+            for (const [n, r] of refs.entries()) {
+                if (__glCancelled()) break;
+                __glProgress(n, refs.length);
+                let m = /^entry-(\d+)$/.exec(r.uid);
+                let ids = m ? [m[1]] : null;
+                if (!ids) {
+                    let found = await __ibGet('/api/user_collections?user_id=' + me.id + '&game_id=' + r.uid);
+                    // A failed lookup is not "no entry": the game may still be there.
+                    if (found === null) continue;
+                    ids = __ibList(found).map(function(e) { return e.id; });
+                }
+                let ok = true;
+                for (const id of ids) ok = (await __ibSend('DELETE', '/api/user_collections/' + id)) && ok;
+                if (ok) out.push({ uid: r.uid, name: r.name, gameId: r.gameId });
             }
         """.trimIndent()))
     }
