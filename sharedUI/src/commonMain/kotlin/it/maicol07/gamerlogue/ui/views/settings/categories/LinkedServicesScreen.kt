@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AppBarMenuState
 import androidx.compose.material3.AppBarRow
 import androidx.compose.material3.AppBarRowScope
 import androidx.compose.material3.Card
@@ -59,8 +61,10 @@ import gamerlogue.sharedui.generated.resources.settings__service_grouvee
 import gamerlogue.sharedui.generated.resources.settings__service_howlongtobeat
 import gamerlogue.sharedui.generated.resources.settings__service_infinite_backlog
 import gamerlogue.sharedui.generated.resources.settings__service_nintendo
+import gamerlogue.sharedui.generated.resources.settings__service_open_profile
 import gamerlogue.sharedui.generated.resources.settings__service_pc_only
 import gamerlogue.sharedui.generated.resources.settings__service_playstation
+import gamerlogue.sharedui.generated.resources.settings__service_refresh_profile
 import gamerlogue.sharedui.generated.resources.settings__service_resync_ids
 import gamerlogue.sharedui.generated.resources.settings__service_stash
 import gamerlogue.sharedui.generated.resources.settings__service_steam
@@ -75,6 +79,8 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Lin
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LockW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.MoreVertW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RefreshW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.StyleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.TimerW500Rounded
@@ -295,7 +301,8 @@ internal fun <T> List<T>.chunkedAfter(predicate: (T) -> Boolean): List<List<T>> 
 /**
  * Top-level row: service logo + name + connect/disconnect, with the linked account below when connected.
  * A non-null [expanded] makes the row toggle the service's collapsible actions, with an arrow showing the state;
- * a non-null [onOpenProfile] adds a button opening the account's public page.
+ * refreshing the profile and, when [onOpenProfile] is non-null, opening the account's public page always sit in
+ * the overflow menu.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -348,6 +355,8 @@ private fun ServiceItem(
                     val disconnect = stringResource(Res.string.settings__service_disconnect)
                     val resyncIds = stringResource(Res.string.settings__service_resync_ids)
                     val moreOptions = stringResource(Res.string.common__more_options)
+                    val refreshProfile = stringResource(Res.string.settings__service_refresh_profile)
+                    val openProfile = stringResource(Res.string.settings__service_open_profile)
                     AppBarRow(
                         modifier = Modifier.weight(1f, fill = false),
                         overflowIndicator = { menu ->
@@ -360,6 +369,8 @@ private fun ServiceItem(
                     ) {
                         serviceAction(MaterialSymbols.LinkOffW500Rounded, disconnect, onDisconnect)
                         onResyncIds?.let { serviceAction(MaterialSymbols.SyncW500Rounded, resyncIds, it) }
+                        serviceMenuAction(MaterialSymbols.RefreshW500Rounded, refreshProfile, onRefreshProfile)
+                        onOpenProfile?.let { serviceMenuAction(MaterialSymbols.OpenInNewW500Rounded, openProfile, it) }
                     }
                     expanded?.let { ExpandArrow(it, Modifier.padding(start = ActionGap)) }
                 }
@@ -374,7 +385,7 @@ private fun ServiceItem(
         },
         // Account row below the platform name when connected.
         supportingContent = if (connected) {
-            { ServiceAccountRow(state.profile, onRefreshProfile, onOpenProfile) }
+            { ServiceAccountRow(state.profile) }
         } else {
             null
         },
@@ -402,17 +413,28 @@ private fun AppBarRowScope.serviceAction(icon: ImageVector, label: String, onCli
             }
         }
     },
-    menuContent = { menu ->
-        DropdownMenuItem(
-            text = { Text(label) },
-            onClick = {
-                menu.dismiss()
-                onClick()
-            },
-            leadingIcon = { Icon(icon, contentDescription = null) },
-        )
-    },
+    menuContent = { menu -> ServiceMenuItem(menu, icon, label, onClick) },
 )
+
+/**
+ * A connected service's action that always lives in the overflow menu: its row content fills the whole width,
+ * so it never fits and AppBarRow moves it (and every item after it) to the menu.
+ */
+private fun AppBarRowScope.serviceMenuAction(icon: ImageVector, label: String, onClick: () -> Unit) = customItem(
+    appbarContent = { Spacer(Modifier.fillMaxWidth()) },
+    menuContent = { menu -> ServiceMenuItem(menu, icon, label, onClick) },
+)
+
+@Composable
+private fun ServiceMenuItem(menu: AppBarMenuState, icon: ImageVector, label: String, onClick: () -> Unit) =
+    DropdownMenuItem(
+        text = { Text(label) },
+        onClick = {
+            menu.dismiss()
+            onClick()
+        },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+    )
 
 internal fun ExternalService.icon(): ImageVector = when (this) {
     ExternalService.STEAM -> Icons.SteamSimpleIcons
