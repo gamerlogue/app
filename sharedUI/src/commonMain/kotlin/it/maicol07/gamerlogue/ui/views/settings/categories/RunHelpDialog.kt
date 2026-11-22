@@ -20,7 +20,9 @@ import gamerlogue.sharedui.generated.resources.sync__help_failed
 import gamerlogue.sharedui.generated.resources.sync__help_library
 import gamerlogue.sharedui.generated.resources.sync__help_none
 import gamerlogue.sharedui.generated.resources.sync__help_removed
+import gamerlogue.sharedui.generated.resources.sync__help_removed_here
 import gamerlogue.sharedui.generated.resources.sync__help_skipped
+import gamerlogue.sharedui.generated.resources.sync__help_to_confirm
 import gamerlogue.sharedui.generated.resources.sync__help_trigger_change
 import gamerlogue.sharedui.generated.resources.sync__help_trigger_manual
 import gamerlogue.sharedui.generated.resources.sync__help_trigger_periodic
@@ -39,7 +41,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun RunHelpDialog(run: SyncRun, onDismiss: () -> Unit) {
     val service = stringResource(run.service.labelRes())
-    val paragraphs = listOf(run.startText(service), run.kindText(service)) + run.outcomeTexts(service)
+    val paragraphs = listOf(run.startText(service), run.kindText(service)) + run.outcomeTexts(service) + run.decisionTexts(service)
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.HelpW500Rounded, contentDescription = null) },
@@ -81,9 +83,18 @@ private fun SyncRun.outcomeTexts(service: String): List<String> = buildList {
         SyncResult.FAILED -> add(stringResource(Res.string.sync__help_failed))
         else -> Unit
     }
-    val quiet = added == 0 && pushed == 0 && conflicts == 0 && skipped.isEmpty() && removedOnService.isEmpty()
+    val quiet = added == 0 && pushed == 0 && conflicts == 0 && skipped.isEmpty() && !hasDecisions
     if (result == SyncResult.OK && quiet) add(stringResource(Res.string.sync__help_none, service))
     if (conflicts > 0) add(stringResource(Res.string.sync__help_conflicts))
     if (skipped.isNotEmpty()) add(stringResource(Res.string.sync__help_skipped, service))
+}
+
+private val SyncRun.hasDecisions get() = removedOnService.isNotEmpty() || removedHere.isNotEmpty() || toConfirm.isNotEmpty()
+
+/** What each kind of game left to the user means, for the kinds this run has. */
+@Composable
+private fun SyncRun.decisionTexts(service: String): List<String> = buildList {
     if (removedOnService.isNotEmpty()) add(stringResource(Res.string.sync__help_removed, service))
+    if (removedHere.isNotEmpty()) add(stringResource(Res.string.sync__help_removed_here, service))
+    if (toConfirm.isNotEmpty()) add(stringResource(Res.string.sync__help_to_confirm, service))
 }

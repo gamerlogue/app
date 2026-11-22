@@ -354,6 +354,32 @@
         <item quantity="one">%1$d game to settle: see the latest sync of this service</item>
         <item quantity="other">%1$d games to settle: see the latest sync of this service</item>
     </plurals>
+    <string name="sync__removed_here_title">Removed from Gamerlogue</string>
+    <string name="sync__removed_here_remove">Remove from %1$s</string>
+    <string name="sync__removed_here_keep">Keep on %1$s</string>
+    <string name="sync__removed_here_confirm_title">Remove %1$s from %2$s?</string>
+    <string name="sync__removed_here_confirm_text">The game is removed from your %1$s library, with what you logged there. Gamerlogue doesn't change.</string>
+    <string name="sync__removed_here_failed_title">Not removed</string>
+    <string name="sync__removed_here_failed_text">%1$s couldn't remove %2$s. Try again later, or remove it on %1$s yourself.</string>
+    <plurals name="sync__removed_here_count">
+        <item quantity="one">%1$d game removed from Gamerlogue but still on the service: choose what to do</item>
+        <item quantity="other">%1$d games removed from Gamerlogue but still on the service: choose what to do</item>
+    </plurals>
+    <plurals name="sync__to_confirm_count">
+        <item quantity="one">%1$d game of the service to confirm: it isn't synced until you do</item>
+        <item quantity="other">%1$d games of the service to confirm: they aren't synced until you do</item>
+    </plurals>
+    <plurals name="sync__to_confirm_see_latest">
+        <item quantity="one">%1$d game to confirm: see the latest sync of this service</item>
+        <item quantity="other">%1$d games to confirm: see the latest sync of this service</item>
+    </plurals>
+    <string name="sync__to_confirm_guess">On %1$s as “%2$s” · maybe %3$s</string>
+    <string name="sync__to_confirm_none">On %1$s as “%2$s” · no matching game found</string>
+    <string name="sync__to_confirm_confirm">It's this one</string>
+    <string name="sync__to_confirm_ignore">Always ignore</string>
+    <string name="sync__to_confirm_pick">Pick another</string>
+    <string name="sync__help_removed_here">Some games are no longer in your library but are still on %1$s. Keep on %1$s leaves them there and doesn't ask again; Remove from %1$s removes them there too, after you confirm.</string>
+    <string name="sync__help_to_confirm">%1$s has games Gamerlogue recognised only by name, so they were left out. Confirm the suggested game and it syncs from the next sync on; pick another to choose it in a reviewed sync; or ignore it, and it isn't asked about again.</string>
     <string name="sync__help">What happened?</string>
     <string name="sync__help_trigger_manual">You started this sync from Linked Services.</string>
     <string name="sync__help_trigger_change">It started on its own a minute and a half after you changed your library, to bring the change to %1$s.</string>
@@ -382,6 +408,10 @@
     <string name="sync__tray_open">Open Gamerlogue</string>
     <string name="sync__tray_quit">Quit</string>
     <string name="sync__tray_syncing">Gamerlogue · syncing</string>
+    <plurals name="sync__notification_to_confirm">
+        <item quantity="one">%1$s: %2$d game to confirm</item>
+        <item quantity="other">%1$s: %2$d games to confirm</item>
+    </plurals>
     <string name="sync__period">Automatic sync</string>
     <string name="sync__period_summary">How often the enabled syncs run, with the app closed too: online and with the battery not low, and the system may delay them to save power. A change to your library is synced a minute and a half after you make it.</string>
     <string name="sync__period_off">Off</string>

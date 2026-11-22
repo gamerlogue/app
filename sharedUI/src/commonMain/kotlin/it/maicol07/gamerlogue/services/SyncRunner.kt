@@ -63,6 +63,7 @@ class SyncRunner(
                 SyncGame(it.baseGameId, it.name, it.cover?.image_id, GameLibraryStatus.BACKLOG)
             },
             sent = push.sent(skipped).map { it.asSyncGame() },
+            toConfirm = result.unsure.map { it.pending() },
         )
     }
 
@@ -82,19 +83,21 @@ class SyncRunner(
             throw ServiceReadException("$service library read returned no games")
         }
         val entries = librarySync.allEntries().toMutableList()
-        val (remote, onTracker) = trackerSync.resolve(connector, refs)
+        val (remote, onTracker, unsure) = trackerSync.resolve(connector, refs)
         val plan = trackerSync.plan(connector, remote, entries, onTracker)
         trackerSync.record(service, plan.agreed)
         trackerSync.prune(service, plan.forgotten)
         // Still in Gamerlogue, so it's the tracker that removed it.
         val removedOnTracker = plan.removedOnOneSide intersect entries.mapTo(mutableSetOf()) { it.gameId }
+        // Gone from Gamerlogue, so removed here; offered for removal there only by a tracker that can do it.
+        val removedHere = if (connector.statusRemove == null) emptySet() else plan.removedOnOneSide - removedOnTracker
         val incoming = plan.changes.filter { it.winner == SyncSide.REMOTE }
         val pulled = trackerSync.pull(service, incoming, entries, remote)
         val outgoing = trackerSync.outgoing(plan.changes.filter { it.winner == SyncSide.LOCAL }, entries)
         val (pushed, missed) = writeStatuses(service, session, write, outgoing)
         setLastSyncAt(service)
         val skipped = session.leftOut(missed, outgoing.associate { it.name to it.gameId })
-        val games = gamesById(incoming.map { it.gameId } + outgoing.map { it.gameId } + removedOnTracker)
+        val games = gamesById(incoming.map { it.gameId } + outgoing.map { it.gameId } + removedOnTracker + removedHere)
         val statusOf = entries.associate { it.gameId to it.status }
         return SyncOutcome.LibrarySynced(
             pulled,
@@ -106,7 +109,26 @@ class SyncRunner(
             // ponytail: a pull that saved only some lists them all; it isn't recorded then, so it's planned again.
             received = if (pulled > 0) incoming.map { syncGame(it.gameId, games, it.remote) } else emptyList(),
             sent = outgoing.sentOf(skipped).map { syncGame(it.gameId, games, it.to, it.name) },
+            toConfirm = unsure.map { it.pending() },
+            removedHere = removedHere.mapNotNull { id ->
+                remote[id]?.let { ref -> syncGame(id, games, ref.status, ref.name).copy(uid = ref.uid) }
+            },
         )
+    }
+
+    /**
+     * Removes [games] from the tracker of [service], as the user removed them from Gamerlogue, and forgets them as
+     * synced (gone from both sides). Returns the ones the tracker confirmed removed.
+     */
+    suspend fun removeFromTracker(service: ExternalService, session: WebSession, games: List<SyncGame>): Set<Int> {
+        val connector = connectors.getValue(service)
+        val remove = connector.statusRemove ?: return emptySet()
+        session.awaitLogin(connector)
+        val refs = games.mapNotNull { g -> g.uid?.let { ExternalGameRef(it, g.name, g.status, g.gameId) } }
+        val removedUids = session.run(remove(refs)).mapTo(mutableSetOf()) { it.uid }
+        val removed = refs.filter { it.uid in removedUids }.mapNotNullTo(mutableSetOf()) { it.gameId }
+        trackerSync.prune(service, removed)
+        return removed
     }
 
     /**
@@ -223,6 +245,9 @@ class SyncRunner(
     }
 
     private fun LibrarySync.OutgoingGame.asSyncGame() = SyncGame(gameId, name, coverImageId, GameLibraryStatus.BACKLOG)
+
+    private fun GameMatcher.Match.pending() =
+        PendingMatch(ref.uid, ref.name, game?.let { SyncGame(it.id.toInt(), it.name, it.cover?.image_id) })
 
     /** A wishlist push: the games the store confirmed, the names it did not, and the games it was asked to take. */
     private class WishlistPush(

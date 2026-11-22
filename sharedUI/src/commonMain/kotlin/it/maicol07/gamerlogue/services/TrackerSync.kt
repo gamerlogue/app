@@ -101,6 +101,21 @@ private fun decide(local: GameLibraryStatus?, remote: GameLibraryStatus?, synced
 internal fun List<Pair<Int, ExternalGameRef>>.onePerGame(): Map<Int, ExternalGameRef> =
     groupBy({ it.first }, { it.second }).mapValues { (_, refs) -> refs.minBy { it.uid } }
 
+/** JSON array literal of the refs, for embedding in a [ServiceConnector.statusRemove] script. */
+internal fun List<ExternalGameRef>.refsJson(): String =
+    scriptJson.encodeToString(ListSerializer(ExternalGameRef.serializer()), this)
+
+/**
+ * The tracker rows of an unattended run: by IGDB id the ones it can act on ([remote]: synced mappings and confident
+ * matches), every game any row maps to, guesses included ([onTracker]), and the rows matched only by a guess or not
+ * at all ([unsure]), which wait for the user.
+ */
+data class ResolvedRefs(
+    val remote: Map<Int, ExternalGameRef>,
+    val onTracker: Set<Int>,
+    val unsure: List<GameMatcher.Match>,
+)
+
 /** JSON array literal of the changes, for embedding in a [ServiceConnector.statusWrite] script. */
 internal fun List<StatusChange>.jsonArray(): String =
     scriptJson.encodeToString(ListSerializer(StatusChange.serializer()), this)
@@ -155,17 +170,17 @@ class TrackerSync(
         return refs.mapNotNull { ref -> idByUid[ref.uid]?.let(games::get)?.let { ref.uid to it } }.toMap()
     }
 
-    /** Tracker refs by IGDB id, for an unattended run: synced mappings plus confident matches only — a
-     *  name guess is never acted on without the user confirming it in the preview. Second: every game any ref
-     *  maps to, guesses included, for [plan]'s `onTracker`. */
-    suspend fun resolve(connector: ServiceConnector, refs: List<ExternalGameRef>): Pair<Map<Int, ExternalGameRef>, Set<Int>> {
+    /** The tracker [refs] sorted for an unattended run ([ResolvedRefs]): a name guess is never acted on without the
+     *  user confirming it. */
+    suspend fun resolve(connector: ServiceConnector, refs: List<ExternalGameRef>): ResolvedRefs {
         val known = knownGames(connector.service, refs)
         val matches = matcher.match(connector, refs.filter { it.uid !in known })
         val matched = matches.filter { it.confident }
             .mapNotNull { m -> m.game?.let { it.baseGameId to m.ref.copy(gameId = it.id.toInt()) } }
         val remote = (refs.mapNotNull { ref -> known[ref.uid]?.let { it.baseGameId to ref.copy(gameId = it.id.toInt()) } } + matched)
             .onePerGame()
-        return remote to remote.keys + matches.mapNotNull { it.game?.baseGameId }
+        val onTracker = remote.keys + matches.mapNotNull { it.game?.baseGameId }
+        return ResolvedRefs(remote, onTracker, matches.filterNot { it.confident })
     }
 
     /**

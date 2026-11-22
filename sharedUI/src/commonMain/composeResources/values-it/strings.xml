@@ -352,6 +352,32 @@
         <item quantity="one">%1$d gioco da decidere: guarda la sincronizzazione più recente di questo servizio</item>
         <item quantity="other">%1$d giochi da decidere: guarda la sincronizzazione più recente di questo servizio</item>
     </plurals>
+    <string name="sync__removed_here_title">Eliminato da Gamerlogue</string>
+    <string name="sync__removed_here_remove">Rimuovi da %1$s</string>
+    <string name="sync__removed_here_keep">Lascia su %1$s</string>
+    <string name="sync__removed_here_confirm_title">Rimuovere %1$s da %2$s?</string>
+    <string name="sync__removed_here_confirm_text">Il gioco viene rimosso dalla tua libreria di %1$s, con quello che hai registrato lì. Gamerlogue non viene modificato.</string>
+    <string name="sync__removed_here_failed_title">Non rimosso</string>
+    <string name="sync__removed_here_failed_text">%1$s non ha rimosso %2$s. Riprova più tardi, oppure rimuovilo direttamente su %1$s.</string>
+    <plurals name="sync__removed_here_count">
+        <item quantity="one">%1$d gioco eliminato da Gamerlogue ma ancora sul servizio: scegli cosa farne</item>
+        <item quantity="other">%1$d giochi eliminati da Gamerlogue ma ancora sul servizio: scegli cosa farne</item>
+    </plurals>
+    <plurals name="sync__to_confirm_count">
+        <item quantity="one">%1$d gioco del servizio da confermare: non viene sincronizzato finché non lo fai</item>
+        <item quantity="other">%1$d giochi del servizio da confermare: non vengono sincronizzati finché non lo fai</item>
+    </plurals>
+    <plurals name="sync__to_confirm_see_latest">
+        <item quantity="one">%1$d gioco da confermare: guarda la sincronizzazione più recente di questo servizio</item>
+        <item quantity="other">%1$d giochi da confermare: guarda la sincronizzazione più recente di questo servizio</item>
+    </plurals>
+    <string name="sync__to_confirm_guess">Su %1$s come “%2$s” · forse %3$s</string>
+    <string name="sync__to_confirm_none">Su %1$s come “%2$s” · nessun gioco corrispondente</string>
+    <string name="sync__to_confirm_confirm">È questo</string>
+    <string name="sync__to_confirm_ignore">Ignora sempre</string>
+    <string name="sync__to_confirm_pick">Scegline un altro</string>
+    <string name="sync__help_removed_here">Alcuni giochi non sono più nella tua libreria ma sono ancora su %1$s. Lascia su %1$s li tiene lì e non te lo chiede più; Rimuovi da %1$s li rimuove anche lì, dopo la tua conferma.</string>
+    <string name="sync__help_to_confirm">%1$s ha giochi che Gamerlogue ha riconosciuto solo dal nome, quindi sono stati lasciati fuori. Conferma il gioco proposto e verrà sincronizzato dalla prossima volta; scegline un altro per indicarlo in una sincronizzazione con revisione; oppure ignoralo, e non te lo chiederà più.</string>
     <string name="sync__help">Cosa è successo?</string>
     <string name="sync__help_trigger_manual">Hai avviato tu questa sincronizzazione da Servizi collegati.</string>
     <string name="sync__help_trigger_change">È partita da sola un minuto e mezzo dopo una modifica alla tua libreria, per portarla su %1$s.</string>
@@ -380,6 +406,10 @@
     <string name="sync__tray_open">Apri Gamerlogue</string>
     <string name="sync__tray_quit">Esci</string>
     <string name="sync__tray_syncing">Gamerlogue · sincronizzazione in corso</string>
+    <plurals name="sync__notification_to_confirm">
+        <item quantity="one">%1$s: %2$d gioco da confermare</item>
+        <item quantity="other">%1$s: %2$d giochi da confermare</item>
+    </plurals>
     <string name="sync__period">Sincronizzazione automatica</string>
     <string name="sync__period_summary">Ogni quanto partono le sincronizzazioni attive, anche con l'app chiusa: con la rete e la batteria non scarica, e il sistema può ritardarle per risparmiare energia. Una modifica alla libreria viene sincronizzata un minuto e mezzo dopo averla fatta.</string>
     <string name="sync__period_off">Mai</string>

@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.IgdbKey
 import it.maicol07.gamerlogue.services.ServiceConnector
@@ -8,6 +9,7 @@ import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.jsonArray
+import it.maicol07.gamerlogue.services.refsJson
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -97,6 +99,23 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
                     ok = (await __blSend('PATCH', '/log/status/', 'game_id=' + id + '&status_id=' + played[c.to])).ok;
                 }
                 if (ok) out.push({ uid: String(id), name: c.name, gameId: c.gameId });
+            }
+        """.trimIndent()))
+    }
+
+    // A game on no shelf has no log left: switching off the one it's on removes it.
+    override val statusRemove: (List<ExternalGameRef>) -> WebStep = { refs ->
+        WebStep(HOME, SyncScripts.wrap("""
+            $API_JS
+            let shelf = function(s) {
+                return s === 'PLAYING' ? 'playing' : (s === 'BACKLOG' || !s ? 'backlog' : 'play');
+            };
+            out = [];
+            const refs = ${refs.refsJson()};
+            for (const [n, r] of refs.entries()) {
+                if (__glCancelled()) break;
+                __glProgress(n, refs.length);
+                if (await __blSet(shelf(r.status), r.uid, false)) out.push({ uid: String(r.uid), name: r.name, gameId: r.gameId });
             }
         """.trimIndent()))
     }

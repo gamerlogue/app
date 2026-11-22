@@ -96,7 +96,9 @@ fun SyncHistoryView() {
     LaunchedEffect(runs) { if (runs.any { !it.seen }) viewModel.markAllSeen() }
     var confirmDelete by remember { mutableStateOf<Pair<SyncRun, SyncGame>?>(null) }
     var helpFor by remember { mutableStateOf<SyncRun?>(null) }
+    var confirmRemoveThere by remember { mutableStateOf<Pair<SyncRun, SyncGame>?>(null) }
     helpFor?.let { RunHelpDialog(it, onDismiss = { helpFor = null }) }
+    RemoveThereDialogs(viewModel, confirmRemoveThere, onAnswered = { confirmRemoveThere = null })
     confirmDelete?.let { (run, game) ->
         DeleteDialog(
             game,
@@ -125,15 +127,30 @@ fun SyncHistoryView() {
             runs,
             onOpen = { navigationState.backStack.add(it) },
             onHelp = { helpFor = it },
-            onDelete = { run, game -> confirmDelete = run to game },
-            onKeep = viewModel::keep,
-        )
+        ) { run ->
+            GameAnswers(
+                delete = { confirmDelete = run to it },
+                keep = { viewModel.keep(run, it) },
+                removeThere = { confirmRemoveThere = run to it },
+                confirm = { viewModel.confirm(run, it) },
+                ignore = { viewModel.ignore(run, it) },
+                // The reviewed sync lists every game of the service, with its match to pick.
+                pick = {
+                    val action = when (run.kind) {
+                        SyncKind.LIBRARY -> ServiceSyncAction.PREVIEW_LIBRARY_SYNC
+                        SyncKind.WISHLIST -> ServiceSyncAction.PREVIEW_WISHLIST
+                    }
+                    navigationState.backStack.add(RootNavTree.ServiceSync(run.service, action))
+                },
+            )
+        }
     }
 }
 
 /** Something to look at, open by default: a run that didn't end well, or the [latest] one with games to settle. */
 private fun SyncRun.needsLook(latest: Boolean): Boolean =
-    result != SyncResult.OK || (latest && removedOnService.isNotEmpty())
+    result != SyncResult.OK ||
+        latest && (removedOnService.isNotEmpty() || removedHere.isNotEmpty() || toConfirm.isNotEmpty())
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -142,15 +159,14 @@ private fun HistoryList(
     runs: List<SyncRun>,
     onOpen: (RootNavTree.GameDetail) -> Unit,
     onHelp: (SyncRun) -> Unit,
-    onDelete: (SyncRun, SyncGame) -> Unit,
-    onKeep: (SyncRun, SyncGame) -> Unit,
+    answersFor: (SyncRun) -> GameAnswers,
 ) {
     // The runs the user opened or closed; the others follow needsLook.
     val toggled = remember { mutableStateMapOf<String, Boolean>() }
     // The game groups (received, sent, skipped) the user opened.
     val openGroups = remember { mutableStateMapOf<String, Boolean>() }
     val runningList = running.toList()
-    // The newest run of each service and kind: the only one whose removed games are still a choice to make.
+    // The newest run of each service and kind: the only one whose games left to the user are still a choice to make.
     val latestOf = runs.groupBy { it.service to it.kind }.mapValues { (_, serviceRuns) -> serviceRuns.first() }
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -177,10 +193,9 @@ private fun HistoryList(
                 val latestRun = latestOf.getValue(run.service to run.kind)
                 val isLatest = run.id == latestRun.id
                 val open = toggled[run.id] ?: run.needsLook(isLatest)
-                val pending = latestRun.removedOnService.mapTo(mutableSetOf()) { it.gameId }
                 collapsibleSection(
                     key = run.id,
-                    rows = run.details(isLatest, pending, openGroups.keys),
+                    rows = run.details(latestRun, openGroups.keys),
                     rowKey = { it.key },
                     expanded = open,
                     header = { shapes, modifier ->
@@ -193,8 +208,7 @@ private fun HistoryList(
                         ListItemDefaults.segmentedShapes(position, count),
                         onToggle = { key -> if (openGroups.remove(key) == null) openGroups[key] = true },
                         onOpen = onOpen,
-                        onDelete = { onDelete(run, it) },
-                        onKeep = { onKeep(run, it) },
+                        answers = answersFor(run),
                     )
                 }
             }

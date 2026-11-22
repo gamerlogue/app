@@ -85,6 +85,8 @@ class LibrarySync(
         val toPush: List<OutgoingGame>,
         val removedOnOneSide: Int,
         val addedGames: List<Game> = emptyList(),
+        /** The store games matched only by a guess or not at all: left out, waiting for the user. */
+        val unsure: List<GameMatcher.Match> = emptyList(),
     )
 
     /** A Gamerlogue backlog game about to be pushed to a store wishlist (for the outgoing preview).
@@ -314,6 +316,7 @@ class LibrarySync(
             (removed intersect onWishlist).size + toPush.count { it.removedFromStore },
             // The games that made new entries, which is what `added` counts.
             incoming.filterNot { it.baseGameId in known }.distinctBy { it.baseGameId },
+            matches.filterNot { it.confident },
         )
     }
 

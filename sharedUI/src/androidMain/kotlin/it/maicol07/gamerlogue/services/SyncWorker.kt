@@ -42,7 +42,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             val notification = notifications.progress(service, index, total)
             if (index == 0 && appOnScreen()) keepAlive(notification) else notifications.show(notification)
         }
-        notifications.finished(runs)
+        notifications.finished(runs, koin.get<SyncHistory>()::previous)
         return Result.success()
     }
 

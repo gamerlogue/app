@@ -55,6 +55,38 @@ class SyncCoordinator(
     suspend fun runManual(service: ExternalService, kind: SyncKind, session: WebSession): SyncOutcome? =
         run(service, kind, SyncTrigger.MANUAL, session).first
 
+    /**
+     * Removes [game] from the tracker of [service], as the user removed it from Gamerlogue and confirmed, through the
+     * background session like the syncs; settled in the history once the tracker confirmed it. Returns whether it did.
+     */
+    suspend fun removeFromService(service: ExternalService, game: SyncGame): Boolean {
+        val removed = try {
+            background.withLock {
+                locks.getValue(service).withLock {
+                    running.update { it + service }
+                    try {
+                        withTimeout(RUN_TIMEOUT) {
+                            host.withSession { runner.removeFromTracker(service, UnattendedSession(it), listOf(game)) }
+                        }
+                    } finally {
+                        running.update { it - service }
+                    }
+                }
+            }
+        } catch (error: LoginRequiredException) {
+            Logger.e(error) { "Removal from $service failed" }
+            emptySet()
+        } catch (error: ScriptWriteException) {
+            Logger.e(error) { "Removal from $service failed" }
+            emptySet()
+        } catch (error: TimeoutCancellationException) {
+            Logger.e(error) { "Removal from $service failed" }
+            emptySet()
+        }
+        if (game.gameId in removed) history.settleRemoved(service, SyncKind.LIBRARY, game.gameId, keep = false)
+        return game.gameId in removed
+    }
+
     /** Hands [scheduler] the library changes to push and the period to sync at, until cancelled. */
     @OptIn(ExperimentalSettingsApi::class)
     suspend fun watch(scheduler: SyncScheduler) {
@@ -128,7 +160,7 @@ class SyncCoordinator(
                 // ponytail: one bound for a stuck script or page nobody watches; a background job gets about this
                 // long anyway. A manual run has the user there to leave it.
                 val outcome = if (trigger == SyncTrigger.MANUAL) sync() else withTimeout(RUN_TIMEOUT) { sync() }
-                outcome to outcome?.let { record.finished(it) }?.also { history.add(it) }
+                outcome to outcome?.let { history.add(record.finished(it)) }
             } catch (error: LoginRequiredException) {
                 record.failed(SyncResult.LOGIN_REQUIRED, error)
             } catch (error: LoginTimeoutException) {
@@ -160,6 +192,7 @@ class SyncCoordinator(
                 removedOnService = outcome.removedOnService,
                 received = outcome.received,
                 sent = outcome.sent,
+                toConfirm = outcome.toConfirm,
             )
             is SyncOutcome.LibrarySynced -> run(
                 if (outcome.skipped.isEmpty() && outcome.conflicts == 0) SyncResult.OK else SyncResult.PARTIAL,
@@ -171,6 +204,8 @@ class SyncCoordinator(
                 removedOnService = outcome.removedOnService,
                 received = outcome.received,
                 sent = outcome.sent,
+                toConfirm = outcome.toConfirm,
+                removedHere = outcome.removedHere,
             )
             else -> run(SyncResult.OK)
         }
@@ -178,9 +213,7 @@ class SyncCoordinator(
         /** Records the failure: the run's caller gets no outcome, only the recorded run. */
         fun failed(result: SyncResult, error: Exception): Pair<SyncOutcome?, SyncRun?> {
             Logger.e(error) { "$kind sync of $service failed" }
-            val run = run(result).copy(error = error.message)
-            history.add(run)
-            return null to run
+            return null to history.add(run(result).copy(error = error.message))
         }
 
         private fun run(result: SyncResult) = SyncRun(

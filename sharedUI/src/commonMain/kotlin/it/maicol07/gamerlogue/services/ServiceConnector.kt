@@ -233,6 +233,12 @@ abstract class ServiceConnector(
         @Suppress("SameReturnValue")
         get() = null
 
+    /** Removes games from the tracker in one step, given their refs (tracker uid, name, current status, IGDB id), and
+     *  delivers a ref per game removed; null when the tracker can't remove games. */
+    open val statusRemove: ((List<ExternalGameRef>) -> WebStep)?
+        @Suppress("SameReturnValue")
+        get() = null
+
     /** Adjust an IGDB store URL before navigating to it for a push (e.g. strip the locale segment). */
     open fun normalizePushUrl(url: String): String = url
 

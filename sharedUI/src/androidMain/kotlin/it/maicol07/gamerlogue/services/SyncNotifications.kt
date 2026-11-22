@@ -20,7 +20,9 @@ import gamerlogue.sharedui.generated.resources.sync__notification_login
 import gamerlogue.sharedui.generated.resources.sync__notification_progress
 import gamerlogue.sharedui.generated.resources.sync__notification_removed
 import gamerlogue.sharedui.generated.resources.sync__notification_running
+import gamerlogue.sharedui.generated.resources.sync__notification_to_confirm
 import it.maicol07.gamerlogue.ui.views.settings.categories.labelRes
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.getPluralString
 import org.jetbrains.compose.resources.getString
 
@@ -55,10 +57,13 @@ class SyncNotifications(private val context: Context) {
 
     fun show(notification: Notification) = notify(PROGRESS_ID, notification)
 
-    /** The runs ended: the progress goes, and the ones that need a look get a notification of their own. */
-    suspend fun finished(runs: List<SyncRun>) {
+    /**
+     * The runs ended: the progress goes, and the ones that need a look get a notification of their own. Games left to
+     * the user count only when the [previous] run of the same sync didn't list them: they'd be notified every time.
+     */
+    suspend fun finished(runs: List<SyncRun>, previous: (SyncRun) -> SyncRun?) {
         manager.cancel(PROGRESS_ID)
-        val lines = runs.mapNotNull { it.attention() }
+        val lines = runs.flatMap { it.attention(previous(it)) }
         if (lines.isEmpty()) return
         val style = NotificationCompat.InboxStyle()
         lines.forEach(style::addLine)
@@ -74,17 +79,25 @@ class SyncNotifications(private val context: Context) {
         notify(ATTENTION_ID, notification)
     }
 
-    /** What of [this] run needs a look, as a notification line; null when nothing does. */
-    private suspend fun SyncRun.attention(): String? {
+    /**
+     * What of [this] run needs a look, after the [before] one, as notification lines: a failed run has only its failure;
+     * else one line for each kind of thing to look at, none when nothing is.
+     */
+    private suspend fun SyncRun.attention(before: SyncRun?): List<String> {
         val name = getString(service.labelRes())
-        return when {
-            result == SyncResult.LOGIN_REQUIRED -> getString(Res.string.sync__notification_login, name)
-            result == SyncResult.FAILED -> getString(Res.string.sync__notification_failed, name)
-            removedOnService.isNotEmpty() -> removedOnService.size.let {
-                getPluralString(Res.plurals.sync__notification_removed, it, name, it)
-            }
-            conflicts > 0 -> getPluralString(Res.plurals.sync__notification_conflicts, conflicts, name, conflicts)
-            else -> null
+        val removed = (removedOnService + removedHere).map { it.gameId } -
+            before?.let { (it.removedOnService + it.removedHere).map { g -> g.gameId }.toSet() }.orEmpty()
+        val toConfirm = toConfirm.map { it.uid } - before?.toConfirm?.map { it.uid }.orEmpty().toSet()
+        suspend fun count(resource: PluralStringResource, n: Int) =
+            if (n > 0) getPluralString(resource, n, name, n) else null
+        return when (result) {
+            SyncResult.LOGIN_REQUIRED -> listOf(getString(Res.string.sync__notification_login, name))
+            SyncResult.FAILED -> listOf(getString(Res.string.sync__notification_failed, name))
+            else -> listOfNotNull(
+                count(Res.plurals.sync__notification_removed, removed.size),
+                count(Res.plurals.sync__notification_to_confirm, toConfirm.size),
+                count(Res.plurals.sync__notification_conflicts, conflicts),
+            )
         }
     }
 

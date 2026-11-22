@@ -2,19 +2,11 @@ package it.maicol07.gamerlogue.ui.views.settings.categories
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,15 +22,14 @@ import gamerlogue.sharedui.generated.resources.sync__no_changes
 import gamerlogue.sharedui.generated.resources.sync__pushed
 import gamerlogue.sharedui.generated.resources.sync__received_game
 import gamerlogue.sharedui.generated.resources.sync__removed_count
-import gamerlogue.sharedui.generated.resources.sync__removed_delete
-import gamerlogue.sharedui.generated.resources.sync__removed_keep
+import gamerlogue.sharedui.generated.resources.sync__removed_here_count
 import gamerlogue.sharedui.generated.resources.sync__removed_see_latest
-import gamerlogue.sharedui.generated.resources.sync__removed_title
 import gamerlogue.sharedui.generated.resources.sync__sent_game
 import gamerlogue.sharedui.generated.resources.sync__skipped_count
+import gamerlogue.sharedui.generated.resources.sync__to_confirm_count
+import gamerlogue.sharedui.generated.resources.sync__to_confirm_see_latest
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckCircleW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CheckW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CloseW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DeleteW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DownloadW500Rounded
@@ -46,8 +37,10 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Err
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkOffW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LoginW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.QuizW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WarningW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.services.PendingMatch
 import it.maicol07.gamerlogue.services.SkippedWrite
 import it.maicol07.gamerlogue.services.SyncGame
 import it.maicol07.gamerlogue.services.SyncResult
@@ -77,15 +70,20 @@ internal sealed interface RunDetail {
     class Skipped(override val key: String, val write: SkippedWrite) : RunDetail
 
     class Removed(override val key: String, val game: SyncGame) : RunDetail
+
+    class RemovedHere(override val key: String, val game: SyncGame) : RunDetail
+
+    class ToConfirm(override val key: String, val match: PendingMatch) : RunDetail
 }
 
 /**
  * The segments under [run]. The received, sent and skipped games are groups, listed while their key is in [open]
- * (runs from before the lists only have the counts). The removed games are listed only when the run is the
- * [latest] of its service, since they are a choice to make on the service's current state; an older run points
- * there for the ones of its games still [pending] in it, and says nothing of the ones settled or found since.
+ * (runs from before the lists only have the counts). The games left to the user (removed on one side, to confirm)
+ * are listed only when the run is the [latest] of its service and kind, since they are a choice to make on the
+ * current state; an older run points there for the ones still pending in it, and says nothing of the ones settled or
+ * found since.
  */
-internal fun SyncRun.details(latest: Boolean, pending: Set<Int>, open: Set<String>): List<RunDetail> = buildList {
+internal fun SyncRun.details(latest: SyncRun, open: Set<String>): List<RunDetail> = buildList {
     group("$id-received", Icons.DownloadW500Rounded, added, received, open, Res.plurals.sync__added) { i, game ->
         RunDetail.Received("$id-received-$i", game)
     }
@@ -124,23 +122,51 @@ internal fun SyncRun.details(latest: Boolean, pending: Set<Int>, open: Set<Strin
     ) { i, write ->
         RunDetail.Skipped("$id-skipped-$i", write)
     }
-    val removed = if (latest) removedOnService.size else removedOnService.count { it.gameId in pending }
-    if (removed > 0 && latest) {
-        add(
-            RunDetail.Line("$id-removed", Icons.LinkOffW500Rounded) { plural(Res.plurals.sync__removed_count, removed) }
-        )
-        removedOnService.forEach { add(RunDetail.Removed("$id-removed-${it.gameId}", it)) }
-    } else if (removed > 0) {
-        add(
-            RunDetail.Line(
-                "$id-removed",
-                Icons.LinkOffW500Rounded
-            ) { plural(Res.plurals.sync__removed_see_latest, removed) }
-        )
+    if (latest.id == id) {
+        decisions("$id-removed", Icons.LinkOffW500Rounded, removedOnService, Res.plurals.sync__removed_count) {
+            RunDetail.Removed("$id-removed-${it.gameId}", it)
+        }
+        decisions("$id-removed-here", Icons.DeleteW500Rounded, removedHere, Res.plurals.sync__removed_here_count) {
+            RunDetail.RemovedHere("$id-removed-here-${it.gameId}", it)
+        }
+        decisions("$id-confirm", Icons.QuizW500Rounded, toConfirm, Res.plurals.sync__to_confirm_count) {
+            RunDetail.ToConfirm("$id-confirm-${it.uid}", it)
+        }
+    } else {
+        addAll(stillPending(latest))
     }
     if (isEmpty()) {
         add(RunDetail.Line("$id-none", Icons.CheckCircleW500Rounded) { stringResource(Res.string.sync__no_changes) })
     }
+}
+
+/** A line counting the [games] left to the user, followed by them; nothing for none. */
+private fun <T> MutableList<RunDetail>.decisions(
+    key: String,
+    icon: ImageVector,
+    games: List<T>,
+    label: PluralStringResource,
+    row: (T) -> RunDetail,
+) {
+    if (games.isEmpty()) return
+    add(RunDetail.Line(key, icon) { plural(label, games.size) })
+    games.forEach { add(row(it)) }
+}
+
+/** The lines of an older run pointing to the [latest] one, for its games left to the user still pending there. */
+private fun SyncRun.stillPending(latest: SyncRun): List<RunDetail> {
+    val removedIds = (latest.removedOnService + latest.removedHere).mapTo(mutableSetOf()) { it.gameId }
+    val removed = (removedOnService + removedHere).count { it.gameId in removedIds }
+    val uids = latest.toConfirm.mapTo(mutableSetOf()) { it.uid }
+    val toConfirm = toConfirm.count { it.uid in uids }
+    return listOfNotNull(
+        RunDetail.Line("$id-removed", Icons.LinkOffW500Rounded) {
+            plural(Res.plurals.sync__removed_see_latest, removed)
+        }.takeIf { removed > 0 },
+        RunDetail.Line("$id-confirm", Icons.QuizW500Rounded) {
+            plural(Res.plurals.sync__to_confirm_see_latest, toConfirm)
+        }.takeIf { toConfirm > 0 },
+    )
 }
 
 /** A [count] line that opens onto [games] when it has them and its [key] is [open]; nothing for none. */
@@ -163,8 +189,8 @@ private fun <T> MutableList<RunDetail>.group(
 private fun plural(resource: PluralStringResource, count: Int) = pluralStringResource(resource, count, count)
 
 /**
- * One segment: [onToggle] opens or closes a group line, [onOpen] opens a game, [onKeep] and [onDelete] settle a game
- * the service removed. [service] names the service in a game's supporting line.
+ * One segment: [onToggle] opens or closes a group line, [onOpen] opens a game, [answers] settle the games left to the
+ * user. [service] names the service in a game's supporting line and buttons.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -174,8 +200,7 @@ internal fun DetailItem(
     shapes: ListItemShapes,
     onToggle: (String) -> Unit,
     onOpen: (RootNavTree.GameDetail) -> Unit,
-    onDelete: (SyncGame) -> Unit,
-    onKeep: (SyncGame) -> Unit,
+    answers: GameAnswers,
 ) {
     val colors = ListItemDefaults.expressiveSegmentedColors()
     val open = { game: SyncGame -> onOpen(RootNavTree.GameDetail(game.gameId, game.coverImageId, game.name)) }
@@ -221,20 +246,15 @@ internal fun DetailItem(
             )
         }
 
-        is RunDetail.Removed -> {
-            val game = detail.game
-            val removed = stringResource(Res.string.sync__removed_title)
-            // Its section in the Library, so the user knows what deleting it here would drop.
-            val supporting = game.status?.let { "$removed · ${game.statusText()}" } ?: removed
-            GameItem(game, supporting, shapes, onOpen = { open(game) }) {
-                RemovedActions(onKeep = { onKeep(game) }, onDelete = { onDelete(game) })
-            }
-        }
+        is RunDetail.Removed -> RemovedOnServiceItem(detail.game, shapes, open, answers)
+        is RunDetail.RemovedHere -> RemovedHereItem(detail.game, service, shapes, open, answers)
+
+        is RunDetail.ToConfirm -> ToConfirmItem(detail.match, service, shapes, open, answers)
     }
 }
 
 @Composable
-private fun SyncGame.statusText(): String = status?.let { stringResource(it.displayName) }.orEmpty()
+internal fun SyncGame.statusText(): String = status?.let { stringResource(it.displayName) }.orEmpty()
 
 /**
  * A game row: its cover, name and [supporting] line, with any [actions] under it; it opens the game when [onOpen]
@@ -242,7 +262,7 @@ private fun SyncGame.statusText(): String = status?.let { stringResource(it.disp
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun GameItem(
+internal fun GameItem(
     game: SyncGame,
     supporting: String,
     shapes: ListItemShapes,
@@ -272,46 +292,5 @@ private fun GameItem(
             leadingContent = leading,
             supportingContent = supportingContent,
         ) { Text(game.name) }
-    }
-}
-
-/** The two answers for a game the service removed, spelled out: kept here, or deleted here too. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun RemovedActions(onKeep: () -> Unit, onDelete: () -> Unit) {
-    val height = ButtonDefaults.ExtraSmallContainerHeight
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(
-            onClick = onKeep,
-            shapes = ButtonDefaults.shapesFor(height),
-            contentPadding = ButtonDefaults.contentPaddingFor(height),
-            modifier = Modifier.heightIn(min = height),
-        ) {
-            Icon(
-                Icons.CheckW500Rounded,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.iconSizeFor(height))
-            )
-            Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(height)))
-            Text(stringResource(Res.string.sync__removed_keep), style = ButtonDefaults.textStyleFor(height))
-        }
-        FilledTonalButton(
-            onClick = onDelete,
-            shapes = ButtonDefaults.shapesFor(height),
-            contentPadding = ButtonDefaults.contentPaddingFor(height),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            ),
-            modifier = Modifier.heightIn(min = height),
-        ) {
-            Icon(
-                Icons.DeleteW500Rounded,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.iconSizeFor(height))
-            )
-            Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(height)))
-            Text(stringResource(Res.string.sync__removed_delete), style = ButtonDefaults.textStyleFor(height))
-        }
     }
 }
