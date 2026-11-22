@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -115,6 +116,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Hou
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PublishW500Rounded
 import it.maicol07.gamerlogue.clipEntryFor
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceCategory
 import it.maicol07.gamerlogue.services.SkipReason
@@ -419,7 +421,7 @@ private fun LoadingContent(log: List<SyncPhase>, progress: StepProgress?, batch:
     // Each WebView step logs its phase again: show every phase once.
     val steps = log.distinct()
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -552,6 +554,7 @@ private fun SyncReport(
             ) { Text(game.name) }
         }
         technicalDetails(console, showLog) { showLog = !showLog }
+        navigationBarsSpacer()
     }
 }
 

@@ -44,6 +44,7 @@ import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.extensions.displayTimestamp
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
@@ -98,6 +99,7 @@ fun NotificationsView(viewModel: NotificationsViewModel = koinViewModel()) {
                         }
                     }
                     loadingItem(state.loading)
+                    navigationBarsSpacer()
                 }
                 AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
             }

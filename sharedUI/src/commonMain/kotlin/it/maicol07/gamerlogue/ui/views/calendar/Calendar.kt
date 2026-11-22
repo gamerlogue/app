@@ -70,6 +70,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.CalendarMonthW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DateRangeW500Rounded
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.game.CoverAspectRatio
 import it.maicol07.gamerlogue.ui.components.game.GameCoverCard
@@ -278,6 +279,7 @@ private fun CalendarTimeline(
                 }
             }
             loadingOrEmpty(uiState)
+            navigationBarsSpacer()
         }
         AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }

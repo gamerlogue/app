@@ -28,6 +28,7 @@ import gamerlogue.sharedui.generated.resources.profile__tab_library
 import gamerlogue.sharedui.generated.resources.profile__tab_lists
 import gamerlogue.sharedui.generated.resources.profile__tab_reviews
 import gamerlogue.sharedui.generated.resources.profile__tab_stats
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
@@ -76,6 +77,7 @@ private fun TabPage(
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
             tabContent(tab, userId, uiState, viewModels, data, onNavigate)
+            navigationBarsSpacer()
         }
         AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }

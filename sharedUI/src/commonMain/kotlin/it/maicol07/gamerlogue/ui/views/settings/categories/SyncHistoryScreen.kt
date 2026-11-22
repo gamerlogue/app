@@ -61,6 +61,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Del
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HelpW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HistoryW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.SyncGame
 import it.maicol07.gamerlogue.services.SyncKind
@@ -213,6 +214,7 @@ private fun HistoryList(
                 }
             }
         }
+        navigationBarsSpacer()
     }
 }
 

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -33,6 +32,7 @@ import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.RateReviewW500Rounded
 import it.maicol07.gamerlogue.extensions.averageRating
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.RatingBadge
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
@@ -63,7 +63,7 @@ fun GameReviewsView(gameId: Int) = ScreenScaffold(title = Res.string.game__revie
         LoadMoreEffect(listState, viewModel.reviews::loadMore)
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(Dimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
         ) {
@@ -84,6 +84,7 @@ fun GameReviewsView(gameId: Int) = ScreenScaffold(title = Res.string.game__revie
                     EmptyState(Icons.RateReviewW500Rounded, stringResource(Res.string.game__reviews_empty), hint = null)
                 }
             }
+            navigationBarsSpacer()
         }
     }
 }

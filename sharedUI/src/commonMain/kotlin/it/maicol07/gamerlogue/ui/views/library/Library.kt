@@ -31,6 +31,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.JoystickW500Rounded
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
@@ -97,6 +98,7 @@ private fun LibraryContent(
                     LibrarySection(status, section, onGameClick, onSeeAllClick = { onSeeAllClick(status) })
                 }
             }
+            navigationBarsSpacer()
         }
         AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -104,7 +105,7 @@ internal fun SyncPlanContent(
             onClick = onApply,
             enabled = !applying,
             shapes = ButtonDefaults.shapes(),
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
         ) {
             if (applying) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(20.dp))
             Text(stringResource(Res.string.settings__library_sync_apply))

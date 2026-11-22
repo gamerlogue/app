@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -259,7 +260,7 @@ private fun LibraryImportPreviewContent(
             onClick = viewModel::confirm,
             enabled = !uiState.matching && !uiState.importing && (selectedCount > 0 || viewModel.hasNextStep),
             shapes = ButtonDefaults.shapes(),
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
         ) {
             if (uiState.importing) {
                 CircularProgressIndicator(Modifier.padding(end = 8.dp).size(20.dp))

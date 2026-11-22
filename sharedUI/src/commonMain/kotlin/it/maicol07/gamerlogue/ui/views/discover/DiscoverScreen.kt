@@ -63,6 +63,7 @@ import it.maicol07.gamerlogue.data.Activity
 import it.maicol07.gamerlogue.extensions.gameId
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
 import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.layout.SegmentedListLayout
@@ -139,6 +140,7 @@ fun DiscoverView(
                     onSeeAllClick = { navigationState.backStack.add(RootNavTree.ActivityFeed) }
                 )
             }
+            navigationBarsSpacer()
         }
         AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         FloatingSearchBar(listState) {

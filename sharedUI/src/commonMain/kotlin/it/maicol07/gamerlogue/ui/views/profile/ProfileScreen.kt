@@ -34,6 +34,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Loc
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.data.InteractionTarget
 import it.maicol07.gamerlogue.data.User
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.layout.AppTopBar
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.components.social.ReportDialog
@@ -180,6 +181,7 @@ private fun ProfileContent(
                 headerItem(userId, user, uiState, viewModels.profile, navigationState.backStack::add)
             }
             profileBody(userId, uiState, viewModels, navigationState.backStack::add)
+            navigationBarsSpacer()
         }
     }
 }

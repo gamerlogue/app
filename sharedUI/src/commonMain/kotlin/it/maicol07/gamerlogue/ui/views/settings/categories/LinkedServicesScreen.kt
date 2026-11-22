@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -100,6 +101,7 @@ import it.maicol07.gamerlogue.ui.navigation.DetailPaneMetadata
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
+import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -159,7 +161,9 @@ private fun LinkedServicesContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .padding(bottom = Dimens.ScreenPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Card(

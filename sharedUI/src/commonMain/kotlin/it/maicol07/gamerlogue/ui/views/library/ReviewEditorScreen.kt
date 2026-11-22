@@ -98,6 +98,7 @@ import it.maicol07.gamerlogue.data.MAX_RATING
 import it.maicol07.gamerlogue.data.ReviewAspect
 import it.maicol07.gamerlogue.data.ReviewSection
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.RatingBadge
 import it.maicol07.gamerlogue.ui.components.ReviewMode
@@ -289,6 +290,7 @@ private fun ReviewEditorContent(viewModel: ReviewEditorViewModel) {
         item(key = "text") {
             ReviewTextSection(viewModel, Modifier.animateItem(placementSpec = motion.defaultSpatialSpec()))
         }
+        navigationBarsSpacer()
     }
 }
 

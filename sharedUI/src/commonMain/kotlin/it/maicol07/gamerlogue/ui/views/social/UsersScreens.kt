@@ -33,6 +33,7 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Gro
 import it.maicol07.gamerlogue.core.PageLoader
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.layout.AppVerticalScrollbar
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
@@ -115,6 +116,7 @@ internal fun UserPagedList(
                 )
             }
             loadingItem(state.loading)
+            navigationBarsSpacer()
         }
         AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }

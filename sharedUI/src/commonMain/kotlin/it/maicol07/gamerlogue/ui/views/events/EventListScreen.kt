@@ -53,6 +53,7 @@ import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.igdb.dateRangeLabel
 import it.maicol07.gamerlogue.extensions.igdb.gamesNavKey
 import it.maicol07.gamerlogue.extensions.igdb.startYear
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.event.EventStatusPill
@@ -126,6 +127,7 @@ fun EventListView(
                             }
                         }
                     }
+                    navigationBarsSpacer()
                 }
                 AppVerticalScrollbar(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
             }

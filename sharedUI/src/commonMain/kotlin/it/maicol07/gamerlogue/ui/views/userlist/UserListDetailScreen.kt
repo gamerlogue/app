@@ -82,6 +82,7 @@ import it.maicol07.gamerlogue.data.InteractionTarget
 import it.maicol07.gamerlogue.data.UserList
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
 import it.maicol07.gamerlogue.extensions.igdb.detailNavKey
+import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.layout.AppTopBar
 import it.maicol07.gamerlogue.ui.components.layout.LoadMoreEffect
@@ -219,6 +220,7 @@ private fun ListContent(
             commentsSection(roots, commentsState, commentsViewModel, list.userId) {
                 navigationState.backStack.add(RootNavTree.UserProfile(it))
             }
+            navigationBarsSpacer()
         }
         AnimatedVisibility(
             commentsState.composing,
