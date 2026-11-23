@@ -1,21 +1,25 @@
 package it.maicol07.gamerlogue.ui.components.layout
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -28,6 +32,7 @@ import gamerlogue.sharedui.generated.resources.exception__action_show
 import gamerlogue.sharedui.generated.resources.nav__notifications
 import gamerlogue.sharedui.generated.resources.sync__status_new
 import gamerlogue.sharedui.generated.resources.sync__status_running
+import gamerlogue.sharedui.generated.resources.sync__status_running_progress
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
@@ -35,12 +40,17 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Not
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.UnreadNotifications
+import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.SyncCoordinator
 import it.maicol07.gamerlogue.services.SyncHistory
+import it.maicol07.gamerlogue.services.SyncQueue
 import it.maicol07.gamerlogue.services.SyncResult
+import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
+import it.maicol07.gamerlogue.ui.views.settings.categories.label
+import it.maicol07.gamerlogue.ui.views.settings.categories.labelRes
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -100,10 +110,11 @@ fun NotificationsAction(navigationState: AppNavigationState = LocalNavigationSta
 }
 
 /**
- * Shown while a sync runs (a loading indicator) and after one the user hasn't looked at yet (the count of new results,
- * red when one failed); it opens the sync history, which marks them seen.
+ * Shown while a sync runs (the sync icon in a ring filling with the background queue, X of N) and after one the user
+ * hasn't looked at yet (the count of new results, red when one failed); a tooltip tells which. It opens the sync
+ * history, which marks them seen.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SyncStatusAction(navigationState: AppNavigationState = LocalNavigationState.current) {
     val coordinator = koinInject<SyncCoordinator>()
@@ -113,30 +124,63 @@ fun SyncStatusAction(navigationState: AppNavigationState = LocalNavigationState.
     val unseen = runs.filterNot { it.seen }
     val syncing = running.isNotEmpty() || !queue.isEmpty
     AnimatedVisibility(syncing || unseen.isNotEmpty()) {
-        IconButton(
-            onClick = { navigationState.backStack.add(RootNavTree.SyncHistory) },
-            shapes = IconButtonDefaults.shapes()
-        ) {
-            if (syncing) {
-                val runningLabel = stringResource(Res.string.sync__status_running)
-                LoadingIndicator(Modifier.size(SyncIndicatorSize).semantics { contentDescription = runningLabel })
-            } else {
-                val failed = unseen.any { it.result == SyncResult.FAILED || it.result == SyncResult.LOGIN_REQUIRED }
-                BadgedBox(
-                    badge = {
-                        Badge(
-                            containerColor = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                        ) { Text(unseen.size.toString()) }
+        val label = if (syncing) syncingLabel(running, queue) else stringResource(Res.string.sync__status_new)
+        TooltipBox(tooltip = { PlainTooltip { Text(label) } }) {
+            IconButton(
+                onClick = { navigationState.backStack.add(RootNavTree.SyncHistory) },
+                shapes = IconButtonDefaults.shapes()
+            ) {
+                if (syncing) {
+                    SyncProgressIcon(queue, label)
+                } else {
+                    val failed = unseen.any { it.result == SyncResult.FAILED || it.result == SyncResult.LOGIN_REQUIRED }
+                    BadgedBox(
+                        badge = {
+                            Badge(
+                                containerColor = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            ) { Text(unseen.size.toString()) }
+                        }
+                    ) {
+                        Icon(Icons.SyncW500Rounded, contentDescription = label)
                     }
-                ) {
-                    Icon(Icons.SyncW500Rounded, contentDescription = stringResource(Res.string.sync__status_new))
                 }
             }
         }
     }
 }
 
-private val SyncIndicatorSize = 24.dp
+/** The sync icon in a ring: filled by the done share of a background queue of more than one, else indeterminate. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SyncProgressIcon(queue: SyncQueue, label: String) {
+    Box(Modifier.semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
+        if (queue.total > 1) {
+            val progress by animateFloatAsState(queue.done.toFloat() / queue.total)
+            CircularWavyProgressIndicator(progress = { progress }, modifier = Modifier.size(SyncRingSize))
+        } else {
+            CircularWavyProgressIndicator(Modifier.size(SyncRingSize))
+        }
+        Icon(Icons.SyncW500Rounded, contentDescription = null, Modifier.size(SyncRingIconSize))
+    }
+}
+
+/** "Syncing · 2 of 4 · Steam · Library" for the current background sync, else the services the user syncs. */
+@Composable
+private fun syncingLabel(running: Set<ExternalService>, queue: SyncQueue): String {
+    val current = queue.current
+    return if (current != null) {
+        listOf(
+            stringResource(Res.string.sync__status_running_progress, queue.done + 1, queue.total),
+            stringResource(current.service.labelRes()),
+            stringResource(current.kind.label),
+        )
+    } else {
+        listOf(stringResource(Res.string.sync__status_running)) + running.map { stringResource(it.labelRes()) }
+    }.joinToString(" · ")
+}
+
+private val SyncRingSize = 32.dp
+private val SyncRingIconSize = 16.dp
 
 @Composable
 fun GlobalErrorAction() {
