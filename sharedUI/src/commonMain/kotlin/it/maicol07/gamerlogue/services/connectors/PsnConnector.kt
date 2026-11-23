@@ -121,12 +121,25 @@ class PsnConnector(private val api: PsnApi) :
             storeUrl,
             SyncScripts.wrap(
                 """
-                // Success = the button flips to the already-wishlisted "removeFromWishlist" variant.
-                // __glVisible skips the hidden edition-picker duplicates of the add button.
-                let ok = await __glClickUntil(
-                    function() { return __glVisible('button[data-track-click*="addToWishlist"]'); },
-                    function() { return !!document.querySelector('button[data-track-click*="removeFromWishlist"]'); }
-                );
+                // The page's own game's wishlist toggle (the page also carries other editions' toggles and hidden
+                // duplicates), matched on `data-qa` and the product or concept id the page's URL names. Success = it
+                // flips to "removeFromWishlist".
+                let id = (location.pathname.match(/\/(?:product|concept)\/([^\/?#]+)/) || [])[1] || '';
+                let toggle = function() {
+                    return Array.prototype.find.call(document.querySelectorAll('button[data-qa="wishlistToggle"]'), function(b) {
+                        try {
+                            let meta = JSON.parse(b.getAttribute('data-telemetry-meta') || '{}');
+                            return !!id && (meta.productId === id || String(meta.conceptId) === id);
+                        } catch (e) { return false; }
+                    });
+                };
+                let state = function() { let b = toggle(); return b ? b.getAttribute('data-track-click') || '' : ''; };
+                for (let i = 0; i < 20 && !toggle(); i++) await __glSleep(500);
+                for (let i = 0; i < 6 && state().indexOf('addToWishlist') >= 0; i++) {
+                    toggle().click();
+                    await __glSleep(1500);
+                }
+                let ok = state().indexOf('removeFromWishlist') >= 0;
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
                 console.log('[GL] psn wishlist push added=' + ok + ' ' + location.href);
                 """.trimIndent(),
