@@ -104,7 +104,7 @@ class EpicConnector(private val api: EpicApi) :
     // title from the catalog, a few at a time.
     override val wishlist = webRefs(
         WebStep(
-            "https://store.epicgames.com/",
+            WISHLIST_PAGE,
             SyncScripts.wrap(
                 """
                 $GQL_JS
@@ -153,7 +153,7 @@ class EpicConnector(private val api: EpicApi) :
     // then the remove mutation the wishlist page's Remove button sends. An offer no longer there is already removed.
     override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
         WebStep(
-            "https://store.epicgames.com/",
+            WISHLIST_PAGE,
             SyncScripts.wrap(
                 """
                 $GQL_JS
@@ -178,9 +178,12 @@ class EpicConnector(private val api: EpicApi) :
         // Public "fortnitePCGameClient" launcher client id — used to request the authorization code.
         const val LauncherClientId = "34a02cf8f4414e29b15921876da36f9a"
 
-        // ponytail: the hash of the store's persisted getWishlist query, read off the live wishlist page; it changes
-        // when Epic changes the query, and the read then fails (it throws, so no sync treats it as an empty wishlist).
-        // Read the new one from `__REACT_QUERY_INITIAL_QUERIES__` on store.epicgames.com/wishlist.
+        // The wishlist page: its server-rendered React Query state (`__REACT_QUERY_INITIAL_QUERIES__`) holds the store's
+        // own getWishlist query, keyed `["getWishlist", ["accountId", …], "<sha256 of the persisted query>"]`.
+        const val WISHLIST_PAGE = "https://store.epicgames.com/wishlist"
+
+        // The getWishlist hash last seen on the wishlist page, for when the page names none (e.g. its state changed shape).
+        // ponytail: a stale fallback; the read still throws then (no sync takes it for an empty wishlist).
         const val WISHLIST_QUERY_HASH = "40e7770852757ee6aaa43b0f6fce65de984754e8d32572a1c978910cbf26f02e"
 
         val GQL_JS = """
@@ -193,9 +196,16 @@ class EpicConnector(private val api: EpicApi) :
                 });
                 return r.ok ? r.json() : { errors: ['HTTP ' + r.status] };
             }
+            // The persisted getWishlist query's hash, as the wishlist page's own state names it.
+            function __epWishlistHash() {
+                let m = JSON.stringify(window.__REACT_QUERY_INITIAL_QUERIES__ || {})
+                    .match(/\["getWishlist",\[[^\]]*\],"([0-9a-f]{64})"\]/);
+                console.log('[GL] epic wishlist hash ' + (m ? 'from page' : 'fallback'));
+                return m ? m[1] : '$WISHLIST_QUERY_HASH';
+            }
             // offerId + namespace of every wishlist entry.
             async function __epWishlist() {
-                let ext = encodeURIComponent(JSON.stringify({ persistedQuery: { version: 1, sha256Hash: '$WISHLIST_QUERY_HASH' } }));
+                let ext = encodeURIComponent(JSON.stringify({ persistedQuery: { version: 1, sha256Hash: __epWishlistHash() } }));
                 let r = await fetch('https://store.epicgames.com/graphql?operationName=getWishlist&variables=%7B%7D&extensions=' + ext,
                     { credentials: 'include' });
                 let j = r.ok ? await r.json() : {};
