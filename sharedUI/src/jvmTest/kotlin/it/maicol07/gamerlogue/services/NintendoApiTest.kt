@@ -27,6 +27,18 @@ class NintendoApiTest : StringSpec({
         parseTitleId(body, "Pokemon Legends: Z-A") shouldBe "70010000094235"
     }
 
+    "nintendo.com's search results pick the game itself, not its sequels or editions" {
+        val results = listOf(
+            "Hades" to "/us/store/products/hades-switch/",
+            "Hades II – Nintendo Switch™ 2 Edition" to "/us/store/products/hades-ii-nintendo-switch-2-edition-switch-2/",
+            "Hades II" to "/us/store/products/hades-ii-switch/",
+            "Hades Uprising" to "/us/store/products/hades-uprising-switch/",
+        )
+        results.byTitle("Hades") shouldBe "/us/store/products/hades-switch/"
+        results.byTitle("Hades II") shouldBe "/us/store/products/hades-ii-switch/"
+        results.byTitle("Hades III") shouldBe null
+    }
+
     "a word or number more is another game" {
         parseTitleId(body, "Xenoblade Chronicles: Definitive Edition") shouldBe null
         parseTitleId(body, "Hades") shouldBe null

@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.services.connectors
 
 import com.parkwoocheol.composewebview.PlatformCookieManager
+import io.ktor.http.encodeURLParameter
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
@@ -9,6 +10,7 @@ import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
+import it.maicol07.gamerlogue.services.byTitle
 import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
@@ -71,12 +73,14 @@ class NintendoConnector(private val api: NintendoApi) :
 
     override val wishlist = webRefs(WebStep(WISHLIST, titlesScrape()))
 
-    // IGDB links US store pages, and an eShop id is per region, so a push finds the game by name in the European eShop
-    // and opens its eShop page for the account's country and language (read off the eShop's own session), which
-    // forwards to the game's page on nintendo.com. There the wishlist button is a text-only toggle;
-    // computeWishlistPush only sends games not on the wishlist, so a click adds, confirmed by its label changing.
-    // ponytail: European accounts only (the search is Europe's); a US or Japanese one is skipped and needs its region's
-    // search (nintendo.com's Algolia index, search.nintendo.jp).
+    // IGDB links US store pages, and an eShop id is per region, so a push finds the game by name for the account's
+    // region (read off the eShop's own session). A European account searches Europe's eShop off-WebView and opens the
+    // eShop page for its country and language, which forwards to the game's page on its Nintendo site; there the
+    // wishlist button is a text-only toggle, confirmed by its label changing. A US account searches nintendo.com in the
+    // WebView (its search runs in the page only) and opens the product page found, where the wishlist button reports
+    // its state in aria-pressed. computeWishlistPush only sends games not on the wishlist, so a click adds.
+    // ponytail: the US product-page click is read off the public page, not tried with a US account; other regions
+    // (Japan, the rest of the Americas) are skipped as unsupported.
     override val wishlistWrite = WishlistWrite.ResolvedByName(
         account = WebStep(
             WISHLIST,
@@ -84,25 +88,35 @@ class NintendoConnector(private val api: NintendoApi) :
                 """
                 let s = (await (await fetch('/api/auth/session', { credentials: 'include' })).json()) || {};
                 let l = s.localeInfo || {};
-                out = l.region === 'EUR' && l.country && l.language ? [{ uid: l.country + '/' + l.language, name: '' }] : [];
+                let ok = (l.region === 'EUR' || l.country === 'US') && l.country && l.language;
+                out = ok ? [{ uid: l.country + '/' + l.language, name: '' }] : [];
                 console.log('[GL] nintendo account ' + JSON.stringify(l));
                 """.trimIndent(),
             ),
         ),
         // The account is the eShop's own "COUNTRY/language" path segment (e.g. "IT/it").
-        resolve = { name, account -> api.europeanTitleId(name)?.let { "https://ec.nintendo.com/$account/titles/$it" } },
-        step = { pageUrl ->
-            WebStep(pageUrl, SyncScripts.wrap("""
-                let btn = await __glWaitForEl('.btn-wishlist');
-                let label = function() { return (document.querySelector('.btn-wishlist') || btn).textContent.trim(); };
-                let before = btn ? label() : '';
-                if (btn) btn.click();
-                for (let i = 0; btn && i < 10 && label() === before; i++) await __glSleep(500);
-                let ok = !!btn && label() !== before;
-                out = ok ? [{ uid: location.href, name: 'added' }] : [];
-                console.log('[GL] nintendo wishlist push added=' + ok + ' ' + location.href);
-            """.trimIndent()))
+        resolve = { name, account, run ->
+            if (account.startsWith("US/")) {
+                run(usSearch(name)).map { it.name to it.uid }.byTitle(name)
+            } else {
+                api.europeanTitleId(name)?.let { "https://ec.nintendo.com/$account/titles/$it" }
+            }
         },
+        step = { pageUrl -> WebStep(pageUrl, if (pageUrl.startsWith(US_SITE)) US_PUSH else EUROPEAN_PUSH) },
+    )
+
+    // nintendo.com's search, results rendered by the page: each product link is labelled with the game's full title.
+    private fun usSearch(name: String) = WebStep(
+        "$US_SITE/us/search/?q=${name.encodeURLParameter()}",
+        SyncScripts.wrap(
+            """
+            let links = await __glWaitForAll('a[aria-label][href*="/store/products/"]');
+            out = Array.prototype.map.call(links, function(a) {
+                return { uid: a.href, name: a.getAttribute('aria-label').replace(/ /g, ' ') };
+            });
+            console.log('[GL] nintendo us search results=' + out.length);
+            """.trimIndent(),
+        ),
     )
 
     // Wait for the React-rendered cards, then read every /titles/{id} link (uid) and its cover <img alt>
@@ -161,6 +175,37 @@ class NintendoConnector(private val api: NintendoApi) :
     }
 
     private companion object {
+        const val US_SITE = "https://www.nintendo.com"
+
+        // The European product page's wishlist button: text-only, so a click is confirmed by its label changing.
+        val EUROPEAN_PUSH = SyncScripts.wrap(
+            """
+            let btn = await __glWaitForEl('.btn-wishlist');
+            let label = function() { return (document.querySelector('.btn-wishlist') || btn).textContent.trim(); };
+            let before = btn ? label() : '';
+            if (btn) btn.click();
+            for (let i = 0; btn && i < 10 && label() === before; i++) await __glSleep(500);
+            let ok = !!btn && label() !== before;
+            out = ok ? [{ uid: location.href, name: 'added' }] : [];
+            console.log('[GL] nintendo wishlist push added=' + ok + ' ' + location.href);
+            """.trimIndent(),
+        )
+
+        // The US product page's wishlist button ("Add to Wish List", one per layout): its aria-pressed is the state.
+        val US_PUSH = SyncScripts.wrap(
+            """
+            let btn = function(pressed) {
+                return Array.prototype.find.call(document.querySelectorAll('button[aria-pressed]'), function(b) {
+                    return b.offsetParent !== null && /wish/i.test(b.getAttribute('aria-label') || '') &&
+                        b.getAttribute('aria-pressed') === pressed;
+                });
+            };
+            let ok = await __glClickUntil(function() { return btn('false'); }, function() { return !!btn('true'); }, 6);
+            out = ok ? [{ uid: location.href, name: 'added' }] : [];
+            console.log('[GL] nintendo us wishlist push added=' + ok + ' ' + location.href);
+            """.trimIndent(),
+        )
+
         const val ACCOUNT = "https://accounts.nintendo.com/"
         const val OWNED = "https://accounts.nintendo.com/portal/vgcs"
         const val WISHLIST = "https://ec.nintendo.com/my/wishlist"

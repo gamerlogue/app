@@ -96,13 +96,17 @@ sealed interface DataSource<T> {
 sealed interface WishlistWrite {
     data class Batch(val step: (refs: List<ExternalGameRef>) -> WebStep) : WishlistWrite
     data class PerGame(val step: (storeUrl: String) -> WebStep?) : WishlistWrite
-    /** Finds each game's store page off-WebView from its name ([resolve], null when the store has none), then
-     *  writes there ([step]): for a store whose pages IGDB can't link to (Nintendo: its ids are per region).
-     *  [account] runs once first and delivers, as its first ref's uid, what [resolve] needs to know of the account
-     *  (Nintendo: its country and language); none when the account can't be written to this way. */
+    /** Finds each game's store page from its name ([resolve], null when the store has none), off-WebView or through
+     *  the [run] steps it's given, then writes there ([step]): for a store whose pages IGDB can't link to (Nintendo:
+     *  its ids are per region). [account] runs once first and delivers, as its first ref's uid, what [resolve] needs
+     *  to know of the account (Nintendo: its country and language); none when it can't be written to this way. */
     data class ResolvedByName(
         val account: WebStep,
-        val resolve: suspend (name: String, account: String) -> String?,
+        val resolve: suspend (
+            name: String,
+            account: String,
+            run: suspend (WebStep) -> List<ExternalGameRef>,
+        ) -> String?,
         val step: (pageUrl: String) -> WebStep,
     ) : WishlistWrite
 

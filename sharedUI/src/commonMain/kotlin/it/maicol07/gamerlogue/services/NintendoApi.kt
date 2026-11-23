@@ -35,17 +35,21 @@ class NintendoApi(private val http: HttpClient) {
     }
 }
 
-/**
- * The eShop id of the search result in [body] for [name]: the first title equal to it by [titleKey], else the only one
- * a typo away ([isNearTitle]); null for none, or for several near ones, so a guess never picks between games.
- */
+/** The eShop id of the search result in [body] for [name] ([byTitle]). */
 internal fun parseTitleId(body: String, name: String): String? {
     val docs = (Json.parseToJsonElement(body) as? JsonObject)?.get("response")?.jsonObject?.get("docs")?.jsonArray
-    val titled = docs.orEmpty().map { it.jsonObject }.map { it["title"]?.jsonPrimitive?.content.orEmpty() to it }
-    val doc = titled.firstOrNull { titleKey(it.first) == titleKey(name) }?.second
-        ?: titled.filter { isNearTitle(it.first, name) }.singleOrNull()?.second
+    val doc = docs.orEmpty()
+        .map { it.jsonObject }
+        .map { it["title"]?.jsonPrimitive?.content.orEmpty() to it }
+        .byTitle(name)
     return doc?.get("nsuid_txt")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
 }
+
+/** The value of the (title, value) search result for [name]: the first titled like it by [titleKey], else the only one a
+ *  typo away ([isNearTitle]); null for none, or for several near ones, so a guess never picks between games. */
+internal fun <T> List<Pair<String, T>>.byTitle(name: String): T? =
+    firstOrNull { titleKey(it.first) == titleKey(name) }?.second
+        ?: filter { isNearTitle(it.first, name) }.singleOrNull()?.second
 
 /** A title as only its letters and digits, lowercased: "Core Keeper™" and "core keeper" are the same game. */
 internal fun titleKey(title: String): String = title.filter(Char::isLetterOrDigit).lowercase()

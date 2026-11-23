@@ -395,7 +395,7 @@ class SyncRunner(
             session.reportSkip(SkippedWrite(g.name, SkipReason.UNSUPPORTED_ACCOUNT))
             return 0
         }
-        val page = write.resolve(g.name, account)
+        val page = write.resolve(g.name, account, session::run)
         return if (page == null) {
             session.reportSkip(SkippedWrite(g.name, SkipReason.NOT_FOUND))
             0
