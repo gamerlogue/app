@@ -1,9 +1,11 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import androidx.compose.ui.text.intl.Locale
 import com.parkwoocheol.composewebview.PlatformCookieManager
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
+import it.maicol07.gamerlogue.services.NintendoApi
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
@@ -24,7 +26,8 @@ import it.maicol07.gamerlogue.services.webRefs
  * ponytail: like PSN/Xbox/Epic, the injected JS and endpoints below are best-effort and tuned live on the
  * Android WebView; Nintendo exposes no clean same-origin JSON like GOG/Steam.
  */
-class NintendoConnector : ServiceConnector(ExternalService.NINTENDO, host = "nintendo.com", externalGameSource = 0) {
+class NintendoConnector(private val api: NintendoApi) :
+    ServiceConnector(ExternalService.NINTENDO, host = "nintendo.com", externalGameSource = 0) {
     // IGDB platform_family for Nintendo (PS=1, Xbox=2). Only used to flag on-platform wishlist pushes.
     // ponytail: confirm the real id against IGDB's platform_family endpoint; wrong value only mis-flags onPlatform.
     override val platformFamily = 5
@@ -69,24 +72,27 @@ class NintendoConnector : ServiceConnector(ExternalService.NINTENDO, host = "nin
 
     override val wishlist = webRefs(WebStep(WISHLIST, titlesScrape()))
 
-    // Push is a two-hop: IGDB gives a www.nintendo.com detail URL, but the add button lives on the eShop
-    // product page. resolve() reads the numeric title id from the page's eShop buy link
-    // (ec.nintendo.com/title_purchase_confirm?title={id}) and builds the region-less ec product URL
-    // (ec redirects it to the account's region, as /my/wishlist does). step() then clicks .btn-wishlist —
-    // a text-only toggle, but computeWishlistPush only sends not-yet-wishlisted games, so a click adds.
-    override val wishlistWrite = WishlistWrite.PerGameResolved(
-        resolve = { storeUrl ->
-            WebStep(storeUrl, SyncScripts.wrap("""
-                let a = document.querySelector('a[href*="title_purchase_confirm"]');
-                let id = a ? new URL(a.href).searchParams.get('title') : '';
-                out = id ? [{ uid: 'https://ec.nintendo.com/titles/' + id, name: '' }] : [];
-            """.trimIndent()))
+    // IGDB links US store pages, and an eShop id is per region, so a push finds the game by name in the European eShop
+    // (the app's locale gives country and language) and opens its eShop page, which forwards to the game's page on
+    // nintendo.com. There the wishlist button is a text-only toggle; computeWishlistPush only sends games not on the
+    // wishlist, so a click adds, confirmed by its label changing.
+    // ponytail: European accounts only (the search is Europe's); a US or Japanese one needs its region's search.
+    override val wishlistWrite = WishlistWrite.ResolvedByName(
+        resolve = { name ->
+            val locale = Locale.current
+            api.europeanTitleId(name, locale.language)
+                ?.let { "https://ec.nintendo.com/${locale.region.uppercase()}/${locale.language.lowercase()}/titles/$it" }
         },
-        step = { ecUrl ->
-            WebStep(ecUrl, SyncScripts.wrap("""
+        step = { pageUrl ->
+            WebStep(pageUrl, SyncScripts.wrap("""
                 let btn = await __glWaitForEl('.btn-wishlist');
-                if (btn) { btn.click(); await __glSleep(1000); }
-                out = btn ? [{ uid: '$ecUrl', name: 'added' }] : [];
+                let label = function() { return (document.querySelector('.btn-wishlist') || btn).textContent.trim(); };
+                let before = btn ? label() : '';
+                if (btn) btn.click();
+                for (let i = 0; btn && i < 10 && label() === before; i++) await __glSleep(500);
+                let ok = !!btn && label() !== before;
+                out = ok ? [{ uid: location.href, name: 'added' }] : [];
+                console.log('[GL] nintendo wishlist push added=' + ok + ' ' + location.href);
             """.trimIndent()))
         },
     )

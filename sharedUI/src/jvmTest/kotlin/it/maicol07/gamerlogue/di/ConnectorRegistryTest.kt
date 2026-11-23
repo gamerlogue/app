@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import io.ktor.client.HttpClient
 import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.NintendoApi
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.UbisoftApi
 import it.maicol07.gamerlogue.services.XboxApi
@@ -22,6 +23,7 @@ class ConnectorRegistryTest : StringSpec({
         XboxApi(HttpClient()),
         EpicApi(HttpClient()),
         UbisoftApi(HttpClient()),
+        NintendoApi(HttpClient()),
         AppModule.provideSettings(),
     )
 

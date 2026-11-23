@@ -34,6 +34,7 @@ import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.auth.platformSession
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.services.EpicApi
+import it.maicol07.gamerlogue.services.NintendoApi
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.UbisoftApi
 import it.maicol07.gamerlogue.services.XboxApi
@@ -249,6 +250,10 @@ object HttpModule {
     // the WebView. Off-WebView so it isn't CORS-blocked like the same calls would be in the browser.
     @Single
     fun provideEpicApi() = EpicApi(storeApiClient())
+
+    // Nintendo's European eShop search, which sends no CORS headers: the WebView couldn't call it.
+    @Single
+    fun provideNintendoApi() = NintendoApi(storeApiClient())
 
     // Ubisoft Connect API client (GraphQL owned games); plain JSON, the session ticket comes from the
     // WebView. Off-WebView so it isn't CORS-blocked like the same calls would be in the browser.

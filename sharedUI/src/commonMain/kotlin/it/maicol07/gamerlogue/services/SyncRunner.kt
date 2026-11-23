@@ -368,14 +368,14 @@ class SyncRunner(
             is WishlistWrite.PerGame -> session.writeEach(withStorePage, missed) { g ->
                 write.step(g.storeUrl!!)?.let { session.run(it).size } ?: 0
             }
-            // Resolve the real product URL from an intermediate page first, then act on it (Nintendo).
-            is WishlistWrite.PerGameResolved -> session.writeEach(withStorePage, missed) { g ->
-                val resolved = session.run(write.resolve(g.storeUrl!!)).firstOrNull()?.uid
-                if (resolved.isNullOrBlank()) {
+            // The store page found from the game's name off-WebView, then the write there (Nintendo).
+            is WishlistWrite.ResolvedByName -> session.writeEach(onPlatform, missed) { g ->
+                val page = write.resolve(g.name)
+                if (page == null) {
                     session.reportSkip(SkippedWrite(g.name, SkipReason.NOT_FOUND))
                     0
                 } else {
-                    write.step(resolved)?.let { session.run(it).size } ?: 0
+                    session.run(write.step(page)).size
                 }
             }
             // Search-driven write: no store URL needed, the game's name drives the search (Ubisoft).

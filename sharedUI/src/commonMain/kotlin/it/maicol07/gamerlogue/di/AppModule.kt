@@ -6,6 +6,7 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.observable.makeObservable
 import it.maicol07.gamerlogue.services.EpicApi
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.NintendoApi
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.UbisoftApi
@@ -47,6 +48,7 @@ object AppModule {
         xboxApi: XboxApi,
         epicApi: EpicApi,
         ubisoftApi: UbisoftApi,
+        nintendoApi: NintendoApi,
         settings: ObservableSettings,
     ): Map<ExternalService, ServiceConnector> = listOf(
         SteamConnector(),
@@ -54,7 +56,7 @@ object AppModule {
         XboxConnector(xboxApi),
         GogConnector(),
         EpicConnector(epicApi),
-        NintendoConnector(),
+        NintendoConnector(nintendoApi),
         UbisoftConnector(ubisoftApi),
         BackloggeryConnector(),
         BackloggdConnector(),

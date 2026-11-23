@@ -96,9 +96,11 @@ sealed interface DataSource<T> {
 sealed interface WishlistWrite {
     data class Batch(val step: (refs: List<ExternalGameRef>) -> WebStep) : WishlistWrite
     data class PerGame(val step: (storeUrl: String) -> WebStep?) : WishlistWrite
-    data class PerGameResolved(
-        val resolve: (storeUrl: String) -> WebStep,
-        val step: (resolvedUrl: String) -> WebStep?,
+    /** Finds each game's store page off-WebView from its name ([resolve], null when the store has none), then
+     *  writes there ([step]): for a store whose pages IGDB can't link to (Nintendo: its ids are per region). */
+    data class ResolvedByName(
+        val resolve: suspend (name: String) -> String?,
+        val step: (pageUrl: String) -> WebStep,
     ) : WishlistWrite
 
     data class SearchByName(val step: (name: String) -> WebStep) : WishlistWrite
@@ -111,7 +113,7 @@ sealed interface WishlistWrite {
     data class ByGame(val step: (games: List<LibrarySync.OutgoingGame>) -> WebStep) : WishlistWrite
 
     /** Whether writes reach a game through its store page, so pushing needs each game's store URL. */
-    val needsStorePage: Boolean get() = this is Batch || this is PerGame || this is PerGameResolved
+    val needsStorePage: Boolean get() = this is Batch || this is PerGame
 }
 
 /** Web read delivering a `[{uid,name}, …]` list (owned games / wishlist). */

@@ -7,6 +7,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.ktor.client.HttpClient
 import it.maicol07.gamerlogue.services.connectors.EpicConnector
 import it.maicol07.gamerlogue.services.connectors.GogConnector
 import it.maicol07.gamerlogue.services.connectors.InfiniteBacklogConnector
@@ -59,7 +60,7 @@ class ConnectorUrlTest : StringSpec({
     }
 
     "Nintendo reads the numeric title id out of an eShop URL" {
-        val nintendo = NintendoConnector()
+        val nintendo = NintendoConnector(NintendoApi(HttpClient()))
         nintendo.uidFromUrl("https://ec.nintendo.com/titles/70010000000026") shouldBe "70010000000026"
         nintendo.uidFromUrl("https://www.nintendo.com/store/products/zelda-switch").shouldBeNull()
     }
@@ -77,7 +78,7 @@ class ConnectorUrlTest : StringSpec({
 
     "a console store keeps only the platforms of its own family" {
         val game = game(platform(id = 6), platform(id = 48, family = 1), platform(id = 167, family = 1))
-        val nintendo = NintendoConnector() // platformFamily = 5
+        val nintendo = NintendoConnector(NintendoApi(HttpClient())) // platformFamily = 5
         nintendo.platformIdsFor(game) shouldBe emptyList()
 
         val playstationFamily = object : ServiceConnector(ExternalService.PLAYSTATION, "x", 0) {
