@@ -9,7 +9,11 @@ import it.maicol07.gamerlogue.auth.WebAuthenticationHandler
 import it.maicol07.gamerlogue.services.BackgroundWebHost
 import it.maicol07.gamerlogue.services.InProcessSyncScheduler
 import it.maicol07.gamerlogue.services.SyncScheduler
+import it.maicol07.gamerlogue.services.SyncStorage
+import it.maicol07.gamerlogue.services.WebSyncStorage
 import it.maicol07.gamerlogue.ui.components.WebSession
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -38,4 +42,7 @@ actual object PlatformModule {
 
     @Single
     actual fun provideSyncScheduler(scope: Scope): SyncScheduler = InProcessSyncScheduler(scope.get(), scope.get())
+
+    @Single
+    actual fun provideSyncStorage(scope: Scope): SyncStorage = WebSyncStorage(CoroutineScope(SupervisorJob()))
 }

@@ -19,6 +19,7 @@ import it.maicol07.gamerlogue.services.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
@@ -34,7 +35,8 @@ class SyncHistoryViewModel(
     private val coordinator: SyncCoordinator,
     private val scheduler: SyncScheduler,
 ) : BaseViewModel() {
-    val runs = history.runs
+    val runs: StateFlow<List<SyncRun>> =
+        history.runs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     val running = coordinator.running
     val queue = coordinator.queue
     val pendingPush: StateFlow<Long?> =
@@ -61,10 +63,12 @@ class SyncHistoryViewModel(
     }
 
     /** Opening the history shows every result: none is new any more. */
-    fun markAllSeen() = history.markAllSeen()
+    fun markAllSeen() = viewModelScope.launch { history.markAllSeen() }
 
     /** Keeps [game] where it still is: it's no longer asked about, in this run, any other or later ones. */
-    fun keep(run: SyncRun, game: SyncGame) = history.settleRemoved(run.service, run.kind, game.gameId, keep = true)
+    fun keep(run: SyncRun, game: SyncGame) = viewModelScope.launch {
+        history.settleRemoved(run.service, run.kind, game.gameId, keep = true)
+    }
 
     /** Removes [game] from the service too, as the user did here. */
     fun removeThere(run: SyncRun, game: SyncGame) = viewModelScope.launch {
@@ -79,15 +83,17 @@ class SyncHistoryViewModel(
     /**
      * [match] is its guess: remembered, so later syncs take it as certain, and synced soon, as a library change is.
      */
-    fun confirm(run: SyncRun, match: PendingMatch) {
-        val guess = match.guess ?: return
+    fun confirm(run: SyncRun, match: PendingMatch) = viewModelScope.launch {
+        val guess = match.guess ?: return@launch
         matcher.memory.remember(run.service, mapOf(match.uid to guess.gameId))
         history.settleMatch(run.service, match.uid, ignore = false)
         coordinator.schedulePush(scheduler, wishlist = run.kind == SyncKind.WISHLIST)
     }
 
     /** Leaves [match] out of the syncs for good: no later run asks about it. */
-    fun ignore(run: SyncRun, match: PendingMatch) = history.settleMatch(run.service, match.uid, ignore = true)
+    fun ignore(run: SyncRun, match: PendingMatch) = viewModelScope.launch {
+        history.settleMatch(run.service, match.uid, ignore = true)
+    }
 
     /** Deletes [game] from the library, as the service did; settled once the entry is gone. */
     fun delete(run: SyncRun, game: SyncGame) = viewModelScope.launch {
@@ -111,7 +117,7 @@ class SyncHistoryViewModel(
      * ponytail: a game IGDB has no cover for is looked up again on every visit; remember the misses if that adds up.
      */
     private suspend fun fillMissingCovers() {
-        val ids = history.runs.value.flatMap { it.removedOnService + it.removedHere + it.received + it.sent }
+        val ids = history.runs.first().flatMap { it.removedOnService + it.removedHere + it.received + it.sent }
             .filter { it.coverImageId == null }
             .map { it.gameId }
             .distinct()

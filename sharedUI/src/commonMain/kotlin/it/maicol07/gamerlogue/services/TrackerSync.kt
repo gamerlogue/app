@@ -1,11 +1,11 @@
 package it.maicol07.gamerlogue.services
 
 import at.released.igdbclient.model.Game
-import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.data.LibraryEntry
 import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.extensions.igdb.platformNames
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -132,32 +132,37 @@ private val scriptJson = Json { encodeDefaults = true }
  */
 @Single
 class TrackerSync(
-    private val settings: ObservableSettings,
+    storage: SyncStorage,
     private val matcher: GameMatcher,
     private val librarySync: LibrarySync,
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
-    private val serializer = MapSerializer(Int.serializer(), SyncedGame.serializer())
+    private val store = storage.dataStore(
+        name = "library-sync",
+        serializer = MapSerializer(
+            ExternalService.serializer(),
+            MapSerializer(Int.serializer(), SyncedGame.serializer()),
+        ),
+        default = emptyMap(),
+    )
 
     /** The state of the last sync with [service], by IGDB id; empty before the first one. */
-    fun base(service: ExternalService): Map<Int, SyncedGame> =
-        settings.getStringOrNull(service.settingsKey(KEY))
-            ?.let { runCatching { json.decodeFromString(serializer, it) }.getOrNull() }
-            .orEmpty()
+    suspend fun base(service: ExternalService): Map<Int, SyncedGame> = store.data.first()[service].orEmpty()
 
     /** Merge [games] into the stored state of [service]. */
-    fun record(service: ExternalService, games: Map<Int, SyncedGame>) {
+    suspend fun record(service: ExternalService, games: Map<Int, SyncedGame>) {
         if (games.isEmpty()) return
-        settings.putString(service.settingsKey(KEY), json.encodeToString(serializer, base(service) + games))
+        store.updateData { it + (service to it[service].orEmpty() + games) }
     }
 
     /** Drop [ids] from the stored state of [service]. */
-    fun prune(service: ExternalService, ids: Set<Int>) {
+    suspend fun prune(service: ExternalService, ids: Set<Int>) {
         if (ids.isEmpty()) return
-        settings.putString(service.settingsKey(KEY), json.encodeToString(serializer, base(service) - ids))
+        store.updateData { it + (service to it[service].orEmpty() - ids) }
     }
 
-    fun forget(service: ExternalService) = settings.remove(service.settingsKey(KEY))
+    suspend fun forget(service: ExternalService) {
+        store.updateData { it - service }
+    }
 
     /** IGDB games identified by tracker metadata or the last sync, by tracker uid; metadata takes precedence. */
     suspend fun knownGames(service: ExternalService, refs: List<ExternalGameRef>): Map<String, Game> {
@@ -253,7 +258,7 @@ class TrackerSync(
     }
 
     /** Record what a [ServiceConnector.statusWrite] reported as written: each ref's uid + the status sent. */
-    fun recordWritten(service: ExternalService, sent: List<StatusChange>, written: List<ExternalGameRef>) {
+    suspend fun recordWritten(service: ExternalService, sent: List<StatusChange>, written: List<ExternalGameRef>) {
         val statusOf = sent.associate { it.gameId to it.to }
         record(
             service,
@@ -263,8 +268,4 @@ class TrackerSync(
 
     /** Tracker writes of a reviewed sync, from the preview screen to the WebView that runs them. */
     val pendingWrites = mutableMapOf<ExternalService, List<StatusChange>>()
-
-    companion object {
-        const val KEY = "librarySyncState"
-    }
 }

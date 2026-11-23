@@ -1,9 +1,8 @@
 package it.maicol07.gamerlogue.services
 
-import com.russhwolf.settings.ObservableSettings
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 import org.koin.core.annotation.Single
 
 /**
@@ -12,22 +11,19 @@ import org.koin.core.annotation.Single
  * carry the id (Backloggery does, through its notes marker). Kept across a disconnect, since uids are the service's.
  */
 @Single
-class MatchMemory(private val settings: ObservableSettings) {
-    private val serializer = MapSerializer(String.serializer(), Int.serializer())
+class MatchMemory(storage: SyncStorage) {
+    private val store = storage.dataStore(
+        name = "match-picks",
+        serializer = MapSerializer(ExternalService.serializer(), MapSerializer(String.serializer(), Int.serializer())),
+        default = emptyMap(),
+    )
 
     /** IGDB id by uid of the games picked for [service]. */
-    fun picks(service: ExternalService): Map<String, Int> =
-        settings.getStringOrNull(service.settingsKey(KEY))
-            ?.let { runCatching { Json.decodeFromString(serializer, it) }.getOrNull() }
-            .orEmpty()
+    suspend fun picks(service: ExternalService): Map<String, Int> = store.data.first()[service].orEmpty()
 
     /** Merge [picks] (IGDB id by uid) into those stored for [service]; a newer pick replaces an older one. */
-    fun remember(service: ExternalService, picks: Map<String, Int>) {
+    suspend fun remember(service: ExternalService, picks: Map<String, Int>) {
         if (picks.isEmpty()) return
-        settings.putString(service.settingsKey(KEY), Json.encodeToString(serializer, picks(service) + picks))
-    }
-
-    private companion object {
-        const val KEY = "matchPicks"
+        store.updateData { it + (service to it[service].orEmpty() + picks) }
     }
 }

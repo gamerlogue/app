@@ -40,6 +40,7 @@ nav3Core = "1.2.2"
 nav3Ui = "1.2.0"
 nav3ksp = "1.1.4"
 okio = "3.18.2"
+datastore = "1.3.0"
 platformtools = "0.7.5"
 reorderable = "3.1.0"
 richeditor = "1.2.1"
@@ -122,6 +123,8 @@ multiplatform-settings = { module = "com.russhwolf:multiplatform-settings-no-arg
 multiplatform-settings-make-observable = { module = "com.russhwolf:multiplatform-settings-make-observable", version.ref = "multiplatformSettings" }
 multiplatform-settings-test = { module = "com.russhwolf:multiplatform-settings-test", version.ref = "multiplatformSettings" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+okio-fakefilesystem = { module = "com.squareup.okio:okio-fakefilesystem", version.ref = "okio" }
+datastore-core-okio = { module = "androidx.datastore:datastore-core-okio", version.ref = "datastore" }
 platformtools-core = { module = "io.github.kdroidfilter:platformtools.core", version.ref = "platformtools" }
 platformtools-darkmodedetector = { module = "io.github.kdroidfilter:platformtools.darkmodedetector", version.ref = "platformtools" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }

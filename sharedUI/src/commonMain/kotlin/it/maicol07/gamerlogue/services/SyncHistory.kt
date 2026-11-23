@@ -1,12 +1,9 @@
 package it.maicol07.gamerlogue.services
 
-import com.russhwolf.settings.ObservableSettings
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 import org.koin.core.annotation.Single
 
 @Serializable
@@ -58,89 +55,94 @@ private data class Decisions(
     val ignored: Map<ExternalService, Set<String>> = emptyMap(),
 )
 
-/** The last [LIMIT] sync runs, newest first, kept in the settings, and the answers the user gave about them. */
+/** The [runs] and the [decisions] about them, one document so a change to both is one write. */
+@Serializable
+private data class History(val runs: List<SyncRun> = emptyList(), val decisions: Decisions = Decisions())
+
+/** The last [LIMIT] sync runs, newest first, and the answers the user gave about them. */
 @Single
-class SyncHistory(private val settings: ObservableSettings) {
-    private val json = Json { ignoreUnknownKeys = true }
-    private val serializer = ListSerializer(SyncRun.serializer())
-    private var decisions = settings.getStringOrNull(DECISIONS_KEY)
-        ?.let { runCatching { json.decodeFromString(Decisions.serializer(), it) }.getOrNull() }
-        ?: Decisions()
+class SyncHistory(storage: SyncStorage) {
+    private val store = storage.dataStore("sync-history", History.serializer(), History())
 
-    val runs: StateFlow<List<SyncRun>>
-        field = MutableStateFlow(load())
-
-    private fun load(): List<SyncRun> {
-        val stored = settings.getStringOrNull(KEY) ?: return emptyList()
-        return runCatching { json.decodeFromString(serializer, stored) }.getOrDefault(emptyList())
-    }
+    val runs: Flow<List<SyncRun>> = store.data.map { it.runs }
 
     /**
      * Records [run] without what the user already settled. A kept game the run no longer reports as removed is
      * forgotten, so removing it again later asks again; a failed run reports nothing, so it forgets nothing.
      * Returns the run as recorded.
      */
-    fun add(run: SyncRun): SyncRun {
+    suspend fun add(run: SyncRun): SyncRun = store.updateData { (runs, decisions) ->
         val key = keptKey(run.service, run.kind)
         val kept = decisions.kept[key].orEmpty()
         val ignored = decisions.ignored[run.service].orEmpty()
-        if (run.result == SyncResult.OK || run.result == SyncResult.PARTIAL) {
-            val removed = (run.removedOnService + run.removedHere).mapTo(mutableSetOf()) { it.gameId }
-            saveDecisions(decisions.copy(kept = decisions.kept + (key to (kept intersect removed))))
-        }
         val settled = run.copy(
             removedOnService = run.removedOnService.filterNot { it.gameId in kept },
             removedHere = run.removedHere.filterNot { it.gameId in kept },
             toConfirm = run.toConfirm.filterNot { it.uid in ignored },
         )
-        save { listOf(settled) + it }
-        return settled
-    }
+        History(
+            runs = (listOf(settled) + runs).take(LIMIT),
+            decisions = if (run.result == SyncResult.OK || run.result == SyncResult.PARTIAL) {
+                val removed = (run.removedOnService + run.removedHere).mapTo(mutableSetOf()) { it.gameId }
+                decisions.copy(kept = decisions.kept + (key to (kept intersect removed)))
+            } else {
+                decisions
+            },
+        )
+    }.runs.first()
 
     /** The run of [run]'s service and kind before it, if the history still has one. */
-    fun previous(run: SyncRun): SyncRun? =
-        runs.value.firstOrNull { it.service == run.service && it.kind == run.kind && it.startedAt < run.startedAt }
+    suspend fun previous(run: SyncRun): SyncRun? =
+        runs.first().firstOrNull { it.service == run.service && it.kind == run.kind && it.startedAt < run.startedAt }
 
-    fun markAllSeen() = save { runs -> runs.map { it.copy(seen = true) } }
+    suspend fun markAllSeen() = updateRuns { runs -> runs.map { it.copy(seen = true) } }
 
     /**
      * The user settled [gameId], removed on one side of [service]'s [kind] sync: it leaves every such run, since they
      * all asked about the same game. Kept on both sides ([keep]), later runs don't ask about it again either.
      */
-    fun settleRemoved(service: ExternalService, kind: SyncKind, gameId: Int, keep: Boolean) {
-        if (keep) {
+    suspend fun settleRemoved(service: ExternalService, kind: SyncKind, gameId: Int, keep: Boolean) {
+        store.updateData { (runs, decisions) ->
             val key = keptKey(service, kind)
-            saveDecisions(decisions.copy(kept = decisions.kept + (key to decisions.kept[key].orEmpty() + gameId)))
-        }
-        save { runs ->
-            runs.map { run ->
-                if (run.service == service && run.kind == kind) {
-                    run.copy(
-                        removedOnService = run.removedOnService.filterNot { it.gameId == gameId },
-                        removedHere = run.removedHere.filterNot { it.gameId == gameId },
-                    )
+            History(
+                runs = runs.map { run ->
+                    if (run.service == service && run.kind == kind) {
+                        run.copy(
+                            removedOnService = run.removedOnService.filterNot { it.gameId == gameId },
+                            removedHere = run.removedHere.filterNot { it.gameId == gameId },
+                        )
+                    } else {
+                        run
+                    }
+                },
+                decisions = if (keep) {
+                    decisions.copy(kept = decisions.kept + (key to decisions.kept[key].orEmpty() + gameId))
                 } else {
-                    run
-                }
-            }
+                    decisions
+                },
+            )
         }
     }
 
     /** The user answered about [service]'s game [uid]: it leaves every run; [ignore]d, no later run asks again. */
-    fun settleMatch(service: ExternalService, uid: String, ignore: Boolean) {
-        if (ignore) {
-            val ignored = decisions.ignored + (service to decisions.ignored[service].orEmpty() + uid)
-            saveDecisions(decisions.copy(ignored = ignored))
-        }
-        save { runs ->
-            runs.map { run ->
-                if (run.service == service) run.copy(toConfirm = run.toConfirm.filterNot { it.uid == uid }) else run
-            }
+    suspend fun settleMatch(service: ExternalService, uid: String, ignore: Boolean) {
+        store.updateData { (runs, decisions) ->
+            History(
+                runs = runs.map { run ->
+                    if (run.service == service) run.copy(toConfirm = run.toConfirm.filterNot { it.uid == uid }) else run
+                },
+                decisions = if (ignore) {
+                    val ignored = decisions.ignored[service].orEmpty() + uid
+                    decisions.copy(ignored = decisions.ignored + (service to ignored))
+                } else {
+                    decisions
+                },
+            )
         }
     }
 
     /** Fill in the cover of every listed game with none yet, from [covers] by IGDB id. */
-    fun fillCovers(covers: Map<Int, String>) = save { runs ->
+    suspend fun fillCovers(covers: Map<Int, String>) = updateRuns { runs ->
         val fill = { games: List<SyncGame> ->
             games.map { game -> game.coverImageId?.let { game } ?: game.copy(coverImageId = covers[game.gameId]) }
         }
@@ -154,21 +156,13 @@ class SyncHistory(private val settings: ObservableSettings) {
         }
     }
 
-    private fun save(change: (List<SyncRun>) -> List<SyncRun>) {
-        runs.update { change(it).take(LIMIT) }
-        settings.putString(KEY, json.encodeToString(serializer, runs.value))
-    }
-
-    private fun saveDecisions(new: Decisions) {
-        decisions = new
-        settings.putString(DECISIONS_KEY, json.encodeToString(Decisions.serializer(), new))
+    private suspend fun updateRuns(change: (List<SyncRun>) -> List<SyncRun>) {
+        store.updateData { it.copy(runs = change(it.runs)) }
     }
 
     private fun keptKey(service: ExternalService, kind: SyncKind) = "$service:$kind"
 
     private companion object {
-        const val KEY = "sync.history"
-        const val DECISIONS_KEY = "sync.decisions"
         const val LIMIT = 50
     }
 }

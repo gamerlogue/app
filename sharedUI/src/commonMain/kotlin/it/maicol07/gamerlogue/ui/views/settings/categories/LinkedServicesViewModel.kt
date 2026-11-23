@@ -128,12 +128,14 @@ class LinkedServicesViewModel(
     }
 
     /** Whether [service] was ever synced: the first sync must go through the preview, never unattended. */
-    fun hasSyncedLibrary(service: ExternalService) = trackerSync.base(service).isNotEmpty()
+    suspend fun hasSyncedLibrary(service: ExternalService) = trackerSync.base(service).isNotEmpty()
 
     fun disconnect(service: ExternalService) {
         setConnected(service, false)
-        trackerSync.forget(service)
-        librarySync.wishlistState.forget(service)
+        viewModelScope.launch {
+            trackerSync.forget(service)
+            librarySync.wishlistState.forget(service)
+        }
         refresh(service)
         clearSession(service)
     }

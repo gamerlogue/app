@@ -32,7 +32,7 @@ class SyncRunner(
      * Whether [kind] can run for [service] with nobody to review it: the service supports it and, for a library
      * sync, the reviewed first sync happened, since nothing is written unattended before it.
      */
-    fun runsUnattended(service: ExternalService, kind: SyncKind): Boolean {
+    suspend fun runsUnattended(service: ExternalService, kind: SyncKind): Boolean {
         val connector = connectors.getValue(service)
         return when (kind) {
             SyncKind.WISHLIST -> connector.wishlist != null

@@ -125,7 +125,7 @@ fun SyncStatusAction(navigationState: AppNavigationState = LocalNavigationState.
     val running by coordinator.running.collectAsStateWithLifecycle()
     val queue by coordinator.queue.collectAsStateWithLifecycle()
     val pendingPush by koinInject<SyncScheduler>().pendingPushAt.collectAsStateWithLifecycle(null)
-    val runs by koinInject<SyncHistory>().runs.collectAsStateWithLifecycle()
+    val runs by koinInject<SyncHistory>().runs.collectAsStateWithLifecycle(emptyList())
     val unseen = runs.filterNot { it.seen }
     val syncing = running.isNotEmpty() || !queue.isEmpty
     val pending = !syncing && pendingPush != null

@@ -61,7 +61,7 @@ class SyncNotifications(private val context: Context) {
      * The runs ended: the progress goes, and the ones that need a look get a notification of their own. Games left to
      * the user count only when the [previous] run of the same sync didn't list them: they'd be notified every time.
      */
-    suspend fun finished(runs: List<SyncRun>, previous: (SyncRun) -> SyncRun?) {
+    suspend fun finished(runs: List<SyncRun>, previous: suspend (SyncRun) -> SyncRun?) {
         manager.cancel(PROGRESS_ID)
         val lines = runs.flatMap { it.attention(previous(it)) }
         if (lines.isEmpty()) return

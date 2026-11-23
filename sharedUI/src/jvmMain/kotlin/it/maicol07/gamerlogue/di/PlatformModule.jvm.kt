@@ -9,7 +9,14 @@ import it.maicol07.gamerlogue.auth.JvmAuthenticationHandler
 import it.maicol07.gamerlogue.services.BackgroundWebHost
 import it.maicol07.gamerlogue.services.DesktopBackgroundWebHost
 import it.maicol07.gamerlogue.services.InProcessSyncScheduler
+import it.maicol07.gamerlogue.services.FileSyncStorage
 import it.maicol07.gamerlogue.services.SyncScheduler
+import it.maicol07.gamerlogue.services.SyncStorage
+import it.maicol07.gamerlogue.services.appDataDirectory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import okio.FileSystem
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -34,4 +41,11 @@ actual object PlatformModule {
 
     @Single
     actual fun provideSyncScheduler(scope: Scope): SyncScheduler = InProcessSyncScheduler(scope.get(), scope.get())
+
+    @Single
+    actual fun provideSyncStorage(scope: Scope): SyncStorage = FileSyncStorage(
+        fileSystem = FileSystem.SYSTEM,
+        directory = appDataDirectory() / "sync",
+        scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    )
 }

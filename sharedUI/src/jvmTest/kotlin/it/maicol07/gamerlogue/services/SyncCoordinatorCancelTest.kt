@@ -16,9 +16,12 @@ import it.maicol07.gamerlogue.services.connectors.BackloggeryConnector
 import it.maicol07.gamerlogue.ui.components.SyncPhase
 import it.maicol07.gamerlogue.ui.components.WebSession
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
@@ -44,12 +47,13 @@ private object StuckSession : WebSession {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SyncCoordinatorCancelTest : StringSpec({
-    fun coordinator(history: SyncHistory): SyncCoordinator {
+    suspend fun coordinator(history: SyncHistory, dispatcher: CoroutineDispatcher): SyncCoordinator {
         val settings = MapSettings()
         val reporter = ExceptionReporter()
-        val matcher = GameMatcher(NoIgdb(), reporter, MatchMemory(MapSettings()))
-        val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi(), WishlistSyncState(MapSettings()))
-        val tracker = TrackerSync(settings, matcher, library)
+        val matcher = GameMatcher(NoIgdb(), reporter, MatchMemory(testSyncStorage(dispatcher)))
+        val wishlistState = WishlistSyncState(testSyncStorage(dispatcher))
+        val library = LibrarySync(matcher, reporter, LibraryChanges(), ProfileApi(), wishlistState)
+        val tracker = TrackerSync(testSyncStorage(dispatcher), matcher, library)
         // Synced once before, so its library sync runs unattended.
         tracker.record(ExternalService.BACKLOGGERY, mapOf(42 to SyncedGame("bg-1", GameLibraryStatus.BACKLOG)))
         settings.putBoolean(ExternalService.BACKLOGGERY.settingsKey(SyncCoordinator.CONNECTED), true)
@@ -64,8 +68,9 @@ class SyncCoordinatorCancelTest : StringSpec({
 
     "cancelling the current sync records it and leaves a queued one skipped from running" {
         runTest {
-            val history = SyncHistory(MapSettings())
-            val coordinator = coordinator(history)
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val history = SyncHistory(testSyncStorage(dispatcher))
+            val coordinator = coordinator(history, dispatcher)
             val first = async { coordinator.runDue(SyncTrigger.PERIODIC, wishlist = false) }
             val second = async { coordinator.runDue(SyncTrigger.CHANGE, wishlist = false) }
             runCurrent()
@@ -77,34 +82,36 @@ class SyncCoordinatorCancelTest : StringSpec({
 
             first.await() shouldBe emptyList()
             second.await() shouldBe emptyList()
-            history.runs.value.map { it.result } shouldBe listOf(SyncResult.CANCELLED)
+            history.runs.first().map { it.result } shouldBe listOf(SyncResult.CANCELLED)
             coordinator.queue.value shouldBe SyncQueue()
         }
     }
 
     "a background sync the system stops is recorded as interrupted" {
         runTest {
-            val history = SyncHistory(MapSettings())
-            val coordinator = coordinator(history)
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val history = SyncHistory(testSyncStorage(dispatcher))
+            val coordinator = coordinator(history, dispatcher)
             val run = async { coordinator.runDue(SyncTrigger.PERIODIC, wishlist = false) }
             runCurrent()
             run.cancel()
             runCurrent()
-            history.runs.value.map { it.result } shouldBe listOf(SyncResult.INTERRUPTED)
+            history.runs.first().map { it.result } shouldBe listOf(SyncResult.INTERRUPTED)
             coordinator.queue.value shouldBe SyncQueue()
         }
     }
 
     "cancelling a manual sync returns no outcome and records it as cancelled" {
         runTest {
-            val history = SyncHistory(MapSettings())
-            val coordinator = coordinator(history)
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val history = SyncHistory(testSyncStorage(dispatcher))
+            val coordinator = coordinator(history, dispatcher)
             val run = async { coordinator.runManual(ExternalService.BACKLOGGERY, SyncKind.LIBRARY, StuckSession) }
             runCurrent()
             coordinator.running.value shouldBe setOf(ExternalService.BACKLOGGERY)
             coordinator.cancelManual(ExternalService.BACKLOGGERY)
             run.await() shouldBe null
-            history.runs.value.map { it.result } shouldBe listOf(SyncResult.CANCELLED)
+            history.runs.first().map { it.result } shouldBe listOf(SyncResult.CANCELLED)
         }
     }
 })

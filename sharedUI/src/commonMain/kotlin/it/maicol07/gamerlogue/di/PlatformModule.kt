@@ -3,6 +3,7 @@ import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.services.BackgroundWebHost
 import it.maicol07.gamerlogue.services.SyncScheduler
+import it.maicol07.gamerlogue.services.SyncStorage
 import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
@@ -27,4 +28,7 @@ expect object PlatformModule {
 
     @Single
     fun provideSyncScheduler(scope: Scope): SyncScheduler
+
+    @Single
+    fun provideSyncStorage(scope: Scope): SyncStorage
 }

@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,6 +110,7 @@ import it.maicol07.gamerlogue.ui.navigation.RootTree
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import it.maicol07.gamerlogue.ui.views.settings.components.SettingsGroupHeader
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -155,6 +157,7 @@ private fun LinkedServicesContent(
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
     // A sync flow runs on its own screen (its own ViewModel instance) and persists to settings; re-read
     // when we return so the list reflects any connect/disconnect/sync that happened while away.
@@ -248,14 +251,16 @@ private fun LinkedServicesContent(
                     viewModel.toggleLibrarySync(service, enabled)
                     // The first sync is always reviewed: nothing is written unattended before it.
                     if (enabled) {
-                        navigateToSync(
-                            service,
-                            if (viewModel.hasSyncedLibrary(service)) {
-                                ServiceSyncAction.SYNC_LIBRARY
-                            } else {
-                                ServiceSyncAction.PREVIEW_LIBRARY_SYNC
-                            },
-                        )
+                        scope.launch {
+                            navigateToSync(
+                                service,
+                                if (viewModel.hasSyncedLibrary(service)) {
+                                    ServiceSyncAction.SYNC_LIBRARY
+                                } else {
+                                    ServiceSyncAction.PREVIEW_LIBRARY_SYNC
+                                },
+                            )
+                        }
                     }
                 },
                 onLibrarySyncNow = { navigateToSync(service, ServiceSyncAction.PREVIEW_LIBRARY_SYNC) },

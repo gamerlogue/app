@@ -10,6 +10,7 @@ import it.maicol07.gamerlogue.ui.components.LoginTimeoutException
 import it.maicol07.gamerlogue.ui.components.WebSession
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.koin.core.annotation.Single
 import kotlin.coroutines.cancellation.CancellationException
@@ -163,7 +165,7 @@ class SyncCoordinator(
     }
 
     /** Hands [scheduler] a change to push, the wishlists too if [wishlist], when a service will take it. */
-    fun schedulePush(scheduler: SyncScheduler, wishlist: Boolean) {
+    suspend fun schedulePush(scheduler: SyncScheduler, wishlist: Boolean) {
         if (dueSyncs(wishlist).isNotEmpty()) scheduler.changed(wishlist)
     }
 
@@ -190,7 +192,7 @@ class SyncCoordinator(
     }
 
     /** The syncs that run unattended: the library ones, plus the wishlist ones when [wishlist]. */
-    private fun dueSyncs(wishlist: Boolean): List<DueSync> =
+    private suspend fun dueSyncs(wishlist: Boolean): List<DueSync> =
         ExternalService.entries.filter { isServiceSyncSupported && it.flag(CONNECTED) }.flatMap { service ->
             listOfNotNull(
                 SyncKind.LIBRARY.takeIf { service.flag(LIBRARY_SYNC) },
@@ -346,10 +348,13 @@ class SyncCoordinator(
             else -> run(SyncResult.OK)
         }
 
-        /** Records the failure: the run's caller gets no outcome, only the recorded run. */
-        fun failed(result: SyncResult, error: Exception): Pair<SyncOutcome?, SyncRun?> {
+        /**
+         * Records the failure: the run's caller gets no outcome, only the recorded run. Recorded even when the
+         * failure is the run's cancellation, which a suspending write would otherwise skip.
+         */
+        suspend fun failed(result: SyncResult, error: Exception): Pair<SyncOutcome?, SyncRun?> {
             Logger.e(error) { "$kind sync of $service failed" }
-            return null to history.add(run(result).copy(error = error.message))
+            return null to withContext(NonCancellable) { history.add(run(result).copy(error = error.message)) }
         }
 
         private fun run(result: SyncResult) = SyncRun(

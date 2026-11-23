@@ -9,7 +9,6 @@ import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameResult
-import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.PreferencesSettings
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -68,13 +67,13 @@ class GameMatcherExplicitIdTest : StringSpec({
             val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
             val settings = PreferencesSettings(preferences)
             val reporter = ExceptionReporter()
-            val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
+            val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(testSyncStorage(Dispatchers.Main)))
             val library = LibrarySync(
                 matcher,
                 reporter,
                 LibraryChanges(),
                 ProfileApi(),
-                WishlistSyncState(MapSettings()),
+                WishlistSyncState(testSyncStorage(Dispatchers.Main)),
             )
             val connector = BackloggeryConnector()
             ImportHandoff.put(
@@ -87,7 +86,7 @@ class GameMatcherExplicitIdTest : StringSpec({
                 mapOf(connector.service to connector),
                 matcher,
                 library,
-                TrackerSync(settings, matcher, library),
+                TrackerSync(testSyncStorage(Dispatchers.Main), matcher, library),
             )
             try {
                 advanceUntilIdle()
@@ -112,16 +111,16 @@ class GameMatcherExplicitIdTest : StringSpec({
                 val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
                 val settings = PreferencesSettings(preferences)
                 val reporter = ExceptionReporter()
-                val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
+                val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(testSyncStorage(Dispatchers.Main)))
 
                 val library = LibrarySync(
                     matcher,
                     reporter,
                     LibraryChanges(),
                     ProfileApi(),
-                    WishlistSyncState(MapSettings()),
+                    WishlistSyncState(testSyncStorage(Dispatchers.Main)),
                 )
-                val tracker = TrackerSync(settings, matcher, library)
+                val tracker = TrackerSync(testSyncStorage(Dispatchers.Main), matcher, library)
                 tracker.record(
                     ExternalService.BACKLOGGERY,
                     mapOf(42 to SyncedGame("bg-100", GameLibraryStatus.BACKLOG)),
@@ -133,7 +132,7 @@ class GameMatcherExplicitIdTest : StringSpec({
                     override suspend fun <T> withSession(block: suspend (WebSession) -> T): T =
                         error("No background syncs expected")
                 }
-                val history = SyncHistory(MapSettings())
+                val history = SyncHistory(testSyncStorage(Dispatchers.Main))
                 val coordinator = SyncCoordinator(settings, runner, history, noBackground, LibraryChanges())
                 val viewModel = LinkedServicesViewModel(connectors, settings, library, tracker, runner, coordinator)
 
@@ -214,7 +213,7 @@ class GameMatcherExplicitIdTest : StringSpec({
 
     "a tracker metadata id matches exactly despite a different title and keeps the remote uid" {
         val client = IdFixtureIgdb()
-        val matcher = GameMatcher(client, ExceptionReporter(), MatchMemory(MapSettings()))
+        val matcher = GameMatcher(client, ExceptionReporter(), MatchMemory(testSyncStorage()))
         val refs = listOf(
             ExternalGameRef("bg-100", "User renamed this game", gameId = 42),
             ExternalGameRef("bg-200", "Another platform edition", gameId = 42),
@@ -229,7 +228,7 @@ class GameMatcherExplicitIdTest : StringSpec({
 
     "a remembered pick matches exactly, below the tracker metadata" {
         val client = IdFixtureIgdb()
-        val memory = MatchMemory(MapSettings())
+        val memory = MatchMemory(testSyncStorage())
         memory.remember(ExternalService.BACKLOGGERY, mapOf("bg-100" to 7, "bg-200" to 7))
         memory.remember(ExternalService.BACKLOGGERY, mapOf("bg-100" to 42))
         val matched = GameMatcher(client, ExceptionReporter(), memory).match(
@@ -245,15 +244,15 @@ class GameMatcherExplicitIdTest : StringSpec({
         val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
         try {
             val reporter = ExceptionReporter()
-            val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(MapSettings()))
+            val matcher = GameMatcher(IdFixtureIgdb(), reporter, MatchMemory(testSyncStorage()))
             val library = LibrarySync(
                 matcher,
                 reporter,
                 LibraryChanges(),
                 ProfileApi(),
-                WishlistSyncState(MapSettings()),
+                WishlistSyncState(testSyncStorage()),
             )
-            val tracker = TrackerSync(PreferencesSettings(preferences), matcher, library)
+            val tracker = TrackerSync(testSyncStorage(), matcher, library)
             tracker.record(ExternalService.BACKLOGGERY, mapOf(7 to SyncedGame("bg-100", GameLibraryStatus.BACKLOG)))
             val games = tracker.knownGames(ExternalService.BACKLOGGERY, listOf(ExternalGameRef("bg-100", gameId = 42)))
             games.getValue("bg-100").id shouldBe 42L

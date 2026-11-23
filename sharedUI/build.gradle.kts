@@ -87,6 +87,7 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
             implementation(libs.okio)
+            implementation(libs.datastore.core.okio)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
@@ -133,6 +134,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
             implementation(libs.multiplatform.settings.test)
+            implementation(libs.okio.fakefilesystem)
             // sealedSubclasses needs kotlin-reflect on the JVM (NavEntriesCoverageTest).
             implementation(kotlin("reflect"))
         }

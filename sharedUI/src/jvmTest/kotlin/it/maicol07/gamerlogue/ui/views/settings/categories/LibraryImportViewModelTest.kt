@@ -9,7 +9,6 @@ import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameResult
-import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.PreferencesSettings
 import io.kotest.core.spec.style.StringSpec
@@ -34,6 +33,7 @@ import it.maicol07.gamerlogue.services.TrackerSync
 import it.maicol07.gamerlogue.services.WishlistSyncState
 import it.maicol07.gamerlogue.services.connectors.BackloggdConnector
 import it.maicol07.gamerlogue.services.connectors.BackloggeryConnector
+import it.maicol07.gamerlogue.services.testSyncStorage
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -109,15 +109,15 @@ class LibraryImportViewModelTest : StringSpec({
                 val client = libraryClient()
                 startLibraryKoin(client, PreferencesSettings(preferences))
                 val reporter = ExceptionReporter()
-                val matcher = GameMatcher(noRequestsIgdb, reporter, MatchMemory(MapSettings()))
+                val matcher = GameMatcher(noRequestsIgdb, reporter, MatchMemory(testSyncStorage(Dispatchers.Main)))
                 val library = LibrarySync(
                     matcher,
                     reporter,
                     LibraryChanges(),
                     ProfileApi(),
-                    WishlistSyncState(MapSettings()),
+                    WishlistSyncState(testSyncStorage(Dispatchers.Main)),
                 )
-                val tracker = TrackerSync(PreferencesSettings(preferences), matcher, library)
+                val tracker = TrackerSync(testSyncStorage(Dispatchers.Main), matcher, library)
                 ImportHandoff.put(connector.service, emptyList())
                 val viewModel = LibraryImportViewModel(
                     connector.service, ImportMode.WISHLIST, mapOf(connector.service to connector), matcher, library, tracker,
@@ -155,15 +155,15 @@ class LibraryImportViewModelTest : StringSpec({
         startLibraryKoin(client, settings)
         val connector = BackloggdConnector()
         val reporter = ExceptionReporter()
-        val matcher = GameMatcher(SyncFixtureIgdb(), reporter, MatchMemory(MapSettings()))
+        val matcher = GameMatcher(SyncFixtureIgdb(), reporter, MatchMemory(testSyncStorage(Dispatchers.Main)))
         val library = LibrarySync(
             matcher,
             reporter,
             LibraryChanges(),
             ProfileApi(),
-            WishlistSyncState(MapSettings()),
+            WishlistSyncState(testSyncStorage(Dispatchers.Main)),
         )
-        val tracker = TrackerSync(settings, matcher, library)
+        val tracker = TrackerSync(testSyncStorage(Dispatchers.Main), matcher, library)
         tracker.forget(connector.service)
         ImportHandoff.put(
             connector.service,

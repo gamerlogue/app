@@ -6,7 +6,6 @@ import at.released.igdbclient.IgdbResult
 import at.released.igdbclient.IgdbWebhookApi
 import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
-import com.russhwolf.settings.MapSettings
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import it.maicol07.gamerlogue.core.ExceptionReporter
@@ -25,7 +24,7 @@ private class UnreachableIgdb : IgdbClient {
 
 class GameMatcherOfflineTest : StringSpec({
     "an IGDB that doesn't answer fails the match instead of reporting games with no match" {
-        val matcher = GameMatcher(UnreachableIgdb(), ExceptionReporter(), MatchMemory(MapSettings()))
+        val matcher = GameMatcher(UnreachableIgdb(), ExceptionReporter(), MatchMemory(testSyncStorage()))
         shouldThrow<IgdbUnavailableException> {
             matcher.match(BackloggeryConnector(), listOf(ExternalGameRef("1", "Hades")))
         }

@@ -8,7 +8,6 @@ import at.released.igdbclient.apicalypse.ApicalypseQuery
 import at.released.igdbclient.error.IgdbHttpErrorResponse
 import at.released.igdbclient.model.Game
 import at.released.igdbclient.model.GameResult
-import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.PreferencesSettings
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
@@ -24,6 +23,7 @@ import it.maicol07.gamerlogue.ui.components.WebSession
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.test.runTest
 import okio.Buffer
+import okio.fakefilesystem.FakeFileSystem
 import java.util.UUID
 import java.util.prefs.Preferences
 
@@ -43,52 +43,62 @@ private class OtherGameIgdb : IgdbClient {
 }
 
 class TrackerSyncTest : StringSpec({
-    fun trackerSync(preferences: Preferences): TrackerSync {
+    fun trackerSync(storage: SyncStorage = testSyncStorage()): TrackerSync {
         val reporter = ExceptionReporter()
-        val matcher = GameMatcher(OtherGameIgdb(), reporter, MatchMemory(MapSettings()))
+        val matcher = GameMatcher(OtherGameIgdb(), reporter, MatchMemory(testSyncStorage()))
         return TrackerSync(
-            PreferencesSettings(preferences),
+            storage,
             matcher,
             LibrarySync(
                 matcher,
                 reporter,
                 LibraryChanges(),
                 ProfileApi(),
-                WishlistSyncState(MapSettings()),
+                WishlistSyncState(testSyncStorage()),
             )
         )
     }
 
     "a pulled change whose game IGDB doesn't return is skipped and not recorded" {
-        val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
-        try {
-            val tracker = trackerSync(preferences)
-            val change = SyncChange(5, "u", null, GameLibraryStatus.BACKLOG, SyncSide.REMOTE)
-            tracker.pull(ExternalService.BACKLOGGD, listOf(change), mutableListOf()) shouldBe 0
-            tracker.base(ExternalService.BACKLOGGD).isEmpty() shouldBe true
-        } finally {
-            preferences.removeNode()
-        }
+        val tracker = trackerSync()
+        val change = SyncChange(5, "u", null, GameLibraryStatus.BACKLOG, SyncSide.REMOTE)
+        tracker.pull(ExternalService.BACKLOGGD, listOf(change), mutableListOf()) shouldBe 0
+        tracker.base(ExternalService.BACKLOGGD).isEmpty() shouldBe true
     }
 
     "a game on the tracker under an unconfirmed row is never added to it" {
         runTest {
-            val preferences = Preferences.userRoot().node("gamerlogue-tests/${UUID.randomUUID()}")
-            try {
-                val tracker = trackerSync(preferences)
-                val entry = LibraryEntry().apply {
-                    id = "1"
-                    isPersisted = true
-                    gameId = 1
-                    status = GameLibraryStatus.PLAYING
-                    owned = true
-                }
-                val connector = BackloggdConnector()
-                tracker.plan(connector, emptyMap(), listOf(entry)).changes.map { it.gameId } shouldBe listOf(1)
-                tracker.plan(connector, emptyMap(), listOf(entry), onTracker = setOf(1)).changes.shouldBeEmpty()
-            } finally {
-                preferences.removeNode()
+            val tracker = trackerSync()
+            val entry = LibraryEntry().apply {
+                id = "1"
+                isPersisted = true
+                gameId = 1
+                status = GameLibraryStatus.PLAYING
+                owned = true
             }
+            val connector = BackloggdConnector()
+            tracker.plan(connector, emptyMap(), listOf(entry)).changes.map { it.gameId } shouldBe listOf(1)
+            tracker.plan(connector, emptyMap(), listOf(entry), onTracker = setOf(1)).changes.shouldBeEmpty()
+        }
+    }
+
+    // A settings value held 8 KB on the desktop: a library this size never got stored there.
+    "the state of a large library survives a restart, per service" {
+        val fileSystem = FakeFileSystem()
+        val directory = testSyncDirectory()
+        val games = (1..5_000).associateWith { SyncedGame("uid-$it", GameLibraryStatus.BACKLOG) }
+        withSyncStorage(fileSystem, directory) { storage ->
+            val tracker = trackerSync(storage)
+            tracker.record(ExternalService.BACKLOGGD, games)
+            tracker.record(ExternalService.GROUVEE, mapOf(1 to SyncedGame("g1", GameLibraryStatus.PLAYING)))
+            tracker.prune(ExternalService.BACKLOGGD, setOf(1, 2))
+            tracker.forget(ExternalService.GROUVEE)
+        }
+
+        withSyncStorage(fileSystem, directory) { storage ->
+            val tracker = trackerSync(storage)
+            tracker.base(ExternalService.BACKLOGGD) shouldBe games - setOf(1, 2)
+            tracker.base(ExternalService.GROUVEE) shouldBe emptyMap()
         }
     }
 
@@ -98,15 +108,15 @@ class TrackerSyncTest : StringSpec({
             try {
                 val settings = PreferencesSettings(preferences)
                 val reporter = ExceptionReporter()
-                val matcher = GameMatcher(OtherGameIgdb(), reporter, MatchMemory(MapSettings()))
+                val matcher = GameMatcher(OtherGameIgdb(), reporter, MatchMemory(testSyncStorage()))
                 val library = LibrarySync(
                     matcher,
                     reporter,
                     LibraryChanges(),
                     ProfileApi(),
-                    WishlistSyncState(MapSettings()),
+                    WishlistSyncState(testSyncStorage()),
                 )
-                val tracker = TrackerSync(settings, matcher, library)
+                val tracker = TrackerSync(testSyncStorage(), matcher, library)
                 tracker.record(ExternalService.BACKLOGGD, mapOf(1 to SyncedGame("u1", GameLibraryStatus.PLAYING)))
                 val connector = BackloggdConnector()
                 val runner = SyncRunner(mapOf(connector.service to connector), settings, library, tracker, matcher)

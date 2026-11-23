@@ -10,7 +10,7 @@ import it.maicol07.gamerlogue.services.WebStep
 internal suspend fun <T> WebSession.writeBatches(
     games: List<T>,
     step: (List<T>) -> WebStep,
-    record: (List<T>, List<ExternalGameRef>) -> Unit,
+    record: suspend (List<T>, List<ExternalGameRef>) -> Unit,
 ): Int {
     var written = 0
     var done = 0

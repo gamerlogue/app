@@ -4,7 +4,6 @@ import at.released.igdbclient.model.Game
 import co.touchlab.kermit.Logger
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
-import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.LibraryChange
 import it.maicol07.gamerlogue.core.LibraryChanges
@@ -20,8 +19,12 @@ import it.maicol07.gamerlogue.extensions.quickDraft
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.SetSerializer
+import kotlinx.serialization.builtins.serializer
 import org.koin.core.annotation.Single
 import kotlin.uuid.Uuid
 
@@ -37,21 +40,24 @@ internal fun nextWishlistBase(previous: Set<Int>, wishlist: Set<Int>, library: S
 
 /** The persisted wishlist baseline of each service (see [nextWishlistBase]). */
 @Single
-class WishlistSyncState(private val settings: ObservableSettings) {
+class WishlistSyncState(storage: SyncStorage) {
+    private val store = storage.dataStore(
+        name = "wishlist-sync",
+        serializer = MapSerializer(ExternalService.serializer(), SetSerializer(Int.serializer())),
+        default = emptyMap(),
+    )
+
     /** IGDB ids on both the [service] wishlist and in the library at a past wishlist sync, and still on one side. */
-    fun base(service: ExternalService): Set<Int> =
-        settings.getString(service.settingsKey(KEY), "").split(',').mapNotNull { it.toIntOrNull() }.toSet()
+    suspend fun base(service: ExternalService): Set<Int> = store.data.first()[service].orEmpty()
 
     /** Record the baseline of [service] after a sync that saw [wishlist] on the store and [entries] locally. */
-    fun record(service: ExternalService, wishlist: Set<Int>, entries: List<LibraryEntry>) {
-        val base = nextWishlistBase(base(service), wishlist, entries.mapTo(mutableSetOf()) { it.gameId })
-        settings.putString(service.settingsKey(KEY), base.joinToString(","))
+    suspend fun record(service: ExternalService, wishlist: Set<Int>, entries: List<LibraryEntry>) {
+        val library = entries.mapTo(mutableSetOf()) { it.gameId }
+        store.updateData { it + (service to nextWishlistBase(it[service].orEmpty(), wishlist, library)) }
     }
 
-    fun forget(service: ExternalService) = settings.remove(service.settingsKey(KEY))
-
-    private companion object {
-        const val KEY = "wishlistSyncState"
+    suspend fun forget(service: ExternalService) {
+        store.updateData { it - service }
     }
 }
 
