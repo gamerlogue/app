@@ -94,30 +94,25 @@ class EpicConnector(private val api: EpicApi) :
     // dependence on the off-screen DOM rendering). The launcher token can't reach it — the wishlist is a
     // store concept — but the store session cookie can. Logs any GraphQL errors (e.g. persisted-query
     // enforcement) for tuning. uid = offerId (name drives the IGDB match, as Epic has no URL template).
+    // The store's own wishlist query (a persisted one: the store no longer answers it as plain text), then each offer's
+    // title from the catalog, a few at a time.
     override val wishlist = webRefs(
         WebStep(
             "https://store.epicgames.com/",
             SyncScripts.wrap(
                 """
-                let q = 'query wishlistQuery { Wishlist { wishlistItems { elements { offerId namespace offer { title productSlug } } } } }';
-                let r = await fetch('https://store.epicgames.com/graphql', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ query: q, operationName: 'wishlistQuery' }),
+                $GQL_JS
+                let items = await __epWishlist();
+                out = [];
+                await __glPool(items, 4, async function(e) {
+                    let j = await __epGql('query o(${'$'}namespace: String!, ${'$'}id: String!) { Catalog { ' +
+                        'catalogOffer(namespace: ${'$'}namespace, id: ${'$'}id) { title } } }',
+                        { namespace: e.namespace, id: e.offerId });
+                    let title = (((j.data || {}).Catalog || {}).catalogOffer || {}).title || '';
+                    if (title) out.push({ uid: String(e.offerId), name: title });
+                    __glProgress(out.length, items.length);
                 });
-                let j = await r.json();
-                console.log('[GL] epic wishlist status=' + r.status + ' err=' + (j.errors ? JSON.stringify(j.errors).slice(0, 200) : 'none'));
-                let els = (((j.data || {}).Wishlist || {}).wishlistItems || {}).elements || [];
-                let byUid = {};
-                els.forEach(function(e) {
-                    let offer = e.offer || {};
-                    let uid = e.offerId || offer.productSlug || '';
-                    let name = offer.title || '';
-                    if (uid && name) byUid[uid] = { uid: String(uid), name: name };
-                });
-                out = Object.values(byUid);
-                console.log('[GL] epic wishlist games=' + out.length);
+                console.log('[GL] epic wishlist games=' + out.length + '/' + items.length);
                 """.trimIndent(),
             ),
         ),
@@ -151,5 +146,32 @@ class EpicConnector(private val api: EpicApi) :
     private companion object {
         // Public "fortnitePCGameClient" launcher client id — used to request the authorization code.
         const val LauncherClientId = "34a02cf8f4414e29b15921876da36f9a"
+
+        // ponytail: the hash of the store's persisted getWishlist query, read off the live wishlist page; it changes
+        // when Epic changes the query, and the read then fails (it throws, so no sync treats it as an empty wishlist).
+        // Read the new one from `__REACT_QUERY_INITIAL_QUERIES__` on store.epicgames.com/wishlist.
+        const val WISHLIST_QUERY_HASH = "40e7770852757ee6aaa43b0f6fce65de984754e8d32572a1c978910cbf26f02e"
+
+        val GQL_JS = """
+            async function __epGql(query, variables) {
+                let r = await fetch('https://store.epicgames.com/graphql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ query: query, variables: variables }),
+                });
+                return r.ok ? r.json() : { errors: ['HTTP ' + r.status] };
+            }
+            // offerId + namespace of every wishlist entry.
+            async function __epWishlist() {
+                let ext = encodeURIComponent(JSON.stringify({ persistedQuery: { version: 1, sha256Hash: '$WISHLIST_QUERY_HASH' } }));
+                let r = await fetch('https://store.epicgames.com/graphql?operationName=getWishlist&variables=%7B%7D&extensions=' + ext,
+                    { credentials: 'include' });
+                let j = r.ok ? await r.json() : {};
+                let list = (((j.data || {}).Wishlist || {}).wishlistItems || {}).elements;
+                if (!Array.isArray(list)) throw new Error('Epic wishlist query failed: ' + JSON.stringify(j.errors || r.status).slice(0, 200));
+                return list;
+            }
+        """.trimIndent()
     }
 }

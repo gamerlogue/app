@@ -53,10 +53,13 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
     override val wishlistWrite = WishlistWrite.Batch { refs ->
         WebStep(ACCOUNT, SyncScripts.wrap("""
             const ids = ${refs.uidJsonArray()};
+            out = [];
             for (const id of ids) {
-                await fetch('https://www.gog.com/wishlist/add/' + id, { method: 'GET', credentials: 'include' });
+                // Answers the whole wishlist after the change.
+                let r = await fetch('https://www.gog.com/user/wishlist/add/' + id, { credentials: 'include' });
+                let j = r.ok ? await r.json().catch(function() { return {}; }) : {};
+                if ((j.wishlist || {})[id]) out.push({ uid: id, name: '' });
             }
-            out = ids.map(id => ({ uid: id, name: '' }));
         """.trimIndent()))
     }
 
