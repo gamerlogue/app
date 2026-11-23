@@ -9,12 +9,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.navigation3.runtime.NavKey
 import com.mmk.kmpnotifier.KMPNotifier
 import com.mmk.kmpnotifier.extensions.onCreateOrOnNewIntent
 import com.mmk.kmpnotifier.notification.PayloadData
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
-import it.maicol07.gamerlogue.services.EXTRA_OPEN_SYNC_HISTORY
+import it.maicol07.gamerlogue.core.notificationTarget
+import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 
 // One pair per intent-filter in the manifest: the private-use scheme carries the callback in
 // host + path (`gamerlogue://auth/callback`), so it does not share the App Link's path.
@@ -30,11 +32,11 @@ class AppActivity : AppCompatActivity() {
     private var authCallbackUri by mutableStateOf<String?>(null)
 
     // Listened to here, not in App(): the tap that launches the activity is parsed before the first composition.
-    private var openNotifications by mutableStateOf(false)
-    private var openSyncHistory by mutableStateOf(false)
+    private var openDestination by mutableStateOf<NavKey?>(null)
     private val notificationListener = object : KMPNotifier.Listener {
+        // A push shown by the system, the app in the background: it carries no destination of the app's.
         override fun onNotificationClicked(data: PayloadData) {
-            openNotifications = true
+            openDestination = RootNavTree.Notifications
         }
     }
 
@@ -47,17 +49,15 @@ class AppActivity : AppCompatActivity() {
         // A recreated activity gets the launching intent again: only a fresh start may open the list.
         if (savedInstanceState == null) KMPNotifier.onCreateOrOnNewIntent(intent)
         captureLoginDeepLink(intent)
-        if (savedInstanceState == null) captureSyncHistory(intent)
+        if (savedInstanceState == null) captureNotificationTarget(intent)
         setContent {
             App(
                 authCallbackUri = authCallbackUri,
                 // A login callback is a one-shot event. Without clearing it, recreating the composition
                 // replays the same URI through AuthHandler and re-applies the same token.
                 onAuthCallbackHandled = { authCallbackUri = null },
-                openNotifications = openNotifications,
-                onNotificationsOpened = { openNotifications = false },
-                openSyncHistory = openSyncHistory,
-                onSyncHistoryOpened = { openSyncHistory = false },
+                openDestination = openDestination,
+                onDestinationOpened = { openDestination = null },
             )
         }
     }
@@ -66,7 +66,7 @@ class AppActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         KMPNotifier.onCreateOrOnNewIntent(intent)
         captureLoginDeepLink(intent)
-        captureSyncHistory(intent)
+        captureNotificationTarget(intent)
     }
 
     override fun onDestroy() {
@@ -74,8 +74,9 @@ class AppActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun captureSyncHistory(intent: Intent) {
-        if (intent.getBooleanExtra(EXTRA_OPEN_SYNC_HISTORY, false)) openSyncHistory = true
+    // Set by the notifications the app shows itself.
+    private fun captureNotificationTarget(intent: Intent) {
+        intent.notificationTarget()?.let { openDestination = it }
     }
 
     private fun captureLoginDeepLink(intent: Intent) {

@@ -1,7 +1,9 @@
 package it.maicol07.gamerlogue.di
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
+import it.maicol07.gamerlogue.core.LocalNotifier
 import it.maicol07.gamerlogue.services.BackgroundWebHost
+import it.maicol07.gamerlogue.services.ReminderScheduler
 import it.maicol07.gamerlogue.services.SyncScheduler
 import it.maicol07.gamerlogue.services.SyncStorage
 import org.koin.core.annotation.Configuration
@@ -31,4 +33,10 @@ expect object PlatformModule {
 
     @Single
     fun provideSyncStorage(scope: Scope): SyncStorage
+
+    @Single
+    fun provideLocalNotifier(scope: Scope): LocalNotifier
+
+    @Single
+    fun provideReminderScheduler(scope: Scope): ReminderScheduler
 }

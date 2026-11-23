@@ -6,12 +6,16 @@ import it.maicol07.gamerlogue.auth.AndroidAuthTokenProvider
 import it.maicol07.gamerlogue.auth.AndroidAuthenticationHandler
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
+import it.maicol07.gamerlogue.core.AndroidLocalNotifier
 import it.maicol07.gamerlogue.core.AppPreferences
+import it.maicol07.gamerlogue.core.LocalNotifier
 import it.maicol07.gamerlogue.services.AndroidBackgroundWebHost
 import it.maicol07.gamerlogue.services.BackgroundWebHost
 import it.maicol07.gamerlogue.services.FileSyncStorage
+import it.maicol07.gamerlogue.services.ReminderScheduler
 import it.maicol07.gamerlogue.services.SyncScheduler
 import it.maicol07.gamerlogue.services.SyncStorage
+import it.maicol07.gamerlogue.services.WorkManagerReminderScheduler
 import it.maicol07.gamerlogue.services.WorkManagerSyncScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,4 +55,10 @@ actual object PlatformModule {
         directory = scope.get<Context>().filesDir.toOkioPath() / "sync",
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     )
+
+    @Single
+    actual fun provideLocalNotifier(scope: Scope): LocalNotifier = AndroidLocalNotifier(scope.get())
+
+    @Single
+    actual fun provideReminderScheduler(scope: Scope): ReminderScheduler = WorkManagerReminderScheduler(scope.get())
 }

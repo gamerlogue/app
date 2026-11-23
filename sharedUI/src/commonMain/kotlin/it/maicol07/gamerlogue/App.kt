@@ -9,12 +9,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import it.maicol07.gamerlogue.auth.AuthHandler
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.core.AppPreferences
 import it.maicol07.gamerlogue.core.ExceptionReporter
 import it.maicol07.gamerlogue.core.PushNotifications
 import it.maicol07.gamerlogue.di.KoinApp
+import it.maicol07.gamerlogue.services.ReminderScheduler
+import it.maicol07.gamerlogue.services.Reminders
 import it.maicol07.gamerlogue.services.SyncCoordinator
 import it.maicol07.gamerlogue.services.SyncScheduler
 import it.maicol07.gamerlogue.ui.components.layout.AppScaffold
@@ -38,10 +41,8 @@ import org.koin.plugin.module.dsl.koinConfiguration
 fun App(
     authCallbackUri: String? = null,
     onAuthCallbackHandled: () -> Unit = {},
-    openNotifications: Boolean = false,
-    onNotificationsOpened: () -> Unit = {},
-    openSyncHistory: Boolean = false,
-    onSyncHistoryOpened: () -> Unit = {},
+    openDestination: NavKey? = null,
+    onDestinationOpened: () -> Unit = {},
 ) {
     val navigationState = rememberAppNavigationState()
 
@@ -51,17 +52,13 @@ fun App(
             LocalNetworkAccess(koinInject<AppPreferences>().serverUrl.collectAsStateWithLifecycle().value)
             PushNotificationsHost()
             BackgroundSyncHost()
-            // A tapped notification: the list lives under the profile, where its bell is.
-            LaunchedEffect(openNotifications) {
-                if (!openNotifications) return@LaunchedEffect
-                navigationState.selectRoot(RootNavTree.Profile)
-                navigationState.backStack.add(RootNavTree.Notifications)
-                onNotificationsOpened()
-            }
-            LaunchedEffect(openSyncHistory) {
-                if (!openSyncHistory) return@LaunchedEffect
-                navigationState.backStack.add(RootNavTree.SyncHistory)
-                onSyncHistoryOpened()
+            ReminderHost()
+            // A tapped notification. The notifications list lives under the profile, where its bell is.
+            LaunchedEffect(openDestination) {
+                val destination = openDestination ?: return@LaunchedEffect
+                if (destination == RootNavTree.Notifications) navigationState.selectRoot(RootNavTree.Profile)
+                navigationState.backStack.add(destination)
+                onDestinationOpened()
             }
 
             // Compose resources read the platform locale during composition, so an in-app language
@@ -88,7 +85,9 @@ fun App(
 @Composable
 private fun PushNotificationsHost() {
     val session by koinInject<AuthTokenProvider>().session.collectAsStateWithLifecycle()
-    NotificationPermission(session.isAuthenticated)
+    // Asked once something would notify: a signed-in user's pushes and syncs, or an event followed signed out.
+    val followsEvents by koinInject<Reminders>().followedEvents.collectAsStateWithLifecycle()
+    NotificationPermission(session.isAuthenticated || followsEvents.isNotEmpty())
     val pushNotifications = koinInject<PushNotifications>()
     LaunchedEffect(pushNotifications) { pushNotifications.run() }
 }
@@ -102,6 +101,14 @@ private fun BackgroundSyncHost() {
     val coordinator = koinInject<SyncCoordinator>()
     val scheduler = koinInject<SyncScheduler>()
     LaunchedEffect(coordinator, scheduler) { coordinator.watch(scheduler) }
+}
+
+// For as long as the app's composition lives, like the background sync; on Android WorkManager keeps the plan after.
+@Composable
+private fun ReminderHost() {
+    val reminders = koinInject<Reminders>()
+    val scheduler = koinInject<ReminderScheduler>()
+    LaunchedEffect(reminders, scheduler) { reminders.watch(scheduler) }
 }
 
 @Composable

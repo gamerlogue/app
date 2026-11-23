@@ -6,6 +6,7 @@ import com.github.michaelbull.result.get
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.core.PageLoader
 import it.maicol07.gamerlogue.core.UnreadNotifications
+import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.data.AppNotification
 import it.maicol07.gamerlogue.data.Comment
 import it.maicol07.gamerlogue.data.InteractionTarget
@@ -43,15 +44,32 @@ class NotificationsViewModel : BaseViewModel() {
         markRead(notification)
         val subjectId = notification.text("subject_id")
         val actorId = (notification.data["actor"] as? Map<*, *>)?.get("id")?.toString()
-        val target = when (notification.text("subject_type")) {
+        val target = if (notification.notificationType == FOLLOWED_USER_ACTIVITY) {
+            followedActivityTarget(notification, subjectId, actorId)
+        } else {
+            subjectTarget(notification, subjectId, actorId)
+        }
+        target?.let(onNavigate)
+    }
+
+    private suspend fun subjectTarget(notification: AppNotification, subjectId: String?, actorId: String?): NavKey? =
+        when (notification.text("subject_type")) {
             // The signed-in user's own review: no owner needed to open it.
             InteractionTarget.REVIEW.apiType -> subjectId?.let { RootNavTree.ReviewDetail(it, null) }
             InteractionTarget.LIST.apiType -> subjectId?.let(RootNavTree::UserListDetail)
             InteractionTarget.COMMENT.apiType -> subjectId?.let { safeRequest { threadTarget(it) }.get() }
             else -> actorId?.let(RootNavTree::UserProfile)
         }
-        target?.let(onNavigate)
-    }
+
+    /** What a followed user did: their review, their list, or the game they completed. */
+    private fun followedActivityTarget(notification: AppNotification, subjectId: String?, actorId: String?): NavKey? =
+        when (ActivityVerb.of(notification.text("verb").orEmpty())) {
+            ActivityVerb.REVIEWED -> subjectId?.let { RootNavTree.ReviewDetail(it, actorId) }
+            ActivityVerb.LIST_CREATED -> subjectId?.let(RootNavTree::UserListDetail)
+            else -> notification.text("game_id")?.toIntOrNull()
+                ?.let { RootNavTree.GameDetail(it, null, notification.text("game_name")) }
+                ?: actorId?.let(RootNavTree::UserProfile)
+        }
 
     /**
      * The review or list a comment's thread is about: replies are comments on comments, so the

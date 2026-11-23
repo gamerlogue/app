@@ -1003,4 +1003,18 @@
         <item quantity="one">%1$d recensione</item>
         <item quantity="other">%1$d recensioni</item>
     </plurals>
+    <string name="sync__notification_login_text">Le sincronizzazioni con %1$s sono in pausa finché non accedi di nuovo.</string>
+    <string name="sync__notification_channel_login">Accesso ai servizi</string>
+    <string name="notifications__channel_social">Mi piace e commenti</string>
+    <string name="notifications__channel_followers">Nuovi follower</string>
+    <string name="notifications__channel_mentions">Menzioni</string>
+    <string name="notifications__channel_following">Attività di chi segui</string>
+    <string name="notifications__channel_releases">Uscite del backlog</string>
+    <string name="notifications__channel_events">Promemoria degli eventi</string>
+    <string name="notifications__mention">%1$s ti ha menzionato in un commento</string>
+    <string name="reminders__release">È uscito: è nel tuo backlog</string>
+    <string name="reminders__event_starts">Inizia alle %1$s</string>
+    <string name="reminders__event_started">È iniziato alle %1$s</string>
+    <string name="events__reminder_off">Ricordamelo</string>
+    <string name="events__reminder_on">Promemoria attivo</string>
 </resources>

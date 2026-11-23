@@ -4,10 +4,16 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,14 +25,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.released.igdbclient.model.Event
 import at.released.igdbclient.model.IgdbImageSize
 import at.released.igdbclient.util.igdbImageUrl
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.events__live_stream
 import gamerlogue.sharedui.generated.resources.events__logo
+import gamerlogue.sharedui.generated.resources.events__reminder_off
+import gamerlogue.sharedui.generated.resources.events__reminder_on
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LanguageW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NotificationsW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NotificationsW500RoundedFill
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.OpenInNewW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.TwitchSimpleIcons
@@ -34,10 +45,13 @@ import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.XSim
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.icons.YoutubeSimpleIcons
 import it.maicol07.gamerlogue.extensions.igdb.dateTimeRangeLabel
 import it.maicol07.gamerlogue.extensions.openURL
+import it.maicol07.gamerlogue.services.Reminders
 import it.maicol07.gamerlogue.ui.components.ConnectedButtonGroup
 import it.maicol07.gamerlogue.ui.components.RemoteImage
 import it.maicol07.gamerlogue.ui.theme.Dimens
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
+import kotlin.time.Clock
 import io.github.kingsword09.symbolcraft.symbols.icons.`simple-icons`.Icons as SimpleIcons
 
 /** Logo aspect ratio, so the header scales with the pane instead of a fixed height. */
@@ -83,6 +97,7 @@ fun EventHeader(event: Event, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        EventReminderToggle(event)
         event.description.takeIf(String::isNotBlank)?.let { description ->
             Text(
                 text = description,
@@ -93,6 +108,30 @@ fun EventHeader(event: Event, modifier: Modifier = Modifier) {
             )
         }
         EventLinks(event, uriHandler::openURL)
+    }
+}
+
+/** Asks for a reminder before the event starts ([Reminders]); only where the app notifies, for events still to come. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun EventReminderToggle(event: Event) {
+    val reminders = koinInject<Reminders>()
+    val followedEvents by reminders.followedEvents.collectAsStateWithLifecycle()
+    val startsAt = event.start_time?.getEpochSecond() ?: return
+    if (!reminders.isSupported || startsAt <= Clock.System.now().epochSeconds) return
+    val followed = event.id in followedEvents
+    ToggleButton(
+        checked = followed,
+        onCheckedChange = { reminders.setFollowed(event, it) },
+        shapes = ToggleButtonDefaults.shapesFor(ToggleButtonDefaults.MinHeight),
+    ) {
+        Icon(
+            if (followed) Icons.NotificationsW500RoundedFill else Icons.NotificationsW500Rounded,
+            contentDescription = null,
+            modifier = Modifier.size(ToggleButtonDefaults.IconSize),
+        )
+        Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
+        Text(stringResource(if (followed) Res.string.events__reminder_on else Res.string.events__reminder_off))
     }
 }
 

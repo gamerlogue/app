@@ -129,6 +129,8 @@ dependencies {
     implementation(libs.koin.android)
     // FileKit.init(activity) in AppActivity, for the save dialog of the shared UI.
     implementation(libs.filekit.dialogs)
+    // NavKey: the destination a tapped notification hands to App().
+    implementation(libs.androidx.navigation3.runtime)
 
     androidTestImplementation(libs.androidx.uitest.junit4)
     debugImplementation(libs.androidx.uitest.testManifest)

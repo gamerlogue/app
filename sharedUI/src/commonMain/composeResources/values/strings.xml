@@ -995,4 +995,18 @@
         <item quantity="one">%1$d review</item>
         <item quantity="other">%1$d reviews</item>
     </plurals>
+    <string name="sync__notification_login_text">Syncs with %1$s are paused until you sign in again.</string>
+    <string name="sync__notification_channel_login">Service sign-in</string>
+    <string name="notifications__channel_social">Likes and comments</string>
+    <string name="notifications__channel_followers">New followers</string>
+    <string name="notifications__channel_mentions">Mentions</string>
+    <string name="notifications__channel_following">Activity of people you follow</string>
+    <string name="notifications__channel_releases">Backlog releases</string>
+    <string name="notifications__channel_events">Event reminders</string>
+    <string name="notifications__mention">%1$s mentioned you in a comment</string>
+    <string name="reminders__release">Out now, from your backlog</string>
+    <string name="reminders__event_starts">Starts at %1$s</string>
+    <string name="reminders__event_started">Started at %1$s</string>
+    <string name="events__reminder_off">Remind me</string>
+    <string name="events__reminder_on">Reminder set</string>
 </resources>

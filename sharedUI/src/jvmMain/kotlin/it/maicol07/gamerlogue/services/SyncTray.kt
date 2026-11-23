@@ -20,7 +20,7 @@ import java.awt.SystemTray
 /** Whether the desktop has a tray to keep the app in (some Linux desktops don't). */
 val isTraySupported: Boolean = SystemTray.isSupported()
 
-/** The tray icon that keeps the app, and its background syncs, running with the window closed. */
+/** The tray icon that keeps the app, and its background syncs, running with the window closed; [DesktopNotifier] shows here. */
 @Composable
 fun ApplicationScope.SyncTray(icon: Painter, onOpen: () -> Unit, onQuit: () -> Unit) {
     if (!isTraySupported) return
@@ -37,6 +37,7 @@ fun ApplicationScope.SyncTray(icon: Painter, onOpen: () -> Unit, onQuit: () -> U
     }
     Tray(
         icon = icon,
+        state = DesktopNotifier.tray,
         tooltip = tooltip,
         onAction = onOpen,
         menu = {

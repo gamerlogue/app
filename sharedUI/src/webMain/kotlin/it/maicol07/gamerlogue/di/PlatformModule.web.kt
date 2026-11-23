@@ -4,14 +4,19 @@ import io.ktor.client.HttpClient
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.auth.AuthenticationHandler
 import it.maicol07.gamerlogue.core.AppPreferences
+import it.maicol07.gamerlogue.core.LocalNotifier
+import it.maicol07.gamerlogue.core.NotificationChannel
 import it.maicol07.gamerlogue.auth.WebAuthTokenProvider
 import it.maicol07.gamerlogue.auth.WebAuthenticationHandler
 import it.maicol07.gamerlogue.services.BackgroundWebHost
+import it.maicol07.gamerlogue.services.InProcessReminderScheduler
 import it.maicol07.gamerlogue.services.InProcessSyncScheduler
+import it.maicol07.gamerlogue.services.ReminderScheduler
 import it.maicol07.gamerlogue.services.SyncScheduler
 import it.maicol07.gamerlogue.services.SyncStorage
 import it.maicol07.gamerlogue.services.WebSyncStorage
 import it.maicol07.gamerlogue.ui.components.WebSession
+import androidx.navigation3.runtime.NavKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.annotation.Configuration
@@ -41,8 +46,27 @@ actual object PlatformModule {
     }
 
     @Single
-    actual fun provideSyncScheduler(scope: Scope): SyncScheduler = InProcessSyncScheduler(scope.get(), scope.get())
+    actual fun provideSyncScheduler(scope: Scope): SyncScheduler =
+        InProcessSyncScheduler(scope.get(), scope.get(), scope.get())
 
     @Single
     actual fun provideSyncStorage(scope: Scope): SyncStorage = WebSyncStorage(CoroutineScope(SupervisorJob()))
+
+    // ponytail: no browser notifications (a permission prompt, nothing while the tab is closed); add them if asked.
+    @Single
+    actual fun provideLocalNotifier(scope: Scope): LocalNotifier = object : LocalNotifier {
+        override val isSupported = false
+
+        override suspend fun notify(
+            channel: NotificationChannel,
+            tag: String,
+            title: String,
+            text: String,
+            target: NavKey?,
+        ) = Unit
+    }
+
+    // Never asked: Reminders.watch stops at once where notifications aren't supported.
+    @Single
+    actual fun provideReminderScheduler(scope: Scope): ReminderScheduler = InProcessReminderScheduler(scope.get())
 }

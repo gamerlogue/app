@@ -44,11 +44,12 @@ interface SyncScheduler {
 
 /**
  * Runs the background syncs in this process, so only while the app runs: the desktop, which keeps running in the tray.
- * A run started here finishes even if the screen that triggered it goes away.
+ * A run started here finishes even if the screen that triggered it goes away; what needs a look goes to [alerts].
  */
 class InProcessSyncScheduler(
     private val coordinator: SyncCoordinator,
     private val settings: ObservableSettings,
+    private val alerts: SyncAlerts,
 ) : SyncScheduler {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var push: Job? = null
@@ -68,13 +69,16 @@ class InProcessSyncScheduler(
             val withWishlist = wishlistDue
             wishlistDue = false
             // Its own job: a later change restarts the wait, never a run already going.
-            scope.launch { coordinator.runDue(SyncTrigger.CHANGE, withWishlist) }
+            run(SyncTrigger.CHANGE, withWishlist)
         }
     }
 
     override fun runNow() {
-        scope.launch { coordinator.runDue(SyncTrigger.MANUAL, wishlist = true) }
+        run(SyncTrigger.MANUAL, wishlist = true)
     }
+
+    private fun run(trigger: SyncTrigger, wishlist: Boolean) =
+        scope.launch { alerts.finished(coordinator.runDue(trigger, wishlist)) }
 
     @OptIn(ExperimentalSettingsApi::class)
     override val nextPeriodicAt: Flow<Long?> = combine(
@@ -96,7 +100,7 @@ class InProcessSyncScheduler(
                 delay(next - Clock.System.now().toEpochMilliseconds().milliseconds)
                 settings.putLong(SyncCoordinator.LAST_PERIODIC_KEY, Clock.System.now().toEpochMilliseconds())
                 // Its own job, joined: stopping the period leaves a run already going to finish.
-                scope.launch { coordinator.runDue(SyncTrigger.PERIODIC, wishlist = true) }.join()
+                run(SyncTrigger.PERIODIC, wishlist = true).join()
             }
         }
     }

@@ -25,6 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.michaelbull.result.get
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.activity__completed
+import gamerlogue.sharedui.generated.resources.activity__list_created
+import gamerlogue.sharedui.generated.resources.activity__reviewed
+import gamerlogue.sharedui.generated.resources.activity__unknown_game
 import gamerlogue.sharedui.generated.resources.nav__notifications
 import gamerlogue.sharedui.generated.resources.notifications__comment_reacted
 import gamerlogue.sharedui.generated.resources.notifications__comment_replied
@@ -32,6 +36,7 @@ import gamerlogue.sharedui.generated.resources.notifications__empty
 import gamerlogue.sharedui.generated.resources.notifications__list_commented
 import gamerlogue.sharedui.generated.resources.notifications__list_liked
 import gamerlogue.sharedui.generated.resources.notifications__mark_all_read
+import gamerlogue.sharedui.generated.resources.notifications__mention
 import gamerlogue.sharedui.generated.resources.notifications__new_follower
 import gamerlogue.sharedui.generated.resources.notifications__review_commented
 import gamerlogue.sharedui.generated.resources.notifications__review_liked
@@ -39,6 +44,7 @@ import gamerlogue.sharedui.generated.resources.notifications__unknown
 import io.github.fopwoc.nav3ksp.annotation.Branch
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NotificationsW500Rounded
+import it.maicol07.gamerlogue.data.ActivityVerb
 import it.maicol07.gamerlogue.data.AppNotification
 import it.maicol07.gamerlogue.data.User
 import it.maicol07.gamerlogue.extensions.displayTimestamp
@@ -139,8 +145,26 @@ private fun AppNotification.describe(actor: String): String = when (notification
     "list_commented" -> stringResource(Res.string.notifications__list_commented, actor)
     "comment_replied" -> stringResource(Res.string.notifications__comment_replied, actor)
     "comment_reacted" -> stringResource(Res.string.notifications__comment_reacted, actor, text("reaction").orEmpty())
+    "mention" -> stringResource(Res.string.notifications__mention, actor)
+    FOLLOWED_USER_ACTIVITY -> describeActivity(actor)
     else -> stringResource(Res.string.notifications__unknown, actor)
 }
+
+/** Someone the user follows did something: worded like the same activity in the feed. */
+@Composable
+private fun AppNotification.describeActivity(actor: String): String {
+    val game = text("game_name") ?: stringResource(Res.string.activity__unknown_game)
+    return when (ActivityVerb.of(text("verb").orEmpty())) {
+        ActivityVerb.COMPLETED -> stringResource(Res.string.activity__completed, actor, game)
+        ActivityVerb.REVIEWED -> stringResource(Res.string.activity__reviewed, actor, game)
+        ActivityVerb.LIST_CREATED ->
+            stringResource(Res.string.activity__list_created, actor, text("list_name").orEmpty())
+        else -> stringResource(Res.string.notifications__unknown, actor)
+    }
+}
+
+/** The type of the notifications about the activity of a followed user. */
+internal const val FOLLOWED_USER_ACTIVITY = "followed_user_activity"
 
 internal fun AppNotification.text(key: String): String? = data[key]?.toString()
 
