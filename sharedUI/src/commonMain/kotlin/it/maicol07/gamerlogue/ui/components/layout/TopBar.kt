@@ -106,15 +106,18 @@ fun NotificationsAction(navigationState: AppNavigationState = LocalNavigationSta
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SyncStatusAction(navigationState: AppNavigationState = LocalNavigationState.current) {
-    val running by koinInject<SyncCoordinator>().running.collectAsStateWithLifecycle()
+    val coordinator = koinInject<SyncCoordinator>()
+    val running by coordinator.running.collectAsStateWithLifecycle()
+    val queue by coordinator.queue.collectAsStateWithLifecycle()
     val runs by koinInject<SyncHistory>().runs.collectAsStateWithLifecycle()
     val unseen = runs.filterNot { it.seen }
-    AnimatedVisibility(running.isNotEmpty() || unseen.isNotEmpty()) {
+    val syncing = running.isNotEmpty() || !queue.isEmpty
+    AnimatedVisibility(syncing || unseen.isNotEmpty()) {
         IconButton(
             onClick = { navigationState.backStack.add(RootNavTree.SyncHistory) },
             shapes = IconButtonDefaults.shapes()
         ) {
-            if (running.isNotEmpty()) {
+            if (syncing) {
                 val runningLabel = stringResource(Res.string.sync__status_running)
                 LoadingIndicator(Modifier.size(SyncIndicatorSize).semantics { contentDescription = runningLabel })
             } else {

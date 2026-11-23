@@ -30,6 +30,7 @@ class SyncHistoryViewModel(
 ) : BaseViewModel() {
     val runs = history.runs
     val running = coordinator.running
+    val queue = coordinator.queue
 
     /** A game the tracker didn't remove when asked, to tell the user; null once they read it. */
     val removalFailed: StateFlow<Pair<SyncRun, SyncGame>?>

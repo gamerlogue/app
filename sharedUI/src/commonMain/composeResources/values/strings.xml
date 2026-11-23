@@ -310,6 +310,8 @@
     <string name="sync__history_summary">Every sync with its results</string>
     <string name="sync__history_empty">No syncs yet. Automatic and manual syncs show up here with their results.</string>
     <string name="sync__status_running">Syncing</string>
+    <string name="sync__status_running_progress">Syncing · %1$d of %2$d</string>
+    <string name="sync__status_waiting">Waiting</string>
     <string name="sync__status_new">New sync results</string>
     <string name="sync__kind_wishlist">Wishlist</string>
     <string name="sync__kind_library">Library</string>

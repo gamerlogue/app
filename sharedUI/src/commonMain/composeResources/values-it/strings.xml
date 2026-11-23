@@ -308,6 +308,8 @@
     <string name="sync__history_summary">Ogni sincronizzazione con i suoi esiti</string>
     <string name="sync__history_empty">Ancora nessuna sincronizzazione. Qui compaiono quelle automatiche e manuali, con i loro esiti.</string>
     <string name="sync__status_running">Sincronizzazione in corso</string>
+    <string name="sync__status_running_progress">Sincronizzazione in corso · %1$d di %2$d</string>
+    <string name="sync__status_waiting">In coda</string>
     <string name="sync__status_new">Nuovi esiti di sincronizzazione</string>
     <string name="sync__kind_wishlist">Wishlist</string>
     <string name="sync__kind_library">Libreria</string>

@@ -52,6 +52,8 @@ import gamerlogue.sharedui.generated.resources.sync__result_login_required
 import gamerlogue.sharedui.generated.resources.sync__result_ok
 import gamerlogue.sharedui.generated.resources.sync__result_partial
 import gamerlogue.sharedui.generated.resources.sync__status_running
+import gamerlogue.sharedui.generated.resources.sync__status_running_progress
+import gamerlogue.sharedui.generated.resources.sync__status_waiting
 import gamerlogue.sharedui.generated.resources.sync__trigger_change
 import gamerlogue.sharedui.generated.resources.sync__trigger_manual
 import gamerlogue.sharedui.generated.resources.sync__trigger_periodic
@@ -60,11 +62,13 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DeleteW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HelpW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HistoryW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ScheduleW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.SyncGame
 import it.maicol07.gamerlogue.services.SyncKind
+import it.maicol07.gamerlogue.services.SyncQueue
 import it.maicol07.gamerlogue.services.SyncResult
 import it.maicol07.gamerlogue.services.SyncRun
 import it.maicol07.gamerlogue.services.SyncTrigger
@@ -93,6 +97,7 @@ fun SyncHistoryView() {
     val navigationState = LocalNavigationState.current
     val runs by viewModel.runs.collectAsStateWithLifecycle()
     val running by viewModel.running.collectAsStateWithLifecycle()
+    val queue by viewModel.queue.collectAsStateWithLifecycle()
     // Seen while the screen is open, including the runs that end meanwhile.
     LaunchedEffect(runs) { if (runs.any { !it.seen }) viewModel.markAllSeen() }
     var confirmDelete by remember { mutableStateOf<Pair<SyncRun, SyncGame>?>(null) }
@@ -112,7 +117,7 @@ fun SyncHistoryView() {
     }
 
     ScreenScaffold(title = Res.string.sync__history) {
-        if (runs.isEmpty() && running.isEmpty()) {
+        if (runs.isEmpty() && running.isEmpty() && queue.isEmpty) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 EmptyState(
                     Icons.HistoryW500Rounded,
@@ -124,7 +129,7 @@ fun SyncHistoryView() {
             return@ScreenScaffold
         }
         HistoryList(
-            running,
+            activeSyncs(running, queue),
             runs,
             onOpen = { navigationState.backStack.add(it) },
             onHelp = { helpFor = it },
@@ -156,7 +161,7 @@ private fun SyncRun.needsLook(latest: Boolean): Boolean =
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun HistoryList(
-    running: Set<ExternalService>,
+    active: List<ActiveSync>,
     runs: List<SyncRun>,
     onOpen: (RootNavTree.GameDetail) -> Unit,
     onHelp: (SyncRun) -> Unit,
@@ -166,7 +171,6 @@ private fun HistoryList(
     val toggled = remember { mutableStateMapOf<String, Boolean>() }
     // The game groups (received, sent, skipped) the user opened.
     val openGroups = remember { mutableStateMapOf<String, Boolean>() }
-    val runningList = running.toList()
     // The newest run of each service and kind: the only one whose games left to the user are still a choice to make.
     val latestOf = runs.groupBy { it.service to it.kind }.mapValues { (_, serviceRuns) -> serviceRuns.first() }
     LazyColumn(
@@ -178,8 +182,9 @@ private fun HistoryList(
         ),
         verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
     ) {
-        itemsIndexed(runningList, key = { _, service -> "running-$service" }) { i, service ->
-            RunningItem(service, ListItemDefaults.segmentedShapes(i, runningList.size))
+        // ponytail: index keys, the same service and kind can wait twice (two triggers queued).
+        itemsIndexed(active, key = { i, _ -> "active-$i" }) { i, sync ->
+            ActiveItem(sync, ListItemDefaults.segmentedShapes(i, active.size))
         }
         runs.groupBy { it.startedAt.format(DAY) }.forEach { (day, dayRuns) ->
             item(key = "day-$day") {
@@ -218,14 +223,45 @@ private fun HistoryList(
     }
 }
 
+/**
+ * A sync going on or waiting its turn: [kind] is null for one the user started (it isn't in the queue), [step] is
+ * the position as X of N of the current background one, [waiting] marks the ones queued after it.
+ */
+private data class ActiveSync(
+    val service: ExternalService,
+    val kind: SyncKind?,
+    val step: Pair<Int, Int>?,
+    val waiting: Boolean,
+)
+
+/** The current background sync first, then the other running ones, then the queued ones in order. */
+private fun activeSyncs(running: Set<ExternalService>, queue: SyncQueue): List<ActiveSync> = buildList {
+    queue.current?.let { add(ActiveSync(it.service, it.kind, queue.done + 1 to queue.total, waiting = false)) }
+    running.filter { it != queue.current?.service }.forEach { add(ActiveSync(it, null, null, waiting = false)) }
+    queue.waiting.forEach { add(ActiveSync(it.service, it.kind, null, waiting = true)) }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun RunningItem(service: ExternalService, shapes: ListItemShapes) = SegmentedListItem(
-    shapes = shapes,
-    colors = ListItemDefaults.expressiveSegmentedColors(),
-    leadingContent = { LoadingIndicator(Modifier.size(SectionIconSize)) },
-    supportingContent = { Text(stringResource(Res.string.sync__status_running)) },
-) { Text(stringResource(service.labelRes()), style = MaterialTheme.typography.titleMedium) }
+private fun ActiveItem(sync: ActiveSync, shapes: ListItemShapes) {
+    val status = when {
+        sync.waiting -> stringResource(Res.string.sync__status_waiting)
+        sync.step != null -> stringResource(Res.string.sync__status_running_progress, sync.step.first, sync.step.second)
+        else -> stringResource(Res.string.sync__status_running)
+    }
+    SegmentedListItem(
+        shapes = shapes,
+        colors = ListItemDefaults.expressiveSegmentedColors(),
+        leadingContent = {
+            if (sync.waiting) {
+                Icon(Icons.ScheduleW500Rounded, contentDescription = null, Modifier.size(SectionIconSize))
+            } else {
+                LoadingIndicator(Modifier.size(SectionIconSize))
+            }
+        },
+        supportingContent = { Text(listOfNotNull(sync.kind?.let { stringResource(it.label) }, status).joinToString(" · ")) },
+    ) { Text(stringResource(sync.service.labelRes()), style = MaterialTheme.typography.titleMedium) }
+}
 
 /** A run's header: the service in a shape coloured by the result, what started the run and how it ended. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

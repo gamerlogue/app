@@ -51,6 +51,10 @@ class SyncCoordinator(
     val running: StateFlow<Set<ExternalService>>
         field = MutableStateFlow(emptySet())
 
+    /** The background syncs asked for and not ended yet; empty when none is. */
+    val queue: StateFlow<SyncQueue>
+        field = MutableStateFlow(SyncQueue())
+
     /** A sync the user started on the sync screen, recorded as already seen. Null when it failed or can't run. */
     suspend fun runManual(service: ExternalService, kind: SyncKind, session: WebSession): SyncOutcome? =
         run(service, kind, SyncTrigger.MANUAL, session).first
@@ -116,8 +120,8 @@ class SyncCoordinator(
 
     /**
      * Runs the syncs due for [trigger], one after the other in a single session: the library syncs, plus the
-     * wishlist ones when [wishlist]. [onProgress] hears of each service before it starts (its index among [total]).
-     * Returns the runs it recorded.
+     * wishlist ones when [wishlist]. They wait in the [queue] from the call on. [onProgress] hears of each service
+     * before it starts (its index among [total], counted over the whole [queue]). Returns the runs it recorded.
      */
     suspend fun runDue(
         trigger: SyncTrigger,
@@ -128,16 +132,35 @@ class SyncCoordinator(
             listOfNotNull(
                 SyncKind.LIBRARY.takeIf { service.flag(LIBRARY_SYNC) },
                 SyncKind.WISHLIST.takeIf { wishlist && service.flag(WISHLIST_SYNC) },
-            ).filter { runner.runsUnattended(service, it) }.map { service to it }
+            ).filter { runner.runsUnattended(service, it) }.map { DueSync(service, it) }
         }
         if (due.isEmpty()) return emptyList()
-        return background.withLock {
-            host.withSession { session ->
-                due.mapIndexedNotNull { i, (service, kind) ->
-                    onProgress(service, i, due.size)
-                    run(service, kind, trigger, UnattendedSession(session)).second
+        queue.update { it.copy(waiting = it.waiting + due) }
+        var started = 0
+        try {
+            return background.withLock {
+                try {
+                    // Current from here, so the session starting up already shows as its run.
+                    queue.update { it.next(due.first()) }
+                    started = 1
+                    host.withSession { session ->
+                        due.mapIndexedNotNull { i, sync ->
+                            if (i > 0) {
+                                queue.update { it.next(sync) }
+                                started++
+                            }
+                            val state = queue.value
+                            onProgress(sync.service, state.done, state.total)
+                            run(sync.service, sync.kind, trigger, UnattendedSession(session)).second
+                        }
+                    }
+                } finally {
+                    queue.update { it.next(null) }
                 }
             }
+        } finally {
+            // What a failure or cancellation left waiting.
+            queue.update { state -> state.copy(waiting = due.drop(started).fold(state.waiting) { w, s -> w - s }).settled() }
         }
     }
 
@@ -248,4 +271,26 @@ class SyncCoordinator(
         val PUSH_DELAY = 90.seconds
         private val RUN_TIMEOUT = 10.minutes
     }
+}
+
+/** One sync of [SyncCoordinator.runDue]. */
+data class DueSync(val service: ExternalService, val kind: SyncKind)
+
+/**
+ * The background syncs: the [current] one (its session starting up included), the ones [waiting] after it in order,
+ * and how many are [done] since the queue was last empty, to count them as X of [total].
+ */
+data class SyncQueue(val current: DueSync? = null, val waiting: List<DueSync> = emptyList(), val done: Int = 0) {
+    val total: Int get() = done + waiting.size + if (current != null) 1 else 0
+    val isEmpty: Boolean get() = current == null && waiting.isEmpty()
+
+    /** Ends the current sync, if any, and starts [sync], taken from the waiting ones; null when none follows yet. */
+    internal fun next(sync: DueSync?): SyncQueue = copy(
+        current = sync,
+        waiting = if (sync == null) waiting else waiting - sync,
+        done = done + if (current != null) 1 else 0,
+    ).settled()
+
+    /** Starts the count over once nothing is left. */
+    internal fun settled(): SyncQueue = if (isEmpty) SyncQueue() else this
 }
