@@ -103,13 +103,17 @@ class XboxConnector(private val api: XboxApi) :
         ),
     )
 
+    // Pushes open the English store: the add control has no stable selector, only a localized label ("Add to
+    // wishlist", "Aggiungi … all'elenco preferenze"), and the wishlist is the account's whatever the store language.
+    override fun normalizePushUrl(url: String) = url.replace(Regex("(xbox\\.com)/[a-z]{2}-[A-Za-z]{2}/"), "$1/en-US/")
+
     override val wishlistWrite = WishlistWrite.PerGame { storeUrl ->
         WebStep(
             storeUrl,
             SyncScripts.wrap(
                 """
-                // The add control carries no stable selector, so both states are matched on the
-                // (localized) label: it always contains "wishlist", plus "add" or a done word.
+                // The add control carries no stable selector, so both states are matched on the English label
+                // (see normalizePushUrl): it contains "wishlist", plus "add" or a done word.
                 let labelled = function(words) {
                     return Array.prototype.find.call(
                         document.querySelectorAll('button, [role="button"]'),
@@ -120,10 +124,16 @@ class XboxConnector(private val api: XboxApi) :
                         }
                     );
                 };
-                let ok = await __glClickUntil(
-                    function() { return labelled(['add']); },
-                    function() { return !!labelled(['remove', 'added', 'in wishlist']); }
-                );
+                // Once added, the control leaves the page's buttons ("Add … to wishlist" is gone) or turns into a done one.
+                let done = function() { return !!labelled(['remove', 'added', 'in wishlist']); };
+                for (let i = 0; i < 20 && !labelled(['add']) && !done(); i++) await __glSleep(500);
+                let clicked = false;
+                for (let i = 0; i < 6 && !done() && labelled(['add']); i++) {
+                    labelled(['add']).click();
+                    clicked = true;
+                    await __glSleep(1500);
+                }
+                let ok = done() || (clicked && !labelled(['add']));
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
                 console.log('[GL] xbox wishlist push added=' + ok + ' ' + location.href);
                 """.trimIndent(),
