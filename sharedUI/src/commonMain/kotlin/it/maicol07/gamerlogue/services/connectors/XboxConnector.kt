@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
@@ -8,6 +9,7 @@ import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.XboxApi
 import it.maicol07.gamerlogue.services.apiProfile
 import it.maicol07.gamerlogue.services.apiRefs
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webRefs
 
 /**
@@ -124,6 +126,50 @@ class XboxConnector(private val api: XboxApi) :
                 );
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
                 console.log('[GL] xbox wishlist push added=' + ok + ' ' + location.href);
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    // On the wishlist page each game's action button buys or opens it; in edit mode (a button of the page's menu) it
+    // removes the game. Matched by CSS module class and the store id in the game's link, not by label: labels are
+    // localized. Edit mode is the button whose click flips the game's action label; it's the middle of the menu's three.
+    // ponytail: hashed CSS module classes and the menu order are the page's own, matched by prefix; re-check them on
+    // xbox.com/wishlist if removals start failing.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(
+            "https://www.xbox.com/wishlist",
+            SyncScripts.wrap(
+                """
+                const id = ${listOf(ref).uidJsonArray()}[0].toLowerCase();
+                let item = function() {
+                    let a = Array.prototype.find.call(
+                        document.querySelectorAll('[class*="WishlistProductItem-module__productDetails"] > a[href]'),
+                        function(x) { return x.getAttribute('href').toLowerCase().indexOf('/' + id) >= 0; }
+                    );
+                    return a ? a.closest('[class*="WishlistProductItem-module__itemContainer"]') : null;
+                };
+                let action = function() {
+                    let it = item();
+                    return it ? it.querySelector('[class*="WishListActionButtons-module__button"]') : null;
+                };
+                let label = function() { let b = action(); return b ? b.getAttribute('aria-label') || b.textContent : ''; };
+                await __glWaitForAll('[class*="WishlistProductItem-module__productDetails"] > a[href]');
+                let view = label();
+                let menus = Array.prototype.slice.call(document.querySelectorAll('[class*="WishlistPage-module__wishlistMenuButton"]'));
+                let order = menus.length === 3 ? [menus[1]] : menus;
+                for (const m of order) {
+                    if (!view || label() !== view) break;
+                    m.click();
+                    for (let i = 0; i < 10 && label() === view; i++) await __glSleep(300);
+                }
+                let editing = !!action() && label() !== view;
+                if (editing) action().click();
+                for (let i = 0; editing && item() && i < 20; i++) await __glSleep(500);
+                // A game not listed to begin with is already removed.
+                let ok = !item() && (editing || !view);
+                out = ok ? [{ uid: ${listOf(ref).uidJsonArray()}[0], name: '' }] : [];
+                console.log('[GL] xbox wishlist remove ' + id + ' editing=' + editing + ' removed=' + ok);
                 """.trimIndent(),
             ),
         )

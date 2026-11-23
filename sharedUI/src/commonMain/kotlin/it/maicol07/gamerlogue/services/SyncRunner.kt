@@ -53,6 +53,9 @@ class SyncRunner(
         val push = pushWishlist(connector, session, selected)
         setLastSyncAt(service)
         val skipped = session.leftOut(push.missed, selected.associate { it.name to it.gameId })
+        // Offered for removal there only by a store that can do it.
+        val removedHere = if (connector.wishlistRemove == null) emptyMap() else result.removedHere
+        val games = gamesById(removedHere.keys)
         return SyncOutcome.WishlistSynced(
             result.added,
             push.count,
@@ -64,6 +67,7 @@ class SyncRunner(
             },
             sent = push.sent(skipped).map { it.asSyncGame() },
             toConfirm = result.unsure.map { it.pending() },
+            removedHere = removedHere.map { (id, ref) -> syncGame(id, games, null, ref.name).copy(uid = ref.uid) },
         )
     }
 
@@ -117,18 +121,43 @@ class SyncRunner(
     }
 
     /**
-     * Removes [games] from the tracker of [service], as the user removed them from Gamerlogue, and forgets them as
-     * synced (gone from both sides). Returns the ones the tracker confirmed removed.
+     * Removes [games] from the [kind] side of [service] (its library or wishlist), as the user removed them from
+     * Gamerlogue. Library games are forgotten as synced too (gone from both sides); the wishlist baseline drops them
+     * at its next sync by itself. Returns the ones the service confirmed removed.
      */
-    suspend fun removeFromTracker(service: ExternalService, session: WebSession, games: List<SyncGame>): Set<Int> {
+    suspend fun removeFromService(
+        service: ExternalService,
+        kind: SyncKind,
+        session: WebSession,
+        games: List<SyncGame>,
+    ): Set<Int> {
         val connector = connectors.getValue(service)
-        val remove = connector.statusRemove ?: return emptySet()
-        session.awaitLogin(connector)
         val refs = games.mapNotNull { g -> g.uid?.let { ExternalGameRef(it, g.name, g.status, g.gameId) } }
-        val removedUids = session.run(remove(refs)).mapTo(mutableSetOf()) { it.uid }
+        session.awaitLogin(connector)
+        val removedUids = when (kind) {
+            SyncKind.LIBRARY -> connector.statusRemove?.let { session.run(it(refs)) }.orEmpty()
+            // One page per game: most stores remove through the game's own page or wishlist tile.
+            SyncKind.WISHLIST -> {
+                val remove = connector.wishlistRemove
+                if (remove == null) emptyList() else refs.flatMap { removeFromWishlist(connector, session, remove, it) }
+            }
+        }.mapTo(mutableSetOf()) { it.uid }
         val removed = refs.filter { it.uid in removedUids }.mapNotNullTo(mutableSetOf()) { it.gameId }
-        trackerSync.prune(service, removed)
+        if (kind == SyncKind.LIBRARY) trackerSync.prune(service, removed)
         return removed
+    }
+
+    /** Removes [ref] from the store wishlist, on the page [ServiceConnector.wishlistRemovePage] finds when it has one. */
+    private suspend fun removeFromWishlist(
+        connector: ServiceConnector,
+        session: WebSession,
+        remove: (ExternalGameRef) -> WebStep,
+        ref: ExternalGameRef,
+    ): List<ExternalGameRef> {
+        val find = connector.wishlistRemovePage ?: return session.run(remove(ref))
+        val page = session.run(find(ref)).firstOrNull()?.uid
+        // Not on the wishlist any more: already removed.
+        return if (page == null) listOf(ref) else session.run(remove(ref).copy(url = page))
     }
 
     /**

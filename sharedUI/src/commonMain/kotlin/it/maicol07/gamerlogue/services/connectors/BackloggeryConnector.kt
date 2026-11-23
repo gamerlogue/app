@@ -234,7 +234,12 @@ class BackloggeryConnector :
     // The editor's delete button, which posts these fields of the entry (the user id is the session's: library rows
     // don't carry it) and answers `{ payload: { status: 1 } }`. Only the synced row goes: another row of the
     // same game (one per platform) stays, as a game on its own. A row no longer in the library is already removed.
-    override val statusRemove: (List<ExternalGameRef>) -> WebStep = { refs ->
+    override val statusRemove: (List<ExternalGameRef>) -> WebStep = { refs -> deleteRows(refs) }
+
+    // A wishlist entry is a row of the library (`own = 7`), deleted the same way.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref -> deleteRows(listOf(ref)) }
+
+    private fun deleteRows(refs: List<ExternalGameRef>) =
         WebStep(
             HOME,
             SyncScripts.wrap(
@@ -267,7 +272,6 @@ class BackloggeryConnector :
             ),
             reload = false,
         )
-    }
 
     private companion object {
         const val HOME = "https://backloggery.com/"

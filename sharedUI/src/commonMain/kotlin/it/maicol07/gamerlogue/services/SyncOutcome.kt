@@ -31,7 +31,8 @@ sealed interface SyncOutcome {
      * selected games the store didn't take, [removedOnOneSide] games removed on one side and left on the other
      * (reported only alongside a change: they'd stop every later sync otherwise), [removedOnService] the ones of
      * those removed from the store wishlist; [received] and [sent] the games behind [added] and [pushed];
-     * [toConfirm] the store games matched only by a guess, left out.
+     * [toConfirm] the store games matched only by a guess, left out; [removedHere] the games removed from Gamerlogue
+     * still on a store wishlist that can remove them too.
      */
     data class WishlistSynced(
         val added: Int,
@@ -42,6 +43,7 @@ sealed interface SyncOutcome {
         val received: List<SyncGame> = emptyList(),
         val sent: List<SyncGame> = emptyList(),
         val toConfirm: List<PendingMatch> = emptyList(),
+        val removedHere: List<SyncGame> = emptyList(),
     ) : SyncOutcome {
         /** False when the two libraries already agreed — nothing worth stopping to report. */
         val changedAnything: Boolean get() = added > 0 || pushed > 0 || skipped.isNotEmpty()

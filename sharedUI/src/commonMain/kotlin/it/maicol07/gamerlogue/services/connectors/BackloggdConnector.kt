@@ -10,6 +10,7 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.jsonArray
 import it.maicol07.gamerlogue.services.refsJson
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -69,6 +70,15 @@ class BackloggdConnector : ServiceConnector(ExternalService.BACKLOGGD, host = "b
                 __glProgress(n, ids.length);
                 if (await __blSet('wishlist', id, true)) out.push({ uid: String(id), name: '' });
             }
+        """.trimIndent()))
+    }
+
+    // The wishlist shelf toggled off, as the add toggled it on.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(HOME, SyncScripts.wrap("""
+            $API_JS
+            const id = ${listOf(ref).uidJsonArray()}[0];
+            out = (await __blSet('wishlist', id, false)) ? [{ uid: id, name: '' }] : [];
         """.trimIndent()))
     }
 

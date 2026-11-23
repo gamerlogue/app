@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.services.connectors
 
 import it.maicol07.gamerlogue.services.EpicApi
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.ServiceProfile
@@ -9,6 +10,7 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.apiProfile
 import it.maicol07.gamerlogue.services.apiRefs
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webRefs
 
 /**
@@ -138,6 +140,31 @@ class EpicConnector(private val api: EpicApi) :
                 );
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
                 console.log('[GL] epic wishlist push added=' + ok + ' ' + location.href);
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    // The store's GraphQL, like the read: the entry's namespace from the wishlist (the ref keeps only the offer id),
+    // then the remove mutation the wishlist page's Remove button sends. An offer no longer there is already removed.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(
+            "https://store.epicgames.com/",
+            SyncScripts.wrap(
+                """
+                $GQL_JS
+                const id = ${listOf(ref).uidJsonArray()}[0];
+                let item = (await __epWishlist()).find(function(e) { return e.offerId === id; });
+                let ok = !item;
+                if (item) {
+                    let j = await __epGql('mutation removeFromWishlistMutation(${'$'}namespace: String!, ' +
+                        '${'$'}offerId: String!, ${'$'}operation: RemoveOperation!) { Wishlist { removeFromWishlist(' +
+                        'namespace: ${'$'}namespace, offerId: ${'$'}offerId, operation: ${'$'}operation) { success } } }',
+                        { namespace: item.namespace, offerId: id, operation: 'REMOVE' });
+                    ok = !!(((j.data || {}).Wishlist || {}).removeFromWishlist || {}).success;
+                    console.log('[GL] epic wishlist remove ' + id + ' ' + JSON.stringify(j).slice(0, 300));
+                }
+                out = ok ? [{ uid: id, name: '' }] : [];
                 """.trimIndent(),
             ),
         )

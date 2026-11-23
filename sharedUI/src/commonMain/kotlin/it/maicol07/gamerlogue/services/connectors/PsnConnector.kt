@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.services.connectors
 
 import com.parkwoocheol.composewebview.PlatformCookieManager
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.PsnApi
 import it.maicol07.gamerlogue.services.ServiceConnector
@@ -9,6 +10,7 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.apiProfile
 import it.maicol07.gamerlogue.services.apiRefs
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webRefs
 
 /**
@@ -127,6 +129,39 @@ class PsnConnector(private val api: PsnApi) :
                 );
                 out = ok ? [{ uid: '$storeUrl', name: 'added' }] : [];
                 console.log('[GL] psn wishlist push added=' + ok + ' ' + location.href);
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    // On the game's store page (no locale in the URL: the store picks the account's), the game's own wishlist toggle —
+    // a page also carries other editions' toggles and hidden duplicates, so it's matched on `data-qa` and the product
+    // (or concept) id in its telemetry — clicked until it reads "addToWishlist". A wishlist uid is the product id, or a
+    // concept id when the tile only linked the concept.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        val kind = if (ref.uid.all(Char::isDigit)) "concept" else "product"
+        WebStep(
+            "https://store.playstation.com/$kind/${ref.uid}",
+            SyncScripts.wrap(
+                """
+                const id = ${listOf(ref).uidJsonArray()}[0];
+                let toggle = function() {
+                    return Array.prototype.find.call(document.querySelectorAll('button[data-qa="wishlistToggle"]'), function(b) {
+                        try {
+                            let meta = JSON.parse(b.getAttribute('data-telemetry-meta') || '{}');
+                            return meta.productId === id || String(meta.conceptId) === id;
+                        } catch (e) { return false; }
+                    });
+                };
+                let state = function() { let b = toggle(); return b ? b.getAttribute('data-track-click') || '' : ''; };
+                for (let i = 0; i < 20 && !toggle(); i++) await __glSleep(500);
+                for (let i = 0; i < 6 && state().indexOf('removeFromWishlist') >= 0; i++) {
+                    toggle().click();
+                    await __glSleep(1500);
+                }
+                let ok = state().indexOf('addToWishlist') >= 0;
+                out = ok ? [{ uid: id, name: '' }] : [];
+                console.log('[GL] psn wishlist remove ' + id + ' state=' + state() + ' ' + location.href);
                 """.trimIndent(),
             ),
         )

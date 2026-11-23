@@ -1,6 +1,7 @@
 package it.maicol07.gamerlogue.services.connectors
 
 import at.released.igdbclient.model.Game
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
@@ -8,6 +9,7 @@ import it.maicol07.gamerlogue.services.UbisoftApi
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.apiRefs
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import kotlinx.serialization.json.Json
@@ -192,6 +194,35 @@ class UbisoftConnector(private val api: UbisoftApi) :
         return UbisoftApi.Session(
             ticket = obj["ticket"]?.jsonPrimitive?.content.orEmpty(),
             sessionId = obj["sessionId"]?.jsonPrimitive?.content.orEmpty(),
+        )
+    }
+
+    // The call the wishlist dialog's "remove" button makes: Wishlist-AddProductAjax, a toggle, so it's sent only while the
+    // game is on the wishlist (`data-itemid` of its tile is the wishlist uid), read again afterwards to confirm. Fetched
+    // rather than clicked: the page reloads after the click, which would end the script before it reports.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(
+            "https://store.ubisoft.com/wishlist",
+            SyncScripts.wrap(
+                """
+                const id = ${listOf(ref).uidJsonArray()}[0];
+                let listed = async function() {
+                    let r = await fetch('/wishlist', { credentials: 'include' });
+                    if (!r.ok) throw new Error('Ubisoft wishlist HTTP ' + r.status);
+                    let doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+                    return !!doc.querySelector('.items-in-wishlist .product-tile[data-itemid="' + id + '"]');
+                };
+                let before = await listed();
+                if (before && window.Urls && Urls.wishlistAjaxProductAdd) {
+                    await fetch(Urls.wishlistAjaxProductAdd + '?pid=' + encodeURIComponent(id) +
+                        '&format=ajax&updatedpid=null&addedFromProductTile=false&enableNotifications=false',
+                        { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                }
+                let ok = !(await listed());
+                out = ok ? [{ uid: id, name: '' }] : [];
+                console.log('[GL] ubisoft wishlist remove ' + id + ' listed=' + before + ' removed=' + ok);
+                """.trimIndent(),
+            ),
         )
     }
 

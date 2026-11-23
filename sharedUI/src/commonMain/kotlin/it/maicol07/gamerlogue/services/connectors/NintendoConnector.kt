@@ -1,14 +1,16 @@
 package it.maicol07.gamerlogue.services.connectors
 
 import com.parkwoocheol.composewebview.PlatformCookieManager
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.GameMatcher
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
 import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
-import it.maicol07.gamerlogue.services.GameMatcher
 
 /**
  * Nintendo. Login is the global Nintendo Account portal (accounts.nintendo.com). The library is read from
@@ -114,6 +116,35 @@ class NintendoConnector : ServiceConnector(ExternalService.NINTENDO, host = "nin
         });
         out = Object.values(map);
     """.trimIndent())
+
+    // The game's page is reached through its wishlist link, which carries the account's region (a region-less eShop
+    // link doesn't open); none means the game isn't on the wishlist.
+    override val wishlistRemovePage: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(WISHLIST, SyncScripts.wrap("""
+            const id = ${listOf(ref).uidJsonArray()}[0];
+            await __glWaitForAll('a[href*="/titles/"]');
+            let a = document.querySelector('a[href*="/titles/' + id + '"]');
+            out = a ? [{ uid: a.href, name: '' }] : [];
+        """.trimIndent()))
+    }
+
+    // There, the wishlist button is a text-only toggle: on a wishlisted game, a click removes it. Its label changes with
+    // the state, so a click that left the label as it was didn't take.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(
+            WISHLIST,
+            SyncScripts.wrap("""
+                const id = ${listOf(ref).uidJsonArray()}[0];
+                let btn = await __glWaitForEl('.btn-wishlist');
+                let label = function() { return (document.querySelector('.btn-wishlist') || btn).textContent.trim(); };
+                let before = btn ? label() : '';
+                if (btn) btn.click();
+                for (let i = 0; btn && i < 10 && label() === before; i++) await __glSleep(500);
+                out = btn && label() !== before ? [{ uid: id, name: '' }] : [];
+                console.log('[GL] nintendo wishlist remove ' + id + ' ' + JSON.stringify([before, btn ? label() : '']));
+            """.trimIndent()),
+        )
+    }
 
     private companion object {
         const val ACCOUNT = "https://accounts.nintendo.com/"

@@ -10,6 +10,7 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.jsonArray
 import it.maicol07.gamerlogue.services.refsJson
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -152,6 +153,15 @@ class InfiniteBacklogConnector :
                 for (const id of ids) ok = (await __ibSend('DELETE', '/api/user_collections/' + id)) && ok;
                 if (ok) out.push({ uid: r.uid, name: r.name, gameId: r.gameId });
             }
+        """.trimIndent()))
+    }
+
+    // The site's own "remove from wishlist" call, by game id.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(HOME, SyncScripts.wrap("""
+            $API_JS
+            const id = ${listOf(ref).uidJsonArray()}[0];
+            out = (await __ibSend('DELETE', '/api/user_wishlists/game/' + id)) ? [{ uid: id, name: '' }] : [];
         """.trimIndent()))
     }
 

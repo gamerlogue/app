@@ -47,7 +47,7 @@ class SyncHistoryViewModel(
 
     /** Removes [game] from the service too, as the user did here. */
     fun removeThere(run: SyncRun, game: SyncGame) = viewModelScope.launch {
-        if (!coordinator.removeFromService(run.service, game)) removalFailed.value = run to game
+        if (!coordinator.removeFromService(run.service, run.kind, game)) removalFailed.value = run to game
     }
 
     fun dismissRemovalFailed() {

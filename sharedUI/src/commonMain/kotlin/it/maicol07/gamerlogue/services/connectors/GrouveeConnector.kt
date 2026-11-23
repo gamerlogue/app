@@ -9,6 +9,7 @@ import it.maicol07.gamerlogue.services.WebStep
 import it.maicol07.gamerlogue.services.WishlistWrite
 import it.maicol07.gamerlogue.services.jsonArray
 import it.maicol07.gamerlogue.services.refsJson
+import it.maicol07.gamerlogue.services.uidJsonArray
 import it.maicol07.gamerlogue.services.webProfile
 import it.maicol07.gamerlogue.services.webRefs
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
@@ -123,6 +124,21 @@ class GrouveeConnector : ServiceConnector(ExternalService.GROUVEE, host = "www.g
                 let j = await __gvToggle(r.uid, shelf);
                 if (j.success && j.removed) out.push({ uid: r.uid, name: r.name, gameId: r.gameId });
                 else if (j.success) await __gvToggle(r.uid, shelf);
+            }
+        """.trimIndent()))
+    }
+
+    // The Wish List shelf toggled off; a toggle that added the game instead (it was gone already) is undone.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(HOME, SyncScripts.wrap("""
+            $SHELVES_JS
+            const id = ${listOf(ref).uidJsonArray()}[0];
+            let shelf = (await __gvShelves())['$WISH_LIST'];
+            out = [];
+            if (shelf) {
+                let j = await __gvToggle(id, shelf);
+                if (j.success && j.removed) out = [{ uid: id, name: '' }];
+                else if (j.success) await __gvToggle(id, shelf);
             }
         """.trimIndent()))
     }

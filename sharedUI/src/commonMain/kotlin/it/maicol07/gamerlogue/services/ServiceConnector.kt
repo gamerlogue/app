@@ -239,6 +239,18 @@ abstract class ServiceConnector(
         @Suppress("SameReturnValue")
         get() = null
 
+    /** Removes one game from the store wishlist, given its wishlist ref, and delivers that ref when it's gone; null
+     *  when the store's wishlist can't be written to. */
+    open val wishlistRemove: ((ExternalGameRef) -> WebStep)?
+        @Suppress("SameReturnValue")
+        get() = null
+
+    /** For a store whose removal runs on a page only the wishlist links to: finds that page, delivering its URL as the
+     *  uid of one ref (none when the game isn't on the wishlist). [wishlistRemove] then runs there. */
+    open val wishlistRemovePage: ((ExternalGameRef) -> WebStep)?
+        @Suppress("SameReturnValue")
+        get() = null
+
     /** Adjust an IGDB store URL before navigating to it for a push (e.g. strip the locale segment). */
     open fun normalizePushUrl(url: String): String = url
 

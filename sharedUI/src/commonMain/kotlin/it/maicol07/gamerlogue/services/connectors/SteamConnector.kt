@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
@@ -107,6 +108,18 @@ class SteamConnector : ServiceConnector(
                     { method: 'POST', body, credentials: 'include' });
             }
             out = ids.map(id => ({ uid: id, name: '' }));
+        """.trimIndent()))
+    }
+
+    // The store's own remove call, the twin of addtowishlist; it answers { success: true }.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(HOME, SyncScripts.wrap("""
+            const id = ${listOf(ref).uidJsonArray()}[0];
+            const body = new URLSearchParams({ sessionid: window.g_sessionID || '', appid: id });
+            let r = await fetch('https://store.steampowered.com/api/removefromwishlist',
+                { method: 'POST', body, credentials: 'include' });
+            let j = r.ok ? await r.json().catch(function() { return {}; }) : {};
+            out = j.success ? [{ uid: id, name: '' }] : [];
         """.trimIndent()))
     }
 

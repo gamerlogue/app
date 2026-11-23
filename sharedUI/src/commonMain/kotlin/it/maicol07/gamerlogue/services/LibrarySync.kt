@@ -87,6 +87,8 @@ class LibrarySync(
         val addedGames: List<Game> = emptyList(),
         /** The store games matched only by a guess or not at all: left out, waiting for the user. */
         val unsure: List<GameMatcher.Match> = emptyList(),
+        /** The games removed from the library since a past sync and still on the store wishlist, by IGDB id. */
+        val removedHere: Map<Int, ExternalGameRef> = emptyMap(),
     )
 
     /** A Gamerlogue backlog game about to be pushed to a store wishlist (for the outgoing preview).
@@ -317,6 +319,7 @@ class LibrarySync(
             // The games that made new entries, which is what `added` counts.
             incoming.filterNot { it.baseGameId in known }.distinctBy { it.baseGameId },
             matches.filterNot { it.confident },
+            matches.mapNotNull { m -> m.game?.baseGameId?.takeIf { it in removed }?.let { it to m.ref } }.toMap(),
         )
     }
 

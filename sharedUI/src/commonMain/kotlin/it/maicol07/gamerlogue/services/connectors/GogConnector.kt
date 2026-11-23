@@ -1,5 +1,6 @@
 package it.maicol07.gamerlogue.services.connectors
 
+import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.ServiceConnector
 import it.maicol07.gamerlogue.services.SyncScripts
@@ -75,6 +76,16 @@ class GogConnector : ServiceConnector(ExternalService.GOG, host = "www.gog.com",
             out = out.concat((j.products || []).map(p => ({ uid: String(p.id), name: p.title || '' })));
         } while (++page <= totalPages);
     """.trimIndent())
+
+    // The twin of /user/wishlist/add: removed once the wishlist it answers no longer has the game.
+    override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
+        WebStep(ACCOUNT, SyncScripts.wrap("""
+            const id = ${listOf(ref).uidJsonArray()}[0];
+            let r = await fetch('https://www.gog.com/user/wishlist/remove/' + id, { credentials: 'include' });
+            let j = r.ok ? await r.json().catch(function() { return null; }) : null;
+            out = j && j.wishlist && !j.wishlist[id] ? [{ uid: id, name: '' }] : [];
+        """.trimIndent()))
+    }
 
     private companion object {
         const val ACCOUNT = "https://www.gog.com/account"

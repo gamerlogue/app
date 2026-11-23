@@ -56,17 +56,20 @@ class SyncCoordinator(
         run(service, kind, SyncTrigger.MANUAL, session).first
 
     /**
-     * Removes [game] from the tracker of [service], as the user removed it from Gamerlogue and confirmed, through the
-     * background session like the syncs; settled in the history once the tracker confirmed it. Returns whether it did.
+     * Removes [game] from the [kind] side of [service] (its library or wishlist), as the user removed it from
+     * Gamerlogue and confirmed, through the background session like the syncs; settled in the history once the
+     * service confirmed it. Returns whether it did.
      */
-    suspend fun removeFromService(service: ExternalService, game: SyncGame): Boolean {
+    suspend fun removeFromService(service: ExternalService, kind: SyncKind, game: SyncGame): Boolean {
         val removed = try {
             background.withLock {
                 locks.getValue(service).withLock {
                     running.update { it + service }
                     try {
                         withTimeout(RUN_TIMEOUT) {
-                            host.withSession { runner.removeFromTracker(service, UnattendedSession(it), listOf(game)) }
+                            host.withSession {
+                                runner.removeFromService(service, kind, UnattendedSession(it), listOf(game))
+                            }
                         }
                     } finally {
                         running.update { it - service }
@@ -83,7 +86,7 @@ class SyncCoordinator(
             Logger.e(error) { "Removal from $service failed" }
             emptySet()
         }
-        if (game.gameId in removed) history.settleRemoved(service, SyncKind.LIBRARY, game.gameId, keep = false)
+        if (game.gameId in removed) history.settleRemoved(service, kind, game.gameId, keep = false)
         return game.gameId in removed
     }
 
@@ -193,6 +196,7 @@ class SyncCoordinator(
                 received = outcome.received,
                 sent = outcome.sent,
                 toConfirm = outcome.toConfirm,
+                removedHere = outcome.removedHere,
             )
             is SyncOutcome.LibrarySynced -> run(
                 if (outcome.skipped.isEmpty() && outcome.conflicts == 0) SyncResult.OK else SyncResult.PARTIAL,
