@@ -9,4 +9,6 @@ plugins {
     alias(libs.plugins.buildConfig).apply(false)
     alias(libs.plugins.compose.hot.reload) apply false
     alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.git.semantic.versioning) apply false
+    alias(libs.plugins.git.semantic.versioning.base) apply false
 }
