@@ -632,10 +632,23 @@ otherwise). Newest first, standard pagination.
 | `list_commented` | the list's owner | `list` | `list_name`, `comment_id` |
 | `comment_replied` | the author of the comment replied to | `comment` | `comment_id` (the reply) |
 | `comment_reacted` | the comment's author | `comment` | `reaction`, `reaction_id` |
+| `mention` | each user named `@nickname` in a new comment | `comment` | `comment_id` (the comment) |
+| `followed_user_activity` | each follower of the activity's user | the activity's | `activity_id`, `verb`, `game_id`, `game_name`, `list_name` |
 
 Nobody is notified of their own actions, nor by a user they are in a block with. Taking back a
 reaction or deleting a comment deletes its notification; deleting content deletes the
 notifications about it.
+
+**`mention`** (not implemented yet on the server): on comment creation only, every distinct
+`@nickname` (case-insensitive, `@` at the start or after a non-word character) naming an existing
+user who can read the thread. At most 10 per comment. Someone already notified about the same
+comment (`review_commented`, `list_commented`, `comment_replied`) gets only that one.
+
+**`followed_user_activity`** (not implemented yet on the server): one per follower, only for the
+verbs `completed`, `reviewed` (subject `library_entry`) and `list_created` (subject `list`), and
+only when the follower can see the subject. `game_name` is the IGDB name for the push body and the
+list; `game_id`/`game_name` are null for `list_created`, `list_name` for the others. Deleting the
+activity deletes these notifications.
 
 ```json
 {"data": [{"id": "9f1c…", "type": "Notification", "attributes": {"type": "review_liked",
@@ -661,6 +674,20 @@ registers one.
   answers `UNREGISTERED` (or `INVALID_ARGUMENT` for it) to a send; deleting the account deletes its tokens.
 - Send a `notification` message (title and body), so Android shows it even when the app is not running. Tapping it
   opens the notifications list; one received in the foreground refreshes the unread badge.
+- Name the notification's Android channel in `android.notification.channel_id`. The user turns each channel on or
+  off in the system settings (the app has no notification settings of its own), so the mapping must match the app's
+  `NotificationChannel.ofNotificationType`:
+
+  | `type` | `channel_id` |
+  |---|---|
+  | `new_follower` | `followers` |
+  | `mention` | `mentions` |
+  | `followed_user_activity` | `following` |
+  | every other | `social` |
+
+  Without one Android uses `social`. Also send the `data` keys `type` (the notification `type`) and
+  `notification_id`: in the foreground the app shows the push itself, on the channel of `type`, and
+  `notification_id` keeps two pushes from replacing each other.
 
 ---
 
