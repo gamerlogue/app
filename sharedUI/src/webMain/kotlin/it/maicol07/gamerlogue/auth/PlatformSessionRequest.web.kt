@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package it.maicol07.gamerlogue.auth
 
 import io.ktor.client.fetchOptions
@@ -31,7 +33,7 @@ internal actual fun platformSession(serverUrl: () -> String) = createClientPlugi
 }
 
 private fun HttpRequestBuilder.includeSession() {
-    fetchOptions { credentials = "include" }
+    fetchOptions { credentials = "include".toJsString() }
     document.cookie
         .split(';')
         .map(String::trim)

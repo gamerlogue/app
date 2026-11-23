@@ -57,7 +57,12 @@ kotlin {
         // without one, checkComposeUiTestConfigurationForJs fails the JS tests (CMP-4906).
         binaries.executable()
     }
-//    wasmJs { browser() }
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        // Same as js: the Compose UI tests need the Skiko runtime bundled by an executable.
+        binaries.executable()
+    }
 
     sourceSets {
         commonMain.dependencies {

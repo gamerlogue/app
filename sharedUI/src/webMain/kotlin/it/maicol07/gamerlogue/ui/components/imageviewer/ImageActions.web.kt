@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package it.maicol07.gamerlogue.ui.components.imageviewer
 
 import androidx.compose.runtime.Composable

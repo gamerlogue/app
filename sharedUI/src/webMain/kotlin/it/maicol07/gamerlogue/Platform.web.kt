@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package it.maicol07.gamerlogue
 
 import androidx.compose.runtime.Composable
@@ -17,10 +19,10 @@ actual fun NavigationBarContrastEnforced(enforced: Boolean) {
 }
 
 @JsModule("date-fns/locale/en-US")
-external object DateFnsLocaleEn
+external object DateFnsLocaleEn : JsAny
 
 @JsModule("date-fns/locale/it")
-external object DateFnsLocaleIt
+external object DateFnsLocaleIt : JsAny
 
 fun webAppInit() {
     Locale.initPlatformLocales(DateFnsLocaleEn, DateFnsLocaleIt)

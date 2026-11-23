@@ -202,11 +202,11 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Web Distribution
-        run: ./gradlew :webApp:jsBrowserDistribution
+        run: ./gradlew :webApp:composeCompatibilityBrowserDistribution
 
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v7
         with:
           name: web-app
-          path: webApp/build/dist/js/productionExecutable/
+          path: webApp/build/dist/composeWebCompatibility/productionExecutable/
           if-no-files-found: error

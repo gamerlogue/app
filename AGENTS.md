@@ -4,7 +4,7 @@ This file provides guidance to coding agents when working with code in this repo
 
 ## What this is
 
-Gamerlogue is a Kotlin Multiplatform + Compose Multiplatform game-library tracker. Targets: **Android** (`androidApp`), **JVM desktop** (`desktopApp`), and **JS browser** (`webApp`). All UI and logic live in the shared `:sharedUI` module; the platform modules are thin launchers. iOS targets are configured (Apple frameworks) but there is no `iosApp`.
+Gamerlogue is a Kotlin Multiplatform + Compose Multiplatform game-library tracker. Targets: **Android** (`androidApp`), **JVM desktop** (`desktopApp`), and **web** (`webApp`, Wasm with a JS fallback). All UI and logic live in the shared `:sharedUI` module; the platform modules are thin launchers. iOS targets are configured (Apple frameworks) but there is no `iosApp`.
 
 ## Build & run
 
@@ -12,7 +12,7 @@ Gamerlogue is a Kotlin Multiplatform + Compose Multiplatform game-library tracke
 
 - Android APK: `./gradlew :androidApp:assembleBetaDebug` → `androidApp/build/outputs/apk/beta/debug/` (flavors `beta`/`alpha` differ only in the launcher icon)
 - Desktop: `./gradlew :desktopApp:run` — hot reload: `./gradlew :desktopApp:hotRun --auto`
-- Web (JS): `./gradlew :webApp:jsBrowserDevelopmentRun`
+- Web: `./gradlew :webApp:wasmJsBrowserDevelopmentRun` (or `jsBrowserDevelopmentRun`); the deployed bundle is `:webApp:composeCompatibilityBrowserDistribution` (`webApp/build/dist/composeWebCompatibility/productionExecutable/`), which loads Wasm where the browser supports it and JS elsewhere
 - Lint: detekt runs through the IDE plugin against `detekt.yml`; there is no Gradle detekt task. So a green Gradle build does not mean a clean file: when AgentBridge is connected, run `get_problems` on every file you touched (it reports detekt plus the IDE inspections) and fix warnings and weak warnings before finishing. Information-level hints (smart casts, etc.) can stay.
 - All tests: `./gradlew :sharedUI:jvmTest`
 - Single test class: `./gradlew :sharedUI:jvmTest --tests "it.maicol07.gamerlogue.services.WebResultTest"`
