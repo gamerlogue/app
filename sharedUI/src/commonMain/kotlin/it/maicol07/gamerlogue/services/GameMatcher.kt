@@ -472,7 +472,7 @@ internal fun List<Game>.rankedBy(name: String): List<Game> {
 private fun String.normalizedTitle() = lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
 
 /** Levenshtein distance between [a] and [b]. */
-private fun editDistance(a: String, b: String): Int {
+internal fun editDistance(a: String, b: String): Int {
     var previous = IntArray(b.length + 1) { it }
     a.forEachIndexed { i, ca ->
         val current = IntArray(b.length + 1)

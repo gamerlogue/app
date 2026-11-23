@@ -97,9 +97,12 @@ sealed interface WishlistWrite {
     data class Batch(val step: (refs: List<ExternalGameRef>) -> WebStep) : WishlistWrite
     data class PerGame(val step: (storeUrl: String) -> WebStep?) : WishlistWrite
     /** Finds each game's store page off-WebView from its name ([resolve], null when the store has none), then
-     *  writes there ([step]): for a store whose pages IGDB can't link to (Nintendo: its ids are per region). */
+     *  writes there ([step]): for a store whose pages IGDB can't link to (Nintendo: its ids are per region).
+     *  [account] runs once first and delivers, as its first ref's uid, what [resolve] needs to know of the account
+     *  (Nintendo: its country and language); none when the account can't be written to this way. */
     data class ResolvedByName(
-        val resolve: suspend (name: String) -> String?,
+        val account: WebStep,
+        val resolve: suspend (name: String, account: String) -> String?,
         val step: (pageUrl: String) -> WebStep,
     ) : WishlistWrite
 
@@ -345,6 +348,7 @@ internal fun parseRefsJson(raw: String?): List<ExternalGameRef> {
 /** Why a write left a selected game out: reported by its script (`__glSkip`) or, for [UNCONFIRMED], inferred. */
 enum class SkipReason {
     ALREADY_PRESENT, NO_PLATFORM, PLATFORM_REJECTED, REJECTED, NOTES_TOO_LONG, UNREADABLE, NOT_FOUND, UNCONFIRMED,
+    UNSUPPORTED_ACCOUNT,
 }
 
 /** A game a write left out, by [name] as the script reports it; the IGDB game and its cover once the sync knows them. */

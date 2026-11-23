@@ -1,6 +1,5 @@
 package it.maicol07.gamerlogue.services.connectors
 
-import androidx.compose.ui.text.intl.Locale
 import com.parkwoocheol.composewebview.PlatformCookieManager
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
@@ -73,16 +72,25 @@ class NintendoConnector(private val api: NintendoApi) :
     override val wishlist = webRefs(WebStep(WISHLIST, titlesScrape()))
 
     // IGDB links US store pages, and an eShop id is per region, so a push finds the game by name in the European eShop
-    // (the app's locale gives country and language) and opens its eShop page, which forwards to the game's page on
-    // nintendo.com. There the wishlist button is a text-only toggle; computeWishlistPush only sends games not on the
-    // wishlist, so a click adds, confirmed by its label changing.
-    // ponytail: European accounts only (the search is Europe's); a US or Japanese one needs its region's search.
+    // and opens its eShop page for the account's country and language (read off the eShop's own session), which
+    // forwards to the game's page on nintendo.com. There the wishlist button is a text-only toggle;
+    // computeWishlistPush only sends games not on the wishlist, so a click adds, confirmed by its label changing.
+    // ponytail: European accounts only (the search is Europe's); a US or Japanese one is skipped and needs its region's
+    // search (nintendo.com's Algolia index, search.nintendo.jp).
     override val wishlistWrite = WishlistWrite.ResolvedByName(
-        resolve = { name ->
-            val locale = Locale.current
-            api.europeanTitleId(name, locale.language)
-                ?.let { "https://ec.nintendo.com/${locale.region.uppercase()}/${locale.language.lowercase()}/titles/$it" }
-        },
+        account = WebStep(
+            WISHLIST,
+            SyncScripts.wrap(
+                """
+                let s = (await (await fetch('/api/auth/session', { credentials: 'include' })).json()) || {};
+                let l = s.localeInfo || {};
+                out = l.region === 'EUR' && l.country && l.language ? [{ uid: l.country + '/' + l.language, name: '' }] : [];
+                console.log('[GL] nintendo account ' + JSON.stringify(l));
+                """.trimIndent(),
+            ),
+        ),
+        // The account is the eShop's own "COUNTRY/language" path segment (e.g. "IT/it").
+        resolve = { name, account -> api.europeanTitleId(name)?.let { "https://ec.nintendo.com/$account/titles/$it" } },
         step = { pageUrl ->
             WebStep(pageUrl, SyncScripts.wrap("""
                 let btn = await __glWaitForEl('.btn-wishlist');

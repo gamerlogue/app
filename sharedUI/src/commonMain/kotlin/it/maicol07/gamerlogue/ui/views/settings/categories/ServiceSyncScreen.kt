@@ -86,6 +86,7 @@ import gamerlogue.sharedui.generated.resources.settings__service_skip_platform_r
 import gamerlogue.sharedui.generated.resources.settings__service_skip_rejected
 import gamerlogue.sharedui.generated.resources.settings__service_skip_unconfirmed
 import gamerlogue.sharedui.generated.resources.settings__service_skip_unreadable
+import gamerlogue.sharedui.generated.resources.settings__service_skip_unsupported_account
 import gamerlogue.sharedui.generated.resources.settings__service_sync_added
 import gamerlogue.sharedui.generated.resources.settings__service_sync_error
 import gamerlogue.sharedui.generated.resources.settings__service_sync_pushed
@@ -627,6 +628,7 @@ internal val SkipReason.label: StringResource
         SkipReason.UNREADABLE -> Res.string.settings__service_skip_unreadable
         SkipReason.NOT_FOUND -> Res.string.settings__service_skip_not_found
         SkipReason.UNCONFIRMED -> Res.string.settings__service_skip_unconfirmed
+        SkipReason.UNSUPPORTED_ACCOUNT -> Res.string.settings__service_skip_unsupported_account
     }
 
 @Composable

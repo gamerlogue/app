@@ -369,14 +369,9 @@ class SyncRunner(
                 write.step(g.storeUrl!!)?.let { session.run(it).size } ?: 0
             }
             // The store page found from the game's name off-WebView, then the write there (Nintendo).
-            is WishlistWrite.ResolvedByName -> session.writeEach(onPlatform, missed) { g ->
-                val page = write.resolve(g.name)
-                if (page == null) {
-                    session.reportSkip(SkippedWrite(g.name, SkipReason.NOT_FOUND))
-                    0
-                } else {
-                    session.run(write.step(page)).size
-                }
+            is WishlistWrite.ResolvedByName -> {
+                val account = if (onPlatform.isEmpty()) null else session.run(write.account).firstOrNull()?.uid
+                session.writeEach(onPlatform, missed) { g -> resolvedWrite(write, session, account, g) }
             }
             // Search-driven write: no store URL needed, the game's name drives the search (Ubisoft).
             is WishlistWrite.SearchByName -> session.writeEach(onPlatform, missed) { g ->
@@ -386,6 +381,26 @@ class SyncRunner(
             is WishlistWrite.ById ->
                 session.writeBatches(onPlatform, { batch -> write.step(batch.map { it.gameId }) }, record)
             is WishlistWrite.ByGame -> session.writeBatches(onPlatform, write.step, record)
+        }
+    }
+
+    /** One [WishlistWrite.ResolvedByName] write for [g], with the [account] its step delivered (null: none). */
+    private suspend fun resolvedWrite(
+        write: WishlistWrite.ResolvedByName,
+        session: WebSession,
+        account: String?,
+        g: LibrarySync.OutgoingGame,
+    ): Int {
+        if (account == null) {
+            session.reportSkip(SkippedWrite(g.name, SkipReason.UNSUPPORTED_ACCOUNT))
+            return 0
+        }
+        val page = write.resolve(g.name, account)
+        return if (page == null) {
+            session.reportSkip(SkippedWrite(g.name, SkipReason.NOT_FOUND))
+            0
+        } else {
+            session.run(write.step(page)).size
         }
     }
 

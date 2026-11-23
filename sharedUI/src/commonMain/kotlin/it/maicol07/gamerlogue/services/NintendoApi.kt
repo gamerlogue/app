@@ -17,12 +17,11 @@ import kotlinx.serialization.json.jsonPrimitive
 class NintendoApi(private val http: HttpClient) {
 
     /**
-     * The European eShop id of the game called [name], searched in [language] (falling back to English): only a
-     * title equal to it once case, spacing and symbols are set aside, so a near name never picks another game.
+     * The European eShop id of the game called [name] (see [parseTitleId]). Searched in English whatever the account's
+     * language: the ids are the same across Europe, and English titles are the ones IGDB names games by.
      */
-    suspend fun europeanTitleId(name: String, language: String): String? {
-        val lang = language.lowercase().takeIf { it in SEARCH_LANGUAGES } ?: "en"
-        val body = http.get("https://searching.nintendo-europe.com/$lang/select") {
+    suspend fun europeanTitleId(name: String): String? {
+        val body = http.get("https://searching.nintendo-europe.com/en/select") {
             parameter("q", name)
             parameter("fq", "type:GAME")
             parameter("rows", ROWS)
@@ -33,19 +32,35 @@ class NintendoApi(private val http: HttpClient) {
 
     private companion object {
         const val ROWS = 20
-        val SEARCH_LANGUAGES = setOf("en", "it", "de", "fr", "es", "nl", "pt", "ru")
     }
 }
 
-/** The first eShop id of the search result in [body] whose title is [name], compared by [titleKey]; null for none. */
+/**
+ * The eShop id of the search result in [body] for [name]: the first title equal to it by [titleKey], else the only one
+ * a typo away ([isNearTitle]); null for none, or for several near ones, so a guess never picks between games.
+ */
 internal fun parseTitleId(body: String, name: String): String? {
-    val key = titleKey(name)
     val docs = (Json.parseToJsonElement(body) as? JsonObject)?.get("response")?.jsonObject?.get("docs")?.jsonArray
-    return docs.orEmpty()
-        .map { it.jsonObject }
-        .firstOrNull { titleKey(it["title"]?.jsonPrimitive?.content.orEmpty()) == key }
-        ?.get("nsuid_txt")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+    val titled = docs.orEmpty().map { it.jsonObject }.map { it["title"]?.jsonPrimitive?.content.orEmpty() to it }
+    val doc = titled.firstOrNull { titleKey(it.first) == titleKey(name) }?.second
+        ?: titled.filter { isNearTitle(it.first, name) }.singleOrNull()?.second
+    return doc?.get("nsuid_txt")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
 }
 
 /** A title as only its letters and digits, lowercased: "Core Keeper™" and "core keeper" are the same game. */
 internal fun titleKey(title: String): String = title.filter(Char::isLetterOrDigit).lowercase()
+
+/**
+ * Whether [a] and [b] differ only by a typo or an accent ("Pokemon" / "Pokémon"): as many words, the same numbers, and a
+ * few letters apart at most. A word or number more is another game ("Xenoblade Chronicles X", "Hades II", "Game 3").
+ * ponytail: a same-length sequel letter swap ("Game A" / "Game B") still passes; compare words one to one if it shows.
+ */
+internal fun isNearTitle(a: String, b: String): Boolean {
+    val words = { s: String -> s.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter(String::isNotEmpty) }
+    val digits = { s: String -> s.filter(Char::isDigit) }
+    val key = titleKey(b)
+    return words(a).size == words(b).size && digits(a) == digits(b) &&
+        editDistance(titleKey(a), key) <= key.length / NEAR_TITLE_LETTERS_PER_TYPO
+}
+
+private const val NEAR_TITLE_LETTERS_PER_TYPO = 10
