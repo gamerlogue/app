@@ -206,21 +206,28 @@ class UbisoftConnector(private val api: UbisoftApi) :
             SyncScripts.wrap(
                 """
                 const id = ${listOf(ref).uidJsonArray()}[0];
+                // The wishlist's game tiles, freshly fetched: { game: whether this one is there, any: how many there are }.
                 let listed = async function() {
                     let r = await fetch('/wishlist', { credentials: 'include' });
                     if (!r.ok) throw new Error('Ubisoft wishlist HTTP ' + r.status);
                     let doc = new DOMParser().parseFromString(await r.text(), 'text/html');
-                    return !!doc.querySelector('.items-in-wishlist .product-tile[data-itemid="' + id + '"]');
+                    return {
+                        game: !!doc.querySelector('.items-in-wishlist .product-tile[data-itemid="' + id + '"]'),
+                        any: doc.querySelectorAll('.items-in-wishlist .product-tile[data-itemid]').length,
+                    };
                 };
                 let before = await listed();
-                if (before && window.Urls && Urls.wishlistAjaxProductAdd) {
+                if (before.game && window.Urls && Urls.wishlistAjaxProductAdd) {
                     await fetch(Urls.wishlistAjaxProductAdd + '?pid=' + encodeURIComponent(id) +
                         '&format=ajax&updatedpid=null&addedFromProductTile=false&enableNotifications=false',
                         { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                 }
-                let ok = !(await listed());
+                let after = await listed();
+                // Gone only if it was there, or the page lists other games: no game at all may just be markup the
+                // selectors no longer match, so that isn't taken for a removal.
+                let ok = !after.game && (before.game || before.any > 0);
                 out = ok ? [{ uid: id, name: '' }] : [];
-                console.log('[GL] ubisoft wishlist remove ' + id + ' listed=' + before + ' removed=' + ok);
+                console.log('[GL] ubisoft wishlist remove ' + id + ' listed=' + before.game + ' tiles=' + before.any + ' removed=' + ok);
                 """.trimIndent(),
             ),
         )

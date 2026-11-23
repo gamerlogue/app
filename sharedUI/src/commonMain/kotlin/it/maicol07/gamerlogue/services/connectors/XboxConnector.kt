@@ -147,7 +147,7 @@ class XboxConnector(private val api: XboxApi) :
     // removes the game. Matched by CSS module class and the store id in the game's link, not by label: labels are
     // localized. Edit mode is the button whose click flips the game's action label; it's the middle of the menu's three.
     // ponytail: hashed CSS module classes and the menu order are the page's own, matched by prefix; re-check them on
-    // xbox.com/wishlist if removals start failing.
+    // xbox.com/wishlist if removals start failing (a page they no longer match fails the removal, never fakes it).
     override val wishlistRemove: (ExternalGameRef) -> WebStep = { ref ->
         WebStep(
             "https://www.xbox.com/wishlist",
@@ -178,10 +178,12 @@ class XboxConnector(private val api: XboxApi) :
                 let editing = !!action() && label() !== view;
                 if (editing) action().click();
                 for (let i = 0; editing && item() && i < 20; i++) await __glSleep(500);
-                // A game not listed to begin with is already removed.
-                let ok = !item() && (editing || !view);
+                // A game not listed to begin with is already removed, as long as the page lists others: no game at all
+                // may just be selectors the page no longer matches, so that isn't taken for a removal.
+                let listed = document.querySelectorAll('[class*="WishlistProductItem-module__productDetails"] > a[href]').length;
+                let ok = !item() && (editing || (!view && listed > 0));
                 out = ok ? [{ uid: ${listOf(ref).uidJsonArray()}[0], name: '' }] : [];
-                console.log('[GL] xbox wishlist remove ' + id + ' editing=' + editing + ' removed=' + ok);
+                console.log('[GL] xbox wishlist remove ' + id + ' editing=' + editing + ' listed=' + listed + ' removed=' + ok);
                 """.trimIndent(),
             ),
         )
