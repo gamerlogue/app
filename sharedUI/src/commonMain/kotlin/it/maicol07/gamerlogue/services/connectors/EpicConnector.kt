@@ -31,14 +31,18 @@ class EpicConnector(private val api: EpicApi) :
 
     override val sessionUrls = listOf("https://www.epicgames.com/", "https://store.epicgames.com/")
 
-    // When an id.epicgames.com session already exists, the login page shows an account picker with a
-    // "Continue with my account" button instead of the credential form. Auto-click it so the user isn't
-    // prompted every time. Text match on "continue" covers the localized label (e.g., IT "Continua").
-    // Fire-and-forget + no-op when the button is absent (real first login), so it's safe on any load.
+    // When an Epic session already exists, the login page becomes an account picker (id/login/switch-account,
+    // "Welcome back!") whose remembered accounts are `#account-<id>` tiles. Auto-click the tile when it's the only
+    // one, so the user isn't prompted every time; with several, picking is theirs. Older pickers had a
+    // "Continue" button instead (text match covers the localized label, e.g. IT "Continua").
+    // Fire-and-forget + no-op when neither is present (real first login), so it's safe on any load.
     override val loginTriggerScript = SyncScripts.clickWhenPresent(
-        label = "epic continue",
+        label = "epic account",
         finder = """
             function() {
+                let tiles = document.querySelectorAll('[id^="account-"]');
+                if (tiles.length === 1) return tiles[0];
+                if (tiles.length) return null;
                 return Array.prototype.find.call(
                     document.querySelectorAll('button, a'),
                     function(e) { return /continu/i.test(e.textContent || ''); }
