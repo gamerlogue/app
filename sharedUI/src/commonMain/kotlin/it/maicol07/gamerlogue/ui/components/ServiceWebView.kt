@@ -179,7 +179,7 @@ fun rememberServiceWebViewHost(
         jsObjectName = SyncScripts.BRIDGE_OBJECT,
         nativeInterfaceName = SyncScripts.BRIDGE_NATIVE,
     )
-    val session = remember(controller, state) { ServiceWebViewSession(controller, state) }
+    val session = remember(controller, state, bridge) { ServiceWebViewSession(controller, state, bridge.jsScript) }
     var progress by remember { mutableStateOf(0) }
     val chromeClient = rememberWebChromeClient {
         onConsoleMessage { _, message ->
@@ -264,6 +264,13 @@ private fun WebViewJsBridge.registerSession(session: ServiceWebViewSession) {
 class ServiceWebViewSession internal constructor(
     private val controller: WebViewController,
     private val state: WebViewState,
+    /**
+     * The JS bridge's own bootstrap, which defines `window.GlBridge` once per document. The library injects it when
+     * it sees the page finish, but a load too quick for composition to see it start (a JSON endpoint like Epic's
+     * `id/api/redirect`) leaves the loading state at Finished, so it isn't injected again and the step's script
+     * waits for a bridge that never comes. Injected with every step too; it's a no-op where the bridge exists.
+     */
+    private val bridgeBootstrap: String,
 ) : WebSession {
     private var pending: CompletableDeferred<String?>? = null
     private var confirm: CompletableDeferred<List<LibrarySync.OutgoingGame>>? = null
@@ -429,7 +436,8 @@ class ServiceWebViewSession internal constructor(
         // Only replies arriving while this step's script runs complete it: not ones from the page load.
         stepId++
         pending = deferred
-        controller.evaluateJavascript("$RESET_CANCEL window.__glToken = $stepId; ${step.script}") {} // fire-and-forget; result via the bridge
+        // Fire-and-forget; result via the bridge.
+        controller.evaluateJavascript("$bridgeBootstrap; $RESET_CANCEL window.__glToken = $stepId; ${step.script}") {}
         Logger.i(tag = TAG) { "run: injected script, awaiting bridge result…" }
         // An idle timeout, not a total one: a long paginated read that keeps reporting progress isn't cut off.
         lastActivity = TimeSource.Monotonic.markNow()
