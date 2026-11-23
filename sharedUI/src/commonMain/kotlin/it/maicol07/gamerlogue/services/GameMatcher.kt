@@ -133,19 +133,21 @@ class GameMatcher(
      * which the rest of the app already relies on.
      */
     private suspend fun nameSearchBatch(batch: List<ExternalGameRef>): Map<String, List<Game>> {
-        val viaSearch = nameMultiquery(batch, useSearch = true)
+        val viaSearch = nameMultiquery(batch, useSearch = true).orEmpty()
         if (viaSearch.values.any { it.isNotEmpty() }) {
             Logger.i(tag = TAG) {
                 "name batch (search): ${viaSearch.values.sumOf { it.size }} candidates / ${batch.size}"
             }
             return viaSearch
         }
-        val viaWhere = nameMultiquery(batch, useSearch = false)
+        // A search IGDB didn't answer has no result to show, not "no match": that would read as games IGDB lacks.
+        val viaWhere = nameMultiquery(batch, useSearch = false) ?: throw IgdbUnavailableException()
         Logger.i(tag = TAG) { "name batch (where~): ${viaWhere.values.sumOf { it.size }} candidates / ${batch.size}" }
         return viaWhere
     }
 
-    private suspend fun nameMultiquery(batch: List<ExternalGameRef>, useSearch: Boolean): Map<String, List<Game>> {
+    /** Candidates per ref uid; null when the request failed. */
+    private suspend fun nameMultiquery(batch: List<ExternalGameRef>, useSearch: Boolean): Map<String, List<Game>>? {
         val result = igdbCall("name multiquery failed (search=$useSearch)") {
             igdb.multiquery {
                 batch.forEachIndexed { i, ref ->
@@ -159,7 +161,7 @@ class GameMatcher(
                 }
             }
         }
-        val responses = result.orEmpty()
+        val responses = result ?: return null
         val byUid = mutableMapOf<String, List<Game>>()
         responses.forEach { response ->
             val i = response.name.removePrefix("q").toIntOrNull() ?: return@forEach
@@ -458,6 +460,9 @@ private val LIBRARY_TYPES_FILTER = "game_type != " +
 private val NAME_MATCH_FILTER = "version_parent = null & $LIBRARY_TYPES_FILTER"
 
 private fun String.escapeApicalypse() = replace("\"", "")
+
+/** IGDB didn't answer a name search, so the games it was for can't be matched (as opposed to having no match). */
+class IgdbUnavailableException : IllegalStateException("IGDB name search failed")
 
 /**
  * Candidates ordered by how close their name is to the store's [name]: IGDB's search relevance puts

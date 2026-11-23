@@ -59,6 +59,7 @@ import gamerlogue.sharedui.generated.resources.settings__import_hint
 import gamerlogue.sharedui.generated.resources.settings__import_library_title
 import gamerlogue.sharedui.generated.resources.settings__import_no_match
 import gamerlogue.sharedui.generated.resources.settings__import_removed_locally
+import gamerlogue.sharedui.generated.resources.settings__import_search_failed
 import gamerlogue.sharedui.generated.resources.settings__import_searching
 import gamerlogue.sharedui.generated.resources.settings__import_select_all
 import gamerlogue.sharedui.generated.resources.settings__import_selected
@@ -378,6 +379,9 @@ private fun matchStatus(row: LibraryImportViewModel.Row): Pair<String, Color>? =
 
     row.alreadyPresent -> stringResource(Res.string.settings__import_already_present) to
         MaterialTheme.colorScheme.onSurfaceVariant
+
+    row.searchFailed -> stringResource(Res.string.settings__import_search_failed) to
+        MaterialTheme.colorScheme.error
 
     row.game == null -> stringResource(Res.string.settings__import_no_match) to
         MaterialTheme.colorScheme.error

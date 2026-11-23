@@ -9,6 +9,7 @@ import it.maicol07.gamerlogue.extensions.igdb.baseGameId
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
+import it.maicol07.gamerlogue.services.IgdbUnavailableException
 import it.maicol07.gamerlogue.services.LibraryLoadException
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ServiceConnector
@@ -109,6 +110,8 @@ class LibraryImportViewModel(
         val sourceUrl: String? = null,
         // The automatic match for this game hasn't come back yet.
         val searching: Boolean = false,
+        /** IGDB didn't answer the name search for this row, so it has no match to show (not "no match"). */
+        val searchFailed: Boolean = false,
         // Removed from the library since the last wishlist sync: selectable, but not preselected.
         val removedLocally: Boolean = false,
     )
@@ -198,16 +201,28 @@ class LibraryImportViewModel(
                 )
             }
             // Stream matches in as each batch resolves so the list fills progressively.
-            matcher.match(connector, refs.filter { it.uid !in known }) { batch ->
-                val byUid = batch.associateBy { it.ref.uid }
+            try {
+                matcher.match(connector, refs.filter { it.uid !in known }) { batch ->
+                    val byUid = batch.associateBy { it.ref.uid }
+                    update {
+                        copy(
+                            processed = processed + batch.size,
+                            rows = rows.map { row ->
+                                byUid[row.ref.uid]?.let { m -> row.withMatch(m.game, m.confident) } ?: row
+                            },
+                        )
+                    }
+                }
+            } catch (e: IgdbUnavailableException) {
+                Logger.w(tag = "LibraryImport", throwable = e) { "matching failed" }
+                // The games still searching got no answer, which isn't "no match".
                 update {
                     copy(
-                        processed = processed + batch.size,
-                        rows = rows.map { row ->
-                            byUid[row.ref.uid]?.let { m -> row.withMatch(m.game, m.confident) } ?: row
-                        },
+                        matching = false,
+                        rows = rows.map { if (it.searching) it.copy(searching = false, searchFailed = true) else it },
                     )
                 }
+                return@launch
             }
             // Confirming stays disabled until the library is in too, so no already-present game is still selected.
             existingLoad?.join()
@@ -229,6 +244,7 @@ class LibraryImportViewModel(
             picked = false,
             included = game != null && !present && confident && !removed,
             searching = false,
+            searchFailed = false,
             removedLocally = removed,
         )
     }

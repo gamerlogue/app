@@ -265,6 +265,8 @@ class SyncCoordinator(
     private fun ExternalService.flag(name: String) = settings.getBoolean(settingsKey(name), false)
 
     /** Runs one sync and records it; the outcome is null when it failed or can't run. */
+    // One linear catch per way a run can fail; splitting them would only scatter how each is recorded.
+    @Suppress("CyclomaticComplexMethod")
     private suspend fun run(
         service: ExternalService,
         kind: SyncKind,
@@ -292,6 +294,8 @@ class SyncCoordinator(
             } catch (error: ServiceReadException) {
                 record.failed(SyncResult.FAILED, error)
             } catch (error: LibraryLoadException) {
+                record.failed(SyncResult.FAILED, error)
+            } catch (error: IgdbUnavailableException) {
                 record.failed(SyncResult.FAILED, error)
             } catch (error: ScriptWriteException) {
                 record.failed(SyncResult.FAILED, error)

@@ -7,6 +7,7 @@ import com.russhwolf.settings.ObservableSettings
 import it.maicol07.gamerlogue.core.StateViewModel
 import it.maicol07.gamerlogue.services.ExternalGameRef
 import it.maicol07.gamerlogue.services.ExternalService
+import it.maicol07.gamerlogue.services.IgdbUnavailableException
 import it.maicol07.gamerlogue.services.LibraryLoadException
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.ScriptWriteException
@@ -156,7 +157,7 @@ class LinkedServicesViewModel(
     // --- WebView flows (called by the ServiceSyncView's WebView) ---
 
     /**
-     * Runs [block]; a failed read, library load, write or login aborts it, records [SyncOutcome.Failed] and
+     * Runs [block]; a failed read, library load, IGDB search, write or login aborts it, records [SyncOutcome.Failed] and
      * returns null. Cancellation and any other exception propagate.
      */
     private suspend fun <T> abortOnFailure(what: String, service: ExternalService, block: suspend () -> T): T? = try {
@@ -164,6 +165,8 @@ class LinkedServicesViewModel(
     } catch (error: ServiceReadException) {
         abort(what, service, error)
     } catch (error: LibraryLoadException) {
+        abort(what, service, error)
+    } catch (error: IgdbUnavailableException) {
         abort(what, service, error)
     } catch (error: ScriptWriteException) {
         abort(what, service, error)
