@@ -447,10 +447,10 @@ class ServiceWebViewSession internal constructor(
             }
         } finally {
             pending = null
+            // Ask a timed-out or cancelled script to stop, so it doesn't keep acting on the page in the next step.
+            if (!deferred.isCompleted) controller.evaluateJavascript(SET_CANCEL) {}
         }
         val json = if (deferred.isCompleted) deferred.await() else null
-        // Ask a timed-out script to stop, so it doesn't keep acting on the page in the next step.
-        if (json == null) controller.evaluateJavascript(SET_CANCEL) {}
         Logger.i(tag = TAG) { "run: got bridge result=${json != null}" }
         return json
     }

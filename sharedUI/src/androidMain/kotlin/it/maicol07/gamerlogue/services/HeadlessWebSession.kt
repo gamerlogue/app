@@ -139,9 +139,10 @@ class HeadlessWebSession(context: Context) : WebSession {
             }
         } finally {
             pending = null
+            // A timed-out or cancelled script is asked to stop, so it doesn't keep acting on the page.
+            if (!deferred.isCompleted) webView.evaluateJavascript("window.__glCancel = true;", null)
         }
         val json = if (deferred.isCompleted) deferred.await() else null
-        if (json == null) webView.evaluateJavascript("window.__glCancel = true;", null)
         Logger.i(tag = TAG) { "step ${step.url} result=${json != null}" }
         return json
     }
