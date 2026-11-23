@@ -30,12 +30,14 @@ import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common__back
 import gamerlogue.sharedui.generated.resources.exception__action_show
 import gamerlogue.sharedui.generated.resources.nav__notifications
+import gamerlogue.sharedui.generated.resources.sync__pending_push
 import gamerlogue.sharedui.generated.resources.sync__status_new
 import gamerlogue.sharedui.generated.resources.sync__status_running
 import gamerlogue.sharedui.generated.resources.sync__status_running_progress
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ArrowBackW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ErrorW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HourglassW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NotificationsW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.SyncW500Rounded
 import it.maicol07.gamerlogue.core.ExceptionReporter
@@ -45,12 +47,14 @@ import it.maicol07.gamerlogue.services.SyncCoordinator
 import it.maicol07.gamerlogue.services.SyncHistory
 import it.maicol07.gamerlogue.services.SyncQueue
 import it.maicol07.gamerlogue.services.SyncResult
+import it.maicol07.gamerlogue.services.SyncScheduler
 import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.navigation.AppNavigationState
 import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import it.maicol07.gamerlogue.ui.views.settings.categories.label
 import it.maicol07.gamerlogue.ui.views.settings.categories.labelRes
+import it.maicol07.gamerlogue.ui.views.settings.categories.text
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -110,9 +114,9 @@ fun NotificationsAction(navigationState: AppNavigationState = LocalNavigationSta
 }
 
 /**
- * Shown while a sync runs (the sync icon in a ring filling with the background queue, X of N) and after one the user
- * hasn't looked at yet (the count of new results, red when one failed); a tooltip tells which. It opens the sync
- * history, which marks them seen.
+ * Shown while a sync runs (the sync icon in a ring filling with the background queue, X of N), while library changes
+ * wait to be pushed (an hourglass) and after a sync the user hasn't looked at yet (the count of new results, red when
+ * one failed); a tooltip tells which. It opens the sync history, which marks them seen.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -120,11 +124,17 @@ fun SyncStatusAction(navigationState: AppNavigationState = LocalNavigationState.
     val coordinator = koinInject<SyncCoordinator>()
     val running by coordinator.running.collectAsStateWithLifecycle()
     val queue by coordinator.queue.collectAsStateWithLifecycle()
+    val pendingPush by koinInject<SyncScheduler>().pendingPushAt.collectAsStateWithLifecycle(null)
     val runs by koinInject<SyncHistory>().runs.collectAsStateWithLifecycle()
     val unseen = runs.filterNot { it.seen }
     val syncing = running.isNotEmpty() || !queue.isEmpty
-    AnimatedVisibility(syncing || unseen.isNotEmpty()) {
-        val label = if (syncing) syncingLabel(running, queue) else stringResource(Res.string.sync__status_new)
+    val pending = !syncing && pendingPush != null
+    AnimatedVisibility(syncing || pending || unseen.isNotEmpty()) {
+        val label = when {
+            syncing -> syncingLabel(running, queue)
+            pending -> stringResource(Res.string.sync__pending_push)
+            else -> stringResource(Res.string.sync__status_new)
+        }
         TooltipBox(tooltip = { PlainTooltip { Text(label) } }) {
             IconButton(
                 onClick = { navigationState.backStack.add(RootNavTree.SyncHistory) },
@@ -132,6 +142,8 @@ fun SyncStatusAction(navigationState: AppNavigationState = LocalNavigationState.
             ) {
                 if (syncing) {
                     SyncProgressIcon(queue, label)
+                } else if (pending) {
+                    Icon(Icons.HourglassW500Rounded, contentDescription = label)
                 } else {
                     val failed = unseen.any { it.result == SyncResult.FAILED || it.result == SyncResult.LOGIN_REQUIRED }
                     BadgedBox(
@@ -164,15 +176,19 @@ private fun SyncProgressIcon(queue: SyncQueue, label: String) {
     }
 }
 
-/** "Syncing · 2 of 4 · Steam · Library" for the current background sync, else the services the user syncs. */
+/**
+ * "Syncing · 2 of 4 · Steam · Library · Writing… 3 of 10" for the current background sync, else the services the user
+ * syncs.
+ */
 @Composable
-private fun syncingLabel(running: Set<ExternalService>, queue: SyncQueue): String {
+internal fun syncingLabel(running: Set<ExternalService>, queue: SyncQueue): String {
     val current = queue.current
     return if (current != null) {
-        listOf(
+        listOfNotNull(
             stringResource(Res.string.sync__status_running_progress, queue.done + 1, queue.total),
             stringResource(current.service.labelRes()),
             stringResource(current.kind.label),
+            queue.step?.text(),
         )
     } else {
         listOf(stringResource(Res.string.sync__status_running)) + running.map { stringResource(it.labelRes()) }

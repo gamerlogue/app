@@ -5,6 +5,8 @@ import com.github.michaelbull.result.get
 import it.maicol07.gamerlogue.core.BaseViewModel
 import it.maicol07.gamerlogue.core.LibraryChange
 import it.maicol07.gamerlogue.core.LibraryChanges
+import it.maicol07.gamerlogue.services.DueSync
+import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.GameMatcher
 import it.maicol07.gamerlogue.services.LibrarySync
 import it.maicol07.gamerlogue.services.PendingMatch
@@ -15,10 +17,14 @@ import it.maicol07.gamerlogue.services.SyncKind
 import it.maicol07.gamerlogue.services.SyncRun
 import it.maicol07.gamerlogue.services.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 
+// The history's answers plus the queue's controls, one call each.
+@Suppress("TooManyFunctions")
 @KoinViewModel
 class SyncHistoryViewModel(
     private val history: SyncHistory,
@@ -31,6 +37,20 @@ class SyncHistoryViewModel(
     val runs = history.runs
     val running = coordinator.running
     val queue = coordinator.queue
+    val pendingPush: StateFlow<Long?> =
+        scheduler.pendingPushAt.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    val nextPeriodicAt: StateFlow<Long?> =
+        scheduler.nextPeriodicAt.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun runNow() = scheduler.runNow()
+
+    fun cancelCurrent() = coordinator.cancelCurrent()
+
+    fun skip(sync: DueSync) = coordinator.skip(sync)
+
+    fun cancelAll() = coordinator.cancelAll()
+
+    fun cancelManual(service: ExternalService) = coordinator.cancelManual(service)
 
     /** A game the tracker didn't remove when asked, to tell the user; null once they read it. */
     val removalFailed: StateFlow<Pair<SyncRun, SyncGame>?>
@@ -48,7 +68,8 @@ class SyncHistoryViewModel(
 
     /** Removes [game] from the service too, as the user did here. */
     fun removeThere(run: SyncRun, game: SyncGame) = viewModelScope.launch {
-        if (!coordinator.removeFromService(run.service, run.kind, game)) removalFailed.value = run to game
+        // Null: the user cancelled it, nothing to tell.
+        if (coordinator.removeFromService(run.service, run.kind, game) == false) removalFailed.value = run to game
     }
 
     fun dismissRemovalFailed() {
@@ -62,7 +83,7 @@ class SyncHistoryViewModel(
         val guess = match.guess ?: return
         matcher.memory.remember(run.service, mapOf(match.uid to guess.gameId))
         history.settleMatch(run.service, match.uid, ignore = false)
-        scheduler.changed(wishlist = run.kind == SyncKind.WISHLIST)
+        coordinator.schedulePush(scheduler, wishlist = run.kind == SyncKind.WISHLIST)
     }
 
     /** Leaves [match] out of the syncs for good: no later run asks about it. */

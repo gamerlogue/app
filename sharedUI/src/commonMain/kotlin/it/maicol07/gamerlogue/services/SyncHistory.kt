@@ -17,7 +17,7 @@ enum class SyncKind { WISHLIST, LIBRARY }
 enum class SyncTrigger { MANUAL, CHANGE, PERIODIC }
 
 @Serializable
-enum class SyncResult { OK, PARTIAL, FAILED, LOGIN_REQUIRED }
+enum class SyncResult { OK, PARTIAL, FAILED, LOGIN_REQUIRED, CANCELLED, INTERRUPTED }
 
 /**
  * One sync with a service as the history shows it. [added] counts the games added or updated in Gamerlogue and
@@ -84,7 +84,7 @@ class SyncHistory(private val settings: ObservableSettings) {
         val key = keptKey(run.service, run.kind)
         val kept = decisions.kept[key].orEmpty()
         val ignored = decisions.ignored[run.service].orEmpty()
-        if (run.result != SyncResult.FAILED && run.result != SyncResult.LOGIN_REQUIRED) {
+        if (run.result == SyncResult.OK || run.result == SyncResult.PARTIAL) {
             val removed = (run.removedOnService + run.removedHere).mapTo(mutableSetOf()) { it.gameId }
             saveDecisions(decisions.copy(kept = decisions.kept + (key to (kept intersect removed))))
         }

@@ -7,6 +7,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import gamerlogue.sharedui.generated.resources.sync__removed_count
 import gamerlogue.sharedui.generated.resources.sync__removed_here_count
 import gamerlogue.sharedui.generated.resources.sync__removed_see_latest
 import gamerlogue.sharedui.generated.resources.sync__sent_game
+import gamerlogue.sharedui.generated.resources.sync__sign_in_again
 import gamerlogue.sharedui.generated.resources.sync__skipped_count
 import gamerlogue.sharedui.generated.resources.sync__to_confirm_count
 import gamerlogue.sharedui.generated.resources.sync__to_confirm_see_latest
@@ -40,12 +42,14 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Pub
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.QuizW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.WarningW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
+import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.PendingMatch
 import it.maicol07.gamerlogue.services.SkippedWrite
 import it.maicol07.gamerlogue.services.SyncGame
 import it.maicol07.gamerlogue.services.SyncResult
 import it.maicol07.gamerlogue.services.SyncRun
 import it.maicol07.gamerlogue.ui.components.layout.ExpandArrow
+import it.maicol07.gamerlogue.ui.navigation.LocalNavigationState
 import it.maicol07.gamerlogue.ui.navigation.rootTree.RootNavTree
 import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -74,6 +78,9 @@ internal sealed interface RunDetail {
     class RemovedHere(override val key: String, val game: SyncGame) : RunDetail
 
     class ToConfirm(override val key: String, val match: PendingMatch) : RunDetail
+
+    /** Opens the sign-in of [service], for a run that found it signed out. */
+    class SignIn(override val key: String, val service: ExternalService) : RunDetail
 }
 
 /**
@@ -96,13 +103,15 @@ internal fun SyncRun.details(latest: SyncRun, open: Set<String>): List<RunDetail
         )
     }
     when (result) {
-        SyncResult.LOGIN_REQUIRED ->
+        SyncResult.LOGIN_REQUIRED -> {
             add(
                 RunDetail.Line(
                     "$id-login",
                     Icons.LoginW500Rounded
                 ) { stringResource(Res.string.sync__login_required_hint) }
             )
+            add(RunDetail.SignIn("$id-sign-in", service))
+        }
         SyncResult.FAILED ->
             add(
                 RunDetail.Line(
@@ -203,6 +212,7 @@ internal fun DetailItem(
     answers: GameAnswers,
 ) {
     val colors = ListItemDefaults.expressiveSegmentedColors()
+    val navigationState = LocalNavigationState.current
     val open = { game: SyncGame -> onOpen(RootNavTree.GameDetail(game.gameId, game.coverImageId, game.name)) }
     when (detail) {
         is RunDetail.Line -> if (detail.open == null) {
@@ -250,6 +260,15 @@ internal fun DetailItem(
         is RunDetail.RemovedHere -> RemovedHereItem(detail.game, service, shapes, open, answers)
 
         is RunDetail.ToConfirm -> ToConfirmItem(detail.match, service, shapes, open, answers)
+
+        is RunDetail.SignIn -> SegmentedListItem(
+            onClick = {
+                navigationState.backStack.add(RootNavTree.ServiceSync(detail.service, ServiceSyncAction.CONNECT))
+            },
+            shapes = shapes,
+            colors = colors,
+            leadingContent = { Icon(Icons.LoginW500Rounded, contentDescription = null) },
+        ) { Text(stringResource(Res.string.sync__sign_in_again, service), color = MaterialTheme.colorScheme.primary) }
     }
 }
 

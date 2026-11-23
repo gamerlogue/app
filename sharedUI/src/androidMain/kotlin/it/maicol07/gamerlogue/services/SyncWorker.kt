@@ -12,6 +12,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
@@ -19,6 +20,9 @@ import androidx.work.workDataOf
 import co.touchlab.kermit.Logger
 import it.maicol07.gamerlogue.auth.AuthTokenProvider
 import it.maicol07.gamerlogue.di.startKoinIfNeeded
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import org.koin.mp.KoinPlatform
 import java.util.concurrent.TimeUnit
 import kotlin.time.toJavaDuration
@@ -118,6 +122,32 @@ class WorkManagerSyncScheduler(context: Context) : SyncScheduler {
         workManager.enqueueUniqueWork(TRIGGER_WORK, ExistingWorkPolicy.REPLACE, request)
     }
 
+    override fun runNow() {
+        val request = OneTimeWorkRequestBuilder<SyncWorker>()
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setInputData(
+                workDataOf(SyncWorker.KEY_TRIGGER to SyncTrigger.MANUAL.name, SyncWorker.KEY_WISHLIST to true),
+            )
+            .build()
+        // A second tap while one waits or runs adds nothing: it would sync the same again.
+        workManager.enqueueUniqueWork(NOW_WORK, ExistingWorkPolicy.KEEP, request)
+    }
+
+    // The wait's end while it waits; then 0 (already due) while the push waits for the network or its turn.
+    override val pendingPushAt: Flow<Long?> = combine(
+        workManager.getWorkInfosForUniqueWorkFlow(TRIGGER_WORK),
+        workManager.getWorkInfosForUniqueWorkFlow(PUSH_WORK),
+    ) { wait, push ->
+        wait.firstOrNull { it.state == WorkInfo.State.ENQUEUED }?.nextScheduleTimeMillis
+            ?: 0L.takeIf { push.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.BLOCKED } }
+    }
+
+    // Long.MAX_VALUE: nothing planned (the work is running, or blocked).
+    override val nextPeriodicAt: Flow<Long?> = workManager.getWorkInfosForUniqueWorkFlow(PERIODIC_WORK).map { infos ->
+        infos.firstOrNull { !it.state.isFinished }?.nextScheduleTimeMillis?.takeIf { it != Long.MAX_VALUE }
+    }
+
     override fun period(hours: Int) {
         if (hours <= 0) {
             workManager.cancelUniqueWork(PERIODIC_WORK)
@@ -141,3 +171,4 @@ class WorkManagerSyncScheduler(context: Context) : SyncScheduler {
 private const val TRIGGER_WORK = "sync.change.wait"
 private const val PUSH_WORK = "sync.change"
 private const val PERIODIC_WORK = "sync.periodic"
+private const val NOW_WORK = "sync.now"

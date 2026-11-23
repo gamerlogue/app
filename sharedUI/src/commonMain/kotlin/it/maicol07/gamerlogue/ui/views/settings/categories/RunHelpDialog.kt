@@ -15,8 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_ok
+import gamerlogue.sharedui.generated.resources.sync__help_cancelled
 import gamerlogue.sharedui.generated.resources.sync__help_conflicts
 import gamerlogue.sharedui.generated.resources.sync__help_failed
+import gamerlogue.sharedui.generated.resources.sync__help_interrupted
 import gamerlogue.sharedui.generated.resources.sync__help_library
 import gamerlogue.sharedui.generated.resources.sync__help_none
 import gamerlogue.sharedui.generated.resources.sync__help_removed
@@ -81,6 +83,8 @@ private fun SyncRun.outcomeTexts(service: String): List<String> = buildList {
     when (result) {
         SyncResult.LOGIN_REQUIRED -> add(stringResource(Res.string.sync__login_required_hint))
         SyncResult.FAILED -> add(stringResource(Res.string.sync__help_failed))
+        SyncResult.CANCELLED -> add(stringResource(Res.string.sync__help_cancelled))
+        SyncResult.INTERRUPTED -> add(stringResource(Res.string.sync__help_interrupted))
         else -> Unit
     }
     val quiet = added == 0 && pushed == 0 && conflicts == 0 && skipped.isEmpty() && !hasDecisions

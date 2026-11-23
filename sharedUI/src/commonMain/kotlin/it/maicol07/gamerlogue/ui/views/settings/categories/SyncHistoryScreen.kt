@@ -11,15 +11,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.raedghazal.kotlinx_datetime_ext.LocalDateTimeFormatter
 import gamerlogue.sharedui.generated.resources.Res
 import gamerlogue.sharedui.generated.resources.common_cancel
+import gamerlogue.sharedui.generated.resources.sync__cancel_all
 import gamerlogue.sharedui.generated.resources.sync__help
 import gamerlogue.sharedui.generated.resources.sync__history
 import gamerlogue.sharedui.generated.resources.sync__history_empty
@@ -47,13 +49,13 @@ import gamerlogue.sharedui.generated.resources.sync__kind_wishlist
 import gamerlogue.sharedui.generated.resources.sync__removed_confirm_text
 import gamerlogue.sharedui.generated.resources.sync__removed_confirm_title
 import gamerlogue.sharedui.generated.resources.sync__removed_delete
+import gamerlogue.sharedui.generated.resources.sync__result_cancelled
 import gamerlogue.sharedui.generated.resources.sync__result_failed
+import gamerlogue.sharedui.generated.resources.sync__result_interrupted
 import gamerlogue.sharedui.generated.resources.sync__result_login_required
 import gamerlogue.sharedui.generated.resources.sync__result_ok
 import gamerlogue.sharedui.generated.resources.sync__result_partial
-import gamerlogue.sharedui.generated.resources.sync__status_running
-import gamerlogue.sharedui.generated.resources.sync__status_running_progress
-import gamerlogue.sharedui.generated.resources.sync__status_waiting
+import gamerlogue.sharedui.generated.resources.sync__run_now
 import gamerlogue.sharedui.generated.resources.sync__trigger_change
 import gamerlogue.sharedui.generated.resources.sync__trigger_manual
 import gamerlogue.sharedui.generated.resources.sync__trigger_periodic
@@ -62,18 +64,17 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.Icons
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.DeleteW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HelpW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.HistoryW500Rounded
-import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.ScheduleW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PlayCircleW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.navigationBarsSpacer
-import it.maicol07.gamerlogue.services.ExternalService
 import it.maicol07.gamerlogue.services.SyncGame
 import it.maicol07.gamerlogue.services.SyncKind
-import it.maicol07.gamerlogue.services.SyncQueue
 import it.maicol07.gamerlogue.services.SyncResult
 import it.maicol07.gamerlogue.services.SyncRun
 import it.maicol07.gamerlogue.services.SyncTrigger
 import it.maicol07.gamerlogue.ui.components.EmptyState
 import it.maicol07.gamerlogue.ui.components.SectionIcon
+import it.maicol07.gamerlogue.ui.components.TooltipBox
 import it.maicol07.gamerlogue.ui.components.layout.ExpandArrow
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
 import it.maicol07.gamerlogue.ui.components.layout.collapsibleSection
@@ -96,8 +97,6 @@ fun SyncHistoryView() {
     val viewModel = koinViewModel<SyncHistoryViewModel>()
     val navigationState = LocalNavigationState.current
     val runs by viewModel.runs.collectAsStateWithLifecycle()
-    val running by viewModel.running.collectAsStateWithLifecycle()
-    val queue by viewModel.queue.collectAsStateWithLifecycle()
     // Seen while the screen is open, including the runs that end meanwhile.
     LaunchedEffect(runs) { if (runs.any { !it.seen }) viewModel.markAllSeen() }
     var confirmDelete by remember { mutableStateOf<Pair<SyncRun, SyncGame>?>(null) }
@@ -116,8 +115,10 @@ fun SyncHistoryView() {
         )
     }
 
-    ScreenScaffold(title = Res.string.sync__history) {
-        if (runs.isEmpty() && running.isEmpty() && queue.isEmpty) {
+    ScreenScaffold(title = Res.string.sync__history, actions = { HistoryActions(viewModel) }) {
+        val activities = syncActivities(viewModel)
+        // The next periodic sync alone isn't history to show.
+        if (runs.isEmpty() && activities.all { it is SyncActivity.NextPeriodic }) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 EmptyState(
                     Icons.HistoryW500Rounded,
@@ -129,8 +130,9 @@ fun SyncHistoryView() {
             return@ScreenScaffold
         }
         HistoryList(
-            activeSyncs(running, queue),
+            activities,
             runs,
+            viewModel,
             onOpen = { navigationState.backStack.add(it) },
             onHelp = { helpFor = it },
         ) { run ->
@@ -161,8 +163,9 @@ private fun SyncRun.needsLook(latest: Boolean): Boolean =
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun HistoryList(
-    active: List<ActiveSync>,
+    activities: List<SyncActivity>,
     runs: List<SyncRun>,
+    viewModel: SyncHistoryViewModel,
     onOpen: (RootNavTree.GameDetail) -> Unit,
     onHelp: (SyncRun) -> Unit,
     answersFor: (SyncRun) -> GameAnswers,
@@ -172,7 +175,9 @@ private fun HistoryList(
     // The game groups (received, sent, skipped) the user opened.
     val openGroups = remember { mutableStateMapOf<String, Boolean>() }
     // The newest run of each service and kind: the only one whose games left to the user are still a choice to make.
-    val latestOf = runs.groupBy { it.service to it.kind }.mapValues { (_, serviceRuns) -> serviceRuns.first() }
+    // A failed, cancelled or interrupted run reports no games, so it leaves the choices to the run before it.
+    val latestOf = runs.filter { it.result == SyncResult.OK || it.result == SyncResult.PARTIAL }
+        .groupBy { it.service to it.kind }.mapValues { (_, serviceRuns) -> serviceRuns.first() }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -182,9 +187,14 @@ private fun HistoryList(
         ),
         verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
     ) {
-        // ponytail: index keys, the same service and kind can wait twice (two triggers queued).
-        itemsIndexed(active, key = { i, _ -> "active-$i" }) { i, sync ->
-            ActiveItem(sync, ListItemDefaults.segmentedShapes(i, active.size))
+        itemsIndexed(activities, key = { _, activity -> activity.key }) { i, activity ->
+            SyncActivityItem(
+                activity,
+                ListItemDefaults.segmentedShapes(i, activities.size),
+                onCancel = viewModel::cancelCurrent,
+                onCancelManual = viewModel::cancelManual,
+                onSkip = viewModel::skip,
+            )
         }
         runs.groupBy { it.startedAt.format(DAY) }.forEach { (day, dayRuns) ->
             item(key = "day-$day") {
@@ -196,7 +206,7 @@ private fun HistoryList(
                 )
             }
             dayRuns.forEach { run ->
-                val latestRun = latestOf.getValue(run.service to run.kind)
+                val latestRun = latestOf[run.service to run.kind] ?: run
                 val isLatest = run.id == latestRun.id
                 val open = toggled[run.id] ?: run.needsLook(isLatest)
                 collapsibleSection(
@@ -221,46 +231,6 @@ private fun HistoryList(
         }
         navigationBarsSpacer()
     }
-}
-
-/**
- * A sync going on or waiting its turn: [kind] is null for one the user started (it isn't in the queue), [step] is
- * the position as X of N of the current background one, [waiting] marks the ones queued after it.
- */
-private data class ActiveSync(
-    val service: ExternalService,
-    val kind: SyncKind?,
-    val step: Pair<Int, Int>?,
-    val waiting: Boolean,
-)
-
-/** The current background sync first, then the other running ones, then the queued ones in order. */
-private fun activeSyncs(running: Set<ExternalService>, queue: SyncQueue): List<ActiveSync> = buildList {
-    queue.current?.let { add(ActiveSync(it.service, it.kind, queue.done + 1 to queue.total, waiting = false)) }
-    running.filter { it != queue.current?.service }.forEach { add(ActiveSync(it, null, null, waiting = false)) }
-    queue.waiting.forEach { add(ActiveSync(it.service, it.kind, null, waiting = true)) }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ActiveItem(sync: ActiveSync, shapes: ListItemShapes) {
-    val status = when {
-        sync.waiting -> stringResource(Res.string.sync__status_waiting)
-        sync.step != null -> stringResource(Res.string.sync__status_running_progress, sync.step.first, sync.step.second)
-        else -> stringResource(Res.string.sync__status_running)
-    }
-    SegmentedListItem(
-        shapes = shapes,
-        colors = ListItemDefaults.expressiveSegmentedColors(),
-        leadingContent = {
-            if (sync.waiting) {
-                Icon(Icons.ScheduleW500Rounded, contentDescription = null, Modifier.size(SectionIconSize))
-            } else {
-                LoadingIndicator(Modifier.size(SectionIconSize))
-            }
-        },
-        supportingContent = { Text(listOfNotNull(sync.kind?.let { stringResource(it.label) }, status).joinToString(" · ")) },
-    ) { Text(stringResource(sync.service.labelRes()), style = MaterialTheme.typography.titleMedium) }
 }
 
 /** A run's header: the service in a shape coloured by the result, what started the run and how it ended. */
@@ -330,6 +300,7 @@ private fun SyncResult.colors(): Pair<Color, Color> = with(MaterialTheme.colorSc
         SyncResult.OK -> primaryContainer to onPrimaryContainer
         SyncResult.PARTIAL -> tertiaryContainer to onTertiaryContainer
         SyncResult.FAILED, SyncResult.LOGIN_REQUIRED -> errorContainer to onErrorContainer
+        SyncResult.CANCELLED, SyncResult.INTERRUPTED -> surfaceContainerHighest to onSurfaceVariant
     }
 }
 
@@ -339,6 +310,8 @@ private val SyncResult.label
         SyncResult.PARTIAL -> Res.string.sync__result_partial
         SyncResult.FAILED -> Res.string.sync__result_failed
         SyncResult.LOGIN_REQUIRED -> Res.string.sync__result_login_required
+        SyncResult.CANCELLED -> Res.string.sync__result_cancelled
+        SyncResult.INTERRUPTED -> Res.string.sync__result_interrupted
     }
 
 internal val SyncKind.label
@@ -354,8 +327,6 @@ private val SyncTrigger.label
         SyncTrigger.PERIODIC -> Res.string.sync__trigger_periodic
     }
 
-/** Matches [SectionIcon]'s size, so a running row lines up with the run headers. */
-private val SectionIconSize = 36.dp
 private const val DAY = "dd/MM/yyyy"
 private const val TIME = "HH:mm"
 
@@ -364,3 +335,32 @@ private fun Long.format(pattern: String): String = LocalDateTimeFormatter.ofPatt
     pattern,
     com.raedghazal.kotlinx_datetime_ext.Locale.forLanguageTag(Locale.current.toLanguageTag()),
 ).format(Instant.fromEpochMilliseconds(this).toLocalDateTime(TimeZone.currentSystemDefault()))
+
+/** What [SyncHistoryViewModel] says goes on, waits or is planned, as [syncActivities] lists it. */
+@Composable
+private fun syncActivities(viewModel: SyncHistoryViewModel): List<SyncActivity> {
+    val running by viewModel.running.collectAsStateWithLifecycle()
+    val queue by viewModel.queue.collectAsStateWithLifecycle()
+    val pendingPush by viewModel.pendingPush.collectAsStateWithLifecycle()
+    val nextPeriodicAt by viewModel.nextPeriodicAt.collectAsStateWithLifecycle()
+    return syncActivities(running, queue, pendingPush, nextPeriodicAt)
+}
+
+/** Syncs everything now while nothing runs in the background; cancels the whole queue while more than one waits. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun HistoryActions(viewModel: SyncHistoryViewModel) {
+    val queue by viewModel.queue.collectAsStateWithLifecycle()
+    if (queue.total > 1) {
+        TextButton(onClick = viewModel::cancelAll, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(Res.string.sync__cancel_all))
+        }
+    } else if (queue.isEmpty) {
+        val label = stringResource(Res.string.sync__run_now)
+        TooltipBox(tooltip = { PlainTooltip { Text(label) } }) {
+            IconButton(onClick = viewModel::runNow, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.PlayCircleW500Rounded, contentDescription = label)
+            }
+        }
+    }
+}

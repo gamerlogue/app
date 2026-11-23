@@ -9,17 +9,22 @@ import it.maicol07.gamerlogue.core.LibraryChanges
 import it.maicol07.gamerlogue.ui.components.LoginTimeoutException
 import it.maicol07.gamerlogue.ui.components.WebSession
 import it.maicol07.gamerlogue.ui.views.library.GameLibraryStatus
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import org.koin.core.annotation.Single
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -36,6 +41,8 @@ import kotlin.uuid.Uuid
  * unattended before it. Background runs go one at a time through the [BackgroundWebHost]; a service never runs two
  * syncs at once.
  */
+// Runs the syncs and holds their queue, with the controls on it.
+@Suppress("TooManyFunctions")
 @Single
 class SyncCoordinator(
     private val settings: ObservableSettings,
@@ -55,24 +62,64 @@ class SyncCoordinator(
     val queue: StateFlow<SyncQueue>
         field = MutableStateFlow(SyncQueue())
 
-    /** A sync the user started on the sync screen, recorded as already seen. Null when it failed or can't run. */
+    private val currentJob = MutableStateFlow<Job?>(null)
+
+    // The manual syncs and the removals going on, by service, for cancelManual.
+    private val manualJobs = MutableStateFlow(emptyMap<Job, ExternalService>())
+
+    // The ids of the syncs cancelCurrent stopped, until their run ends.
+    private val cancelled = MutableStateFlow(emptySet<String>())
+
+    /**
+     * A sync the user started on the sync screen, recorded as already seen. Null when it failed, can't run or the user
+     * cancelled it ([cancelManual]).
+     */
     suspend fun runManual(service: ExternalService, kind: SyncKind, session: WebSession): SyncOutcome? =
-        run(service, kind, SyncTrigger.MANUAL, session).first
+        cancellableBy(service) { run(service, kind, SyncTrigger.MANUAL, session).first }
 
     /**
      * Removes [game] from the [kind] side of [service] (its library or wishlist), as the user removed it from
      * Gamerlogue and confirmed, through the background session like the syncs; settled in the history once the
-     * service confirmed it. Returns whether it did.
+     * service confirmed it. Returns whether it did; null when the user cancelled it ([cancelManual]).
      */
-    suspend fun removeFromService(service: ExternalService, kind: SyncKind, game: SyncGame): Boolean {
-        val removed = try {
+    suspend fun removeFromService(service: ExternalService, kind: SyncKind, game: SyncGame): Boolean? {
+        val removed = cancellableBy(service) { removeThere(service, kind, game) } ?: return null
+        if (game.gameId in removed) history.settleRemoved(service, kind, game.gameId, keep = false)
+        return game.gameId in removed
+    }
+
+    /** Stops the manual syncs and the removals of [service], like [cancelCurrent] does a background one. */
+    fun cancelManual(service: ExternalService) =
+        manualJobs.value.filterValues { it == service }.keys.forEach { it.cancel(UserCancellation()) }
+
+    /** Runs [block] so that [cancelManual] on [service] stops it: it returns null then. */
+    private suspend fun <T : Any> cancellableBy(service: ExternalService, block: suspend () -> T?): T? =
+        coroutineScope {
+            val job = async { block() }
+            manualJobs.update { it + (job to service) }
+            try {
+                job.await()
+            } catch (@Suppress("SwallowedException") error: CancellationException) {
+                // Rethrown when this coroutine is cancelled too, not just the job.
+                ensureActive()
+                null
+            } finally {
+                manualJobs.update { it - job }
+            }
+        }
+
+    /** The removal of [removeFromService]: the ids the service confirmed removed, none when it failed. */
+    private suspend fun removeThere(service: ExternalService, kind: SyncKind, game: SyncGame): Set<Int> =
+        try {
             background.withLock {
                 locks.getValue(service).withLock {
                     running.update { it + service }
                     try {
                         withTimeout(RUN_TIMEOUT) {
                             host.withSession {
-                                runner.removeFromService(service, kind, UnattendedSession(it), listOf(game))
+                                // Not in the queue, so no step to show.
+                                val session = UnattendedSession(it) {}
+                                runner.removeFromService(service, kind, session, listOf(game))
                             }
                         }
                     } finally {
@@ -90,9 +137,6 @@ class SyncCoordinator(
             Logger.e(error) { "Removal from $service failed" }
             emptySet()
         }
-        if (game.gameId in removed) history.settleRemoved(service, kind, game.gameId, keep = false)
-        return game.gameId in removed
-    }
 
     /** Hands [scheduler] the library changes to push and the period to sync at, until cancelled. */
     @OptIn(ExperimentalSettingsApi::class)
@@ -110,12 +154,17 @@ class SyncCoordinator(
         coroutineScope {
             launch {
                 libraryChanges.changes.filterIsInstance<LibraryChange.Saved>()
-                    .collect { scheduler.changed(wishlist = it.status == GameLibraryStatus.BACKLOG) }
+                    .collect { schedulePush(scheduler, wishlist = it.status == GameLibraryStatus.BACKLOG) }
             }
             launch {
                 settings.getIntFlow(PERIOD_KEY, DEFAULT_PERIOD_HOURS).collect { scheduler.period(it) }
             }
         }
+    }
+
+    /** Hands [scheduler] a change to push, the wishlists too if [wishlist], when a service will take it. */
+    fun schedulePush(scheduler: SyncScheduler, wishlist: Boolean) {
+        if (dueSyncs(wishlist).isNotEmpty()) scheduler.changed(wishlist)
     }
 
     /**
@@ -128,41 +177,90 @@ class SyncCoordinator(
         wishlist: Boolean,
         onProgress: suspend (service: ExternalService, index: Int, total: Int) -> Unit = { _, _, _ -> },
     ): List<SyncRun> {
-        val due = ExternalService.entries.filter { isServiceSyncSupported && it.flag(CONNECTED) }.flatMap { service ->
+        val due = dueSyncs(wishlist)
+        if (due.isEmpty()) return emptyList()
+        queue.update { it.copy(waiting = it.waiting + due) }
+        try {
+            return background.withLock { runQueued(due, trigger, onProgress) }
+        } finally {
+            // What a failure, a cancellation or a skip left waiting.
+            val ids = due.mapTo(mutableSetOf()) { it.id }
+            queue.update { state -> state.copy(waiting = state.waiting.filterNot { it.id in ids }).settled() }
+        }
+    }
+
+    /** The syncs that run unattended: the library ones, plus the wishlist ones when [wishlist]. */
+    private fun dueSyncs(wishlist: Boolean): List<DueSync> =
+        ExternalService.entries.filter { isServiceSyncSupported && it.flag(CONNECTED) }.flatMap { service ->
             listOfNotNull(
                 SyncKind.LIBRARY.takeIf { service.flag(LIBRARY_SYNC) },
                 SyncKind.WISHLIST.takeIf { wishlist && service.flag(WISHLIST_SYNC) },
             ).filter { runner.runsUnattended(service, it) }.map { DueSync(service, it) }
         }
-        if (due.isEmpty()) return emptyList()
-        queue.update { it.copy(waiting = it.waiting + due) }
-        var started = 0
+
+    /** Stops the current background sync, recorded as cancelled; the next one in the [queue] starts. */
+    fun cancelCurrent() {
+        val id = queue.value.current?.id ?: return
+        cancelled.update { it + id }
+        currentJob.value?.cancel(UserCancellation())
+    }
+
+    /** Takes [sync] out of the [queue] before it starts. */
+    fun skip(sync: DueSync) = queue.update { state -> state.copy(waiting = state.waiting - sync).settled() }
+
+    /** Empties the [queue] and stops the current background sync. */
+    fun cancelAll() {
+        queue.update { it.copy(waiting = emptyList()).settled() }
+        cancelCurrent()
+    }
+
+    /** The [due] syncs still in the [queue] (none [skip]ped them), in one session; holds the background lock. */
+    private suspend fun runQueued(
+        due: List<DueSync>,
+        trigger: SyncTrigger,
+        onProgress: suspend (service: ExternalService, index: Int, total: Int) -> Unit,
+    ): List<SyncRun> {
+        // Current from here, so the session starting up already shows as its run.
+        val first = due.firstOrNull { take(it) } ?: return emptyList()
         try {
-            return background.withLock {
-                try {
-                    // Current from here, so the session starting up already shows as its run.
-                    queue.update { it.next(due.first()) }
-                    started = 1
-                    host.withSession { session ->
-                        due.mapIndexedNotNull { i, sync ->
-                            if (i > 0) {
-                                queue.update { it.next(sync) }
-                                started++
-                            }
-                            val state = queue.value
-                            onProgress(sync.service, state.done, state.total)
-                            run(sync.service, sync.kind, trigger, UnattendedSession(session)).second
-                        }
-                    }
-                } finally {
-                    queue.update { it.next(null) }
+            return host.withSession { session ->
+                due.dropWhile { it != first }.mapNotNull { sync ->
+                    if (sync != first && !take(sync)) return@mapNotNull null
+                    val state = queue.value
+                    onProgress(sync.service, state.done, state.total)
+                    runCancellable(sync, trigger, session)
                 }
             }
         } finally {
-            // What a failure or cancellation left waiting.
-            queue.update { state -> state.copy(waiting = due.drop(started).fold(state.waiting) { w, s -> w - s }).settled() }
+            queue.update { it.next(null) }
         }
     }
+
+    /** Makes [sync] the current one, if it's still waiting. */
+    private fun take(sync: DueSync): Boolean =
+        queue.updateAndGet { state -> if (sync in state.waiting) state.next(sync) else state }.current == sync
+
+    /** Runs [sync] so that [cancelCurrent] stops it alone: null then, and the caller goes on with the next one. */
+    private suspend fun runCancellable(sync: DueSync, trigger: SyncTrigger, session: WebSession): SyncRun? =
+        coroutineScope {
+            val job = async {
+                val unattended = UnattendedSession(session) { step -> queue.update { it.copy(step = step) } }
+                run(sync.service, sync.kind, trigger, unattended).second
+            }
+            currentJob.value = job
+            // Cancelled while its session started up, before there was a job to cancel.
+            if (sync.id in cancelled.value) job.cancel(UserCancellation())
+            try {
+                job.await()
+            } catch (@Suppress("SwallowedException") error: CancellationException) {
+                // Rethrown when this coroutine is cancelled too, not just the sync.
+                ensureActive()
+                null
+            } finally {
+                currentJob.value = null
+                cancelled.update { it - sync.id }
+            }
+        }
 
     private fun ExternalService.flag(name: String) = settings.getBoolean(settingsKey(name), false)
 
@@ -184,8 +282,8 @@ class SyncCoordinator(
                     }
                 }
                 // ponytail: one bound for a stuck script or page nobody watches; a background job gets about this
-                // long anyway. A manual run has the user there to leave it.
-                val outcome = if (trigger == SyncTrigger.MANUAL) sync() else withTimeout(RUN_TIMEOUT) { sync() }
+                // long anyway. A run on the sync screen has the user there to leave it.
+                val outcome = if (session is UnattendedSession) withTimeout(RUN_TIMEOUT) { sync() } else sync()
                 outcome to outcome?.let { history.add(record.finished(it)) }
             } catch (error: LoginRequiredException) {
                 record.failed(SyncResult.LOGIN_REQUIRED, error)
@@ -199,6 +297,13 @@ class SyncCoordinator(
                 record.failed(SyncResult.FAILED, error)
             } catch (error: TimeoutCancellationException) {
                 record.failed(SyncResult.FAILED, error)
+            } catch (error: UserCancellation) {
+                record.failed(SyncResult.CANCELLED, error)
+                throw error
+            } catch (error: CancellationException) {
+                // Leaving the sync screen records nothing; a background run the system stops does.
+                if (session is UnattendedSession) record.failed(SyncResult.INTERRUPTED, error)
+                throw error
             } finally {
                 running.update { it - service }
             }
@@ -273,14 +378,29 @@ class SyncCoordinator(
     }
 }
 
-/** One sync of [SyncCoordinator.runDue]. */
-data class DueSync(val service: ExternalService, val kind: SyncKind)
+/** The user stopped a sync ([SyncCoordinator.cancelCurrent], [SyncCoordinator.cancelManual]), not the system. */
+class UserCancellation : CancellationException("Cancelled by the user")
+
+/** One sync of [SyncCoordinator.runDue]; the [id] tells apart the same service and kind queued twice. */
+data class DueSync(val service: ExternalService, val kind: SyncKind, val id: String = Uuid.random().toString())
+
+/** Where a background sync is: signing in, reading the service, or writing to it ([done] of [total], 0 = unknown). */
+data class SyncStep(val stage: SyncStage, val done: Int = 0, val total: Int = 0)
+
+enum class SyncStage { SIGNING_IN, READING, WRITING }
 
 /**
- * The background syncs: the [current] one (its session starting up included), the ones [waiting] after it in order,
- * and how many are [done] since the queue was last empty, to count them as X of [total].
+ * The background syncs: the [current] one (its session starting up included) with when it [startedAt] (epoch millis)
+ * and its [step], the ones [waiting] after it in order, and how many are [done] since the queue was last empty, to
+ * count them as X of [total].
  */
-data class SyncQueue(val current: DueSync? = null, val waiting: List<DueSync> = emptyList(), val done: Int = 0) {
+data class SyncQueue(
+    val current: DueSync? = null,
+    val waiting: List<DueSync> = emptyList(),
+    val done: Int = 0,
+    val startedAt: Long? = null,
+    val step: SyncStep? = null,
+) {
     val total: Int get() = done + waiting.size + if (current != null) 1 else 0
     val isEmpty: Boolean get() = current == null && waiting.isEmpty()
 
@@ -289,6 +409,8 @@ data class SyncQueue(val current: DueSync? = null, val waiting: List<DueSync> = 
         current = sync,
         waiting = if (sync == null) waiting else waiting - sync,
         done = done + if (current != null) 1 else 0,
+        startedAt = sync?.let { Clock.System.now().toEpochMilliseconds() },
+        step = null,
     ).settled()
 
     /** Starts the count over once nothing is left. */
