@@ -103,9 +103,11 @@ class XboxConnector(private val api: XboxApi) :
         ),
     )
 
-    // Pushes open the English store: the add control has no stable selector, only a localized label ("Add to
+    // Pushes open the English xbox.com store: the add control has no stable selector, only a localized label ("Add to
     // wishlist", "Aggiungi … all'elenco preferenze"), and the wishlist is the account's whatever the store language.
-    override fun normalizePushUrl(url: String) = url.replace(Regex("(xbox\\.com)/[a-z]{2}-[A-Za-z]{2}/"), "$1/en-US/")
+    // Rebuilt from the product id, so microsoft.com links land there too; xbox.com ignores the slug.
+    override fun normalizePushUrl(url: String) =
+        uidFromUrl(url)?.let { "https://www.xbox.com/en-US/games/store/x/$it" } ?: url
 
     override val wishlistWrite = WishlistWrite.PerGame { storeUrl ->
         WebStep(

@@ -13,6 +13,7 @@ import it.maicol07.gamerlogue.services.connectors.GogConnector
 import it.maicol07.gamerlogue.services.connectors.InfiniteBacklogConnector
 import it.maicol07.gamerlogue.services.connectors.NintendoConnector
 import it.maicol07.gamerlogue.services.connectors.SteamConnector
+import it.maicol07.gamerlogue.services.connectors.XboxConnector
 
 /**
  * The store-URL regexes are load-bearing and fail silently: [ServiceConnector.uidFromUrl] is what
@@ -49,6 +50,14 @@ class ConnectorUrlTest : StringSpec({
         EpicConnector(EpicApi(io.ktor.client.HttpClient()))
             .normalizePushUrl("https://store.epicgames.com/en-US/p/alan-wake-2") shouldBe
             "https://store.epicgames.com/p/alan-wake-2"
+    }
+
+    "Xbox opens every store link, microsoft.com ones too, on the English xbox.com product page" {
+        val xbox = XboxConnector(XboxApi(HttpClient()))
+        xbox.normalizePushUrl("https://www.microsoft.com/it-it/p/forza-horizon-5/9nkx70bbcdrn") shouldBe
+            "https://www.xbox.com/en-US/games/store/x/9nkx70bbcdrn"
+        xbox.normalizePushUrl("https://www.xbox.com/it-IT/games/store/forza-horizon-5/9NKX70BBCDRN") shouldBe
+            "https://www.xbox.com/en-US/games/store/x/9NKX70BBCDRN"
     }
 
     "Infinite Backlog is signed in only once Keycloak hands a code back to the silent-SSO page" {
