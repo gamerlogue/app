@@ -1017,4 +1017,13 @@
     <string name="reminders__event_started">È iniziato alle %1$s</string>
     <string name="events__reminder_off">Ricordamelo</string>
     <string name="events__reminder_on">Promemoria attivo</string>
+    <string name="settings__notifications">Notifiche</string>
+    <string name="settings__notifications_summary">Cosa ti notifica e gli eventi che segui</string>
+    <string name="settings__notifications_system">Tipi di notifica</string>
+    <string name="settings__notifications_system_summary">Scegli quali ricevere, e come, nelle impostazioni di sistema</string>
+    <string name="settings__notifications_following">Persone che segui</string>
+    <string name="settings__notifications_following_summary">La loro attività ti viene notificata</string>
+    <string name="settings__notifications_events">Eventi seguiti</string>
+    <string name="settings__notifications_events_empty">Nessun evento seguito. Usa «Ricordamelo» nella pagina di un evento in arrivo.</string>
+    <string name="settings__notifications_unfollow">Smetti di seguire</string>
 </resources>

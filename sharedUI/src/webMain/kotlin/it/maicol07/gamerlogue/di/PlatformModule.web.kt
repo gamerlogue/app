@@ -56,6 +56,7 @@ actual object PlatformModule {
     @Single
     actual fun provideLocalNotifier(scope: Scope): LocalNotifier = object : LocalNotifier {
         override val isSupported = false
+        override val openSystemSettings: (() -> Unit)? = null
 
         override suspend fun notify(
             channel: NotificationChannel,

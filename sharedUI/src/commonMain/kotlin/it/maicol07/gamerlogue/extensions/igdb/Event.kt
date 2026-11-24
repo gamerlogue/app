@@ -31,6 +31,10 @@ fun Event.dateTimeRangeLabel(locale: Locale = Locale.current): String {
     return if (end == null) start else "$start - $end"
 }
 
+/** A start stored as epoch seconds, like [dateTimeRangeLabel]'s start, for events kept without their [Event]. */
+fun eventStartLabel(epochSeconds: Long, locale: Locale = Locale.current): String =
+    format(epochSeconds, DateTimePattern, TimeZone.currentSystemDefault(), locale)
+
 /** The year the event starts in, in UTC like [dateRangeLabel], or null when it has no date. */
 fun Event.startYear(): Int? =
     start_time?.let { Instant.fromEpochSeconds(it.getEpochSecond()).toLocalDateTime(TimeZone.UTC).year }

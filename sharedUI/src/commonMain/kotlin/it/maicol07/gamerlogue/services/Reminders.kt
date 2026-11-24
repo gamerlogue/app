@@ -54,6 +54,18 @@ import kotlin.time.Instant
 @Serializable
 data class FollowedEvent(val id: Long, val name: String, val startsAt: Long)
 
+/** The game list scoped to the event, as for an [Event]'s `gamesNavKey`. */
+val FollowedEvent.gamesNavKey: RootNavTree.GameList
+    get() = RootNavTree.GameList(
+        section = null,
+        eventId = id.toInt(),
+        eventName = name,
+        preset = null,
+        libraryStatus = null,
+        libraryUserId = null,
+        pick = null,
+    )
+
 /** When the reminders run: told by [Reminders.watch], each run calls [Reminders.check]. */
 interface ReminderScheduler {
     /** Plans a [Reminders.check] once a day, and one at each of [eventChecks] (epoch seconds). */
@@ -91,6 +103,8 @@ class Reminders(
         saveEvents(events)
     }
 
+    fun unfollow(id: Long) = saveEvents(followedEvents.value - id)
+
     /** Keeps the [scheduler] on the followed events, for as long as it's collected. */
     suspend fun watch(scheduler: ReminderScheduler) {
         if (!isSupported) return
@@ -122,15 +136,7 @@ class Reminders(
                 tag = "reminder.event.${event.id}",
                 title = event.name,
                 text = getString(text, time),
-                target = RootNavTree.GameList(
-                    section = null,
-                    eventId = event.id.toInt(),
-                    eventName = event.name,
-                    preset = null,
-                    libraryStatus = null,
-                    libraryUserId = null,
-                    pick = null,
-                ),
+                target = event.gamesNavKey,
             )
         }
         saveEvents(followedEvents.value - due.map { it.id }.toSet())

@@ -15,6 +15,9 @@ object DesktopNotifier : LocalNotifier {
 
     override val isSupported = isTraySupported
 
+    // ponytail: no link to the OS notification settings (each desktop has its own); the user goes there.
+    override val openSystemSettings: (() -> Unit)? = null
+
     override suspend fun notify(channel: NotificationChannel, tag: String, title: String, text: String, target: NavKey?) =
         tray.sendNotification(Notification(title, text, Notification.Type.Info))
 }

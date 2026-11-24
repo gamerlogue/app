@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -33,6 +34,13 @@ import org.jetbrains.compose.resources.getString
 /** Shows the app's notifications on their system channels; a tap opens the app on the notification's target. */
 class AndroidLocalNotifier(private val context: Context) : LocalNotifier {
     override val isSupported = true
+
+    override val openSystemSettings: () -> Unit = {
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
 
     override suspend fun notify(channel: NotificationChannel, tag: String, title: String, text: String, target: NavKey?) {
         createNotificationChannels(context)

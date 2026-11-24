@@ -1009,4 +1009,13 @@
     <string name="reminders__event_started">Started at %1$s</string>
     <string name="events__reminder_off">Remind me</string>
     <string name="events__reminder_on">Reminder set</string>
+    <string name="settings__notifications">Notifications</string>
+    <string name="settings__notifications_summary">What notifies you, and the events you follow</string>
+    <string name="settings__notifications_system">Notification types</string>
+    <string name="settings__notifications_system_summary">Choose which ones to get, and how, in the system settings</string>
+    <string name="settings__notifications_following">People you follow</string>
+    <string name="settings__notifications_following_summary">Their activity notifies you</string>
+    <string name="settings__notifications_events">Followed events</string>
+    <string name="settings__notifications_events_empty">No followed events. Use “Remind me” on an upcoming event’s page.</string>
+    <string name="settings__notifications_unfollow">Stop following</string>
 </resources>

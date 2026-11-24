@@ -45,6 +45,8 @@ import gamerlogue.sharedui.generated.resources.settings__group_advanced
 import gamerlogue.sharedui.generated.resources.settings__group_app
 import gamerlogue.sharedui.generated.resources.settings__linked_services
 import gamerlogue.sharedui.generated.resources.settings__linked_services_summary
+import gamerlogue.sharedui.generated.resources.settings__notifications
+import gamerlogue.sharedui.generated.resources.settings__notifications_summary
 import gamerlogue.sharedui.generated.resources.settings__server
 import gamerlogue.sharedui.generated.resources.settings__server_summary
 import io.github.fopwoc.nav3ksp.annotation.Branch
@@ -55,9 +57,11 @@ import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.Dow
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.KeyboardArrowRightW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LinkedServicesW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.LogoutW500Rounded
+import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.NotificationsW500Rounded
 import io.github.kingsword09.symbolcraft.symbols.icons.materialsymbols.icons.PaletteW500Rounded
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedColors
 import it.maicol07.gamerlogue.extensions.expressiveSegmentedShapes
+import it.maicol07.gamerlogue.services.Reminders
 import it.maicol07.gamerlogue.ui.components.SectionIcon
 import it.maicol07.gamerlogue.ui.components.layout.LocalSnackbarHostState
 import it.maicol07.gamerlogue.ui.components.layout.ScreenScaffold
@@ -103,15 +107,22 @@ fun SettingsView(
     val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     val exportedMessage = stringResource(Res.string.account__export_done)
+    // Only where the app notifies (not the browser): the screen is about notifications.
+    val notificationsSupported = koinInject<Reminders>().isSupported
     val groups = listOf(
         SettingsGroup(
             Res.string.settings__group_app,
-            listOf(
+            listOfNotNull(
                 SettingsEntry(
                     Res.string.settings__appearance, Res.string.settings__appearance_summary,
                     Icons.PaletteW500Rounded, MaterialShapes.Cookie6Sided, colors.primaryContainer, colors.onPrimaryContainer,
                     { backStack.add(RootNavTree.Appearance) },
                 ),
+                SettingsEntry(
+                    Res.string.settings__notifications, Res.string.settings__notifications_summary,
+                    Icons.NotificationsW500Rounded, MaterialShapes.Sunny, colors.secondaryContainer, colors.onSecondaryContainer,
+                    { backStack.add(RootNavTree.NotificationSettings) },
+                ).takeIf { notificationsSupported },
                 SettingsEntry(
                     Res.string.settings__linked_services, Res.string.settings__linked_services_summary,
                     Icons.LinkedServicesW500Rounded, MaterialShapes.Clover4Leaf, colors.tertiaryContainer, colors.onTertiaryContainer,

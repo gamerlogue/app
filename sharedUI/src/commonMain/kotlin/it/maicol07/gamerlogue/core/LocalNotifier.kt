@@ -34,6 +34,9 @@ interface LocalNotifier {
     /** Whether notifications show at all, so a feature that is only a notification can hide where they don't. */
     val isSupported: Boolean
 
+    /** Opens the system page of the app's notifications (Android: its channels); null where there's none. */
+    val openSystemSettings: (() -> Unit)?
+
     /**
      * Shows one on [channel], in place of the one with the same [tag]. Tapping it opens [target] where the platform
      * tells taps apart (Android); else it just shows.

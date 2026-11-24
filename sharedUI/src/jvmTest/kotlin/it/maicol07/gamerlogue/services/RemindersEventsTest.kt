@@ -39,6 +39,7 @@ private class SignedOut : AuthTokenProvider() {
 private class RecordingNotifier : LocalNotifier {
     val tags = mutableListOf<String>()
     override val isSupported = true
+    override val openSystemSettings: (() -> Unit)? = null
 
     override suspend fun notify(channel: NotificationChannel, tag: String, title: String, text: String, target: NavKey?) {
         tags += tag
