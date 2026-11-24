@@ -395,6 +395,8 @@ symbolCraft {
         "image",
         "lock",
         "notifications",
+        "notification_add",
+        "notifications_active",
         "person_add",
         "person_remove",
         "playlist_add",
