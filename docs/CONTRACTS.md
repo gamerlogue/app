@@ -634,6 +634,7 @@ otherwise). Newest first, standard pagination.
 | `comment_reacted` | the comment's author | `comment` | `reaction`, `reaction_id` |
 | `mention` | each user named `@nickname` in a new comment | `comment` | `comment_id` (the comment) |
 | `followed_user_activity` | each follower of the activity's user | the activity's | `activity_id`, `verb`, `game_id`, `game_name`, `list_name` |
+| `badge_earned` | the user who earned it | null | `badge` (the badge key, as in the `badge_earned` activity) |
 
 Nobody is notified of their own actions, nor by a user they are in a block with. Taking back a
 reaction or deleting a comment deletes its notification; deleting content deletes the
@@ -649,6 +650,9 @@ verbs `completed`, `reviewed` (subject `library_entry`) and `list_created` (subj
 only when the follower can see the subject. `game_name` is the IGDB name for the push body and the
 list; `game_id`/`game_name` are null for `list_created`, `list_name` for the others. Deleting the
 activity deletes these notifications.
+
+**`badge_earned`** (not implemented yet on the server): sent with the `badge_earned` activity, to
+the user who earned the badge; the only type about one's own action, so its `actor` is that user.
 
 ```json
 {"data": [{"id": "9f1c…", "type": "Notification", "attributes": {"type": "review_liked",
@@ -683,6 +687,7 @@ registers one.
   | `new_follower` | `followers` |
   | `mention` | `mentions` |
   | `followed_user_activity` | `following` |
+  | `badge_earned` | `badges` |
   | every other | `social` |
 
   Without one Android uses `social`. Also send the `data` keys `type` (the notification `type`) and
