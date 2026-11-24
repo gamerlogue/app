@@ -203,7 +203,7 @@ private fun Activity.reviewTarget(): NavKey? = subjectId?.let { id ->
 
 /** The badge's name; an unknown key (a badge newer than this app) shows as is. */
 @Composable
-private fun badgeLabel(key: String): String = BadgeLabels[key]?.let { stringResource(it) } ?: key
+internal fun badgeLabel(key: String): String = BadgeLabels[key]?.let { stringResource(it) } ?: key
 
 private val BadgeLabels: Map<String, StringResource> = mapOf(
     "completed_1" to Res.string.badge__completed_1,

@@ -57,7 +57,7 @@ class RemindersEventsTest : StringSpec({
         )
         val settings = MapSettings().apply { putString("reminders.events", Json.encodeToString(events)) }
         val notifier = RecordingNotifier()
-        val reminders = Reminders(settings, NoIgdbCalls, SignedOut(), notifier)
+        val reminders = Reminders(settings, ReleaseReminders(settings, NoIgdbCalls, SignedOut(), notifier), notifier)
 
         reminders.check() shouldBe true
 

@@ -30,6 +30,7 @@ import gamerlogue.sharedui.generated.resources.activity__list_created
 import gamerlogue.sharedui.generated.resources.activity__reviewed
 import gamerlogue.sharedui.generated.resources.activity__unknown_game
 import gamerlogue.sharedui.generated.resources.nav__notifications
+import gamerlogue.sharedui.generated.resources.notifications__badge_earned
 import gamerlogue.sharedui.generated.resources.notifications__comment_reacted
 import gamerlogue.sharedui.generated.resources.notifications__comment_replied
 import gamerlogue.sharedui.generated.resources.notifications__empty
@@ -146,6 +147,7 @@ private fun AppNotification.describe(actor: String): String = when (notification
     "comment_replied" -> stringResource(Res.string.notifications__comment_replied, actor)
     "comment_reacted" -> stringResource(Res.string.notifications__comment_reacted, actor, text("reaction").orEmpty())
     "mention" -> stringResource(Res.string.notifications__mention, actor)
+    "badge_earned" -> stringResource(Res.string.notifications__badge_earned, badgeLabel(text("badge").orEmpty()))
     FOLLOWED_USER_ACTIVITY -> describeActivity(actor)
     else -> stringResource(Res.string.notifications__unknown, actor)
 }

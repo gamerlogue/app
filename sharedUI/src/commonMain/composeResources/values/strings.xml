@@ -1018,4 +1018,11 @@
     <string name="settings__notifications_events">Followed events</string>
     <string name="settings__notifications_events_empty">No followed events. Use “Remind me” on an upcoming event’s page.</string>
     <string name="settings__notifications_unfollow">Stop following</string>
+    <string name="notifications__channel_badges">Badges</string>
+    <string name="notifications__channel_dlc">New DLCs and expansions</string>
+    <string name="notifications__badge_earned">You earned the badge %1$s</string>
+    <string name="reminders__release_soon">Out on %1$s, in a week</string>
+    <string name="reminders__release_delayed">Release delayed to %1$s</string>
+    <string name="reminders__release_earlier">Release moved up to %1$s</string>
+    <string name="reminders__dlc">New content for %1$s, in your library</string>
 </resources>

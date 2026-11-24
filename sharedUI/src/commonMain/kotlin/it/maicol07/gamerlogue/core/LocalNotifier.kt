@@ -13,7 +13,9 @@ enum class NotificationChannel(val id: String) {
     FOLLOWERS("followers"),
     MENTIONS("mentions"),
     FOLLOWING("following"),
+    BADGES("badges"),
     RELEASES("releases"),
+    DLC("dlc"),
     EVENTS("events"),
     SYNC("sync"),
     SYNC_LOGIN("sync_login");
@@ -24,6 +26,7 @@ enum class NotificationChannel(val id: String) {
             "new_follower" -> FOLLOWERS
             "mention" -> MENTIONS
             "followed_user_activity" -> FOLLOWING
+            "badge_earned" -> BADGES
             else -> SOCIAL
         }
     }

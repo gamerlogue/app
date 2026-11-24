@@ -13,6 +13,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation3.runtime.NavKey
 import gamerlogue.sharedui.generated.resources.Res
+import gamerlogue.sharedui.generated.resources.notifications__channel_badges
+import gamerlogue.sharedui.generated.resources.notifications__channel_dlc
 import gamerlogue.sharedui.generated.resources.notifications__channel_events
 import gamerlogue.sharedui.generated.resources.notifications__channel_followers
 import gamerlogue.sharedui.generated.resources.notifications__channel_following
@@ -78,7 +80,9 @@ private fun NotificationChannel.label(): StringResource = when (this) {
     NotificationChannel.FOLLOWERS -> Res.string.notifications__channel_followers
     NotificationChannel.MENTIONS -> Res.string.notifications__channel_mentions
     NotificationChannel.FOLLOWING -> Res.string.notifications__channel_following
+    NotificationChannel.BADGES -> Res.string.notifications__channel_badges
     NotificationChannel.RELEASES -> Res.string.notifications__channel_releases
+    NotificationChannel.DLC -> Res.string.notifications__channel_dlc
     NotificationChannel.EVENTS -> Res.string.notifications__channel_events
     NotificationChannel.SYNC -> Res.string.sync__notification_channel
     NotificationChannel.SYNC_LOGIN -> Res.string.sync__notification_channel_login

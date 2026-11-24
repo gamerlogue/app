@@ -1026,4 +1026,11 @@
     <string name="settings__notifications_events">Eventi seguiti</string>
     <string name="settings__notifications_events_empty">Nessun evento seguito. Usa «Ricordamelo» nella pagina di un evento in arrivo.</string>
     <string name="settings__notifications_unfollow">Smetti di seguire</string>
+    <string name="notifications__channel_badges">Badge</string>
+    <string name="notifications__channel_dlc">Nuovi DLC ed espansioni</string>
+    <string name="notifications__badge_earned">Hai ottenuto il badge %1$s</string>
+    <string name="reminders__release_soon">Esce il %1$s, tra una settimana</string>
+    <string name="reminders__release_delayed">Uscita rinviata al %1$s</string>
+    <string name="reminders__release_earlier">Uscita anticipata al %1$s</string>
+    <string name="reminders__dlc">Nuovo contenuto per %1$s, che hai in libreria</string>
 </resources>
